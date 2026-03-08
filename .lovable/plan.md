@@ -1,46 +1,32 @@
 
 
-## Stripe Account Migration — Code Update Plan
+## Problem
 
-### What's Done
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
-The Stripe account has been successfully switched from the old sandbox account (`acct_1SEwpx3EeswiMlDC`) to your correct account **Chravel, Inc** (`acct_1SEwpl47wCAQ57Mm` / christian@chravelapp.com).
+## Changes
 
-All products and prices have been created on the new account:
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-| Product | Product ID | Monthly Price | Annual Price |
-|---------|-----------|---------------|-------------|
-| Explorer | `prod_U73VxEnvEHbBrx` | `price_1T8pOc47wCAQ57MmWsPX3Jku` | `price_1T8pOl47wCAQ57MmDT7uefS7` |
-| Frequent Chraveler | `prod_U73VfiKf3VrJKf` | `price_1T8pOd47wCAQ57MmIrACPNpc` | `price_1T8pOl47wCAQ57MmrhqSZM2j` |
-| Starter Pro | `prod_U73Vlcl4lqgsb4` | `price_1T8pOe47wCAQ57MmkShIK75i` | — |
-| Growth Pro | `prod_U73VPX6TlClQ7J` | `price_1T8pOf47wCAQ57Mm5k8uVQrW` | — |
-| Enterprise | `prod_U73Vd6QW4pEY9x` | `price_1T8pOg47wCAQ57MmcEPnjd3s` | — |
-| Explorer Trip Pass (45d) | `prod_U73WaALe9yjrAR` | `price_1T8pP047wCAQ57Mm6sfNTg2w` | — |
-| FC Trip Pass (90d) | `prod_U73W99ebeJvbLB` | `price_1T8pP047wCAQ57Mm2DOch99F` | — |
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-### What Needs Updating (Code Changes)
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
 
-**File 1: `src/constants/stripe.ts`**
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
+```
 
-Replace all old product/price IDs with the new ones listed above:
-- Explorer: product_id, monthly price_id, annual price_id
-- Frequent Chraveler: product_id, monthly price_id, annual price_id  
-- Starter Pro: product_id, price_id
-- Growth Pro: product_id, price_id
-- Enterprise: product_id, price_id
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
+```
 
-**File 2: `src/billing/config.ts`**
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
 
-Replace all old Stripe product/price IDs:
-- `consumer-explorer`: stripeProductId → `prod_U73VxEnvEHbBrx`, monthly → `price_1T8pOc47wCAQ57MmWsPX3Jku`, annual → `price_1T8pOl47wCAQ57MmDT7uefS7`
-- `consumer-frequent-chraveler`: stripeProductId → `prod_U73VfiKf3VrJKf`, monthly → `price_1T8pOd47wCAQ57MmIrACPNpc`, annual → `price_1T8pOl47wCAQ57MmrhqSZM2j`
-- Remove `consumer-plus` legacy entry (old account product, no longer valid)
-- `pro-starter`: stripeProductId → `prod_U73Vlcl4lqgsb4`, monthly → `price_1T8pOe47wCAQ57MmkShIK75i`
-- `pro-growth`: stripeProductId → `prod_U73VPX6TlClQ7J`, monthly → `price_1T8pOf47wCAQ57Mm5k8uVQrW`
-- `pro-enterprise`: stripeProductId → `prod_U73Vd6QW4pEY9x`, monthly → `price_1T8pOg47wCAQ57MmcEPnjd3s`
-- Trip Pass products: Explorer → `prod_U73WaALe9yjrAR`/`price_1T8pP047wCAQ57Mm6sfNTg2w`, FC → `prod_U73W99ebeJvbLB`/`price_1T8pP047wCAQ57Mm2DOch99F`
-
-### Note on Build Errors
-
-The existing build errors in the output are in `supabase/functions/gmail-import-worker/index.ts` and `supabase/functions/join-trip/index.ts` — these are pre-existing type issues unrelated to this Stripe migration. They will not be affected by these changes.
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 

@@ -39,9 +39,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'consumer-explorer': {
     name: 'Explorer',
-    stripeProductId: 'prod_Tc0SWNhLkoCDIi',
-    stripePriceIdMonthly: 'price_1RXJvGAedhHV8iZ8ZiZdMQGP',
-    stripePriceIdAnnual: 'price_1RXJvGAedhHV8iZ8wILOZyb0',
+    stripeProductId: 'prod_U73VxEnvEHbBrx',
+    stripePriceIdMonthly: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
+    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmDT7uefS7',
     appleProductIdMonthly: 'com.chravel.explorer.monthly', // TODO: Create in App Store Connect
     appleProductIdAnnual: 'com.chravel.explorer.annual',
     googleProductIdMonthly: 'com.chravel.explorer.monthly',
@@ -61,9 +61,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'consumer-frequent-chraveler': {
     name: 'Frequent Chraveler',
-    stripeProductId: 'prod_Tc0WEzRDTCkfPM',
-    stripePriceIdMonthly: 'price_1RXJzNAedhHV8iZ8Hpu8ajwX',
-    stripePriceIdAnnual: 'price_1RXJzNAedhHV8iZ8tKLQSBMX',
+    stripeProductId: 'prod_U73VfiKf3VrJKf',
+    stripePriceIdMonthly: 'price_1T8pOd47wCAQ57MmIrACPNpc',
+    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmrhqSZM2j',
     appleProductIdMonthly: 'com.chravel.frequentchraveler.monthly',
     appleProductIdAnnual: 'com.chravel.frequentchraveler.annual',
     googleProductIdMonthly: 'com.chravel.frequentchraveler.monthly',
@@ -85,20 +85,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     ],
   },
 
-  // Legacy Plus tier (maps to Explorer)
-  'consumer-plus': {
-    name: 'Plus (Legacy)',
-    stripeProductId: 'prod_SffF8X29utfVPM',
-    stripePriceIdMonthly: 'price_1QMTQ6AedhHV8iZ8Y2WGYlQJ',
-    requiresIAPOnIOS: true,
-    priceMonthly: 4.99,
-    entitlements: [
-      'ai_queries_extended',
-      'trips_extended',
-      'storage_extended',
-      'payments_extended',
-    ],
-  },
+  // Legacy Plus tier removed — old account product no longer valid
 
   // ============================================
   // PRO PLANS - CAN use web checkout (B2B exception)
@@ -106,9 +93,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'pro-starter': {
     name: 'Starter Pro',
-    stripeProductId: 'prod_Tc0YVR1N0fmtDG',
-    stripePriceIdMonthly: 'price_1RXK1sAedhHV8iZ8S74oKAqG',
-    stripePriceIdAnnual: 'price_1RXK1sAedhHV8iZ80l3YE1kv',
+    stripeProductId: 'prod_U73Vlcl4lqgsb4',
+    stripePriceIdMonthly: 'price_1T8pOe47wCAQ57MmkShIK75i',
+    stripePriceIdAnnual: 'price_1T8pOe47wCAQ57MmkShIK75i', // Pro plans monthly only
     requiresIAPOnIOS: false, // B2B exception
     priceMonthly: 49,
     priceAnnual: 490,
@@ -129,9 +116,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'pro-growth': {
     name: 'Growth Pro',
-    stripeProductId: 'prod_Tc0afc0pIUt87D',
-    stripePriceIdMonthly: 'price_1RXK3dAedhHV8iZ8dn9vGqWN',
-    stripePriceIdAnnual: 'price_1RXK3dAedhHV8iZ8S7m10o6j',
+    stripeProductId: 'prod_U73VPX6TlClQ7J',
+    stripePriceIdMonthly: 'price_1T8pOf47wCAQ57Mm5k8uVQrW',
+    stripePriceIdAnnual: 'price_1T8pOf47wCAQ57Mm5k8uVQrW', // Pro plans monthly only
     requiresIAPOnIOS: false,
     priceMonthly: 99,
     priceAnnual: 990,
@@ -155,9 +142,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'pro-enterprise': {
     name: 'Pro Enterprise',
-    stripeProductId: 'prod_Tc0cJshKNpvxV0',
-    stripePriceIdMonthly: 'price_1RXK58AedhHV8iZ8GJHNqvld',
-    stripePriceIdAnnual: 'price_1RXK58AedhHV8iZ8mcfvfYUy',
+    stripeProductId: 'prod_U73Vd6QW4pEY9x',
+    stripePriceIdMonthly: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
+    stripePriceIdAnnual: 'price_1T8pOg47wCAQ57MmcEPnjd3s', // Pro plans monthly only
     requiresIAPOnIOS: false,
     priceMonthly: 199,
     priceAnnual: 1990,
@@ -199,8 +186,8 @@ export interface TripPassConfig {
 export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
   'pass-explorer-45': {
     name: 'Explorer Trip Pass (45 days)',
-    stripeProductId: 'prod_Tx0AZIWAubAWD3',
-    stripePriceId: 'price_1T7P2i3EeswiMlDCwWK11oDt',
+    stripeProductId: 'prod_U73WaALe9yjrAR',
+    stripePriceId: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
     durationDays: 45,
     tier: 'explorer',
     price: 39.99,
@@ -208,8 +195,8 @@ export const TRIP_PASS_PRODUCTS: Record<string, TripPassConfig> = {
   },
   'pass-frequent-90': {
     name: 'Frequent Chraveler Trip Pass (90 days)',
-    stripeProductId: 'prod_Tx0Ap1aT22IGl2',
-    stripePriceId: 'price_1Sz6A63EeswiMlDCGFASMBft',
+    stripeProductId: 'prod_U73W99ebeJvbLB',
+    stripePriceId: 'price_1T8pP047wCAQ57Mm2DOch99F',
     durationDays: 90,
     tier: 'frequent-chraveler',
     price: 74.99,

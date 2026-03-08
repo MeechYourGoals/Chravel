@@ -31,13 +31,13 @@ export const CONSUMER_PLANS = {
   explorer: {
     name: 'Explorer',
     tier: 'explorer',
-    product_id: 'prod_Tc0SWNhLkoCDIi',
+    product_id: 'prod_U73VxEnvEHbBrx',
     monthly: {
-      price_id: 'price_1SemRq3EeswiMlDC9yP0Dh5G',
+      price_id: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
       amount: 999, // $9.99 in cents
     },
     annual: {
-      price_id: 'price_1SemRq3EeswiMlDCi0syvI3f',
+      price_id: 'price_1T8pOl47wCAQ57MmDT7uefS7',
       amount: 9900, // $99.00 in cents
     },
     features: {
@@ -49,13 +49,13 @@ export const CONSUMER_PLANS = {
   'frequent-chraveler': {
     name: 'Frequent Chraveler',
     tier: 'frequent-chraveler',
-    product_id: 'prod_Tc0WEzRDTCkfPM',
+    product_id: 'prod_U73VfiKf3VrJKf',
     monthly: {
-      price_id: 'price_1SemV13EeswiMlDC2ykNdrif',
+      price_id: 'price_1T8pOd47wCAQ57MmIrACPNpc',
       amount: 1999, // $19.99 in cents
     },
     annual: {
-      price_id: 'price_1SemV13EeswiMlDC2P2126NY',
+      price_id: 'price_1T8pOl47wCAQ57MmrhqSZM2j',
       amount: 19900, // $199.00 in cents
     },
     features: {
@@ -76,24 +76,24 @@ export const PRO_PLANS = {
   starter: {
     name: 'Starter Pro',
     tier: 'pro-starter',
-    product_id: 'prod_Tc0YVR1N0fmtDG',
-    price_id: 'price_1SemXF3EeswiMlDCL1Unj0Er',
+    product_id: 'prod_U73Vlcl4lqgsb4',
+    price_id: 'price_1T8pOe47wCAQ57MmkShIK75i',
     amount: 4900, // $49/mo in cents
     memberLimit: 50,
   },
   growth: {
     name: 'Growth Pro',
     tier: 'pro-growth',
-    product_id: 'prod_Tc0afc0pIUt87D',
-    price_id: 'price_1SemYw3EeswiMlDCv27XvDMY',
+    product_id: 'prod_U73VPX6TlClQ7J',
+    price_id: 'price_1T8pOf47wCAQ57Mm5k8uVQrW',
     amount: 9900, // $99/mo in cents
     memberLimit: 100,
   },
   enterprise: {
     name: 'Enterprise',
     tier: 'pro-enterprise',
-    product_id: 'prod_Tc0cJshKNpvxV0',
-    price_id: 'price_1Semar3EeswiMlDCmEPBAvIt',
+    product_id: 'prod_U73Vd6QW4pEY9x',
+    price_id: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
     amount: 19900, // $199/mo in cents
     memberLimit: 250,
   },
