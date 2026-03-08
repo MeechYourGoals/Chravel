@@ -1,67 +1,88 @@
 
 
-## Root Cause Analysis
+## Problem
 
-The card order inconsistency has **one core bug** with two contributing factors:
+Two color inconsistencies:
 
-### Bug: Race condition — remote order arrives too late, never re-applied
+1. **Calendar dates with events** use `hsl(var(--primary) / 0.3)` (a muted HSL color) instead of the metallic gold palette. The selected date uses `bg-gold-primary` (flat fill). These don't match the premium gradient border seen on the Concierge tab.
 
-Here's what happens on login:
+2. **CTA buttons** (Search, Upload, Send, Waveform) use a flat `border-2 border-gold-primary/60` but the Concierge tab's active border uses `accent-ring-active` — a CSS gradient border (`linear-gradient(135deg, #533517 0%, #c49746 40%, #feeaa5 70%, #c49746 100%)`). The CTA buttons should use this same gradient border treatment.
 
-```text
-Timeline:
-  t0  Component mounts → useEffect kicks off fetchRemoteOrder (async)
-  t1  Items arrive from React Query → applyOrder runs
-      → remoteOrderRef.current is still null
-      → Falls back to localStorage (stale, device-specific)
-      → Cards render in WRONG order
-  t2  fetchRemoteOrder resolves → sets remoteOrderRef.current
-      → But remoteOrderRef is a React ref — NO re-render triggered
-      → Cards stay in wrong order until next navigation
+## Changes
+
+### 1. Calendar event-highlighted dates — `src/components/GroupCalendar.tsx` (line 322)
+
+Replace the `hasEvents` modifier style from `hsl(var(--primary))` to gold:
+
+```tsx
+// Before
+backgroundColor: 'hsl(var(--primary) / 0.3)',
+color: 'hsl(var(--primary-foreground))',
+
+// After  
+backgroundColor: 'rgba(196, 151, 70, 0.3)',
+color: '#feeaa5',
 ```
 
-Because `remoteOrderRef` is a ref (not state), the component never re-renders when the correct remote order arrives. The cards are stuck in whatever order localStorage had — which is device-specific and often stale.
+### 2. Mobile calendar — `src/components/mobile/MobileGroupCalendar.tsx`
 
-### Contributing factor: Module-level debounce timer
+**Compact view selected date** (line 511): `bg-primary text-primary-foreground` → `bg-gold-primary text-black`
 
-There's a single `upsertTimer` variable shared across all hook instances. If a user switches between My Trips → Pro → Events quickly, the debounce timers clobber each other, potentially dropping saves.
+**Compact view today** (line 513): `bg-primary/20 text-primary` → `bg-gold-primary/20 text-gold-light`
 
-### Contributing factor: Silent upsert failures
+**Compact view event dot** (line 520): `bg-primary` → `bg-gold-primary`
 
-The `catch {}` block in `debouncedUpsert` swallows all errors. If the upsert fails (network, RLS, etc.), the user has no idea their reorder didn't persist.
+**Grid view today text** (line 602): `text-primary` → `text-gold-primary`
 
----
+### 3. CTA buttons get gradient border — `src/lib/ctaButtonStyles.ts`
 
-## Fix Plan
+Replace the flat `border-2 border-gold-primary/60` with the `accent-ring-active`-style gradient border. Since these are round buttons, the cleanest approach is to apply the same `::before` pseudo-element technique. However, since these are Tailwind utility strings composed in JS, we'll use a CSS class instead:
 
-### 1. Convert `remoteOrderRef` to state so remote fetch triggers re-render
+**New CSS class** in `src/index.css` (after the existing accent-ring section):
 
-Replace `remoteOrderRef` with a `useState<string[] | null>` so that when the remote order arrives, `applyOrder` re-runs via its dependency and the grid re-renders with the correct order.
+```css
+/* CTA button gold gradient ring (matches accent-ring-active gradient) */
+.cta-gold-ring {
+  position: relative;
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+  box-shadow: 0 0 8px rgba(196, 151, 70, 0.15);
+}
+.cta-gold-ring::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, #533517 0%, #c49746 40%, #feeaa5 70%, #c49746 100%);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+```
 
-### 2. Make `applyOrder` depend on remote order state
+**Update `CTA_GRADIENT`** in `src/lib/ctaButtonStyles.ts`:
 
-Update the `applyOrder` callback to include `remoteOrder` in its closure/deps, so it uses the freshest data.
+```ts
+// Before
+'bg-gray-800/80 text-white border-2 border-gold-primary/60 shadow-[0_0_8px_rgba(196,151,70,0.15)]'
 
-### 3. In `SortableTripGrid`, re-apply order when `applyOrder` identity changes
+// After
+'bg-gray-800/80 text-white cta-gold-ring'
+```
 
-The existing `useEffect` already depends on `applyOrder`, so once `applyOrder` gets a new identity from the state change, the grid will re-sort automatically.
+This makes the Search, Upload, Send, and Waveform buttons use the exact same metallic gold gradient border as the Concierge tab selection ring.
 
-### 4. Scope debounce timer per hook instance
+### 4. Desktop calendar `day_selected` — `src/components/ui/calendar.tsx` (line 38)
 
-Move `upsertTimer` into a `useRef` so each dashboard type gets its own independent debounce.
+Already uses `bg-gold-primary` which is correct for selected state. No change needed.
 
-### 5. Add error logging for failed upserts
+## Summary
 
-Log upsert failures so we can diagnose persistence issues.
-
----
-
-## Files Changed
-
-- `src/hooks/useDashboardCardOrder.ts` — All changes are in this single file
-
-## Risk
-
-- **Low**: Single-file change, no schema changes, no RLS changes.
-- The fix makes the existing Supabase fetch actually take effect in the UI.
+- 5 files touched
+- Calendar dates align to gold palette
+- CTA buttons get the same gradient border as Concierge tab
+- All gold accents now share the same gradient source: `#533517 → #c49746 → #feeaa5 → #c49746`
 
