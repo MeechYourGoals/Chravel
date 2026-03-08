@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
+  CalendarDays,
   MapPin,
   Users,
   MoreHorizontal,
@@ -12,6 +12,7 @@ import {
   FileDown,
   Share2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
 import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
