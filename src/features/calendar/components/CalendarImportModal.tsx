@@ -638,7 +638,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
           {/* ── Importing State ── */}
           {state === 'importing' && (
             <div className="flex flex-col items-center justify-center py-12 px-4 w-full max-w-sm mx-auto">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gold-primary mb-4" />
               <p className="text-muted-foreground mb-3 text-center">
                 {importingProgress.total > 0
                   ? `Importing ${importingProgress.completed}/${importingProgress.total} events`

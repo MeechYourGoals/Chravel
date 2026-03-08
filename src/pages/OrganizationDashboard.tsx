@@ -400,7 +400,7 @@ export const OrganizationDashboard = () => {
           <TabsContent value="trips" className="mt-6">
             {loadingTrips ? (
               <div className="text-center py-12">
-                <div className="w-12 h-12 border-4 border-glass-orange border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <div className="w-12 h-12 border-4 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-gray-400">Loading trips...</p>
               </div>
             ) : linkedTrips.length === 0 ? (
