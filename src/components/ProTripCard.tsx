@@ -356,39 +356,11 @@ export const ProTripCard = ({
 
       {/* Content Section */}
       <div className="p-4 md:p-6">
-        {/* Stats Row - Matches TripCard exactly */}
+        {/* Stats Row - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <Users size={12} className="text-white/50" />
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {formatPeopleCount(totalPeopleCount)}
-            </div>
-            <div className="text-xs md:text-sm text-white/60">People</div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <CalendarDays size={12} className="text-white/50" />
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {calculateDaysCount(trip.dateRange)}
-            </div>
-            <div className="text-xs md:text-sm text-white/60">Days</div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <MapPin size={12} className="text-white/50" />
-            </div>
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {trip.placesCount != null
-                ? trip.placesCount > 0
-                  ? trip.placesCount.toString()
-                  : '—'
-                : calculateProTripPlacesCount(trip)}
-            </div>
-            <div className="text-xs md:text-sm text-white/60">Places</div>
-          </div>
+          <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
+          <CardStatItem icon={CalendarDays} value={calculateDaysCount(trip.dateRange)} label="Days" />
+          <CardStatItem icon={MapPin} value={trip.placesCount != null ? (trip.placesCount > 0 ? trip.placesCount.toString() : '—') : calculateProTripPlacesCount(trip)} label="Places" />
         </div>
 
         {/* CTA Grid 2x2 - Matches TripCard order: Recap/Invite top, View/Share bottom */}
