@@ -4,20 +4,25 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 
-// ── Vertex AI configuration ──
+// ── Vertex AI configuration (production-only provider) ──
 const VERTEX_PROJECT_ID = Deno.env.get('VERTEX_PROJECT_ID');
 const VERTEX_LOCATION = Deno.env.get('VERTEX_LOCATION') || 'us-central1';
 const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
 
-// Legacy AI Studio fallback (kept for rollback via VOICE_PROVIDER=ai_studio)
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const VOICE_PROVIDER = (Deno.env.get('VOICE_PROVIDER') || 'vertex').toLowerCase();
-
-// GA model for Vertex AI Live API
+// GA model for Vertex AI Live API — gemini-live-2.5-flash-native-audio
+// The old preview model (gemini-live-2.5-flash-preview-native-audio-09-2025) is deprecated.
 const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
-// Legacy AI Studio model (only used if VOICE_PROVIDER=ai_studio)
-const AI_STUDIO_LIVE_MODEL =
-  Deno.env.get('GEMINI_LIVE_MODEL') || 'gemini-2.5-flash-native-audio-preview-12-2025';
+
+// Feature flag: include tool declarations in setup message.
+// Set to 'true' after verifying minimal handshake works without tools.
+const VOICE_TOOLS_ENABLED =
+  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
+
+// Feature flags for preview capabilities (not part of GA handshake)
+const VOICE_AFFECTIVE_DIALOG =
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
+const VOICE_PROACTIVE_AUDIO =
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -25,20 +30,24 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 const DEFAULT_VOICE = 'Charon';
 
-/** Function declarations for Gemini Live tool use */
+/**
+ * Function declarations for Gemini Live tool use.
+ * Uses lowercase OpenAPI-style types (object, string, number, boolean, array)
+ * per Vertex AI Live API function declaration schema.
+ */
 const VOICE_FUNCTION_DECLARATIONS = [
   {
     name: 'addToCalendar',
     description: 'Add an event to the trip calendar',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        title: { type: 'STRING', description: 'Event title' },
-        datetime: { type: 'STRING', description: 'ISO 8601 datetime string' },
-        location: { type: 'STRING', description: 'Event location (optional)' },
-        notes: { type: 'STRING', description: 'Event notes (optional)' },
+        title: { type: 'string', description: 'Event title' },
+        datetime: { type: 'string', description: 'ISO 8601 datetime string' },
+        location: { type: 'string', description: 'Event location (optional)' },
+        notes: { type: 'string', description: 'Event notes (optional)' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -49,14 +58,14 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'createTask',
     description: 'Create a task for the trip group',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        title: { type: 'STRING', description: 'Task title/description' },
-        notes: { type: 'STRING', description: 'Additional task notes (optional)' },
-        assignee: { type: 'STRING', description: 'Assignee user ID (optional)' },
-        dueDate: { type: 'STRING', description: 'Due date in ISO format (optional)' },
+        title: { type: 'string', description: 'Task title/description' },
+        notes: { type: 'string', description: 'Additional task notes (optional)' },
+        assignee: { type: 'string', description: 'Assignee user ID (optional)' },
+        dueDate: { type: 'string', description: 'Due date in ISO format (optional)' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -67,16 +76,16 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'createPoll',
     description: 'Create a poll for the group to vote on',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        question: { type: 'STRING', description: 'Poll question' },
+        question: { type: 'string', description: 'Poll question' },
         options: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
+          type: 'array',
+          items: { type: 'string' },
           description: 'Poll options (2-6 choices)',
         },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -87,13 +96,13 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'searchPlaces',
     description: 'Search for nearby places like restaurants, hotels, or attractions',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        query: { type: 'STRING', description: 'Search query (e.g. "Italian restaurant")' },
-        nearLat: { type: 'NUMBER', description: 'Latitude to search near (optional)' },
-        nearLng: { type: 'NUMBER', description: 'Longitude to search near (optional)' },
+        query: { type: 'string', description: 'Search query (e.g. "Italian restaurant")' },
+        nearLat: { type: 'number', description: 'Latitude to search near (optional)' },
+        nearLng: { type: 'number', description: 'Longitude to search near (optional)' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -103,17 +112,17 @@ const VOICE_FUNCTION_DECLARATIONS = [
   {
     name: 'getPaymentSummary',
     description: 'Get a summary of who owes money to whom in the trip',
-    parameters: { type: 'OBJECT', properties: {} },
+    parameters: { type: 'object', properties: {} },
   },
   {
     name: 'getDirectionsETA',
     description: 'Get driving directions, travel time, and distance between two locations.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        origin: { type: 'STRING', description: 'Starting address or place name' },
-        destination: { type: 'STRING', description: 'Destination address or place name' },
-        departureTime: { type: 'STRING', description: 'Optional ISO 8601 departure time' },
+        origin: { type: 'string', description: 'Starting address or place name' },
+        destination: { type: 'string', description: 'Destination address or place name' },
+        departureTime: { type: 'string', description: 'Optional ISO 8601 departure time' },
       },
       required: ['origin', 'destination'],
     },
@@ -122,10 +131,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'getTimezone',
     description: 'Get the time zone for a geographic location.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        lat: { type: 'NUMBER', description: 'Latitude' },
-        lng: { type: 'NUMBER', description: 'Longitude' },
+        lat: { type: 'number', description: 'Latitude' },
+        lng: { type: 'number', description: 'Longitude' },
       },
       required: ['lat', 'lng'],
     },
@@ -134,9 +143,9 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'getPlaceDetails',
     description: 'Get detailed info about a specific place.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        placeId: { type: 'STRING', description: 'Google Places ID' },
+        placeId: { type: 'string', description: 'Google Places ID' },
       },
       required: ['placeId'],
     },
@@ -145,10 +154,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'searchImages',
     description: 'Search for images on the web.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        query: { type: 'STRING', description: 'Image search query' },
-        count: { type: 'NUMBER', description: 'Number of images (max 10, default 5)' },
+        query: { type: 'string', description: 'Image search query' },
+        count: { type: 'number', description: 'Number of images (max 10, default 5)' },
       },
       required: ['query'],
     },
@@ -157,11 +166,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'getStaticMapUrl',
     description: 'Generate a map image showing a location or route.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        center: { type: 'STRING', description: 'Address or "lat,lng"' },
-        zoom: { type: 'NUMBER', description: 'Zoom level 1-20 (default 13)' },
-        markers: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Marker locations' },
+        center: { type: 'string', description: 'Address or "lat,lng"' },
+        zoom: { type: 'number', description: 'Zoom level 1-20 (default 13)' },
+        markers: { type: 'array', items: { type: 'string' }, description: 'Marker locations' },
       },
       required: ['center'],
     },
@@ -170,10 +179,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'searchWeb',
     description: 'Search the web for real-time information.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        query: { type: 'STRING', description: 'Search query' },
-        count: { type: 'NUMBER', description: 'Number of results (max 10, default 5)' },
+        query: { type: 'string', description: 'Search query' },
+        count: { type: 'number', description: 'Number of results (max 10, default 5)' },
       },
       required: ['query'],
     },
@@ -182,15 +191,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'getDistanceMatrix',
     description: 'Get travel times and distances from multiple origins to multiple destinations.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        origins: { type: 'ARRAY', items: { type: 'STRING' }, description: 'Starting addresses' },
+        origins: { type: 'array', items: { type: 'string' }, description: 'Starting addresses' },
         destinations: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
+          type: 'array',
+          items: { type: 'string' },
           description: 'Destination addresses',
         },
-        mode: { type: 'STRING', description: 'Travel mode: driving, walking, bicycling, transit' },
+        mode: { type: 'string', description: 'Travel mode: driving, walking, bicycling, transit' },
       },
       required: ['origins', 'destinations'],
     },
@@ -199,8 +208,8 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'validateAddress',
     description: 'Validate and clean up an address.',
     parameters: {
-      type: 'OBJECT',
-      properties: { address: { type: 'STRING', description: 'Address to validate' } },
+      type: 'object',
+      properties: { address: { type: 'string', description: 'Address to validate' } },
       required: ['address'],
     },
   },
@@ -208,17 +217,17 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'savePlace',
     description: 'Save a place or link to the trip Places/Explore section.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        name: { type: 'STRING', description: 'Name of the place or link' },
-        url: { type: 'STRING', description: 'URL for the place/link (optional)' },
-        description: { type: 'STRING', description: 'Short reason to save (optional)' },
+        name: { type: 'string', description: 'Name of the place or link' },
+        url: { type: 'string', description: 'URL for the place/link (optional)' },
+        description: { type: 'string', description: 'Short reason to save (optional)' },
         category: {
-          type: 'STRING',
+          type: 'string',
           description: 'attraction, accommodation, activity, appetite, or other',
         },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -229,15 +238,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'setBasecamp',
     description: 'Set the trip or personal basecamp accommodation.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        scope: { type: 'STRING', description: 'trip or personal' },
-        name: { type: 'STRING', description: 'Hotel/accommodation name' },
-        address: { type: 'STRING', description: 'Address (optional)' },
-        lat: { type: 'NUMBER', description: 'Latitude (optional)' },
-        lng: { type: 'NUMBER', description: 'Longitude (optional)' },
+        scope: { type: 'string', description: 'trip or personal' },
+        name: { type: 'string', description: 'Hotel/accommodation name' },
+        address: { type: 'string', description: 'Address (optional)' },
+        lat: { type: 'number', description: 'Latitude (optional)' },
+        lng: { type: 'number', description: 'Longitude (optional)' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -248,22 +257,22 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'addToAgenda',
     description: 'Add an item/session to an event agenda.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        eventId: { type: 'STRING', description: 'Parent event ID' },
-        title: { type: 'STRING', description: 'Agenda item title' },
-        description: { type: 'STRING', description: 'Agenda notes (optional)' },
-        sessionDate: { type: 'STRING', description: 'Session date (YYYY-MM-DD)' },
-        startTime: { type: 'STRING', description: 'Start time (HH:MM)' },
-        endTime: { type: 'STRING', description: 'End time (HH:MM)' },
-        location: { type: 'STRING', description: 'Room/location (optional)' },
+        eventId: { type: 'string', description: 'Parent event ID' },
+        title: { type: 'string', description: 'Agenda item title' },
+        description: { type: 'string', description: 'Agenda notes (optional)' },
+        sessionDate: { type: 'string', description: 'Session date (YYYY-MM-DD)' },
+        startTime: { type: 'string', description: 'Start time (HH:MM)' },
+        endTime: { type: 'string', description: 'End time (HH:MM)' },
+        location: { type: 'string', description: 'Room/location (optional)' },
         speakers: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
+          type: 'array',
+          items: { type: 'string' },
           description: 'Speaker or performer names',
         },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -274,13 +283,13 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'searchFlights',
     description: 'Search flights and return Google Flights deeplinks.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        origin: { type: 'STRING', description: 'Origin airport code/city' },
-        destination: { type: 'STRING', description: 'Destination airport code/city' },
-        departureDate: { type: 'STRING', description: 'Departure date YYYY-MM-DD' },
-        returnDate: { type: 'STRING', description: 'Optional return date YYYY-MM-DD' },
-        passengers: { type: 'NUMBER', description: 'Passenger count (optional)' },
+        origin: { type: 'string', description: 'Origin airport code/city' },
+        destination: { type: 'string', description: 'Destination airport code/city' },
+        departureDate: { type: 'string', description: 'Departure date YYYY-MM-DD' },
+        returnDate: { type: 'string', description: 'Optional return date YYYY-MM-DD' },
+        passengers: { type: 'number', description: 'Passenger count (optional)' },
       },
       required: ['origin', 'destination', 'departureDate'],
     },
@@ -290,15 +299,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     description:
       'Emit Smart Import preview events extracted from attached docs before calendar write.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
         events: {
-          type: 'ARRAY',
-          items: { type: 'OBJECT' },
+          type: 'array',
+          items: { type: 'object' },
           description: 'Array of extracted event objects',
         },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -309,15 +318,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'emitReservationDraft',
     description: 'Create a reservation draft card for explicit booking intents.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        placeQuery: { type: 'STRING', description: 'Venue or restaurant name' },
-        startTimeISO: { type: 'STRING', description: 'Requested reservation datetime ISO' },
-        partySize: { type: 'NUMBER', description: 'Party size (optional)' },
-        reservationName: { type: 'STRING', description: 'Reservation name (optional)' },
-        notes: { type: 'STRING', description: 'Reservation notes (optional)' },
+        placeQuery: { type: 'string', description: 'Venue or restaurant name' },
+        startTimeISO: { type: 'string', description: 'Requested reservation datetime ISO' },
+        partySize: { type: 'number', description: 'Party size (optional)' },
+        reservationName: { type: 'string', description: 'Reservation name (optional)' },
+        notes: { type: 'string', description: 'Reservation notes (optional)' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -328,16 +337,16 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'updateCalendarEvent',
     description: 'Update an existing trip calendar event.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        eventId: { type: 'STRING', description: 'ID of the event to update' },
-        title: { type: 'STRING', description: 'New event title' },
-        datetime: { type: 'STRING', description: 'New start time in ISO 8601' },
-        endDatetime: { type: 'STRING', description: 'New end time in ISO 8601' },
-        location: { type: 'STRING', description: 'New location' },
-        notes: { type: 'STRING', description: 'New description' },
+        eventId: { type: 'string', description: 'ID of the event to update' },
+        title: { type: 'string', description: 'New event title' },
+        datetime: { type: 'string', description: 'New start time in ISO 8601' },
+        endDatetime: { type: 'string', description: 'New end time in ISO 8601' },
+        location: { type: 'string', description: 'New location' },
+        notes: { type: 'string', description: 'New description' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -348,11 +357,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'deleteCalendarEvent',
     description: 'Delete an event from the trip calendar.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        eventId: { type: 'STRING', description: 'ID of the event to delete' },
+        eventId: { type: 'string', description: 'ID of the event to delete' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -363,15 +372,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'updateTask',
     description: 'Update an existing trip task.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        taskId: { type: 'STRING', description: 'ID of the task' },
-        title: { type: 'STRING', description: 'New title' },
-        description: { type: 'STRING', description: 'Updated description/notes' },
-        dueDate: { type: 'STRING', description: 'New due date' },
-        completed: { type: 'BOOLEAN', description: 'Set true to mark complete' },
+        taskId: { type: 'string', description: 'ID of the task' },
+        title: { type: 'string', description: 'New title' },
+        description: { type: 'string', description: 'Updated description/notes' },
+        dueDate: { type: 'string', description: 'New due date' },
+        completed: { type: 'boolean', description: 'Set true to mark complete' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -382,11 +391,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'deleteTask',
     description: 'Delete a task from the trip.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        taskId: { type: 'STRING', description: 'ID of the task' },
+        taskId: { type: 'string', description: 'ID of the task' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -397,12 +406,12 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'searchTripData',
     description: 'Search across all trip data.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        query: { type: 'STRING', description: 'Search query' },
+        query: { type: 'string', description: 'Search query' },
         types: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
+          type: 'array',
+          items: { type: 'string' },
           description:
             'Which data types to search: calendar, task, poll, link, payment. Defaults to all.',
         },
@@ -414,10 +423,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'detectCalendarConflicts',
     description: 'Check if a time slot conflicts with existing events.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        datetime: { type: 'STRING', description: 'Proposed time in ISO 8601' },
-        endDatetime: { type: 'STRING', description: 'Proposed end time' },
+        datetime: { type: 'string', description: 'Proposed time in ISO 8601' },
+        endDatetime: { type: 'string', description: 'Proposed end time' },
       },
       required: ['datetime'],
     },
@@ -426,12 +435,12 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'createBroadcast',
     description: 'Send a broadcast to all trip members.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        message: { type: 'STRING', description: 'Broadcast message' },
-        priority: { type: 'STRING', description: '"normal" or "urgent"' },
+        message: { type: 'string', description: 'Broadcast message' },
+        priority: { type: 'string', description: '"normal" or "urgent"' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -442,18 +451,18 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'createNotification',
     description: 'Send in-app notifications to selected users or all trip members.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        title: { type: 'STRING', description: 'Notification title' },
-        message: { type: 'STRING', description: 'Notification body' },
+        title: { type: 'string', description: 'Notification title' },
+        message: { type: 'string', description: 'Notification body' },
         targetUserIds: {
-          type: 'ARRAY',
-          items: { type: 'STRING' },
+          type: 'array',
+          items: { type: 'string' },
           description: 'Optional user IDs; omit for all members',
         },
-        type: { type: 'STRING', description: 'Notification type (optional)' },
+        type: { type: 'string', description: 'Notification type (optional)' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -464,10 +473,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'getWeatherForecast',
     description: 'Get weather forecast.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        location: { type: 'STRING', description: 'City or location' },
-        date: { type: 'STRING', description: 'Date for forecast' },
+        location: { type: 'string', description: 'City or location' },
+        date: { type: 'string', description: 'Date for forecast' },
       },
       required: ['location'],
     },
@@ -476,11 +485,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'convertCurrency',
     description: 'Convert between currencies with live rates.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        amount: { type: 'NUMBER', description: 'Amount to convert' },
-        from: { type: 'STRING', description: 'Source currency code' },
-        to: { type: 'STRING', description: 'Target currency code' },
+        amount: { type: 'number', description: 'Amount to convert' },
+        from: { type: 'string', description: 'Source currency code' },
+        to: { type: 'string', description: 'Target currency code' },
       },
       required: ['amount', 'from', 'to'],
     },
@@ -489,10 +498,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'browseWebsite',
     description: 'Browse a website to extract travel info.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        url: { type: 'STRING', description: 'Full URL' },
-        instruction: { type: 'STRING', description: 'What to look for' },
+        url: { type: 'string', description: 'Full URL' },
+        instruction: { type: 'string', description: 'What to look for' },
       },
       required: ['url'],
     },
@@ -501,15 +510,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'makeReservation',
     description: 'Research and prepare a reservation.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        venue: { type: 'STRING', description: 'Venue name' },
-        datetime: { type: 'STRING', description: 'Desired date/time' },
-        partySize: { type: 'NUMBER', description: 'Number of guests' },
-        name: { type: 'STRING', description: 'Name for the reservation' },
-        phone: { type: 'STRING', description: 'Contact phone number' },
-        specialRequests: { type: 'STRING', description: 'Special requests' },
-        bookingUrl: { type: 'STRING', description: 'Direct booking URL if known' },
+        venue: { type: 'string', description: 'Venue name' },
+        datetime: { type: 'string', description: 'Desired date/time' },
+        partySize: { type: 'number', description: 'Number of guests' },
+        name: { type: 'string', description: 'Name for the reservation' },
+        phone: { type: 'string', description: 'Contact phone number' },
+        specialRequests: { type: 'string', description: 'Special requests' },
+        bookingUrl: { type: 'string', description: 'Direct booking URL if known' },
       },
       required: ['venue'],
     },
@@ -518,13 +527,13 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'settleExpense',
     description: 'Mark a payment split as settled.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        splitId: { type: 'STRING', description: 'ID of the payment split' },
-        amount: { type: 'NUMBER', description: 'Amount settled (for partial settlements)' },
-        method: { type: 'STRING', description: 'Payment method used' },
+        splitId: { type: 'string', description: 'ID of the payment split' },
+        amount: { type: 'number', description: 'Amount settled (for partial settlements)' },
+        method: { type: 'string', description: 'Payment method used' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -535,15 +544,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'generateTripImage',
     description: 'Generate a custom AI image for the trip.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        prompt: { type: 'STRING', description: 'Image description' },
+        prompt: { type: 'string', description: 'Image description' },
         style: {
-          type: 'STRING',
+          type: 'string',
           description: 'Style: photo, illustration, watercolor, minimal, vibrant',
         },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -554,11 +563,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'setTripHeaderImage',
     description: 'Set the trip header/cover image URL.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        imageUrl: { type: 'STRING', description: 'Image URL to set as trip header' },
+        imageUrl: { type: 'string', description: 'Image URL to set as trip header' },
         idempotency_key: {
-          type: 'STRING',
+          type: 'string',
           description: 'Unique key to prevent duplicate creation',
         },
       },
@@ -569,10 +578,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'getDeepLink',
     description: 'Generate an in-app deep link for a specific trip entity.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        entityType: { type: 'STRING', description: 'event, task, poll, link, payment, broadcast' },
-        entityId: { type: 'STRING', description: 'Entity ID' },
+        entityType: { type: 'string', description: 'event, task, poll, link, payment, broadcast' },
+        entityId: { type: 'string', description: 'Entity ID' },
       },
       required: ['entityType', 'entityId'],
     },
@@ -581,9 +590,9 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'explainPermission',
     description: 'Explain whether an action is allowed and why.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        action: { type: 'STRING', description: 'Action name to evaluate' },
+        action: { type: 'string', description: 'Action name to evaluate' },
       },
       required: ['action'],
     },
@@ -592,11 +601,11 @@ const VOICE_FUNCTION_DECLARATIONS = [
     name: 'verify_artifact',
     description: 'Verify created artifact existence by ID or idempotency key.',
     parameters: {
-      type: 'OBJECT',
+      type: 'object',
       properties: {
-        type: { type: 'STRING', description: 'task, event, place, link, poll' },
-        id: { type: 'STRING', description: 'Artifact ID (optional)' },
-        idempotency_key: { type: 'STRING', description: 'Idempotency key (optional)' },
+        type: { type: 'string', description: 'task, event, place, link, poll' },
+        id: { type: 'string', description: 'Artifact ID (optional)' },
+        idempotency_key: { type: 'string', description: 'Idempotency key (optional)' },
       },
       required: ['type'],
     },
@@ -727,87 +736,6 @@ function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
   }
 }
 
-// ── Legacy AI Studio ephemeral token (kept for rollback) ──
-
-const parseEnvInt = (
-  value: string | undefined,
-  fallback: number,
-  min: number,
-  max: number,
-): number => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.min(max, Math.max(min, Math.floor(parsed)));
-};
-
-const GEMINI_EPHEMERAL_EXPIRE_MINUTES = parseEnvInt(
-  Deno.env.get('GEMINI_EPHEMERAL_EXPIRE_MINUTES'),
-  30,
-  1,
-  20 * 60,
-);
-const GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS = parseEnvInt(
-  Deno.env.get('GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS'),
-  120,
-  10,
-  20 * 60 * 60,
-);
-const GEMINI_EPHEMERAL_USES = parseEnvInt(Deno.env.get('GEMINI_EPHEMERAL_USES'), 1, 0, 100);
-
-async function createAiStudioEphemeralToken(params: {
-  model: string;
-  systemInstruction: string;
-  voice: string;
-}): Promise<{ token: string; expireTime?: string; newSessionExpireTime?: string }> {
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
-
-  const now = Date.now();
-  const expireTime = new Date(now + GEMINI_EPHEMERAL_EXPIRE_MINUTES * 60 * 1000).toISOString();
-  const newSessionExpireTime = new Date(
-    now + GEMINI_EPHEMERAL_NEW_SESSION_EXPIRE_SECONDS * 1000,
-  ).toISOString();
-
-  const tokenRequestBody = {
-    uses: GEMINI_EPHEMERAL_USES,
-    expireTime,
-    newSessionExpireTime,
-    liveConnectConstraints: {
-      model: params.model,
-      config: {
-        responseModalities: ['AUDIO', 'TEXT'],
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: params.voice } },
-        },
-        systemInstruction: { parts: [{ text: params.systemInstruction }] },
-        tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
-      },
-    },
-  };
-
-  const tokenResponse = await fetch(
-    'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
-      body: JSON.stringify(tokenRequestBody),
-      signal: AbortSignal.timeout(15_000),
-    },
-  );
-
-  if (!tokenResponse.ok) {
-    const body = await tokenResponse.text();
-    throw new Error(`AI Studio token failed (${tokenResponse.status}): ${body.substring(0, 400)}`);
-  }
-
-  const tokenData = await tokenResponse.json();
-  const tokenName = tokenData?.name;
-  if (typeof tokenName !== 'string' || !tokenName.trim()) {
-    throw new Error('AI Studio auth_tokens returned empty token');
-  }
-
-  return { token: tokenName, expireTime, newSessionExpireTime };
-}
-
 // ── Main handler ──
 
 serve(async req => {
@@ -817,8 +745,6 @@ serve(async req => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const useVertex = VOICE_PROVIDER !== 'ai_studio';
-  const currentModel = useVertex ? VERTEX_LIVE_MODEL : AI_STUDIO_LIVE_MODEL;
   const isVertexConfigured = !!(VERTEX_PROJECT_ID && VERTEX_SERVICE_ACCOUNT_KEY);
 
   // Health check
@@ -826,15 +752,15 @@ serve(async req => {
     return new Response(
       JSON.stringify({
         service: 'gemini-voice-session',
-        provider: useVertex ? 'vertex' : 'ai_studio',
-        configured: useVertex ? isVertexConfigured : !!GEMINI_API_KEY,
-        model: currentModel,
+        provider: 'vertex',
+        configured: isVertexConfigured,
+        model: VERTEX_LIVE_MODEL,
         voice: DEFAULT_VOICE,
-        location: useVertex ? VERTEX_LOCATION : null,
+        location: VERTEX_LOCATION,
+        toolsEnabled: VOICE_TOOLS_ENABLED,
         features: {
-          proactiveAudio: useVertex,
-          affectiveDialog: useVertex,
-          grounding: useVertex,
+          affectiveDialog: VOICE_AFFECTIVE_DIALOG,
+          proactiveAudio: VOICE_PROACTIVE_AUDIO,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
@@ -860,8 +786,9 @@ serve(async req => {
       typeof bodyRaw?.sessionAttemptId === 'string' ? bodyRaw.sessionAttemptId : 'unknown';
     console.log(`${tag} handler_enter`, {
       sessionAttemptId,
-      provider: useVertex ? 'vertex' : 'ai_studio',
-      model: currentModel,
+      provider: 'vertex',
+      model: VERTEX_LIVE_MODEL,
+      toolsEnabled: VOICE_TOOLS_ENABLED,
       origin: req.headers.get('origin'),
       t0,
     });
@@ -925,116 +852,103 @@ serve(async req => {
     }
     systemInstruction += VOICE_ADDENDUM;
 
-    // ── VERTEX AI PATH ──
-    if (useVertex) {
-      if (!VERTEX_PROJECT_ID || !VERTEX_SERVICE_ACCOUNT_KEY) {
-        throw new Error(
-          'Vertex AI not configured. Set VERTEX_PROJECT_ID, VERTEX_LOCATION, and VERTEX_SERVICE_ACCOUNT_KEY in Supabase Edge Function secrets.',
-        );
-      }
-
-      console.log(`${tag} Creating Vertex OAuth2 token`, {
-        projectId: VERTEX_PROJECT_ID,
-        location: VERTEX_LOCATION,
-        model: VERTEX_LIVE_MODEL,
-        voice,
-        elapsedMs: Date.now() - t0,
-      });
-
-      const saKey = parseServiceAccountKey(VERTEX_SERVICE_ACCOUNT_KEY);
-      const tokenT0 = Date.now();
-      const accessToken = await createVertexAccessToken(saKey);
-
-      console.log(`${tag} Vertex token created`, {
-        tokenMs: Date.now() - tokenT0,
-        totalMs: Date.now() - t0,
-      });
-
-      // Vertex Live API WebSocket URL — GA endpoint uses v1 (not v1beta1)
-      const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`;
-
-      // Build the BidiGenerateContentSetup message that the client sends as first WS message.
-      // Vertex AI uses snake_case field names (per official GoogleCloudPlatform/generative-ai examples).
-      const setupMessage = {
-        setup: {
-          model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
-          generation_config: {
-            response_modalities: ['AUDIO'],
-            speech_config: {
-              voice_config: {
-                prebuilt_voice_config: {
-                  voice_name: voice,
-                },
-              },
-            },
-            realtime_input_config: {
-              automatic_activity_detection: {
-                start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-                end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
-              },
-            },
-            output_audio_transcription: {},
-            input_audio_transcription: {},
-          },
-          system_instruction: {
-            parts: [{ text: systemInstruction }],
-          },
-          tools: [{ function_declarations: VOICE_FUNCTION_DECLARATIONS }, { google_search: {} }],
-        },
-      };
-
-      return new Response(
-        JSON.stringify({
-          accessToken,
-          model: VERTEX_LIVE_MODEL,
-          voice,
-          provider: 'vertex',
-          websocketUrl,
-          setupMessage,
-          features: {
-            proactiveAudio: true,
-            affectiveDialog: true,
-            grounding: true,
-          },
-          _rid: requestId,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
+    // ── VERTEX AI (production-only path) ──
+    if (!VERTEX_PROJECT_ID || !VERTEX_SERVICE_ACCOUNT_KEY) {
+      throw new Error(
+        'Vertex AI not configured. Set VERTEX_PROJECT_ID, VERTEX_LOCATION, and VERTEX_SERVICE_ACCOUNT_KEY in Supabase Edge Function secrets.',
       );
     }
 
-    // ── AI STUDIO FALLBACK PATH ──
-    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
-
-    console.log(`${tag} Creating AI Studio ephemeral token`, {
-      model: AI_STUDIO_LIVE_MODEL,
+    console.log(`${tag} Creating Vertex OAuth2 token`, {
+      projectId: VERTEX_PROJECT_ID,
+      location: VERTEX_LOCATION,
+      model: VERTEX_LIVE_MODEL,
       voice,
       elapsedMs: Date.now() - t0,
     });
 
+    const saKey = parseServiceAccountKey(VERTEX_SERVICE_ACCOUNT_KEY);
     const tokenT0 = Date.now();
-    const ephemeral = await createAiStudioEphemeralToken({
-      model: AI_STUDIO_LIVE_MODEL,
-      systemInstruction,
-      voice,
-    });
+    const accessToken = await createVertexAccessToken(saKey);
 
-    console.log(`${tag} AI Studio token created`, {
+    console.log(`${tag} Vertex token created`, {
       tokenMs: Date.now() - tokenT0,
       totalMs: Date.now() - t0,
     });
 
-    const CONSTRAINED_WS_URL =
-      'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
+    // Vertex Live API WebSocket URL
+    const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`;
+
+    // Build the BidiGenerateContentSetup message.
+    // Vertex AI Live uses snake_case on the wire.
+    //
+    // CRITICAL STRUCTURE: realtime_input_config, input_audio_transcription, and
+    // output_audio_transcription are TOP-LEVEL fields in setup — NOT nested inside
+    // generation_config. This was the primary cause of setupComplete never arriving.
+    const setupConfig: Record<string, unknown> = {
+      model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
+      generation_config: {
+        response_modalities: ['AUDIO'],
+        speech_config: {
+          voice_config: {
+            prebuilt_voice_config: {
+              voice_name: voice,
+            },
+          },
+        },
+      },
+      system_instruction: {
+        parts: [{ text: systemInstruction }],
+      },
+      // Top-level setup fields (NOT inside generation_config)
+      realtime_input_config: {
+        automatic_activity_detection: {
+          disabled: false,
+          start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
+          end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+        },
+      },
+      input_audio_transcription: {},
+      output_audio_transcription: {},
+    };
+
+    // Include tools only when VOICE_TOOLS_ENABLED is true.
+    // This allows verifying the minimal handshake works before adding tool complexity.
+    if (VOICE_TOOLS_ENABLED) {
+      setupConfig.tools = [{ function_declarations: VOICE_FUNCTION_DECLARATIONS }];
+    }
+
+    // Preview features — gated behind env flags, never part of baseline GA handshake
+    if (VOICE_AFFECTIVE_DIALOG) {
+      (setupConfig.generation_config as Record<string, unknown>).enable_affective_dialog = true;
+    }
+    if (VOICE_PROACTIVE_AUDIO) {
+      setupConfig.proactivity = { proactive_audio: true };
+    }
+
+    const setupMessage = { setup: setupConfig };
+
+    console.log(`${tag} Setup message built`, {
+      hasTools: VOICE_TOOLS_ENABLED,
+      toolCount: VOICE_TOOLS_ENABLED ? VOICE_FUNCTION_DECLARATIONS.length : 0,
+      affectiveDialog: VOICE_AFFECTIVE_DIALOG,
+      proactiveAudio: VOICE_PROACTIVE_AUDIO,
+      totalMs: Date.now() - t0,
+    });
 
     return new Response(
       JSON.stringify({
-        accessToken: ephemeral.token,
-        accessTokenExpiresAt: ephemeral.expireTime ?? null,
-        newSessionExpiresAt: ephemeral.newSessionExpireTime ?? null,
-        model: AI_STUDIO_LIVE_MODEL,
+        accessToken,
+        model: VERTEX_LIVE_MODEL,
         voice,
-        provider: 'ai_studio',
-        websocketUrl: CONSTRAINED_WS_URL,
+        provider: 'vertex',
+        websocketUrl,
+        setupMessage,
+        toolsEnabled: VOICE_TOOLS_ENABLED,
+        features: {
+          affectiveDialog: VOICE_AFFECTIVE_DIALOG,
+          proactiveAudio: VOICE_PROACTIVE_AUDIO,
+        },
         _rid: requestId,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
