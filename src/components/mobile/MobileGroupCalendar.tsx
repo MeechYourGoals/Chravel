@@ -201,8 +201,8 @@ export const MobileGroupCalendar = ({
     setIsModalOpen(true);
   };
 
-  // Generate calendar days for the current month view
-  const generateCalendarDays = () => {
+  // Generate calendar days for the current month view (memoized)
+  const calendarDays = useMemo(() => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     const startDay = start.getDay(); // 0 = Sunday
@@ -231,9 +231,23 @@ export const MobileGroupCalendar = ({
     }
 
     return days;
-  };
+  }, [currentMonth]);
 
-  const calendarDays = generateCalendarDays();
+  // Pre-compute events grouped by date key for O(1) lookups instead of O(days × events)
+  const eventsByDateKey = useMemo(() => {
+    const map = new Map<string, typeof events>();
+    for (const event of events) {
+      const key = format(event.date, 'yyyy-MM-dd');
+      const existing = map.get(key);
+      if (existing) {
+        existing.push(event);
+      } else {
+        map.set(key, [event]);
+      }
+    }
+    return map;
+  }, [events]);
+
   const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   const handlePreviousMonth = async () => {
@@ -251,7 +265,7 @@ export const MobileGroupCalendar = ({
     setSelectedDate(date);
   };
 
-  const eventsForSelectedDate = events.filter(event => isSameDay(event.date, selectedDate));
+  const eventsForSelectedDate = eventsByDateKey.get(format(selectedDate, 'yyyy-MM-dd')) || [];
 
   // Handle event click to show details
   const handleEventClick = useCallback(
@@ -496,7 +510,7 @@ export const MobileGroupCalendar = ({
                     const isCurrentMonth = isSameMonth(date, currentMonth);
                     const isSelected = isSameDay(date, selectedDate);
                     const isToday = isSameDay(date, new Date());
-                    const hasEvents = events.some(e => isSameDay(e.date, date));
+                    const hasEvents = eventsByDateKey.has(format(date, 'yyyy-MM-dd'));
 
                     return (
                       <button
@@ -586,7 +600,7 @@ export const MobileGroupCalendar = ({
                   {calendarDays.map((date, index) => {
                     const isCurrentMonth = isSameMonth(date, currentMonth);
                     const isToday = isSameDay(date, new Date());
-                    const dayEvents = events.filter(e => isSameDay(e.date, date));
+                    const dayEvents = eventsByDateKey.get(format(date, 'yyyy-MM-dd')) || [];
 
                     return (
                       <div

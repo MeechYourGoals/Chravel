@@ -244,7 +244,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
       const newLinks = arrayMove(links, oldIndex, newIndex);
       // Optimistic update via query cache
-      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], newLinks);
+      queryClient.setQueryData<TripLink[]>(tripKeys.tripLinks(tripId, isDemoMode), newLinks);
 
       const orderedIds = newLinks.map(l => l.id);
       await updateTripLinksOrder(tripId, orderedIds, isDemoMode);
@@ -271,7 +271,10 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
     if (result) {
       // Optimistic update via query cache
-      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old => [result, ...(old || [])]);
+      queryClient.setQueryData<TripLink[]>(tripKeys.tripLinks(tripId, isDemoMode), old => [
+        result,
+        ...(old || []),
+      ]);
       setIsAddModalOpen(false);
       resetForm();
     }
@@ -293,7 +296,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
     if (success) {
       // Optimistic update via query cache
-      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old =>
+      queryClient.setQueryData<TripLink[]>(tripKeys.tripLinks(tripId, isDemoMode), old =>
         (old || []).map(link =>
           link.id === editingLink.id
             ? { ...link, title: formTitle, description: formDescription, category: formCategory }
@@ -309,7 +312,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
     const success = await deleteTripLink(linkId, tripId, isDemoMode);
     if (success) {
       // Optimistic update via query cache
-      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old =>
+      queryClient.setQueryData<TripLink[]>(tripKeys.tripLinks(tripId, isDemoMode), old =>
         (old || []).filter(link => link.id !== linkId),
       );
     }
