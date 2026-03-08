@@ -487,24 +487,11 @@ export const TripCard = ({
 
       {/* Trip Content - Responsive padding */}
       <div className="p-4 md:p-6">
-        {/* Quick Stats - Responsive sizing */}
+        {/* Quick Stats - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {trip.peopleCount ?? participantsWithAvatars.length}
-            </div>
-            <div className="text-xs md:text-sm text-gray-400">People</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {calculateDaysCount(trip.dateRange)}
-            </div>
-            <div className="text-xs md:text-sm text-gray-400">Days</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount ?? 0}</div>
-            <div className="text-xs md:text-sm text-gray-400">Places</div>
-          </div>
+          <CardStatItem icon={Users} value={trip.peopleCount ?? participantsWithAvatars.length} label="People" />
+          <CardStatItem icon={CalendarDays} value={calculateDaysCount(trip.dateRange)} label="Days" />
+          <CardStatItem icon={MapPin} value={trip.placesCount ?? 0} label="Places" />
         </div>
 
         {/* Action Buttons - 2x2 grid: Export/Invite top, View/Share bottom */}
