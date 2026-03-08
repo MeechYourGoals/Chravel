@@ -1,67 +1,38 @@
 
 
-## Root Cause Analysis
+## Problem
 
-The card order inconsistency has **one core bug** with two contributing factors:
+The concierge buttons (Search, Upload, Send, Waveform) all import from `src/lib/ctaButtonStyles.ts`, which still defines the old gold-filled gradient:
 
-### Bug: Race condition — remote order arrives too late, never re-applied
-
-Here's what happens on login:
-
-```text
-Timeline:
-  t0  Component mounts → useEffect kicks off fetchRemoteOrder (async)
-  t1  Items arrive from React Query → applyOrder runs
-      → remoteOrderRef.current is still null
-      → Falls back to localStorage (stale, device-specific)
-      → Cards render in WRONG order
-  t2  fetchRemoteOrder resolves → sets remoteOrderRef.current
-      → But remoteOrderRef is a React ref — NO re-render triggered
-      → Cards stay in wrong order until next navigation
+```
+CTA_GRADIENT = 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-lg shadow-amber-500/25'
 ```
 
-Because `remoteOrderRef` is a ref (not state), the component never re-renders when the correct remote order arrives. The cards are stuck in whatever order localStorage had — which is device-specific and often stale.
+This is the **single source of truth** for all four buttons. Updating this one file + VoiceButton's idle state will fix them all.
 
-### Contributing factor: Module-level debounce timer
+## Changes
 
-There's a single `upsertTimer` variable shared across all hook instances. If a user switches between My Trips → Pro → Events quickly, the debounce timers clobber each other, potentially dropping saves.
+### 1. `src/lib/ctaButtonStyles.ts` — Replace gold fill with ring treatment
 
-### Contributing factor: Silent upsert failures
+The idle state for all app CTA buttons should be:
+- **Dark charcoal background** (`bg-gray-800/80`)
+- **White text/icons** (`text-white`)
+- **Gold border** (`border border-gold-primary/60`)
+- **Subtle gold glow shadow** (`shadow-[0_0_8px_rgba(196,151,70,0.15)]`)
 
-The `catch {}` block in `debouncedUpsert` swallows all errors. If the upsert fails (network, RLS, etc.), the user has no idea their reorder didn't persist.
+Update `CTA_GRADIENT` to the ring treatment. Update `CTA_INTERACTIVE` to remove amber focus rings, use gold-primary. Update `CTA_BUTTON` to include the border.
 
----
+### 2. `src/features/chat/components/VoiceButton.tsx` — Update idle state
 
-## Fix Plan
+Line 48 returns `CTA_GRADIENT` for idle — this will automatically pick up the new token. But the Lock icon on line 97 uses `text-amber-400/90` — change to `text-gold-primary/90`.
 
-### 1. Convert `remoteOrderRef` to state so remote fetch triggers re-render
+### 3. `src/features/chat/components/AiChatInput.tsx` — Send button
 
-Replace `remoteOrderRef` with a `useState<string[] | null>` so that when the remote order arrives, `applyOrder` re-runs via its dependency and the grid re-renders with the correct order.
+Line 166 manually composes `CTA_GRADIENT + CTA_INTERACTIVE + CTA_DISABLED`. After the token update, this will automatically use the new ring treatment.
 
-### 2. Make `applyOrder` depend on remote order state
+### 4. `src/components/AIConciergeChat.tsx` — Search + Upload buttons
 
-Update the `applyOrder` callback to include `remoteOrder` in its closure/deps, so it uses the freshest data.
+Lines 1763 and 1779 use `CTA_BUTTON` — will automatically update from the token change.
 
-### 3. In `SortableTripGrid`, re-apply order when `applyOrder` identity changes
-
-The existing `useEffect` already depends on `applyOrder`, so once `applyOrder` gets a new identity from the state change, the grid will re-sort automatically.
-
-### 4. Scope debounce timer per hook instance
-
-Move `upsertTimer` into a `useRef` so each dashboard type gets its own independent debounce.
-
-### 5. Add error logging for failed upserts
-
-Log upsert failures so we can diagnose persistence issues.
-
----
-
-## Files Changed
-
-- `src/hooks/useDashboardCardOrder.ts` — All changes are in this single file
-
-## Risk
-
-- **Low**: Single-file change, no schema changes, no RLS changes.
-- The fix makes the existing Supabase fetch actually take effect in the UI.
+**Net: 2 files to edit (`ctaButtonStyles.ts`, `VoiceButton.tsx`). All consumers auto-inherit.**
 
