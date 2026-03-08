@@ -106,8 +106,8 @@ export const getRoleColorClass = (role: string, category: ProTripCategory): stri
     // Predefined roles get the primary red color
     return 'bg-red-600/20 text-red-400';
   } else {
-    // Custom roles get a secondary blue color
-    return 'bg-blue-600/20 text-blue-400';
+    // Custom roles get a secondary red color to match the "All" filter
+    return 'bg-red-600/20 text-red-400';
   }
 };
 
