@@ -309,7 +309,7 @@ const TripPreview = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-gold-primary mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin gold-gradient-icon mx-auto mb-4" />
           <p className="text-white/60">Loading trip details...</p>
         </div>
       </div>

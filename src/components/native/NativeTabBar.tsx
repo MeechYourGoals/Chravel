@@ -180,7 +180,7 @@ export const NativeTabBar = ({
               <span
                 className={cn(
                   'text-[10px] mt-0.5 font-medium',
-                  isActive ? 'text-gold-primary' : 'text-white/60',
+                  isActive ? 'gold-gradient-icon' : 'text-white/60',
                 )}
               >
                 {tab.id === 'trips' && tripTypeLabel ? tripTypeLabel : tab.label}

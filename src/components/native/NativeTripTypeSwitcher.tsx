@@ -289,7 +289,7 @@ export const NativeTripTypeSwitcher = ({
                   {/* Checkmark */}
                   {isSelected && !isRecsDisabled && (
                     <div className="w-6 h-6 rounded-full bg-gold-primary/15 border border-gold-primary/50 flex items-center justify-center shrink-0">
-                      <Check size={14} className="text-gold-primary" strokeWidth={3} />
+                      <Check size={14} className="gold-gradient-icon" strokeWidth={3} />
                     </div>
                   )}
                 </button>
