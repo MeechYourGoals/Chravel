@@ -1,22 +1,25 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { verifyCronAuth } from '../_shared/cronGuard.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: getCorsHeaders(req) });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // This function should only be called by cron/scheduled tasks
-    // In production, you might want to add authentication for this endpoint
+    // Verify cron/service caller authentication
+    const guard = verifyCronAuth(req, corsHeaders);
+    if (!guard.authorized) return guard.response!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 

@@ -23,6 +23,24 @@ const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase()
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
+// In-process rate limiting (lightweight, per edge function instance)
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+function inProcessRateLimit(
+  key: string,
+  max: number,
+  windowMs: number,
+): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const bucket = rateBuckets.get(key);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true, remaining: max - 1 };
+  }
+  if (bucket.count >= max) return { allowed: false, remaining: 0 };
+  bucket.count++;
+  return { allowed: true, remaining: max - bucket.count };
+}
+
 // In-memory cache for get_concierge_trip_history RPC results.
 // Keyed by `${tripId}:${userId}`, 30 s TTL (matches TripContextBuilder cache).
 // Prevents a repeated DB round-trip for every message in a rapid back-to-back conversation.
@@ -767,6 +785,22 @@ serve(async req => {
     }
 
     user = authenticatedUser;
+
+    // Per-user rate limit: max 30 AI requests per minute to prevent rapid-fire abuse
+    const rlKey = `concierge:${user.id}`;
+    const rlBucket = inProcessRateLimit(rlKey, 30, 60_000);
+    if (!rlBucket.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Too many requests. Please slow down and try again in a moment.',
+          retryAfter: 60,
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+        },
+      );
+    }
 
     // --- PARALLELIZED PRE-FLIGHT CHECKS ---
     // Membership, usage plan, context building, RAG retrieval, and privacy

@@ -110,22 +110,17 @@ serve(async req => {
     const user = userData.user;
     logStep('User authenticated', { userId: user.id, email: user.email });
 
-    const clientIp = getClientIp(req);
-    const rateKey = `join-trip:${user.id}:${clientIp}`;
-    const rateLimit = await checkRateLimit(
-      supabaseClient,
-      rateKey,
-      JOIN_TRIP_RATE_LIMIT_MAX_REQUESTS,
-      JOIN_TRIP_RATE_LIMIT_WINDOW_SECONDS,
-    );
-
-    if (!rateLimit.allowed) {
-      logStep('Rate limit exceeded', { userId: user.id, clientIp });
-      return errorResponse(
-        'Too many join attempts. Please wait a minute and try again.',
-        429,
-        corsHeaders,
-      );
+    // Rate limit: max 10 join attempts per user per minute (prevents invite brute-forcing)
+    const rl = await applyRateLimit({
+      identifier: `join-trip:${user.id}`,
+      maxRequests: 10,
+      windowSeconds: 60,
+      corsHeaders,
+      supabaseClient: supabaseClient,
+    });
+    if (!rl.allowed) {
+      logStep('Rate limit exceeded', { userId: user.id });
+      return rl.response!;
     }
 
     // Get invite code from request
