@@ -428,7 +428,7 @@ export const TripCard = ({
                     {daysUntil > 0 && daysUntil <= 7 && (
                       <Badge
                         variant="secondary"
-                        className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 animate-pulse"
+                        className="bg-gold-primary/20 text-gold-light border-gold-primary/30 animate-pulse"
                       >
                         {daysUntil} {daysUntil === 1 ? 'day' : 'days'} left
                       </Badge>
