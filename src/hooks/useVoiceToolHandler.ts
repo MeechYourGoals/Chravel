@@ -61,13 +61,14 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
         switch (name) {
           case 'addToCalendar': {
             const title = requireString(args.title, 'title', 200);
-            const startTime = validateDatetime(args.startTime, 'startTime');
+            // Edge function declares param as `datetime`; handle both naming conventions
+            const startTime = validateDatetime(args.datetime ?? args.startTime, 'datetime');
             if (!startTime) {
-              return { success: false, error: 'startTime is required for calendar events' };
+              return { success: false, error: 'datetime is required for calendar events' };
             }
-            const endTime = validateDatetime(args.endTime, 'endTime');
+            const endTime = validateDatetime(args.endDatetime ?? args.endTime, 'endTime');
             const location = optionalString(args.location, 300);
-            const description = optionalString(args.description, 1000);
+            const description = optionalString(args.notes ?? args.description, 1000);
 
             const { data, error } = await supabase
               .from('trip_events')

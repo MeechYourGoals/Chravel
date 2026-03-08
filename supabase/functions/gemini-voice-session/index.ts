@@ -828,6 +828,8 @@ serve(async req => {
     const requestedVoice = typeof bodyRaw?.voice === 'string' ? bodyRaw.voice : DEFAULT_VOICE;
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
     const tripId = typeof bodyRaw?.tripId === 'string' ? bodyRaw.tripId : undefined;
+    const resumptionToken =
+      typeof bodyRaw?.resumptionToken === 'string' ? bodyRaw.resumptionToken : undefined;
 
     // Build system instruction
     let systemInstruction: string;
@@ -916,6 +918,12 @@ serve(async req => {
     // This allows verifying the minimal handshake works before adding tool complexity.
     if (VOICE_TOOLS_ENABLED) {
       setupConfig.tools = [{ function_declarations: VOICE_FUNCTION_DECLARATIONS }];
+    }
+
+    // Session resumption — include token if reconnecting to resume prior conversation
+    if (resumptionToken) {
+      setupConfig.session_resumption = { handle: resumptionToken };
+      console.log(`${tag} Including session resumption token`);
     }
 
     // Preview features — gated behind env flags, never part of baseline GA handshake
