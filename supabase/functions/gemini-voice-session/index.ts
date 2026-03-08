@@ -34,12 +34,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
       type: 'OBJECT',
       properties: {
         title: { type: 'STRING', description: 'Event title' },
-        startTime: { type: 'STRING', description: 'ISO 8601 start time' },
-        endTime: { type: 'STRING', description: 'ISO 8601 end time (optional)' },
+        datetime: { type: 'STRING', description: 'ISO 8601 datetime string' },
         location: { type: 'STRING', description: 'Event location (optional)' },
-        description: { type: 'STRING', description: 'Event description (optional)' },
+        notes: { type: 'STRING', description: 'Event notes (optional)' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
-      required: ['title', 'startTime'],
+      required: ['title', 'datetime', 'idempotency_key'],
     },
   },
   {
@@ -48,10 +51,16 @@ const VOICE_FUNCTION_DECLARATIONS = [
     parameters: {
       type: 'OBJECT',
       properties: {
-        content: { type: 'STRING', description: 'Task description' },
+        title: { type: 'STRING', description: 'Task title/description' },
+        notes: { type: 'STRING', description: 'Additional task notes (optional)' },
+        assignee: { type: 'STRING', description: 'Assignee user ID (optional)' },
         dueDate: { type: 'STRING', description: 'Due date in ISO format (optional)' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
-      required: ['content'],
+      required: ['title', 'idempotency_key'],
     },
   },
   {
@@ -66,8 +75,12 @@ const VOICE_FUNCTION_DECLARATIONS = [
           items: { type: 'STRING' },
           description: 'Poll options (2-6 choices)',
         },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
-      required: ['question', 'options'],
+      required: ['question', 'options', 'idempotency_key'],
     },
   },
   {
@@ -77,7 +90,12 @@ const VOICE_FUNCTION_DECLARATIONS = [
       type: 'OBJECT',
       properties: {
         query: { type: 'STRING', description: 'Search query (e.g. "Italian restaurant")' },
-        type: { type: 'STRING', description: 'Place type filter (optional)' },
+        nearLat: { type: 'NUMBER', description: 'Latitude to search near (optional)' },
+        nearLng: { type: 'NUMBER', description: 'Longitude to search near (optional)' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['query'],
     },
@@ -153,7 +171,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
     description: 'Search the web for real-time information.',
     parameters: {
       type: 'OBJECT',
-      properties: { query: { type: 'STRING', description: 'Search query' } },
+      properties: {
+        query: { type: 'STRING', description: 'Search query' },
+        count: { type: 'NUMBER', description: 'Number of results (max 10, default 5)' },
+      },
       required: ['query'],
     },
   },
@@ -196,8 +217,12 @@ const VOICE_FUNCTION_DECLARATIONS = [
           type: 'STRING',
           description: 'attraction, accommodation, activity, appetite, or other',
         },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
-      required: ['name'],
+      required: ['name', 'idempotency_key'],
     },
   },
   {
@@ -211,6 +236,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
         address: { type: 'STRING', description: 'Address (optional)' },
         lat: { type: 'NUMBER', description: 'Latitude (optional)' },
         lng: { type: 'NUMBER', description: 'Longitude (optional)' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['scope', 'name'],
     },
@@ -228,6 +257,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
         startTime: { type: 'STRING', description: 'Start time (HH:MM)' },
         endTime: { type: 'STRING', description: 'End time (HH:MM)' },
         location: { type: 'STRING', description: 'Room/location (optional)' },
+        speakers: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Speaker or performer names',
+        },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['eventId', 'title'],
     },
@@ -259,6 +297,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
           items: { type: 'OBJECT' },
           description: 'Array of extracted event objects',
         },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['events'],
     },
@@ -274,6 +316,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
         partySize: { type: 'NUMBER', description: 'Party size (optional)' },
         reservationName: { type: 'STRING', description: 'Reservation name (optional)' },
         notes: { type: 'STRING', description: 'Reservation notes (optional)' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['placeQuery'],
     },
@@ -290,6 +336,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
         endDatetime: { type: 'STRING', description: 'New end time in ISO 8601' },
         location: { type: 'STRING', description: 'New location' },
         notes: { type: 'STRING', description: 'New description' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['eventId'],
     },
@@ -299,7 +349,13 @@ const VOICE_FUNCTION_DECLARATIONS = [
     description: 'Delete an event from the trip calendar.',
     parameters: {
       type: 'OBJECT',
-      properties: { eventId: { type: 'STRING', description: 'ID of the event to delete' } },
+      properties: {
+        eventId: { type: 'STRING', description: 'ID of the event to delete' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
+      },
       required: ['eventId'],
     },
   },
@@ -311,8 +367,13 @@ const VOICE_FUNCTION_DECLARATIONS = [
       properties: {
         taskId: { type: 'STRING', description: 'ID of the task' },
         title: { type: 'STRING', description: 'New title' },
-        completed: { type: 'BOOLEAN', description: 'Set true to mark complete' },
+        description: { type: 'STRING', description: 'Updated description/notes' },
         dueDate: { type: 'STRING', description: 'New due date' },
+        completed: { type: 'BOOLEAN', description: 'Set true to mark complete' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['taskId'],
     },
@@ -322,7 +383,13 @@ const VOICE_FUNCTION_DECLARATIONS = [
     description: 'Delete a task from the trip.',
     parameters: {
       type: 'OBJECT',
-      properties: { taskId: { type: 'STRING', description: 'ID of the task' } },
+      properties: {
+        taskId: { type: 'STRING', description: 'ID of the task' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
+      },
       required: ['taskId'],
     },
   },
@@ -331,7 +398,15 @@ const VOICE_FUNCTION_DECLARATIONS = [
     description: 'Search across all trip data.',
     parameters: {
       type: 'OBJECT',
-      properties: { query: { type: 'STRING', description: 'Search query' } },
+      properties: {
+        query: { type: 'STRING', description: 'Search query' },
+        types: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description:
+            'Which data types to search: calendar, task, poll, link, payment. Defaults to all.',
+        },
+      },
       required: ['query'],
     },
   },
@@ -355,6 +430,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
       properties: {
         message: { type: 'STRING', description: 'Broadcast message' },
         priority: { type: 'STRING', description: '"normal" or "urgent"' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['message'],
     },
@@ -373,6 +452,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
           description: 'Optional user IDs; omit for all members',
         },
         type: { type: 'STRING', description: 'Notification type (optional)' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['title', 'message'],
     },
@@ -424,7 +507,9 @@ const VOICE_FUNCTION_DECLARATIONS = [
         datetime: { type: 'STRING', description: 'Desired date/time' },
         partySize: { type: 'NUMBER', description: 'Number of guests' },
         name: { type: 'STRING', description: 'Name for the reservation' },
+        phone: { type: 'STRING', description: 'Contact phone number' },
         specialRequests: { type: 'STRING', description: 'Special requests' },
+        bookingUrl: { type: 'STRING', description: 'Direct booking URL if known' },
       },
       required: ['venue'],
     },
@@ -436,7 +521,12 @@ const VOICE_FUNCTION_DECLARATIONS = [
       type: 'OBJECT',
       properties: {
         splitId: { type: 'STRING', description: 'ID of the payment split' },
+        amount: { type: 'NUMBER', description: 'Amount settled (for partial settlements)' },
         method: { type: 'STRING', description: 'Payment method used' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['splitId'],
     },
@@ -452,6 +542,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
           type: 'STRING',
           description: 'Style: photo, illustration, watercolor, minimal, vibrant',
         },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['prompt'],
     },
@@ -463,6 +557,10 @@ const VOICE_FUNCTION_DECLARATIONS = [
       type: 'OBJECT',
       properties: {
         imageUrl: { type: 'STRING', description: 'Image URL to set as trip header' },
+        idempotency_key: {
+          type: 'STRING',
+          description: 'Unique key to prevent duplicate creation',
+        },
       },
       required: ['imageUrl'],
     },
