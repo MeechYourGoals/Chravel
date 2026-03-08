@@ -9,13 +9,13 @@
  * state color only — not as a permanent resting accent.
  */
 
-/** Primary gold gradient for idle CTA buttons */
+/** Primary ring treatment for idle CTA buttons (Mode A — charcoal + gold border) */
 export const CTA_GRADIENT =
-  'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-lg shadow-amber-500/25';
+  'bg-gray-800/80 text-white border border-gold-primary/60 shadow-[0_0_8px_rgba(196,151,70,0.15)]';
 
 /** Hover / active / focus-visible states for CTA buttons */
 export const CTA_INTERACTIVE =
-  'hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-black/50';
+  'hover:opacity-90 hover:scale-105 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-black/50';
 
 /** Disabled state for CTA buttons */
 export const CTA_DISABLED = 'disabled:opacity-50 disabled:cursor-not-allowed';
