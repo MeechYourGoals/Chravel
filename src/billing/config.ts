@@ -61,9 +61,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'consumer-frequent-chraveler': {
     name: 'Frequent Chraveler',
-    stripeProductId: 'prod_Tc0WEzRDTCkfPM',
-    stripePriceIdMonthly: 'price_1RXJzNAedhHV8iZ8Hpu8ajwX',
-    stripePriceIdAnnual: 'price_1RXJzNAedhHV8iZ8tKLQSBMX',
+    stripeProductId: 'prod_U73VfiKf3VrJKf',
+    stripePriceIdMonthly: 'price_1T8pOd47wCAQ57MmIrACPNpc',
+    stripePriceIdAnnual: 'price_1T8pOl47wCAQ57MmrhqSZM2j',
     appleProductIdMonthly: 'com.chravel.frequentchraveler.monthly',
     appleProductIdAnnual: 'com.chravel.frequentchraveler.annual',
     googleProductIdMonthly: 'com.chravel.frequentchraveler.monthly',
