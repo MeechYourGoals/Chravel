@@ -189,7 +189,7 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
   if (!isDemoMode && isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500" />
+        <div className="animate-spin rounded-full h-8 w-8 gold-gradient-spinner" />
       </div>
     );
   }
