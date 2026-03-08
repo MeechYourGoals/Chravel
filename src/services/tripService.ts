@@ -169,7 +169,9 @@ export const tripService = {
       const isSuperAdmin = authEmail ? SUPER_ADMIN_EMAILS.includes(authEmail) : false;
 
       if (isSuperAdmin) {
-        console.log('[tripService] Super admin bypass for:', authEmail);
+        if (import.meta.env.DEV) {
+          console.log('[tripService] Super admin bypass activated');
+        }
       } else {
         const tier =
           profile?.subscription_status === 'active'
@@ -197,13 +199,14 @@ export const tripService = {
       }
 
       // Dates already in ISO 8601 format from CreateTripModal - no normalization needed
-      console.log('[tripService] Creating trip:', {
-        name: tripData.name,
-        start_date: tripData.start_date,
-        end_date: tripData.end_date,
-        trip_type: tripData.trip_type,
-        user_id: user.id,
-      });
+      if (import.meta.env.DEV) {
+        console.log('[tripService] Creating trip:', {
+          name: tripData.name,
+          start_date: tripData.start_date,
+          end_date: tripData.end_date,
+          trip_type: tripData.trip_type,
+        });
+      }
 
       // Use edge function for server-side validation and Pro tier enforcement
       const { data, error } = await supabase.functions.invoke('create-trip', {
@@ -224,10 +227,14 @@ export const tripService = {
         },
       });
 
-      console.log('[tripService] Edge function response:', { success: data?.success, error });
+      if (import.meta.env.DEV) {
+        console.log('[tripService] Edge function response:', { success: data?.success, error });
+      }
 
       if (error) {
-        console.error('[tripService] Edge function error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[tripService] Edge function error:', error);
+        }
 
         // Extract the actual error message from the edge function response body.
         // supabase.functions.invoke returns { data: null, error: FunctionsHttpError }
@@ -264,11 +271,15 @@ export const tripService = {
       }
 
       if (!data?.success) {
-        console.error('[tripService] Edge function returned failure:', data);
+        if (import.meta.env.DEV) {
+          console.error('[tripService] Edge function returned failure:', data);
+        }
         throw new Error(data?.error || 'Failed to create trip');
       }
 
-      console.log('[tripService] Trip created successfully:', data.trip.id);
+      if (import.meta.env.DEV) {
+        console.log('[tripService] Trip created successfully:', data.trip.id);
+      }
       return data.trip;
     } catch (error) {
       if (import.meta.env.DEV) {

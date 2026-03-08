@@ -682,9 +682,9 @@ class BasecampService {
         return null;
       }
 
-      console.log(this.LOG_PREFIX, 'upsertPersonalBasecamp: User authenticated', {
-        userId: user.id,
-      });
+      if (import.meta.env.DEV) {
+        console.log(this.LOG_PREFIX, 'upsertPersonalBasecamp: User authenticated');
+      }
 
       // Get current personal basecamp for history logging
       const currentBasecamp = await this.getPersonalBasecamp(payload.trip_id, user.id);

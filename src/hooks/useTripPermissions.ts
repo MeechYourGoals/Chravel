@@ -140,7 +140,9 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
         setPermissions(defaultPerms);
       }
     } catch (error) {
-      console.error('Error loading permissions:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading permissions:', error);
+      }
       setPermissions({});
     } finally {
       setLoading(false);
@@ -164,14 +166,18 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
   };
 
   /**
-   * Update permissions for a member
+   * Update permissions for a member.
+   * SECURITY: This client-side check is a UX guard only.
+   * Actual authorization MUST be enforced by Supabase RLS policies on trip_members.
    */
   const updatePermissions = async (
     targetUserId: string,
     newPermissions: Partial<PermissionMatrix>,
   ): Promise<boolean> => {
     if (!hasPermission('manage_members', 'admin')) {
-      console.error('Insufficient permissions to update member permissions');
+      if (import.meta.env.DEV) {
+        console.error('Insufficient permissions to update member permissions');
+      }
       return false;
     }
 
@@ -203,17 +209,23 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
 
       return true;
     } catch (error) {
-      console.error('Error updating permissions:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating permissions:', error);
+      }
       return false;
     }
   };
 
   /**
-   * Update member role (resets to default permissions for that role)
+   * Update member role (resets to default permissions for that role).
+   * SECURITY: This client-side check is a UX guard only.
+   * Actual authorization MUST be enforced by Supabase RLS policies on trip_members.
    */
   const updateRole = async (targetUserId: string, newRole: string): Promise<boolean> => {
     if (!hasPermission('manage_members', 'admin')) {
-      console.error('Insufficient permissions to update member role');
+      if (import.meta.env.DEV) {
+        console.error('Insufficient permissions to update member role');
+      }
       return false;
     }
 
@@ -238,7 +250,9 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
 
       return true;
     } catch (error) {
-      console.error('Error updating role:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating role:', error);
+      }
       return false;
     }
   };

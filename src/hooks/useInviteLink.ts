@@ -185,7 +185,9 @@ export const useInviteLink = ({
         return false;
       }
 
-      console.log('[InviteLink] Invite created successfully:', inviteCode.substring(0, 8));
+      if (import.meta.env.DEV) {
+        console.log('[InviteLink] Invite created successfully');
+      }
       return true;
     } catch (error) {
       console.error('[InviteLink] Unexpected error:', error);
