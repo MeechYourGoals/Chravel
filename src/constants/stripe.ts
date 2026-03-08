@@ -55,7 +55,7 @@ export const CONSUMER_PLANS = {
       amount: 1999, // $19.99 in cents
     },
     annual: {
-      price_id: 'price_1SemV13EeswiMlDC2P2126NY',
+      price_id: 'price_1T8pOl47wCAQ57MmrhqSZM2j',
       amount: 19900, // $199.00 in cents
     },
     features: {
