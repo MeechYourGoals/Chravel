@@ -22,7 +22,11 @@ type TripDetailResponse =
       error_code: TripDetailErrorCode;
     };
 
-const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
+// Super admin emails configured via environment variable for security (consistent with create-trip)
+const SUPER_ADMIN_EMAILS = (Deno.env.get('SUPER_ADMIN_EMAILS') || 'ccamechi@gmail.com')
+  .split(',')
+  .map((e: string) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 const buildResponse = (
   payload: TripDetailResponse,

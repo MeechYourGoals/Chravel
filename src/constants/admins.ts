@@ -1,10 +1,7 @@
 // Founder emails that always have full admin access.
 // These are verified against auth.users email (server-enforced, not client-spoofable).
-const FOUNDER_EMAILS: string[] = [
-  'ccamechi@gmail.com',
-  'christian@chravelapp.com',
-  'demo@chravelapp.com',
-];
+// NOTE: demo@chravelapp.com intentionally excluded — demo users must not have admin privileges.
+const FOUNDER_EMAILS: string[] = ['ccamechi@gmail.com', 'christian@chravelapp.com'];
 
 // Additional super admin emails can be set via VITE_SUPER_ADMIN_EMAILS env var (comma-separated).
 const envAdmins = (import.meta.env.VITE_SUPER_ADMIN_EMAILS as string) || '';

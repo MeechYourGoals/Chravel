@@ -1,4 +1,8 @@
-// Allowed origins for CORS - restricts which domains can call Edge Functions
+// Allowed origins for CORS - restricts which domains can call Edge Functions.
+// SECURITY NOTE: Wildcard suffix entries (e.g. .vercel.app) allow ANY subdomain on that provider.
+// This is acceptable because CORS is NOT a security boundary — actual authorization is enforced
+// via JWT in the Authorization header, validated by supabase.auth.getUser() in each function.
+// If preview deployments move to a dedicated subdomain, tighten these entries accordingly.
 const ALLOWED_ORIGINS = [
   // Production domains
   'https://chravel.app',

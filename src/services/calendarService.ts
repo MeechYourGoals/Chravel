@@ -461,7 +461,9 @@ export const calendarService = {
       throw new Error('You must be logged in to update events. Please sign in and try again.');
     }
 
-    console.log('[calendarService] Updating event:', eventId, 'by user:', user.id);
+    if (import.meta.env.DEV) {
+      console.log('[calendarService] Updating event:', eventId);
+    }
 
     // Use Supabase for authenticated users - use .select() to verify update happened
     const { data, error } = await supabase
