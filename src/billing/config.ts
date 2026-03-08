@@ -85,20 +85,7 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
     ],
   },
 
-  // Legacy Plus tier (maps to Explorer)
-  'consumer-plus': {
-    name: 'Plus (Legacy)',
-    stripeProductId: 'prod_SffF8X29utfVPM',
-    stripePriceIdMonthly: 'price_1QMTQ6AedhHV8iZ8Y2WGYlQJ',
-    requiresIAPOnIOS: true,
-    priceMonthly: 4.99,
-    entitlements: [
-      'ai_queries_extended',
-      'trips_extended',
-      'storage_extended',
-      'payments_extended',
-    ],
-  },
+  // Legacy Plus tier removed — old account product no longer valid
 
   // ============================================
   // PRO PLANS - CAN use web checkout (B2B exception)
