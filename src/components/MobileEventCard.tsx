@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarDays,
+  CalendarRange,
   MapPin,
   Users,
   Settings,
