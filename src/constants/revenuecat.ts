@@ -111,6 +111,18 @@ export function isRevenueCatConfigured(platform: 'ios' | 'android' | 'web'): boo
 /**
  * Full config object for convenience
  */
+/**
+ * Maps RevenueCat entitlement IDs to Chravel subscription tiers.
+ * Used by revenuecatClient to derive the user's plan from active entitlements.
+ */
+export const ENTITLEMENT_TO_TIER: Record<string, SubscriptionTier> = {
+  [REVENUECAT_ENTITLEMENTS.explorer]: 'explorer',
+  [REVENUECAT_ENTITLEMENTS.frequentChraveler]: 'frequent-chraveler',
+  [REVENUECAT_ENTITLEMENTS.proStarter]: 'pro-starter',
+  [REVENUECAT_ENTITLEMENTS.proGrowth]: 'pro-growth',
+  [REVENUECAT_ENTITLEMENTS.proEnterprise]: 'pro-enterprise',
+};
+
 export const REVENUECAT_CONFIG = {
   enabled: REVENUECAT_ENABLED,
   entitlements: REVENUECAT_ENTITLEMENTS,
