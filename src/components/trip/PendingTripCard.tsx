@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, MapPin, CalendarDays } from 'lucide-react';
+import { Clock, MapPin, CalendarCheck2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PendingTripCardProps {

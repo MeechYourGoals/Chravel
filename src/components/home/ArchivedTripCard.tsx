@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Lock, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { CalendarCheck2, MapPin, Lock, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
