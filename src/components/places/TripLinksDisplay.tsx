@@ -91,7 +91,7 @@ const SortableLinkItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-gray-900/80 border border-white/10 rounded-2xl p-3 md:p-4 hover:border-sky-500/30 transition-all shadow-lg"
+      className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-3 md:p-4 hover:border-primary/30 transition-all shadow-enterprise-lg"
     >
       {/* Row 1: Drag Handle, Title, Category, Action Buttons */}
       <div className="flex items-center justify-between gap-2 mb-2">
@@ -126,7 +126,7 @@ const SortableLinkItem = ({
 
           <button
             onClick={() => onEdit(link)}
-            className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 transition-colors flex items-center gap-1"
+            className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-glass-slate-bg hover:bg-white/10 transition-colors flex items-center gap-1"
             title="Edit"
           >
             <Edit className="w-3 h-3" />
@@ -391,7 +391,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
       console.error('[TripLinksDisplay] Failed to load links:', error);
     }
     return (
-      <div className="bg-gray-900/80 border border-red-500/20 rounded-2xl p-6 text-center">
+      <div className="bg-glass-slate-card border border-red-500/20 rounded-2xl p-6 text-center">
         <p className="text-red-400 font-medium mb-2">Couldn&apos;t load links</p>
         <p className="text-gray-400 text-sm mb-4">
           {error instanceof Error ? error.message : 'Something went wrong. Please try again.'}
@@ -410,7 +410,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
   return (
     <div className="space-y-4">
       {/* Header with Add Button */}
-      <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 md:p-6 shadow-lg">
+      <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-4 md:p-6 shadow-enterprise-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center bg-gradient-to-r from-red-600 to-red-700">
@@ -439,7 +439,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                       Add Link
                     </button>
                   </DialogTrigger>
-                  <DialogContent className="bg-gray-900 border-white/10">
+                  <DialogContent className="bg-glass-slate-card border-glass-slate-border">
                     <DialogHeader>
                       <DialogTitle className="text-white">Add Link</DialogTitle>
                     </DialogHeader>
@@ -450,7 +450,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                           value={formUrl}
                           onChange={e => setFormUrl(e.target.value)}
                           placeholder="https://..."
-                          className="bg-gray-800 border-white/10 text-white"
+                          className="bg-glass-slate-bg border-glass-slate-border text-white"
                         />
                       </div>
                       <div>
@@ -459,7 +459,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                           value={formTitle}
                           onChange={e => setFormTitle(e.target.value)}
                           placeholder="Link title"
-                          className="bg-gray-800 border-white/10 text-white"
+                          className="bg-glass-slate-bg border-glass-slate-border text-white"
                         />
                       </div>
                       <div>
@@ -468,17 +468,17 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                           value={formDescription}
                           onChange={e => setFormDescription(e.target.value)}
                           placeholder="Optional description"
-                          className="bg-gray-800 border-white/10 text-white"
+                          className="bg-glass-slate-bg border-glass-slate-border text-white"
                           rows={3}
                         />
                       </div>
                       <div>
                         <label className="text-sm text-gray-300 mb-1 block">Category</label>
                         <Select value={formCategory} onValueChange={setFormCategory}>
-                          <SelectTrigger className="bg-gray-800 border-white/10 text-white">
+                          <SelectTrigger className="bg-glass-slate-bg border-glass-slate-border text-white">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-gray-800 border-white/10">
+                          <SelectContent className="bg-glass-slate-card border-glass-slate-border">
                             <SelectItem value="accommodation">Accommodation</SelectItem>
                             <SelectItem value="activity">Activity</SelectItem>
                             <SelectItem value="appetite">Food & Dining</SelectItem>
@@ -519,7 +519,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
       {/* Edit Link Modal */}
       <Dialog open={!!editingLink} onOpenChange={open => !open && setEditingLink(null)}>
-        <DialogContent className="bg-gray-900 border-white/10">
+        <DialogContent className="bg-glass-slate-card border-glass-slate-border">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Link</DialogTitle>
           </DialogHeader>
@@ -529,7 +529,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
               <Input
                 value={formUrl}
                 disabled
-                className="bg-gray-800 border-white/10 text-gray-500"
+                className="bg-glass-slate-bg border-glass-slate-border text-gray-500"
               />
             </div>
             <div>
@@ -538,7 +538,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                 value={formTitle}
                 onChange={e => setFormTitle(e.target.value)}
                 placeholder="Link title"
-                className="bg-gray-800 border-white/10 text-white"
+                className="bg-glass-slate-bg border-glass-slate-border text-white"
               />
             </div>
             <div>
@@ -547,17 +547,17 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                 value={formDescription}
                 onChange={e => setFormDescription(e.target.value)}
                 placeholder="Optional description"
-                className="bg-gray-800 border-white/10 text-white"
+                className="bg-glass-slate-bg border-glass-slate-border text-white"
                 rows={3}
               />
             </div>
             <div>
               <label className="text-sm text-gray-300 mb-1 block">Category</label>
               <Select value={formCategory} onValueChange={setFormCategory}>
-                <SelectTrigger className="bg-gray-800 border-white/10 text-white">
+                <SelectTrigger className="bg-glass-slate-bg border-glass-slate-border text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-white/10">
+                <SelectContent className="bg-glass-slate-card border-glass-slate-border">
                   <SelectItem value="accommodation">Accommodation</SelectItem>
                   <SelectItem value="activity">Activity</SelectItem>
                   <SelectItem value="appetite">Food & Dining</SelectItem>

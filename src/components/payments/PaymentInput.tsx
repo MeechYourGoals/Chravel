@@ -173,7 +173,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
   if (!isVisible) return null;
 
   return (
-    <Card className="bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border border-white/10 rounded-2xl shadow-2xl">
+    <Card className="bg-glass-slate-card border border-glass-slate-border rounded-2xl shadow-enterprise-lg">
       <CardContent className="p-6">
         <div className="flex items-center gap-2 mb-6">
           <DollarSign size={20} className="text-emerald-400" />
@@ -195,7 +195,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                 value={amount || ''}
                 onChange={e => setAmount(Number(e.target.value))}
                 placeholder="0.00"
-                className="w-full h-12 rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 focus:ring-2 focus:ring-emerald-400/40 focus:outline-none placeholder-gray-500 transition-all"
+                className="w-full h-12 rounded-xl bg-glass-slate-bg border border-glass-slate-border text-white px-4 focus:ring-2 focus:ring-primary/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
               />
             </div>
@@ -210,7 +210,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Dinner, taxi, tickets, etc."
-                className="w-full h-12 resize-none rounded-xl bg-gray-900/40 border border-white/10 text-white px-4 py-2 focus:ring-2 focus:ring-emerald-400/40 focus:outline-none placeholder-gray-500 transition-all"
+                className="w-full h-12 resize-none rounded-xl bg-glass-slate-bg border border-glass-slate-border text-white px-4 py-2 focus:ring-2 focus:ring-primary/40 focus:outline-none placeholder-gray-500 transition-all"
                 required
               />
             </div>
@@ -225,7 +225,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
           </div>
 
           {/* Split Between People - Unified Box with 2-Column Grid */}
-          <div className="bg-gray-900/40 border border-white/10 rounded-xl p-4">
+          <div className="bg-glass-slate-bg/30 border border-glass-slate-border/50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-emerald-400" />
@@ -283,7 +283,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       ${
                         isSelected
                           ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'
-                          : 'bg-gray-800/50 hover:bg-gray-800/70 border-2 border-transparent'
+                          : 'bg-glass-slate-bg/50 hover:bg-white/10 border-2 border-transparent'
                       }
                     `}
                   >
@@ -347,7 +347,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                       ${
                         isSelected
                           ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'
-                          : 'bg-gray-900/40 border-2 border-white/10 hover:bg-gray-800/60'
+                          : 'bg-glass-slate-bg border-2 border-glass-slate-border hover:bg-white/10'
                       }
                     `}
                   >
@@ -377,7 +377,7 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
 
           <Button
             type="submit"
-            className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-2 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-primary-glow disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={
               isSubmitting ||
               !amount ||
