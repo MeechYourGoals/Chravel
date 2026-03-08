@@ -1,30 +1,32 @@
 
 
-## Build Error Assessment — Current State
+## Problem
 
-### Result: No Active Build Errors
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
-After thorough analysis of the codebase, **there are no current build-blocking errors**. The two previously reported issues were already resolved in the last conversation:
+## Changes
 
-1. **`supabase/functions/join-trip/index.ts`** — Missing `applyRateLimit` import → **Fixed** (line 10 now imports from `../_shared/rateLimitGuard.ts`)
-2. **`supabase/functions/gmail-import-worker/index.ts`** — `logMessage` client type resolving to `never` → **Fixed** (parameter typed as `any` on line 145)
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-### Non-Blocking Issues Worth Noting (Not Build Errors)
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-These won't break builds but are worth tracking:
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
 
-| # | File | Issue | Severity |
-|---|------|-------|----------|
-| 1 | `src/services/broadcastService.ts:221-239` | RPC calls use `broadcast_uuid` param but DB functions expect `p_broadcast_id` / `p_user_id` — runtime error, suppressed by `@ts-ignore` | **Runtime bug** |
-| 2 | `src/services/googlePlacesNew.ts` (4 locations) | `@ts-ignore` for Google Maps Places API methods not in `@types/google.maps` yet | Cosmetic |
-| 3 | `src/telemetry/providers/sentry.ts`, `posthog.ts` | `@ts-expect-error` for optional dependencies that may not be installed | Intentional |
-| 4 | 64 `@ts-ignore`/`@ts-expect-error` suppressions across 7 files | Technical debt — some are valid, the broadcast ones mask real bugs | Low |
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
+```
 
-### Recommended Fix (if desired)
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
+```
 
-The **broadcast RPC parameter mismatch** (item #1) is a real runtime bug that would silently fail. The fix:
-- Change `broadcast_uuid` → `p_broadcast_id` in both RPC calls
-- Add `p_user_id: user.id` to the `mark_broadcast_viewed` call
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
 
-This is a 2-line surgical fix, no UI/UX impact.
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 
