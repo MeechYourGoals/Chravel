@@ -631,7 +631,7 @@ export const TripHeader = ({
                 {onManageUsers && (
                   <button
                     onClick={onManageUsers}
-                    className={`text-gray-400 hover:text-${accentColors.primary} transition-colors p-1 rounded-lg hover:bg-white/10`}
+                    className="text-gray-400 hover:text-gold-primary transition-colors p-1 rounded-lg hover:bg-white/10"
                     title="Manage users"
                   >
                     <Settings size={16} />
