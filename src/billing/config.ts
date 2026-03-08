@@ -116,9 +116,9 @@ export const BILLING_PRODUCTS: Record<string, ProductConfig> = {
 
   'pro-growth': {
     name: 'Growth Pro',
-    stripeProductId: 'prod_Tc0afc0pIUt87D',
-    stripePriceIdMonthly: 'price_1RXK3dAedhHV8iZ8dn9vGqWN',
-    stripePriceIdAnnual: 'price_1RXK3dAedhHV8iZ8S7m10o6j',
+    stripeProductId: 'prod_U73VPX6TlClQ7J',
+    stripePriceIdMonthly: 'price_1T8pOf47wCAQ57Mm5k8uVQrW',
+    stripePriceIdAnnual: 'price_1T8pOf47wCAQ57Mm5k8uVQrW', // Pro plans monthly only
     requiresIAPOnIOS: false,
     priceMonthly: 99,
     priceAnnual: 990,
