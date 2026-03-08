@@ -1,49 +1,67 @@
 
 
-## Problem
+## Root Cause Analysis
 
-Loading spinners throughout the app use inconsistent colors — some use `border-t-primary` (which maps to an HSL variable), others use hardcoded `border-blue-500`, `border-glass-orange`, or `text-primary` on Loader2 icons. The user wants all spinners to use the explicit metallic gold (`gold-primary` / `#c49746`).
+The card order inconsistency has **one core bug** with two contributing factors:
 
-## Changes
+### Bug: Race condition — remote order arrives too late, never re-applied
 
-### 1. `src/components/LoadingSpinner.tsx` — Central spinner component
-- Change `border-muted border-t-primary` → `border-gold-primary/30 border-t-gold-primary`
-- This ensures the shared spinner always renders in metallic gold
+Here's what happens on login:
 
-### 2. `src/components/trip/MountedTabs.tsx` (line 16)
-- `border-primary/30 border-t-primary` → `border-gold-primary/30 border-t-gold-primary`
+```text
+Timeline:
+  t0  Component mounts → useEffect kicks off fetchRemoteOrder (async)
+  t1  Items arrive from React Query → applyOrder runs
+      → remoteOrderRef.current is still null
+      → Falls back to localStorage (stale, device-specific)
+      → Cards render in WRONG order
+  t2  fetchRemoteOrder resolves → sets remoteOrderRef.current
+      → But remoteOrderRef is a React ref — NO re-render triggered
+      → Cards stay in wrong order until next navigation
+```
 
-### 3. `src/components/mobile/MobileTripTabs.tsx` (line 335)
-- `border-blue-500/30 border-t-blue-500` → `border-gold-primary/30 border-t-gold-primary`
+Because `remoteOrderRef` is a ref (not state), the component never re-renders when the correct remote order arrives. The cards are stuck in whatever order localStorage had — which is device-specific and often stale.
 
-### 4. `src/components/events/EventDetailContent.tsx` (line 57)
-- `border-blue-500/30 border-t-blue-500` → `border-gold-primary/30 border-t-gold-primary`
+### Contributing factor: Module-level debounce timer
 
-### 5. `src/pages/AdvertiserDashboard.tsx` (line 196)
-- `border-b-2 border-primary` → `border-b-2 border-gold-primary`
+There's a single `upsertTimer` variable shared across all hook instances. If a user switches between My Trips → Pro → Events quickly, the debounce timers clobber each other, potentially dropping saves.
 
-### 6. `src/features/calendar/components/CalendarImportModal.tsx` (lines 438, 641)
-- `border-b-2 border-primary` → `border-b-2 border-gold-primary`
+### Contributing factor: Silent upsert failures
 
-### 7. `src/components/pro/admin/JoinRequestsPanel.tsx` (line 60)
-- `border-b-2 border-primary` → `border-b-2 border-gold-primary`
+The `catch {}` block in `debouncedUpsert` swallows all errors. If the upsert fails (network, RLS, etc.), the user has no idea their reorder didn't persist.
 
-### 8. `src/components/pro/admin/RoleManager.tsx` (lines 293, 437, 651)
-- `border-b-2 border-primary` → `border-b-2 border-gold-primary`
+---
 
-### 9. `src/components/pro/admin/BulkRoleAssignmentDialog.tsx` (line 143)
-- `text-primary` on Loader2 → `text-gold-primary`
+## Fix Plan
 
-### 10. `src/pages/OrganizationDashboard.tsx` (lines 129, 403)
-- `border-glass-orange border-t-transparent` → `border-gold-primary/30 border-t-gold-primary`
+### 1. Convert `remoteOrderRef` to state so remote fetch triggers re-render
 
-### 11. `src/components/FilesTab.tsx` (line 358)
-- `border-b-2 border-glass-orange` → `border-b-2 border-gold-primary`
+Replace `remoteOrderRef` with a `useState<string[] | null>` so that when the remote order arrives, `applyOrder` re-runs via its dependency and the grid re-renders with the correct order.
 
-### 12. `src/components/ai/ConciergeSearchModal.tsx` (line 214)
-- `border-emerald-500/30 border-t-emerald-500` → `border-gold-primary/30 border-t-gold-primary`
+### 2. Make `applyOrder` depend on remote order state
 
-**Not changed:** White spinners inside buttons during action states (e.g., "Processing...", "Uploading..." over dark backgrounds) — those should stay white for contrast. Also not changing contextual Loader2 icons inside buttons that are mid-action (they inherit button text color).
+Update the `applyOrder` callback to include `remoteOrder` in its closure/deps, so it uses the freshest data.
 
-**Net result:** ~12 files updated, all loading spinners consistently use `gold-primary` metallic gold.
+### 3. In `SortableTripGrid`, re-apply order when `applyOrder` identity changes
+
+The existing `useEffect` already depends on `applyOrder`, so once `applyOrder` gets a new identity from the state change, the grid will re-sort automatically.
+
+### 4. Scope debounce timer per hook instance
+
+Move `upsertTimer` into a `useRef` so each dashboard type gets its own independent debounce.
+
+### 5. Add error logging for failed upserts
+
+Log upsert failures so we can diagnose persistence issues.
+
+---
+
+## Files Changed
+
+- `src/hooks/useDashboardCardOrder.ts` — All changes are in this single file
+
+## Risk
+
+- **Low**: Single-file change, no schema changes, no RLS changes.
+- The fix makes the existing Supabase fetch actually take effect in the UI.
 

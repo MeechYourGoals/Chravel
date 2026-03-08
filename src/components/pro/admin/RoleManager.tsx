@@ -290,7 +290,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
     return (
       <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
         <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gold-primary" />
           <p className="text-sm text-muted-foreground">Loading roles...</p>
         </div>
       </Card>
@@ -434,7 +434,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
 
             {loadingMembers || loadingAdmins ? (
               <div className="flex items-center gap-2 py-4">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gold-primary" />
                 <span className="text-sm text-muted-foreground">Loading...</span>
               </div>
             ) : tripMembers.length === 0 ? (
@@ -648,7 +648,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
           <div className="max-h-[450px] overflow-y-auto space-y-4 py-4">
             {loadingMembers ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gold-primary" />
                 <span className="ml-2 text-sm text-muted-foreground">Loading members...</span>
               </div>
             ) : tripMembers.length === 0 ? (

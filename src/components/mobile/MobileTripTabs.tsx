@@ -332,7 +332,7 @@ export const MobileTripTabs = ({
   const DefaultTabSkeleton = () => (
     <div className="flex items-center justify-center h-full min-h-[300px]">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-3 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-3 border-gold-primary/30 border-t-gold-primary rounded-full animate-spin" />
         <p className="text-sm text-gray-400">Loading...</p>
       </div>
     </div>
