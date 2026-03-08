@@ -1,12 +1,22 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
+import {
+  checkRateLimit,
+  getClientIp,
+  readJsonBody,
+  redactSensitiveToken,
+} from '../_shared/security.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[JOIN-TRIP] ${step}${detailsStr}`);
 };
+
+const JOIN_TRIP_RATE_LIMIT_MAX_REQUESTS = 20;
+const JOIN_TRIP_RATE_LIMIT_WINDOW_SECONDS = 60;
+const MAX_INVITE_CODE_LENGTH = 128;
+const MAX_REQUEST_CONTENT_LENGTH_BYTES = 4 * 1024;
 
 /**
  * Error codes for join-trip failures.
@@ -80,7 +90,11 @@ serve(async req => {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    if (!authHeader.startsWith('Bearer ')) {
+      return errorResponse('Authorization header is malformed.', 401, corsHeaders, 'AUTH_EXPIRED');
+    }
+
+    const token = authHeader.slice(7);
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !userData.user) {
@@ -110,8 +124,18 @@ serve(async req => {
     }
 
     // Get invite code from request
-    const { inviteCode } = await req.json();
-    if (!inviteCode) {
+    const requestBody = await readJsonBody<{ inviteCode?: string }>(
+      req,
+      MAX_REQUEST_CONTENT_LENGTH_BYTES,
+    );
+
+    if (requestBody.error) {
+      return errorResponse(requestBody.error, 400, corsHeaders, 'INVALID_LINK');
+    }
+
+    const normalizedInviteCode =
+      typeof requestBody.data?.inviteCode === 'string' ? requestBody.data.inviteCode.trim() : '';
+    if (!normalizedInviteCode || normalizedInviteCode.length > MAX_INVITE_CODE_LENGTH) {
       logStep('ERROR: No invite code provided');
       return errorResponse(
         'This invite link appears to be malformed.',
@@ -121,13 +145,13 @@ serve(async req => {
       );
     }
 
-    logStep('Processing invite code', { inviteCode });
+    logStep('Processing invite code', { inviteCode: redactSensitiveToken(normalizedInviteCode) });
 
     // Fetch invite data from database
     const { data: invite, error: inviteError } = await supabaseClient
       .from('trip_invites')
       .select('*')
-      .eq('code', inviteCode)
+      .eq('code', normalizedInviteCode)
       .single();
 
     if (inviteError || !invite) {
@@ -310,7 +334,7 @@ serve(async req => {
               requested_at: new Date().toISOString(),
               resolved_at: null,
               resolved_by: null,
-              invite_code: inviteCode,
+              invite_code: normalizedInviteCode,
               requester_name: requesterName,
               requester_email: requesterEmail,
             })
@@ -341,7 +365,7 @@ serve(async req => {
           .insert({
             trip_id: invite.trip_id,
             user_id: user.id,
-            invite_code: inviteCode,
+            invite_code: normalizedInviteCode,
             status: 'pending',
             requester_name: requesterName,
             requester_email: requesterEmail,

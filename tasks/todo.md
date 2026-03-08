@@ -1,5 +1,18 @@
 # TODO
 
+## Security hardening follow-up (invite edge functions)
+- [x] Consolidate duplicated invite-security helpers into shared Edge function utilities.
+- [x] Harden invite body parsing and method validation to return deterministic client-safe errors.
+- [x] Re-run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit, verify branch status, and publish PR update.
+
+## Security + scale readiness hardening (invite surfaces)
+- [x] Scope architecture and trust boundaries for auth/invite/AI/uploads/payments/realtime paths.
+- [x] Audit externally reachable invite endpoints for abuse risks and choose lowest-regression controls.
+- [x] Implement safe hardening for invite preview/join abuse resistance (rate limit + request validation + safer logs).
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) and targeted checks.
+- [x] Commit changes, verify branch tracking, and open PR.
+
 ## Settings profile persistence fix (real name + display name)
 - [x] Scope bug by tracing consumer settings save path and auth rehydration path.
 - [x] Implement targeted persistence hardening for name fields.
@@ -131,3 +144,17 @@
 - [x] Implement minimal keepalive/idle-timeout hardening to prevent false "Request timed out" failures during long-running tool loops.
 - [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) and a focused concierge test sweep.
 - [x] Produce component-by-component reliability scoring (0-100) with concrete actions for any area below 90.
+
+## AI concierge tool-calling audit (text + voice)
+- [x] Scope concierge tool inventories across lovable-concierge, voice session config, and executors.
+- [x] Compare declared tools vs implemented tools and identify parity gaps between text and voice paths.
+- [x] Document trigger prompts, semantic-routing behavior, rich-card support, and latency simplification opportunities.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit audit deliverable + open PR.
+
+## AI concierge tool parity implementation (text + voice)
+- [x] Restore shared `functionExecutor` coverage so all declared text concierge tools execute server-side.
+- [x] Align `gemini-voice-session` tool declarations to match text concierge tools one-for-one.
+- [x] Route newly-added parity tools through `useVoiceToolHandler` bridge to `execute-concierge-tool`.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit implementation + verify branch tracking/push + open PR.

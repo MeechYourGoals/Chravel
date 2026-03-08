@@ -184,6 +184,101 @@ const VOICE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'savePlace',
+    description: 'Save a place or link to the trip Places/Explore section.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        name: { type: 'STRING', description: 'Name of the place or link' },
+        url: { type: 'STRING', description: 'URL for the place/link (optional)' },
+        description: { type: 'STRING', description: 'Short reason to save (optional)' },
+        category: {
+          type: 'STRING',
+          description: 'attraction, accommodation, activity, appetite, or other',
+        },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'setBasecamp',
+    description: 'Set the trip or personal basecamp accommodation.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        scope: { type: 'STRING', description: 'trip or personal' },
+        name: { type: 'STRING', description: 'Hotel/accommodation name' },
+        address: { type: 'STRING', description: 'Address (optional)' },
+        lat: { type: 'NUMBER', description: 'Latitude (optional)' },
+        lng: { type: 'NUMBER', description: 'Longitude (optional)' },
+      },
+      required: ['scope', 'name'],
+    },
+  },
+  {
+    name: 'addToAgenda',
+    description: 'Add an item/session to an event agenda.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        eventId: { type: 'STRING', description: 'Parent event ID' },
+        title: { type: 'STRING', description: 'Agenda item title' },
+        description: { type: 'STRING', description: 'Agenda notes (optional)' },
+        sessionDate: { type: 'STRING', description: 'Session date (YYYY-MM-DD)' },
+        startTime: { type: 'STRING', description: 'Start time (HH:MM)' },
+        endTime: { type: 'STRING', description: 'End time (HH:MM)' },
+        location: { type: 'STRING', description: 'Room/location (optional)' },
+      },
+      required: ['eventId', 'title'],
+    },
+  },
+  {
+    name: 'searchFlights',
+    description: 'Search flights and return Google Flights deeplinks.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        origin: { type: 'STRING', description: 'Origin airport code/city' },
+        destination: { type: 'STRING', description: 'Destination airport code/city' },
+        departureDate: { type: 'STRING', description: 'Departure date YYYY-MM-DD' },
+        returnDate: { type: 'STRING', description: 'Optional return date YYYY-MM-DD' },
+        passengers: { type: 'NUMBER', description: 'Passenger count (optional)' },
+      },
+      required: ['origin', 'destination', 'departureDate'],
+    },
+  },
+  {
+    name: 'emitSmartImportPreview',
+    description:
+      'Emit Smart Import preview events extracted from attached docs before calendar write.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        events: {
+          type: 'ARRAY',
+          items: { type: 'OBJECT' },
+          description: 'Array of extracted event objects',
+        },
+      },
+      required: ['events'],
+    },
+  },
+  {
+    name: 'emitReservationDraft',
+    description: 'Create a reservation draft card for explicit booking intents.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        placeQuery: { type: 'STRING', description: 'Venue or restaurant name' },
+        startTimeISO: { type: 'STRING', description: 'Requested reservation datetime ISO' },
+        partySize: { type: 'NUMBER', description: 'Party size (optional)' },
+        reservationName: { type: 'STRING', description: 'Reservation name (optional)' },
+        notes: { type: 'STRING', description: 'Reservation notes (optional)' },
+      },
+      required: ['placeQuery'],
+    },
+  },
+  {
     name: 'updateCalendarEvent',
     description: 'Update an existing trip calendar event.',
     parameters: {
@@ -265,6 +360,24 @@ const VOICE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'createNotification',
+    description: 'Send in-app notifications to selected users or all trip members.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        title: { type: 'STRING', description: 'Notification title' },
+        message: { type: 'STRING', description: 'Notification body' },
+        targetUserIds: {
+          type: 'ARRAY',
+          items: { type: 'STRING' },
+          description: 'Optional user IDs; omit for all members',
+        },
+        type: { type: 'STRING', description: 'Notification type (optional)' },
+      },
+      required: ['title', 'message'],
+    },
+  },
+  {
     name: 'getWeatherForecast',
     description: 'Get weather forecast.',
     parameters: {
@@ -341,6 +454,53 @@ const VOICE_FUNCTION_DECLARATIONS = [
         },
       },
       required: ['prompt'],
+    },
+  },
+  {
+    name: 'setTripHeaderImage',
+    description: 'Set the trip header/cover image URL.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        imageUrl: { type: 'STRING', description: 'Image URL to set as trip header' },
+      },
+      required: ['imageUrl'],
+    },
+  },
+  {
+    name: 'getDeepLink',
+    description: 'Generate an in-app deep link for a specific trip entity.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        entityType: { type: 'STRING', description: 'event, task, poll, link, payment, broadcast' },
+        entityId: { type: 'STRING', description: 'Entity ID' },
+      },
+      required: ['entityType', 'entityId'],
+    },
+  },
+  {
+    name: 'explainPermission',
+    description: 'Explain whether an action is allowed and why.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        action: { type: 'STRING', description: 'Action name to evaluate' },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: 'verify_artifact',
+    description: 'Verify created artifact existence by ID or idempotency key.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        type: { type: 'STRING', description: 'task, event, place, link, poll' },
+        id: { type: 'STRING', description: 'Artifact ID (optional)' },
+        idempotency_key: { type: 'STRING', description: 'Idempotency key (optional)' },
+      },
+      required: ['type'],
     },
   },
 ];
