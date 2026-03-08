@@ -142,7 +142,7 @@ function buildTripContextForPrompt(trip: TripContext): string {
 
 /** Log a message processing outcome */
 async function logMessage(
-  client: ReturnType<typeof createClient>,
+  client: any,
   jobId: string,
   messageId: string,
   outcome: 'parsed' | 'skipped' | 'error',
