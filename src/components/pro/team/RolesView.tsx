@@ -196,7 +196,7 @@ export const RolesView = ({
         {/* Row 2: Consolidated Admin Action Buttons (3 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
           <div
-            className={`${isMobile ? 'grid grid-cols-2 gap-3' : 'flex flex-wrap justify-center gap-4'} mb-3`}
+            className={`${isMobile ? 'grid grid-cols-2 gap-3' : 'flex justify-evenly gap-3'} mb-3`}
           >
             <Button
               onClick={onCreateRole}
@@ -243,9 +243,11 @@ export const RolesView = ({
           </div>
         )}
 
-        {/* Row 3: View mode toggle (Grid vs Org Chart) + Role Filter Pills */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
+        {/* Row 3: View mode toggle + Role Filter Pills on the same row */}
+        <div
+          className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between gap-4'} mb-3`}
+        >
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs text-gray-500">View:</span>
             <div className="flex rounded-lg bg-white/5 border border-gray-600 p-0.5">
               <button
@@ -272,14 +274,10 @@ export const RolesView = ({
               </button>
             </div>
           </div>
-        </div>
 
-        {(availableRoles.length > 0 || existingRoles.length > 0) && (
-          <div
-            className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide -mx-3 px-3' : 'justify-center'}`}
-          >
+          {(availableRoles.length > 0 || existingRoles.length > 0) && (
             <div
-              className={`flex ${isMobile ? 'gap-2 min-w-max' : 'flex-wrap gap-2 justify-center items-center max-w-5xl'}`}
+              className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide' : 'flex-wrap justify-end'} gap-2 items-center`}
             >
               {roles.map(role => {
                 // Count members assigned to this role from actual role assignments (memberRolesMap)
@@ -322,8 +320,8 @@ export const RolesView = ({
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Manual Role Input Notice for Corporate & Business */}
         {availableRoles.length === 0 && (
