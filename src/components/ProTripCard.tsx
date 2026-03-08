@@ -369,7 +369,7 @@ export const ProTripCard = ({
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-0.5">
-              <Calendar size={12} className="text-white/50" />
+              <CalendarDays size={12} className="text-white/50" />
             </div>
             <div className="text-xl md:text-2xl font-bold text-white">
               {calculateDaysCount(trip.dateRange)}
