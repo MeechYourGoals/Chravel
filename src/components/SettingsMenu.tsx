@@ -170,7 +170,7 @@ export const SettingsMenu = ({
                     onClick={() => setSettingsType('advertiser')}
                     className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                       settingsType === 'advertiser'
-                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                   >

@@ -73,7 +73,7 @@ export const TripViewToggle = ({
               title={
                 recsTabDisabled ? 'Enable Demo Mode to access Travel Recommendations' : undefined
               }
-              className={`justify-self-center h-full data-[state=on]:bg-gradient-to-r data-[state=on]:from-yellow-500 data-[state=on]:to-yellow-600 data-[state=on]:text-black data-[state=on]:shadow-lg data-[state=on]:shadow-yellow-500/30 data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
+              className={`justify-self-center h-full data-[state=on]:bg-black/60 data-[state=on]:border data-[state=on]:border-gold-primary/60 data-[state=on]:text-gold-light data-[state=on]:shadow-ring-glow data-[state=off]:text-white hover:text-foreground transition-all duration-300 px-2 sm:px-3 lg:px-4 py-0 rounded-xl font-bold text-sm md:text-base tracking-wide whitespace-nowrap flex items-center justify-center ${recsTabDisabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
               onClick={e => {
                 if (recsTabDisabled) {
                   e.preventDefault();
