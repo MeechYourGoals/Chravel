@@ -528,11 +528,11 @@ export const MobileTripTabs = ({
                   ${enabled ? 'active:scale-95' : variant === 'event' ? '' : 'cursor-not-allowed'}
                   ${
                     isActive && enabled
-                      ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-lg`
+                      ? 'accent-ring-active text-white shadow-lg'
                       : enabled
-                        ? 'bg-white/10 text-gray-300'
+                        ? 'accent-ring-idle text-gray-300'
                         : variant === 'event'
-                          ? 'bg-white/10 text-gray-300'
+                          ? 'accent-ring-idle text-gray-300'
                           : 'bg-white/5 text-gray-500 opacity-40 grayscale cursor-not-allowed'
                   }
                 `}

@@ -652,7 +652,23 @@
     pointer-events: none;
   }
 
-  /* Idle/unselected control for ring system */
+  /* Gold gradient spinner — replaces flat border-gold-primary spinners */
+  .gold-gradient-spinner {
+    border: 2.5px solid transparent;
+    border-radius: 9999px;
+    background:
+      conic-gradient(from 180deg, transparent 0%, #533517 20%, #c49746 50%, #feeaa5 75%, transparent 100%) border-box;
+    mask:
+      linear-gradient(#fff 0 0) padding-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) padding-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+  }
+
+
   .accent-ring-idle {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);

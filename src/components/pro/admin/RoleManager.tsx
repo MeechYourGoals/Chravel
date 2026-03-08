@@ -648,7 +648,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
           <div className="max-h-[450px] overflow-y-auto space-y-4 py-4">
             {loadingMembers ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gold-primary" />
+                <div className="animate-spin h-6 w-6 gold-gradient-spinner" />
                 <span className="ml-2 text-sm text-muted-foreground">Loading members...</span>
               </div>
             ) : tripMembers.length === 0 ? (
