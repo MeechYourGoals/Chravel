@@ -1816,9 +1816,6 @@ export const AIConciergeChat = ({
         {/* Empty State - Compact for Mobile */}
         {messages.length === 0 && !isHistoryLoading && (
           <div className="text-center py-6 px-4 flex-shrink-0">
-            <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
-              Your Travel Concierge
-            </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Try asking:</p>
               <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
@@ -1830,14 +1827,6 @@ export const AIConciergeChat = ({
                 </p>
                 <p>
                   &bull; &ldquo;Create a poll: Saturday night plans with 4 options near us&rdquo;
-                </p>
-                <p>
-                  &bull; &ldquo;Show flights for LAX to JFK on May 22 and let me save one&rdquo;
-                </p>
-                <p>&bull; &ldquo;Summarize tasks due this week and assign owners&rdquo;</p>
-                <p>
-                  &bull; &ldquo;I have a hotel confirmation screenshot &mdash; import it to our
-                  trip&rdquo;
                 </p>
               </div>
               <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
