@@ -38,6 +38,9 @@ export const VoiceButton = ({
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPressRef = useRef(false);
   const pressStartRef = useRef(0);
+  // Track whether the current interaction started via touch so we can
+  // suppress the duplicate mouse events that mobile browsers synthesise.
+  const isTouchInteractionRef = useRef(false);
 
   const clearPressTimer = useCallback(() => {
     if (pressTimerRef.current) {
@@ -47,39 +50,82 @@ export const VoiceButton = ({
   }, []);
 
   // ── Press start (touch or mouse) ──
-  const handlePressStart = useCallback(() => {
-    if (!isEligible) return;
-    didLongPressRef.current = false;
-    pressStartRef.current = Date.now();
+  const handlePressStart = useCallback(
+    (source: 'touch' | 'mouse') => {
+      // Prevent double-trigger: ignore mouse events that follow a touch
+      if (source === 'touch') {
+        isTouchInteractionRef.current = true;
+      } else if (isTouchInteractionRef.current) {
+        // This mouse event is a synthetic follow-up from a touch — skip it
+        return;
+      }
 
-    pressTimerRef.current = setTimeout(() => {
-      didLongPressRef.current = true;
-      pressTimerRef.current = null;
-      onLongPress?.();
-    }, LONG_PRESS_MS);
-  }, [isEligible, onLongPress]);
+      if (!isEligible) return;
+      didLongPressRef.current = false;
+      pressStartRef.current = Date.now();
+
+      pressTimerRef.current = setTimeout(() => {
+        didLongPressRef.current = true;
+        pressTimerRef.current = null;
+        onLongPress?.();
+      }, LONG_PRESS_MS);
+    },
+    [isEligible, onLongPress],
+  );
 
   // ── Press end (touch or mouse) ──
-  const handlePressEnd = useCallback(() => {
-    clearPressTimer();
-    // If long-press already fired, don't also fire tap
-    if (didLongPressRef.current) {
-      didLongPressRef.current = false;
-      return;
-    }
-    // Tap: toggle dictation (or upgrade prompt)
-    if (!isEligible) {
-      onUpgrade?.();
-      return;
-    }
-    onToggle();
-  }, [clearPressTimer, isEligible, onToggle, onUpgrade]);
+  const handlePressEnd = useCallback(
+    (source: 'touch' | 'mouse') => {
+      if (source === 'mouse' && isTouchInteractionRef.current) {
+        // Synthetic mouse event after touch — skip it
+        return;
+      }
+      // Reset touch flag on touchend so future mouse-only interactions work
+      if (source === 'touch') {
+        // Defer the reset so the subsequent synthetic mouseup is still blocked
+        setTimeout(() => {
+          isTouchInteractionRef.current = false;
+        }, 300);
+      }
+
+      clearPressTimer();
+      // If long-press already fired, don't also fire tap
+      if (didLongPressRef.current) {
+        didLongPressRef.current = false;
+        return;
+      }
+      // Tap: toggle dictation (or upgrade prompt)
+      if (!isEligible) {
+        onUpgrade?.();
+        return;
+      }
+      onToggle();
+    },
+    [clearPressTimer, isEligible, onToggle, onUpgrade],
+  );
 
   // Cancel long-press if pointer leaves the button
   const handlePressCancel = useCallback(() => {
     clearPressTimer();
     didLongPressRef.current = false;
   }, [clearPressTimer]);
+
+  // Keyboard activation (Enter/Space) fires onClick on <button> elements.
+  // This restores accessibility that was lost when onClick was removed.
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only respond to keyboard-synthesised clicks (detail === 0).
+      // Pointer clicks (detail >= 1) are already handled by press start/end.
+      if (e.detail !== 0) return;
+
+      if (!isEligible) {
+        onUpgrade?.();
+        return;
+      }
+      onToggle();
+    },
+    [isEligible, onToggle, onUpgrade],
+  );
 
   // Prevent context menu on long-press (mobile)
   const handleContextMenu = useCallback(
@@ -134,12 +180,12 @@ export const VoiceButton = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            // No onClick — interaction handled by press start/end for long-press detection
-            onMouseDown={handlePressStart}
-            onMouseUp={handlePressEnd}
+            onClick={handleClick}
+            onMouseDown={() => handlePressStart('mouse')}
+            onMouseUp={() => handlePressEnd('mouse')}
             onMouseLeave={handlePressCancel}
-            onTouchStart={handlePressStart}
-            onTouchEnd={handlePressEnd}
+            onTouchStart={() => handlePressStart('touch')}
+            onTouchEnd={() => handlePressEnd('touch')}
             onTouchCancel={handlePressCancel}
             onContextMenu={handleContextMenu}
             className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
