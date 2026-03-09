@@ -13,6 +13,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
+import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -295,7 +296,7 @@ export const EventCard = ({
         <div className="grid grid-cols-3 gap-4 mb-6 bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
           <CardStatItem icon={Users} value={totalPeopleCount} label="People" />
           <CardStatItem
-            icon={CalendarDays}
+            icon={CalendarGlyph}
             value={calculateDaysCount(event.dateRange)}
             label="Days"
           />

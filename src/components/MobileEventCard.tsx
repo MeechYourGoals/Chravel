@@ -14,6 +14,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
+import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -268,7 +269,7 @@ export const MobileEventCard = ({
         <div className="grid grid-cols-3 gap-3 mb-4 bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10">
           <CardStatItem icon={Users} value={calculatePeopleCount(event)} label="People" size="sm" />
           <CardStatItem
-            icon={CalendarDays}
+            icon={CalendarGlyph}
             value={calculateDaysCount(event.dateRange)}
             label="Days"
             size="sm"

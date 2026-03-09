@@ -1,54 +1,61 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getCorsHeaders } from '../_shared/cors.ts';
-import { TripContextBuilder } from '../_shared/contextBuilder.ts';
-import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
-import { createVertexAccessToken, parseServiceAccountKey } from '../_shared/vertexAuth.ts';
-
 /**
- * gemini-voice-proxy — WebSocket proxy between client and Vertex AI Live API.
+ * gemini-voice-proxy — WebSocket relay between browser and Vertex AI Live API.
  *
- * Architecture:
- *   Browser WebSocket → this function (proxy) → Vertex AI WebSocket
+ * Architecture (from the gist / official Vertex docs):
+ *   Browser → WSS to this proxy → proxy opens upstream WSS to Vertex AI
+ *   Proxy handles GCP OAuth2 auth server-side (no credentials touch browser).
+ *   All messages relayed bidirectionally.
  *
- * The proxy owns the upstream Vertex connection and the OAuth2 token.
- * The client never sees the access token or talks directly to Google.
+ * The client sends a JSON "init" message first containing { tripId, voice, ... }.
+ * The proxy:
+ *   1. Authenticates the user via Supabase JWT
+ *   2. Builds the BidiGenerateContentSetup message with system prompt + tools
+ *   3. Mints an OAuth2 access token from the GCP service account
+ *   4. Opens upstream WSS to Vertex AI with Authorization: Bearer header
+ *   5. Sends the setup message upstream
+ *   6. Relays all subsequent messages bidirectionally
  *
- * Message relay is pass-through: the proxy does not parse or transform
- * message payloads. It only inspects top-level keys for logging and to
- * detect setupComplete / close events.
+ * Key patterns from the gist:
+ *   - Buffer client messages during GCP auth (upstream not ready yet)
+ *   - 30-second keepalive pings upstream
+ *   - Safe close code filtering (1005/1006 → 1000)
+ *   - SILENT scheduling on tool responses to prevent double-speech
  */
 
-// ── Vertex AI configuration ──
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { TripContextBuilder } from '../_shared/contextBuilder.ts';
+import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+
+// ── Environment ──
 const VERTEX_PROJECT_ID = Deno.env.get('VERTEX_PROJECT_ID');
 const VERTEX_LOCATION = Deno.env.get('VERTEX_LOCATION') || 'us-central1';
 const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
-const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
-
-// Feature flags — default OFF for Phase A baseline, enable incrementally
-const VOICE_TOOLS_ENABLED =
-  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'false').toLowerCase() === 'true';
-const VOICE_AFFECTIVE_DIALOG =
-  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
-const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
-
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
+
+const VOICE_TOOLS_ENABLED =
+  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
+const VOICE_AFFECTIVE_DIALOG =
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
+const VOICE_PROACTIVE_AUDIO =
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 const DEFAULT_VOICE = 'Charon';
 
-// Upstream keepalive interval (server-to-Vertex)
-const UPSTREAM_KEEPALIVE_MS = 15_000;
+// Keepalive interval for upstream Vertex WebSocket (30s per gist recommendation)
+const UPSTREAM_KEEPALIVE_MS = 30_000;
 
-// ── Voice function declarations (Phase C — only included when VOICE_TOOLS_ENABLED) ──
-// Imported inline to keep this file self-contained for Deno edge function bundling.
-// These are identical to the declarations in gemini-voice-session/index.ts.
+// ── Voice function declarations (same as gemini-voice-session) ──
+// Using lowercase OpenAPI types per Vertex AI specification
 const VOICE_FUNCTION_DECLARATIONS = [
   {
     name: 'addToCalendar',
-    description: 'Add an event to the trip calendar',
+    description: 'Add an event to the trip calendar. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -66,7 +73,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'createTask',
-    description: 'Create a task for the trip group',
+    description: 'Create a task for the trip group. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -84,7 +91,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'createPoll',
-    description: 'Create a poll for the group to vote on',
+    description: 'Create a poll for the group to vote on. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -104,7 +111,8 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'searchPlaces',
-    description: 'Search for nearby places like restaurants, hotels, or attractions',
+    description:
+      'Search for nearby places like restaurants, hotels, or attractions. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -121,12 +129,13 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getPaymentSummary',
-    description: 'Get a summary of who owes money to whom in the trip',
+    description: 'Get a summary of who owes money to whom in the trip. SILENT EXECUTION.',
     parameters: { type: 'object', properties: {} },
   },
   {
     name: 'getDirectionsETA',
-    description: 'Get driving directions, travel time, and distance between two locations.',
+    description:
+      'Get driving directions, travel time, and distance between two locations. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -139,7 +148,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getTimezone',
-    description: 'Get the time zone for a geographic location.',
+    description: 'Get the time zone for a geographic location. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -151,7 +160,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getPlaceDetails',
-    description: 'Get detailed info about a specific place.',
+    description: 'Get detailed info about a specific place. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -162,7 +171,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'searchImages',
-    description: 'Search for images on the web.',
+    description: 'Search for images on the web. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -174,7 +183,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getStaticMapUrl',
-    description: 'Generate a map image showing a location or route.',
+    description: 'Generate a map image showing a location or route. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -187,7 +196,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'searchWeb',
-    description: 'Search the web for real-time information.',
+    description: 'Search the web for real-time information. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -199,7 +208,8 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getDistanceMatrix',
-    description: 'Get travel times and distances from multiple origins to multiple destinations.',
+    description:
+      'Get travel times and distances from multiple origins to multiple destinations. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -216,16 +226,18 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'validateAddress',
-    description: 'Validate and clean up an address.',
+    description: 'Validate and clean up an address. SILENT EXECUTION.',
     parameters: {
       type: 'object',
-      properties: { address: { type: 'string', description: 'Address to validate' } },
+      properties: {
+        address: { type: 'string', description: 'Address to validate' },
+      },
       required: ['address'],
     },
   },
   {
     name: 'savePlace',
-    description: 'Save a place or link to the trip Places/Explore section.',
+    description: 'Save a place or link to the trip Places/Explore section. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -246,7 +258,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'setBasecamp',
-    description: 'Set the trip or personal basecamp accommodation.',
+    description: 'Set the trip or personal basecamp accommodation. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -265,7 +277,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'addToAgenda',
-    description: 'Add an item/session to an event agenda.',
+    description: 'Add an item/session to an event agenda. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -291,7 +303,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'searchFlights',
-    description: 'Search flights and return Google Flights deeplinks.',
+    description: 'Search flights and return Google Flights deeplinks. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -307,7 +319,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   {
     name: 'emitSmartImportPreview',
     description:
-      'Emit Smart Import preview events extracted from attached docs before calendar write.',
+      'Emit Smart Import preview events extracted from attached docs before calendar write. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -326,7 +338,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'emitReservationDraft',
-    description: 'Create a reservation draft card for explicit booking intents.',
+    description: 'Create a reservation draft card for explicit booking intents. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -345,7 +357,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'updateCalendarEvent',
-    description: 'Update an existing trip calendar event.',
+    description: 'Update an existing trip calendar event. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -365,7 +377,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'deleteCalendarEvent',
-    description: 'Delete an event from the trip calendar.',
+    description: 'Delete an event from the trip calendar. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -380,7 +392,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'updateTask',
-    description: 'Update an existing trip task.',
+    description: 'Update an existing trip task. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -399,7 +411,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'deleteTask',
-    description: 'Delete a task from the trip.',
+    description: 'Delete a task from the trip. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -414,7 +426,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'searchTripData',
-    description: 'Search across all trip data.',
+    description: 'Search across all trip data. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -422,8 +434,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
         types: {
           type: 'array',
           items: { type: 'string' },
-          description:
-            'Which data types to search: calendar, task, poll, link, payment. Defaults to all.',
+          description: 'Which data types to search',
         },
       },
       required: ['query'],
@@ -431,7 +442,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'detectCalendarConflicts',
-    description: 'Check if a time slot conflicts with existing events.',
+    description: 'Check if a time slot conflicts with existing events. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -443,7 +454,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'createBroadcast',
-    description: 'Send a broadcast to all trip members.',
+    description: 'Send a broadcast to all trip members. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -459,7 +470,8 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'createNotification',
-    description: 'Send in-app notifications to selected users or all trip members.',
+    description:
+      'Send in-app notifications to selected users or all trip members. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -481,7 +493,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getWeatherForecast',
-    description: 'Get weather forecast.',
+    description: 'Get weather forecast. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -493,7 +505,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'convertCurrency',
-    description: 'Convert between currencies with live rates.',
+    description: 'Convert between currencies with live rates. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -506,7 +518,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'browseWebsite',
-    description: 'Browse a website to extract travel info.',
+    description: 'Browse a website to extract travel info. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -518,7 +530,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'makeReservation',
-    description: 'Research and prepare a reservation.',
+    description: 'Research and prepare a reservation. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -535,7 +547,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'settleExpense',
-    description: 'Mark a payment split as settled.',
+    description: 'Mark a payment split as settled. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -552,7 +564,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'generateTripImage',
-    description: 'Generate a custom AI image for the trip.',
+    description: 'Generate a custom AI image for the trip. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -571,7 +583,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'setTripHeaderImage',
-    description: 'Set the trip header/cover image URL.',
+    description: 'Set the trip header/cover image URL. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -586,7 +598,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'getDeepLink',
-    description: 'Generate an in-app deep link for a specific trip entity.',
+    description: 'Generate an in-app deep link for a specific trip entity. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -598,7 +610,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'explainPermission',
-    description: 'Explain whether an action is allowed and why.',
+    description: 'Explain whether an action is allowed and why. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -609,7 +621,7 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'verify_artifact',
-    description: 'Verify created artifact existence by ID or idempotency key.',
+    description: 'Verify created artifact existence by ID or idempotency key. SILENT EXECUTION.',
     parameters: {
       type: 'object',
       properties: {
@@ -622,23 +634,23 @@ const VOICE_FUNCTION_DECLARATIONS = [
   },
 ];
 
-/** Voice-specific addendum appended to the full system prompt */
 const VOICE_ADDENDUM = `
 
 === VOICE DELIVERY GUIDELINES ===
-You are now speaking via full-screen immersive bidirectional audio conversation mode.
-Take over the user's entire screen during this active conversation to optimize audio
-input and output handling. Display conversation text in real-time as the user speaks
-and you respond, maintaining visual context of the exchange.
+You are now speaking via bidirectional audio conversation mode.
 
 Adapt your responses for voice:
 - Keep responses under 3 sentences unless the user asks for detail
 - Use natural conversational language — NO markdown, NO links, NO bullet points, NO formatting
-- Say numbers as words when natural ("about twenty dollars" not "0.00")
+- Say numbers as words when natural ("about twenty dollars" not "$20.00")
 - Avoid lists — narrate sequentially instead
 - Be warm, concise, and personable
 - If you don't know something specific, say so briefly and suggest checking the app
 - When executing actions (adding events, creating tasks), confirm what you did conversationally
+
+=== TOOL CALL BEHAVIOR ===
+When you call a tool, stop speaking and wait for the result. Your job after a tool call is to listen.
+Do not narrate what tools you are calling. Do not say "let me check" or "searching for". Just call the tool silently and speak about the result naturally.
 
 === VISUAL CARDS IN CHAT ===
 When you call these tools, a visual card automatically appears in the chat window
@@ -649,8 +661,107 @@ When you call these tools, a visual card automatically appears in the chat windo
 - searchImages → images appear in chat.
 - searchWeb → source links appear in chat.
 - getDistanceMatrix → a travel time comparison appears in chat.
-- validateAddress → no visual card; just confirm the address verbally.
-Never speak URLs or markdown. The chat handles the visual output automatically.`;
+Never speak URLs or markdown. The chat handles the visual output automatically.
+
+=== LANGUAGE ===
+You MUST speak only in English. Every single word must be in English.
+Ignore all background noise.`;
+
+// ── OAuth2 token minting ──
+
+interface ServiceAccountKey {
+  client_email: string;
+  private_key: string;
+  token_uri: string;
+}
+
+function base64UrlEncode(data: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < data.length; i++) binary += String.fromCharCode(data[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function createVertexAccessToken(saKey: ServiceAccountKey): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: saKey.client_email,
+    sub: saKey.client_email,
+    aud: saKey.token_uri || 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+  };
+
+  const enc = new TextEncoder();
+  const headerB64 = base64UrlEncode(enc.encode(JSON.stringify(header)));
+  const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
+  const signingInput = `${headerB64}.${payloadB64}`;
+
+  const pemBody = saKey.private_key
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\s/g, '');
+  const keyBuffer = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    keyBuffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    enc.encode(signingInput),
+  );
+
+  const signatureB64 = base64UrlEncode(new Uint8Array(signature));
+  const jwt = `${signingInput}.${signatureB64}`;
+
+  const tokenUri = saKey.token_uri || 'https://oauth2.googleapis.com/token';
+  const tokenResp = await fetch(tokenUri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!tokenResp.ok) {
+    const body = await tokenResp.text();
+    throw new Error(
+      `OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`,
+    );
+  }
+
+  const tokenData = await tokenResp.json();
+  if (!tokenData.access_token) throw new Error('OAuth2 response missing access_token');
+  return tokenData.access_token;
+}
+
+function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
+  try {
+    const json = atob(base64Key);
+    const parsed = JSON.parse(json);
+    if (!parsed.client_email || !parsed.private_key) {
+      throw new Error('Missing client_email or private_key');
+    }
+    return parsed;
+  } catch (e) {
+    throw new Error(
+      `Invalid VERTEX_SERVICE_ACCOUNT_KEY: ${e instanceof Error ? e.message : 'parse failed'}`,
+    );
+  }
+}
+
+/** Filter close codes that are invalid for ws.close() */
+function safeCloseCode(code: number): number {
+  // 1005 (No Status Received) and 1006 (Abnormal Closure) are not valid for ws.close()
+  if (code === 1005 || code === 1006) return 1000;
+  return code;
+}
 
 // ── Main handler ──
 
@@ -662,425 +773,307 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Health check (non-WebSocket GET)
-  const upgradeHeader = req.headers.get('upgrade') || '';
-  if (req.method === 'GET' && upgradeHeader.toLowerCase() !== 'websocket') {
+  // Health check
+  if (req.method === 'GET') {
+    const isConfigured = !!(VERTEX_PROJECT_ID && VERTEX_SERVICE_ACCOUNT_KEY);
     return new Response(
       JSON.stringify({
         service: 'gemini-voice-proxy',
-        architecture: 'server-side-proxy',
-        configured: !!(VERTEX_PROJECT_ID && VERTEX_SERVICE_ACCOUNT_KEY),
+        provider: 'vertex',
+        configured: isConfigured,
         model: VERTEX_LIVE_MODEL,
+        voice: DEFAULT_VOICE,
         location: VERTEX_LOCATION,
         toolsEnabled: VOICE_TOOLS_ENABLED,
+        features: {
+          affectiveDialog: VOICE_AFFECTIVE_DIALOG,
+          proactiveAudio: VOICE_PROACTIVE_AUDIO,
+        },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   }
 
-  // ── WebSocket upgrade ──
-  const url = new URL(req.url);
-  const token = url.searchParams.get('token');
-  const tripId = url.searchParams.get('tripId') || undefined;
-  const requestedVoice = url.searchParams.get('voice') || DEFAULT_VOICE;
-  const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
-  const resumptionToken = url.searchParams.get('resumptionToken') || undefined;
-
-  const sessionId = crypto.randomUUID().slice(0, 8);
-  const tag = `[voice-proxy:${sessionId}]`;
-  const t0 = Date.now();
-
-  console.log(`${tag} client_connecting`, { tripId, voice, hasToken: !!token });
-
-  // ── Auth: validate Supabase JWT ──
-  if (!token) {
-    console.warn(`${tag} auth_missing`);
-    return new Response(JSON.stringify({ error: 'Authentication required (token param)' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  // WebSocket upgrade
+  const upgrade = req.headers.get('upgrade') || '';
+  if (upgrade.toLowerCase() !== 'websocket') {
+    return new Response(
+      JSON.stringify({ error: 'This endpoint requires a WebSocket connection.' }),
+      { status: 426, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
+  const { socket: clientWs, response } = Deno.upgradeWebSocket(req);
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    console.warn(`${tag} auth_failed`, { error: authError?.message });
-    return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
-  console.log(`${tag} auth_verified`, { userId: user.id, elapsedMs: Date.now() - t0 });
-
-  // ── Validate Vertex config ──
-  if (!VERTEX_PROJECT_ID || !VERTEX_SERVICE_ACCOUNT_KEY) {
-    console.error(`${tag} vertex_not_configured`);
-    return new Response(JSON.stringify({ error: 'Vertex AI not configured on server' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
-  // ── Upgrade client connection to WebSocket ──
-  // deno-lint-ignore no-explicit-any
-  const { socket: clientWs, response } = (Deno as any).upgradeWebSocket(req);
-
-  // ── Proxy state ──
+  const tag = `[voice-proxy:${crypto.randomUUID().slice(0, 8)}]`;
   let upstreamWs: WebSocket | null = null;
   let upstreamReady = false;
   const clientBuffer: string[] = []; // Buffer client messages until upstream is ready
-  const MAX_BUFFER_SIZE = 500; // Prevent unbounded memory growth
   let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
-  let setupTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  let closed = false;
+  let initReceived = false;
 
-  function closeAll(reason: string): void {
-    if (closed) return;
-    closed = true;
-    console.log(`${tag} closing_all`, { reason, elapsedMs: Date.now() - t0 });
+  function log(event: string, data?: Record<string, unknown>) {
+    console.log(`${tag} ${event}`, data ?? '');
+  }
 
-    if (setupTimeoutId) {
-      clearTimeout(setupTimeoutId);
-      setupTimeoutId = null;
-    }
+  function closeAll(code = 1000, reason = '') {
     if (keepaliveInterval) {
       clearInterval(keepaliveInterval);
       keepaliveInterval = null;
     }
-
     try {
       if (upstreamWs && upstreamWs.readyState <= WebSocket.OPEN) {
-        upstreamWs.close(1000, reason);
+        upstreamWs.close(safeCloseCode(code), reason.slice(0, 123));
       }
     } catch {
       /* ignore */
     }
-
     try {
       if (clientWs.readyState <= WebSocket.OPEN) {
-        clientWs.close(1000, reason);
+        clientWs.close(safeCloseCode(code), reason.slice(0, 123));
       }
     } catch {
       /* ignore */
     }
   }
 
-  // ── Client WebSocket handlers ──
-  clientWs.onopen = async () => {
-    console.log(`${tag} client_connected`, { elapsedMs: Date.now() - t0 });
+  clientWs.onopen = () => {
+    log('client_connected');
+  };
 
+  clientWs.onmessage = async (event: MessageEvent) => {
     try {
-      // 1. Build system prompt
-      let systemInstruction: string;
-      if (tripId) {
+      const raw = typeof event.data === 'string' ? event.data : '';
+
+      // First message from client is the init message with auth + config
+      if (!initReceived) {
+        initReceived = true;
+        let initData: Record<string, unknown>;
         try {
-          const contextTimeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('context_build_timeout')), 15_000),
+          initData = JSON.parse(raw);
+        } catch {
+          clientWs.close(4400, 'Invalid init message');
+          return;
+        }
+
+        log('init_received', {
+          hasTripId: !!initData.tripId,
+          hasAuthToken: !!initData.authToken,
+          voice: initData.voice as string,
+        });
+
+        const authToken = typeof initData.authToken === 'string' ? initData.authToken : '';
+        if (!authToken) {
+          clientWs.send(
+            JSON.stringify({ error: { code: 401, message: 'Authentication required' } }),
           );
-          const tripContext = await Promise.race([
-            TripContextBuilder.buildContextWithCache(tripId, user.id, `Bearer ${token}`, true),
-            contextTimeout,
-          ]);
-          systemInstruction = buildSystemPrompt(tripContext);
-          console.log(`${tag} context_built`, { elapsedMs: Date.now() - t0 });
-        } catch (contextError) {
-          const errMsg =
-            contextError instanceof Error ? contextError.message : String(contextError);
-          console.warn(`${tag} context_failed: ${errMsg}. Using minimal prompt.`);
+          clientWs.close(4401, 'No auth token');
+          return;
+        }
+
+        // Authenticate user
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          global: { headers: { Authorization: `Bearer ${authToken}` } },
+        });
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser(authToken);
+        if (authError || !user) {
+          log('auth_failed', { error: authError?.message });
+          clientWs.send(
+            JSON.stringify({ error: { code: 401, message: 'Invalid authentication' } }),
+          );
+          clientWs.close(4401, 'Auth failed');
+          return;
+        }
+        log('authenticated', { userId: user.id });
+
+        // Validate config
+        if (!VERTEX_PROJECT_ID || !VERTEX_SERVICE_ACCOUNT_KEY) {
+          clientWs.send(
+            JSON.stringify({ error: { code: 500, message: 'Vertex AI not configured' } }),
+          );
+          clientWs.close(4500, 'Not configured');
+          return;
+        }
+
+        const requestedVoice = typeof initData.voice === 'string' ? initData.voice : DEFAULT_VOICE;
+        const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
+        const tripId = typeof initData.tripId === 'string' ? initData.tripId : undefined;
+        const resumptionToken =
+          typeof initData.resumptionToken === 'string' ? initData.resumptionToken : undefined;
+
+        // Build system instruction
+        let systemInstruction: string;
+        if (tripId) {
+          try {
+            const contextTimeout = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('context_build_timeout')), 15_000),
+            );
+            const tripContext = await Promise.race([
+              TripContextBuilder.buildContextWithCache(
+                tripId,
+                user.id,
+                `Bearer ${authToken}`,
+                true,
+              ),
+              contextTimeout,
+            ]);
+            systemInstruction = buildSystemPrompt(tripContext);
+            log('context_built');
+          } catch (contextError) {
+            const errMsg =
+              contextError instanceof Error ? contextError.message : String(contextError);
+            log('context_failed', { error: errMsg });
+            systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
+          }
+        } else {
           systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
         }
-      } else {
-        systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
-      }
-      systemInstruction += VOICE_ADDENDUM;
+        systemInstruction += VOICE_ADDENDUM;
 
-      // 2. Mint OAuth2 token (stays server-side — never sent to client)
-      console.log(`${tag} minting_token`, { elapsedMs: Date.now() - t0 });
-      const saKey = parseServiceAccountKey(VERTEX_SERVICE_ACCOUNT_KEY!);
-      const accessToken = await createVertexAccessToken(saKey);
-      console.log(`${tag} token_minted`, { elapsedMs: Date.now() - t0 });
+        // Mint OAuth2 token
+        log('minting_token');
+        const saKey = parseServiceAccountKey(VERTEX_SERVICE_ACCOUNT_KEY);
+        const accessToken = await createVertexAccessToken(saKey);
+        log('token_minted');
 
-      // 3. Build setup message
-      const setupConfig: Record<string, unknown> = {
-        model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
-        generation_config: {
-          response_modalities: ['AUDIO'],
-          speech_config: {
-            voice_config: {
-              prebuilt_voice_config: {
-                voice_name: voice,
+        // Build setup message
+        const setupConfig: Record<string, unknown> = {
+          model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
+          generation_config: {
+            response_modalities: ['AUDIO'],
+            speech_config: {
+              voice_config: {
+                prebuilt_voice_config: { voice_name: voice },
               },
             },
           },
-          ...(VOICE_AFFECTIVE_DIALOG ? { enable_affective_dialog: true } : {}),
-        },
-        system_instruction: {
-          parts: [{ text: systemInstruction }],
-        },
-        realtime_input_config: {
-          automatic_activity_detection: {
-            disabled: false,
-            start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-            end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+          system_instruction: {
+            parts: [{ text: systemInstruction }],
           },
-        },
-        input_audio_transcription: {},
-        output_audio_transcription: {},
-      };
+          realtime_input_config: {
+            automatic_activity_detection: {
+              disabled: false,
+              start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
+              end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+            },
+          },
+          input_audio_transcription: {},
+          output_audio_transcription: {},
+          // Context window compression for long sessions (from gist)
+          context_window_compression: { sliding_window: {} },
+          // Session resumption — always enabled for architecture support
+          session_resumption: resumptionToken ? { handle: resumptionToken } : {},
+        };
 
-      // Phase C: Include tools when enabled
-      if (VOICE_TOOLS_ENABLED) {
-        setupConfig.tools = [
-          { function_declarations: VOICE_FUNCTION_DECLARATIONS },
-          { google_search: {} },
-        ];
-      }
+        if (VOICE_TOOLS_ENABLED) {
+          setupConfig.tools = [
+            { function_declarations: VOICE_FUNCTION_DECLARATIONS },
+            { google_search: {} },
+          ];
+        }
 
-      // Session resumption
-      if (resumptionToken) {
-        setupConfig.session_resumption = { handle: resumptionToken };
-        console.log(`${tag} including_resumption_token`);
-      }
+        if (VOICE_AFFECTIVE_DIALOG) {
+          (setupConfig.generation_config as Record<string, unknown>).enable_affective_dialog = true;
+        }
+        if (VOICE_PROACTIVE_AUDIO) {
+          setupConfig.proactivity = { proactive_audio: true };
+        }
 
-      // Phase D: Proactive audio
-      if (VOICE_PROACTIVE_AUDIO) {
-        setupConfig.proactivity = { proactive_audio: true };
-      }
+        const setupMessage = JSON.stringify({ setup: setupConfig });
 
-      const setupMessage = JSON.stringify({ setup: setupConfig });
+        // Open upstream WebSocket to Vertex AI with Bearer token in header
+        // Gist says: use v1beta1 for the endpoint
+        const upstreamUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`;
 
-      // 4. Open upstream WebSocket to Vertex AI
-      const upstreamUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent?access_token=${encodeURIComponent(accessToken)}`;
+        log('upstream_connecting', { host: `${VERTEX_LOCATION}-aiplatform.googleapis.com` });
 
-      console.log(`${tag} upstream_connecting`, {
-        location: VERTEX_LOCATION,
-        model: VERTEX_LIVE_MODEL,
-        toolsEnabled: VOICE_TOOLS_ENABLED,
-        elapsedMs: Date.now() - t0,
-      });
+        // Deno's WebSocket constructor supports headers via the second arg (protocols)
+        // but for Bearer auth, we need to pass it differently.
+        // For Vertex AI, the access token goes as a query parameter on the upstream WS.
+        // The gist says "Authorization: Bearer" header, but Deno WebSocket doesn't support
+        // custom headers. Use URL param as fallback (same as SDK behavior).
+        const upstreamUrlWithAuth = `${upstreamUrl}?access_token=${encodeURIComponent(accessToken)}`;
+        upstreamWs = new WebSocket(upstreamUrlWithAuth);
 
-      upstreamWs = new WebSocket(upstreamUrl);
+        upstreamWs.onopen = () => {
+          log('upstream_opened');
+          // Send setup message as first message
+          upstreamWs!.send(setupMessage);
+          log('setup_sent');
+          upstreamReady = true;
 
-      // Server-side setup timeout — if Vertex doesn't respond within 30s,
-      // close everything. Client has its own 12s timeout but this prevents
-      // the proxy from hanging indefinitely if the client disappears.
-      setupTimeoutId = setTimeout(() => {
-        if (!upstreamReady) {
-          console.warn(`${tag} server_setup_timeout`, { elapsedMs: Date.now() - t0 });
+          // Flush any buffered client messages
+          while (clientBuffer.length > 0) {
+            const msg = clientBuffer.shift()!;
+            upstreamWs!.send(msg);
+          }
+
+          // Start keepalive pings (30s per gist)
+          keepaliveInterval = setInterval(() => {
+            if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
+              // Send empty realtime_input to keep connection alive
+              upstreamWs.send(
+                JSON.stringify({
+                  realtime_input: {
+                    media_chunks: [
+                      {
+                        mime_type: 'audio/pcm;rate=16000',
+                        data: '', // Empty audio = silence keepalive
+                      },
+                    ],
+                  },
+                }),
+              );
+            }
+          }, UPSTREAM_KEEPALIVE_MS);
+        };
+
+        upstreamWs.onmessage = (upstreamEvent: MessageEvent) => {
+          // Relay upstream messages to client
           if (clientWs.readyState === WebSocket.OPEN) {
-            clientWs.send(
-              JSON.stringify({
-                error: { code: 504, message: 'Upstream setup timed out' },
-              }),
-            );
+            const data = typeof upstreamEvent.data === 'string' ? upstreamEvent.data : '';
+            clientWs.send(data);
           }
-          closeAll('server_setup_timeout');
-        }
-      }, 30_000);
+        };
 
-      let upstreamMessageCount = 0;
+        upstreamWs.onerror = (ev: Event) => {
+          log('upstream_error', { type: (ev as ErrorEvent).message ?? 'unknown' });
+        };
 
-      upstreamWs.onopen = () => {
-        console.log(`${tag} upstream_connected`, { elapsedMs: Date.now() - t0 });
+        upstreamWs.onclose = (ev: CloseEvent) => {
+          log('upstream_closed', { code: ev.code, reason: ev.reason, wasClean: ev.wasClean });
+          upstreamReady = false;
+          // Relay close to client
+          closeAll(safeCloseCode(ev.code), ev.reason || 'Upstream closed');
+        };
 
-        // Send setup as first message
-        upstreamWs!.send(setupMessage);
-        console.log(`${tag} setup_sent`, {
-          hasTools: VOICE_TOOLS_ENABLED,
-          toolCount: VOICE_TOOLS_ENABLED ? VOICE_FUNCTION_DECLARATIONS.length : 0,
-          elapsedMs: Date.now() - t0,
-        });
-
-        // Start upstream keepalive
-        keepaliveInterval = setInterval(() => {
-          if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
-            // Send a minimal realtime input to keep connection alive
-            upstreamWs.send(
-              JSON.stringify({
-                realtimeInput: {
-                  mediaChunks: [
-                    {
-                      mimeType: 'audio/pcm;rate=16000',
-                      data: '', // Empty audio = silence keepalive
-                    },
-                  ],
-                },
-              }),
-            );
-          } else if (keepaliveInterval) {
-            clearInterval(keepaliveInterval);
-            keepaliveInterval = null;
-          }
-        }, UPSTREAM_KEEPALIVE_MS);
-      };
-
-      upstreamWs.onmessage = (event: MessageEvent) => {
-        upstreamMessageCount += 1;
-
-        // Log first 5 messages for diagnostics
-        if (upstreamMessageCount <= 5) {
-          try {
-            const data = JSON.parse(event.data as string);
-            const keys = Object.keys(data);
-            const hasSetupComplete =
-              keys.includes('setupComplete') || keys.includes('setup_complete');
-            console.log(`${tag} upstream_message_${upstreamMessageCount}`, {
-              keys,
-              hasSetupComplete,
-              hasError: !!data.error,
-              elapsedMs: Date.now() - t0,
-            });
-
-            if (hasSetupComplete) {
-              console.log(`${tag} setup_complete_received`, { elapsedMs: Date.now() - t0 });
-              upstreamReady = true;
-
-              // Clear server-side setup timeout
-              if (setupTimeoutId) {
-                clearTimeout(setupTimeoutId);
-                setupTimeoutId = null;
-              }
-
-              // Flush buffered client messages
-              if (clientBuffer.length > 0) {
-                console.log(`${tag} flushing_buffer`, { count: clientBuffer.length });
-                for (const msg of clientBuffer) {
-                  if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
-                    upstreamWs.send(msg);
-                  }
-                }
-                clientBuffer.length = 0;
-              }
-            }
-          } catch {
-            // Non-JSON message — still relay it
-          }
-        }
-
-        // Log significant events beyond the first 5 messages (goAway, errors, resumption)
-        if (upstreamMessageCount > 5) {
-          try {
-            const data = JSON.parse(event.data as string);
-            if (data.error) {
-              console.warn(`${tag} upstream_error_frame`, {
-                code: data.error?.code,
-                message: data.error?.message,
-                elapsedMs: Date.now() - t0,
-              });
-            }
-            const goAway = data.goAway || data.go_away;
-            if (goAway) {
-              console.warn(`${tag} upstream_go_away`, {
-                timeLeft: goAway.timeLeft || goAway.time_left,
-                hasResumptionToken: !!(
-                  goAway.sessionResumptionToken || goAway.session_resumption_token
-                ),
-                elapsedMs: Date.now() - t0,
-              });
-            }
-            const resumption = data.sessionResumptionUpdate || data.session_resumption_update;
-            if (resumption) {
-              console.log(`${tag} upstream_resumption_update`, {
-                hasNewHandle: !!(resumption.newHandle || resumption.new_handle),
-                elapsedMs: Date.now() - t0,
-              });
-            }
-          } catch {
-            // Non-JSON — ignore for logging purposes
-          }
-        }
-
-        // Relay upstream → client (pass-through)
-        if (clientWs.readyState === WebSocket.OPEN) {
-          clientWs.send(event.data);
-        }
-      };
-
-      upstreamWs.onerror = (ev: Event) => {
-        const errorMsg = (ev as ErrorEvent).message ?? 'unknown';
-        console.error(`${tag} upstream_error`, { error: errorMsg, elapsedMs: Date.now() - t0 });
-        // Send error to client
-        if (clientWs.readyState === WebSocket.OPEN) {
-          clientWs.send(
-            JSON.stringify({
-              error: { code: 502, message: `Upstream connection error: ${errorMsg}` },
-            }),
-          );
-        }
-      };
-
-      upstreamWs.onclose = (event: CloseEvent) => {
-        console.log(`${tag} upstream_close`, {
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-          elapsedMs: Date.now() - t0,
-        });
-        // Close client with same code (map to safe range)
-        const safeCode = event.code >= 1000 && event.code <= 4999 ? event.code : 1011;
-        closeAll(`upstream_closed:${event.code}`);
-        // Try to send close to client with the upstream code
-        try {
-          if (clientWs.readyState === WebSocket.OPEN) {
-            clientWs.close(safeCode, event.reason || 'Upstream closed');
-          }
-        } catch {
-          /* ignore */
-        }
-      };
-    } catch (initError) {
-      const errMsg = initError instanceof Error ? initError.message : String(initError);
-      console.error(`${tag} init_failed`, { error: errMsg, elapsedMs: Date.now() - t0 });
-      if (clientWs.readyState === WebSocket.OPEN) {
-        clientWs.send(
-          JSON.stringify({
-            error: { code: 500, message: errMsg },
-          }),
-        );
-        clientWs.close(1011, 'Initialization failed');
-      }
-    }
-  };
-
-  clientWs.onmessage = (event: MessageEvent) => {
-    const data = event.data as string;
-
-    // If upstream not ready yet, buffer the message
-    if (!upstreamReady || !upstreamWs || upstreamWs.readyState !== WebSocket.OPEN) {
-      if (clientBuffer.length >= MAX_BUFFER_SIZE) {
-        console.warn(`${tag} buffer_overflow`, { size: clientBuffer.length });
-        closeAll('buffer_overflow');
         return;
       }
-      clientBuffer.push(data);
-      return;
-    }
 
-    // Relay client → upstream (pass-through)
-    upstreamWs.send(data);
+      // Subsequent messages: relay to upstream (or buffer if not ready)
+      if (upstreamReady && upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
+        upstreamWs.send(raw);
+      } else {
+        clientBuffer.push(raw);
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Proxy error';
+      log('handler_error', { error: errMsg });
+      clientWs.send(JSON.stringify({ error: { code: 500, message: errMsg } }));
+      closeAll(4500, errMsg);
+    }
   };
 
   clientWs.onerror = (ev: Event) => {
-    const errorMsg = (ev as ErrorEvent).message ?? 'unknown';
-    console.error(`${tag} client_error`, { error: errorMsg, elapsedMs: Date.now() - t0 });
+    log('client_error', { type: (ev as ErrorEvent).message ?? 'unknown' });
   };
 
-  clientWs.onclose = (event: CloseEvent) => {
-    console.log(`${tag} client_close`, {
-      code: event.code,
-      reason: event.reason,
-      wasClean: event.wasClean,
-      elapsedMs: Date.now() - t0,
-    });
-    closeAll(`client_closed:${event.code}`);
+  clientWs.onclose = (ev: CloseEvent) => {
+    log('client_closed', { code: ev.code, reason: ev.reason });
+    closeAll(safeCloseCode(ev.code), ev.reason || 'Client closed');
   };
 
   return response;

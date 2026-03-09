@@ -13,6 +13,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
+import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from './ui/button';
 import { ArchiveConfirmDialog } from './ArchiveConfirmDialog';
@@ -361,7 +362,7 @@ export const ProTripCard = ({
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
           <CardStatItem
-            icon={CalendarDays}
+            icon={CalendarGlyph}
             value={calculateDaysCount(trip.dateRange)}
             label="Days"
           />

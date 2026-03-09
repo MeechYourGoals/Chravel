@@ -98,7 +98,7 @@ export const ScheduledMessagesDashboard = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 gold-gradient-spinner animate-spin"></div>
       </div>
     );
   }
