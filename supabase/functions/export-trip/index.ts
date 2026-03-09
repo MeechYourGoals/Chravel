@@ -464,30 +464,6 @@ serve(async req => {
     await browser.close();
     logStep('PDF generated successfully', { size: pdfBytes.length });
 
-    // If attachments are included, append the actual files after the recap.
-    // The recap body already contains a plain-text Attachments index section.
-    if (
-      sections.includes('attachments') &&
-      Array.isArray((exportData as any).attachments) &&
-      (exportData as any).attachments.length > 0
-    ) {
-      logStep('Appending attachment pages', { count: (exportData as any).attachments.length });
-      try {
-        const merged = await appendAttachmentsToPdf({
-          supabaseClient,
-          basePdfBytes: new Uint8Array(pdfBytes),
-          attachments: (exportData as any).attachments,
-          paper,
-        });
-        logStep('Attachments appended', { newSize: merged.length });
-        pdfBytes = merged;
-      } catch (e) {
-        logStep('Failed to append attachments (continuing with base PDF)', {
-          error: e instanceof Error ? e.message : String(e),
-        });
-      }
-    }
-
     // Generate filename with timestamp
     const filename = `Trip_${slug(exportData.tripTitle)}_${layout}_${formatTimestamp()}.pdf`;
     logStep('Returning PDF', { filename, size: pdfBytes.length });
