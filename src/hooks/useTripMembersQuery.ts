@@ -164,19 +164,26 @@ export const useTripMembersQuery = (tripId?: string) => {
     return !!adminData;
   }, [tripId, user?.id, tripCreatorId]);
 
-  // Remove member mutation with optimistic update
+  // Remove member mutation with optimistic update (uses secured RPC)
   const removeMemberMutation = useMutation({
     mutationFn: async (userId: string) => {
       if (!tripId) throw new Error('No trip selected');
       if (userId === tripCreatorId) throw new Error('Cannot remove trip creator');
 
-      const { error } = await supabase
-        .from('trip_members')
-        .delete()
-        .eq('trip_id', tripId)
-        .eq('user_id', userId);
+      // Use secured RPC that validates auth.uid() server-side
+      const { data, error } = await (supabase.rpc as any)('remove_trip_member_safe', {
+        p_trip_id: tripId,
+        p_user_id_to_remove: userId,
+      });
 
       if (error) throw error;
+
+      // RPC returns { success, message } rows
+      const result = Array.isArray(data) ? data[0] : data;
+      if (result && !result.success) {
+        throw new Error(result.message || 'Failed to remove member');
+      }
+
       return userId;
     },
     onMutate: async userId => {
