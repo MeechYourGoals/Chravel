@@ -19,8 +19,6 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[EXPORT-TRIP] ${step}${detailsStr}`);
 };
 
-
-
 function getBrandHeaderTemplate(): string {
   // Puppeteer header/footer templates are isolated from the page CSS, so we inline styles.
   // Keep it lightweight and deterministic (no external images required).
