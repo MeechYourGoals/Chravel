@@ -353,46 +353,46 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div
           className="flex items-center justify-between mb-6"
           style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
         >
           <h2 className="text-2xl font-bold text-white">Create New Trip</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
             <X size={24} />
           </button>
         </div>
 
         {/* Trip Type Toggle */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Trip Type</label>
+          <label className="block text-sm font-medium text-gray-300 mb-3">Trip Type</label>
           <ToggleGroup
             type="single"
             value={tripType}
             onValueChange={value =>
               value && handleTripTypeChange(value as 'consumer' | 'pro' | 'event')
             }
-            className="grid grid-cols-3 gap-2 bg-slate-700/30 p-1 rounded-xl"
+            className="grid grid-cols-3 gap-2 bg-[#222]/50 p-1 rounded-xl"
           >
             <ToggleGroupItem
               value="consumer"
-              className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
+              className="flex items-center gap-2 data-[state=on]:bg-gradient-to-r data-[state=on]:from-[#533517] data-[state=on]:to-[#c49746] data-[state=on]:text-white text-gray-400 hover:text-gray-200"
             >
               <Users size={16} />
               Group
             </ToggleGroupItem>
             <ToggleGroupItem
               value="pro"
-              className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
+              className="flex items-center gap-2 data-[state=on]:bg-gradient-to-r data-[state=on]:from-[#533517] data-[state=on]:to-[#c49746] data-[state=on]:text-white text-gray-400 hover:text-gray-200"
             >
               <Building size={16} />
               Pro
             </ToggleGroupItem>
             <ToggleGroupItem
               value="event"
-              className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
+              className="flex items-center gap-2 data-[state=on]:bg-gradient-to-r data-[state=on]:from-[#533517] data-[state=on]:to-[#c49746] data-[state=on]:text-white text-gray-400 hover:text-gray-200"
             >
               <PartyPopper size={16} />
               Event
@@ -403,13 +403,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         {/* Pro Trip Category Selector - Only for Pro trips */}
         {tripType === 'pro' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Pro Trip Category
             </label>
             <select
               value={proTripCategory}
               onChange={e => setProTripCategory(e.target.value as ProCategoryEnum)}
-              className="w-full bg-slate-700/50 border border-slate-600 text-white rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full bg-[#222]/60 border border-[#444] text-white rounded-xl px-4 py-3 focus:border-[#c49746] focus:outline-none transition-colors"
             >
               {PRO_CATEGORIES_ORDERED.map(cat => (
                 <option key={cat.id} value={cat.id}>
@@ -417,7 +417,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               This determines available roles and features for your Pro trip.
             </p>
           </div>
@@ -427,16 +427,16 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Trip Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Trip Title</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Trip Title</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none transition-colors ${
+              className={`w-full bg-[#222]/60 border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none transition-colors ${
                 validationErrors.title
                   ? 'border-red-500 focus:border-red-500'
-                  : 'border-slate-600 focus:border-blue-500'
+                  : 'border-[#444] focus:border-[#c49746]'
               }`}
               placeholder="e.g., Summer in Paris"
               required
@@ -449,7 +449,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Organizer - Only for Event trips */}
           {tripType === 'event' && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <Users size={16} />
                 Organizer
               </label>
@@ -458,10 +458,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="organizer"
                 value={formData.organizer}
                 onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#c49746] focus:outline-none transition-colors"
                 placeholder="e.g., Los Angeles Rams, Boys & Girls Club of Dallas"
               />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 The organization, company, or group hosting this event
               </p>
             </div>
@@ -469,7 +469,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
               <MapPin size={16} />
               Locations
             </label>
@@ -478,10 +478,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               name="location"
               value={formData.location}
               onChange={handleInputChange}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#c49746] focus:outline-none transition-colors"
               placeholder="e.g., Paris, France"
             />
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               Separate multiple locations with commas (e.g., Paris, Barcelona, Milan)
             </p>
           </div>
@@ -489,7 +489,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <Calendar size={16} />
                 Start Date
               </label>
@@ -499,10 +499,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 value={formData.startDate}
                 onChange={handleInputChange}
                 max={formData.endDate || undefined}
-                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                className={`w-full bg-[#222]/60 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
                   validationErrors.startDate
                     ? 'border-red-500 focus:border-red-500'
-                    : 'border-slate-600 focus:border-blue-500'
+                    : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
               />
@@ -511,17 +511,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">End Date</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
               <input
                 type="date"
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleInputChange}
                 min={formData.startDate || undefined}
-                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                className={`w-full bg-[#222]/60 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
                   validationErrors.endDate
                     ? 'border-red-500 focus:border-red-500'
-                    : 'border-slate-600 focus:border-blue-500'
+                    : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
               />
@@ -534,7 +534,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Event Time Zone - Only for Event trips */}
           {tripType === 'event' && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <Globe size={16} />
                 Event Time Zone
               </label>
@@ -542,7 +542,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="timezone"
                 value={formData.timezone}
                 onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                className="w-full bg-slate-700/50 border border-slate-600 text-white rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full bg-[#222]/60 border border-[#444] text-white rounded-xl px-4 py-3 focus:border-[#c49746] focus:outline-none transition-colors"
               >
                 <optgroup label="United States">
                   <option value="America/New_York">Eastern Time (ET) - New York</option>
@@ -582,14 +582,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                   <option value="Asia/Seoul">Seoul (KST)</option>
                 </optgroup>
               </select>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 Helps attendees from other time zones know when events occur.
               </p>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Description (Optional)
             </label>
             <textarea
@@ -597,20 +597,20 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+              className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#c49746] focus:outline-none transition-colors resize-none"
               placeholder="Tell us about your trip..."
             />
           </div>
 
           {/* Cover Photo */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Cover Photo</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Cover Photo</label>
             <div className="flex items-start gap-4">
               <div className="flex-1">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-600 border-dashed rounded-xl cursor-pointer bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-[#444] border-dashed rounded-xl cursor-pointer bg-[#222]/40 hover:bg-[#2a2a2a] transition-colors">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-2 text-slate-400" />
-                    <p className="text-xs text-slate-400">Click to upload cover photo</p>
+                    <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                    <p className="text-xs text-gray-500">Click to upload cover photo</p>
                   </div>
                   <input
                     type="file"
@@ -621,7 +621,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 </label>
               </div>
               {coverImagePreview && (
-                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-slate-600">
+                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#444]">
                   <img
                     src={coverImagePreview}
                     alt="Preview"
@@ -647,13 +647,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             (tripType === 'pro' || tripType === 'event') &&
             organizations.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Link to Organization (Optional)
                 </label>
                 <select
                   value={selectedOrganization}
                   onChange={e => setSelectedOrganization(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white focus:border-[#c49746] focus:outline-none transition-colors"
                 >
                   <option value="">No organization</option>
                   {organizations.map(org => (
@@ -662,7 +662,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-xs text-gray-500 mt-2">
                   Link this trip to an organization to share it with all members
                 </p>
               </div>
@@ -671,21 +671,21 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Advanced Settings - Only for Pro/Event trips */}
           {tripType !== 'consumer' && (
             <Collapsible className="space-y-3">
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-colors">
-                <div className="flex items-center gap-2 text-slate-300">
+              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-[#222]/40 hover:bg-[#2a2a2a] rounded-xl transition-colors">
+                <div className="flex items-center gap-2 text-gray-300">
                   <Settings size={16} />
                   <span className="text-sm font-medium">Advanced</span>
                 </div>
                 <ChevronDown
                   size={16}
-                  className="text-slate-400 transition-transform duration-200 data-[state=open]:rotate-180"
+                  className="text-gray-500 transition-transform duration-200 data-[state=open]:rotate-180"
                 />
               </CollapsibleTrigger>
 
-              <CollapsibleContent className="space-y-4 bg-slate-700/20 rounded-xl p-4">
+              <CollapsibleContent className="space-y-4 bg-[#1e1e1e] rounded-xl p-4">
                 {/* Trip Color Picker */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Trip Color Label
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -696,14 +696,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                         onClick={() => setSelectedCardColor(color.accent)}
                         className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
                           selectedCardColor === color.accent
-                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110'
+                            ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110'
                             : 'opacity-70 hover:opacity-100'
                         }`}
                         title={color.accent.charAt(0).toUpperCase() + color.accent.slice(1)}
                       />
                     ))}
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">
+                  <p className="text-xs text-gray-500 mt-2">
                     Color-code your {tripType === 'pro' ? 'Pro trips' : 'Events'} for easy
                     organization
                   </p>
@@ -717,14 +717,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-medium transition-colors"
+              className="flex-1 bg-[#2a2a2a] hover:bg-[#333] border border-[#444] text-white py-3 rounded-xl font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors"
+              className="flex-1 bg-gradient-to-r from-[#533517] to-[#c49746] hover:from-[#6a441e] hover:to-[#d4a74f] disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors"
             >
               {isLoading ? 'Creating...' : 'Create'}
             </button>
