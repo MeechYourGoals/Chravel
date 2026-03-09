@@ -14,6 +14,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
+import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
@@ -497,7 +498,7 @@ export const TripCard = ({
             label="People"
           />
           <CardStatItem
-            icon={CalendarDays}
+            icon={CalendarGlyph}
             value={calculateDaysCount(trip.dateRange)}
             label="Days"
           />
