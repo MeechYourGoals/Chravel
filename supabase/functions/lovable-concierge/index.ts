@@ -204,7 +204,11 @@ interface UsagePlanResolution {
   tripQueryLimit: number | null;
 }
 
-const EXPLORER_PRODUCT_IDS = new Set(['prod_Tc0SWNhLkoCDIi', 'prod_Tx0AZIWAubAWD3']);
+const EXPLORER_PRODUCT_IDS = new Set([
+  'prod_U73VxEnvEHbBrx',
+  'prod_U73VrTc4sE8AIv',
+  'prod_U73WaALe9yjrAR',
+]);
 
 const getQueryLimitForUsagePlan = (plan: UsagePlan): number | null => {
   if (plan === 'free') return 5;

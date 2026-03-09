@@ -24,14 +24,20 @@ const logStep = (step: string, details?: unknown) => {
 // PRODUCT IDS - UPDATE THESE AFTER CREATING PRODUCTS IN STRIPE
 // ============================================================
 const PRODUCT_TO_TIER: Record<string, string> = {
-  // Consumer Plans - ChravelApp Plus
-  prod_Tc0SWNhLkoCDIi: 'explorer',
-  prod_Tc0WEzRDTCkfPM: 'frequent-chraveler',
+  // Consumer Plans - ChravelApp Plus (monthly + annual are separate products)
+  prod_U73VxEnvEHbBrx: 'explorer', // Explorer monthly
+  prod_U73VrTc4sE8AIv: 'explorer', // Explorer annual
+  prod_U73VfiKf3VrJKf: 'frequent-chraveler', // FC monthly
+  prod_U73VqblRTSr2XZ: 'frequent-chraveler', // FC annual
 
   // Pro Plans - ChravelApp Pro
-  prod_Tc0YVR1N0fmtDG: 'pro-starter',
-  prod_Tc0afc0pIUt87D: 'pro-growth',
-  prod_Tc0cJshKNpvxV0: 'pro-enterprise',
+  prod_U73Vlcl4lqgsb4: 'pro-starter',
+  prod_U73VPX6TlClQ7J: 'pro-growth',
+  prod_U73Vd6QW4pEY9x: 'pro-enterprise',
+
+  // Trip Pass Products (one-time)
+  prod_U73WaALe9yjrAR: 'explorer',
+  prod_U73W99ebeJvbLB: 'frequent-chraveler',
 };
 
 serve(async req => {

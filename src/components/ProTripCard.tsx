@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarCheck2,
+  CalendarDays,
   MapPin,
   Users,
   MoreHorizontal,
@@ -312,7 +312,7 @@ export const ProTripCard = ({
             </div>
 
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <CalendarCheck2 size={14} className="gold-gradient-icon shrink-0" />
+              <CalendarDays size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
@@ -361,7 +361,7 @@ export const ProTripCard = ({
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
           <CardStatItem
-            icon={CalendarCheck2}
+            icon={CalendarDays}
             value={calculateDaysCount(trip.dateRange)}
             label="Days"
           />

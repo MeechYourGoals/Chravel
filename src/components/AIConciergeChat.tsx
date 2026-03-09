@@ -423,6 +423,10 @@ export const AIConciergeChat = ({
   // `duplexFailed` tracks whether Gemini Live errored during the current
   // interaction so we know to activate dictation as a fallback.
   const [duplexFailed, setDuplexFailed] = useState(false);
+  // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
+  // Speech API dictation. Transcribed text fills the input field so the user
+  // can review/edit before sending. All Gemini Live hooks remain initialised
+  // (hooks rules) but are not invoked.
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -604,6 +608,9 @@ export const AIConciergeChat = ({
       setDuplexFailed(false);
     }
   }, [liveState, duplexFailed, isDictationActive]);
+
+  // Voice active state is derived from liveState — no separate overlay toggle needed.
+  const isVoiceActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle';
 
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
@@ -1868,9 +1875,6 @@ export const AIConciergeChat = ({
         {/* Empty State - Compact for Mobile */}
         {messages.length === 0 && !isHistoryLoading && (
           <div className="text-center py-6 px-4 flex-shrink-0">
-            <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
-              Your Travel Concierge
-            </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Try asking:</p>
               <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
@@ -1883,17 +1887,9 @@ export const AIConciergeChat = ({
                 <p>
                   &bull; &ldquo;Create a poll: Saturday night plans with 4 options near us&rdquo;
                 </p>
-                <p>
-                  &bull; &ldquo;Show flights for LAX to JFK on May 22 and let me save one&rdquo;
-                </p>
-                <p>&bull; &ldquo;Summarize tasks due this week and assign owners&rdquo;</p>
-                <p>
-                  &bull; &ldquo;I have a hotel confirmation screenshot &mdash; import it to our
-                  trip&rdquo;
-                </p>
               </div>
               <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
-                I can search, show rich cards, and write directly to your trip
+                Chravel Agent can search, display info cards, and add things directly your trip
               </div>
             </div>
           </div>

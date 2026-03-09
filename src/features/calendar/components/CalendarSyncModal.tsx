@@ -187,14 +187,14 @@ export const CalendarSyncModal: React.FC<CalendarSyncModalProps> = ({
                       disabled={isUpgrading}
                       className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 min-h-[44px]"
                     >
-                      {isUpgrading ? 'Processing...' : 'Explorer $9.99/mo'}
+                      {isUpgrading ? 'Processing...' : 'Explorer from $9.99/mo'}
                     </Button>
                     <Button
                       onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
                       disabled={isUpgrading}
                       className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 min-h-[44px]"
                     >
-                      {isUpgrading ? 'Processing...' : 'Frequent Chraveler $19.99/mo'}
+                      {isUpgrading ? 'Processing...' : 'Frequent Chraveler from $19.99/mo'}
                     </Button>
                   </div>
                 </CardContent>
