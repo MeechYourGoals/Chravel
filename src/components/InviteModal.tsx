@@ -26,11 +26,10 @@ export const InviteModal = ({
   tripType = 'consumer',
 }: InviteModalProps) => {
   const isMobile = useIsMobile();
-  // Pro/Event trips always require approval (enforced on backend)
-  // Consumer trips default to OFF to optimize for lowest-friction viral growth
-  const [requireApproval, setRequireApproval] = useState(
-    tripType === 'pro' || tripType === 'event',
-  );
+  // All trip types require approval (enforced on backend)
+  // Consumer trips: any member can approve. Pro/Event: creator/admins only.
+  // The share card / trip preview handles virality; the join boundary handles trust.
+  const [requireApproval, setRequireApproval] = useState(true);
   const [expireIn7Days, setExpireIn7Days] = useState(false);
 
   const {
