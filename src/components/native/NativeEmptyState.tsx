@@ -262,10 +262,7 @@ export const NativePullIndicator = ({
       }}
     >
       <div
-        className={cn(
-          'w-8 h-8 gold-gradient-spinner',
-          isRefreshing && 'animate-spin',
-        )}
+        className={cn('w-8 h-8 gold-gradient-spinner', isRefreshing && 'animate-spin')}
         style={{
           transform: `rotate(${rotation}deg)`,
         }}

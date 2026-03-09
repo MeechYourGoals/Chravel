@@ -12,10 +12,7 @@ interface CalendarGlyphProps {
   className?: string;
 }
 
-export const CalendarGlyph: React.FC<CalendarGlyphProps> = ({
-  size = 24,
-  className = '',
-}) => (
+export const CalendarGlyph: React.FC<CalendarGlyphProps> = ({ size = 24, className = '' }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
