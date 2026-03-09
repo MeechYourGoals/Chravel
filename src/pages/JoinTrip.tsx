@@ -663,13 +663,10 @@ const JoinTrip = () => {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
           <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-4">
-            {inviteData?.invite.require_approval ? 'Request Submitted!' : 'Welcome!'}
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Request Submitted!</h1>
           <p className="text-muted-foreground mb-6">
-            {inviteData?.invite.require_approval
-              ? 'Your join request has been submitted. The organizer will review it soon.'
-              : `You've successfully joined ${inviteData?.trip.name}!`}
+            Your request to join {inviteData?.trip.name || 'the trip'} has been sent. A trip member
+            will review it soon.
           </p>
           <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
@@ -746,7 +743,7 @@ const JoinTrip = () => {
           {!user ? (
             <div className="space-y-4">
               <p className="text-muted-foreground text-center text-sm">
-                Please log in to join this trip
+                Please log in to request access to this trip
               </p>
               <div className="space-y-3">
                 <button
@@ -773,10 +770,10 @@ const JoinTrip = () => {
                 {joining ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Joining...
+                    Requesting...
                   </>
                 ) : (
-                  'Join Trip'
+                  'Request to Join'
                 )}
               </button>
 
@@ -789,15 +786,14 @@ const JoinTrip = () => {
             </div>
           )}
 
-          {inviteData?.invite.require_approval && !joining && user && (
-            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+          {!joining && user && (
+            <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-5 w-5 text-yellow-400" />
-                <p className="font-medium text-yellow-400">Approval Required</p>
+                <Users className="h-5 w-5 text-blue-400" />
+                <p className="font-medium text-blue-400">Member Approval</p>
               </div>
-              <p className="text-yellow-400/80 text-sm">
-                This trip requires approval from the organizer. Your request will be reviewed once
-                submitted.
+              <p className="text-blue-400/80 text-sm">
+                A current trip member will review your request. You'll be notified once approved.
               </p>
             </div>
           )}

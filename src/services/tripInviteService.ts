@@ -181,7 +181,7 @@ function generateInviteCode(): string {
  * Create a new invite link for a trip
  */
 export async function createInviteLink(options: CreateInviteOptions): Promise<CreateInviteResult> {
-  const { tripId, requireApproval = false, expiresInDays, maxUses = null } = options;
+  const { tripId, requireApproval = true, expiresInDays, maxUses = null } = options;
 
   try {
     // Generate a unique code

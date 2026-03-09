@@ -264,11 +264,11 @@ serve(async req => {
 
     logStep('Trip found', { tripName: trip.name, tripType: trip.trip_type });
 
-    // Check if invite requires approval
-    // CRITICAL: Pro/Event trips ALWAYS require approval regardless of invite setting
-    // This ensures trip admins can vet all join requests for professional/event trips
-    const requiresApproval =
-      invite.require_approval || trip.trip_type === 'pro' || trip.trip_type === 'event';
+    // SECURITY: All trip types require approval for join requests.
+    // Consumer trips: any existing member can approve (trust-based group approval)
+    // Pro/Event trips: only creator or admins can approve (gated access)
+    // Direct join via invite link is never permitted — leaked/forwarded links only create requests.
+    const requiresApproval = true;
 
     logStep('Approval requirement check', {
       inviteRequiresApproval: invite.require_approval,
@@ -472,53 +472,14 @@ serve(async req => {
       );
     }
 
-    // No approval required - upsert to support re-join (user may have status=left)
-    const { error: memberError } = await supabaseClient.from('trip_members').upsert(
-      {
-        trip_id: invite.trip_id,
-        user_id: user.id,
-        role: 'member',
-        status: 'active',
-        left_at: null,
-      },
-      { onConflict: 'trip_id,user_id' },
-    );
-
-    if (memberError) {
-      logStep('ERROR: Failed to add member', { error: memberError.message });
-      return errorResponse('Failed to join trip. Please try again.', 500, corsHeaders);
-    }
-
-    logStep('Member added successfully');
-
-    // Increment invite usage counter
-    const { error: updateError } = await supabaseClient
-      .from('trip_invites')
-      .update({
-        current_uses: invite.current_uses + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', invite.id);
-
-    if (updateError) {
-      logStep('WARNING: Failed to update invite usage counter', { error: updateError.message });
-      // Non-critical error, don't fail the request
-    }
-
-    logStep('Join successful', {
-      tripId: invite.trip_id,
-      userId: user.id,
-      newUsageCount: invite.current_uses + 1,
-    });
-
-    return successResponse(
-      {
-        trip_id: invite.trip_id,
-        trip_name: trip.name,
-        trip_type: trip.trip_type,
-        message: `Successfully joined ${trip.name}!`,
-      },
+    // NOTE: Direct join path removed — all joins go through the approval flow above.
+    // This unreachable branch is kept as a safety net that returns an error.
+    logStep('ERROR: Unexpected code path reached (requiresApproval should always be true)');
+    return errorResponse(
+      'An unexpected error occurred. Please try again.',
+      500,
       corsHeaders,
+      'UNKNOWN_ERROR',
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
