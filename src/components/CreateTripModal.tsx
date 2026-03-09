@@ -662,7 +662,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-xs text-gray-500 mt-2">
                   Link this trip to an organization to share it with all members
                 </p>
               </div>
