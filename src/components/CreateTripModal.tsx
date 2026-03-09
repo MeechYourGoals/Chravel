@@ -589,7 +589,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Description (Optional)
             </label>
             <textarea
@@ -597,7 +597,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+              className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#c49746] focus:outline-none transition-colors resize-none"
               placeholder="Tell us about your trip..."
             />
           </div>
