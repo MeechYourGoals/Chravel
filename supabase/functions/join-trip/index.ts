@@ -354,7 +354,36 @@ serve(async req => {
           // (notification logic will be handled below)
           logStep('Rejected request updated to pending', { requestId: existingRequest.id });
         }
-        // If status is 'approved', user should already be a member (handled earlier)
+        // If status is 'approved' but user is no longer an active member (e.g. they left),
+        // reset the request to pending so approvers can see it again.
+        if (existingRequest.status === 'approved') {
+          logStep('Resetting approved request to pending (user likely left and is rejoining)', {
+            requestId: existingRequest.id,
+          });
+          const { error: updateError } = await supabaseClient
+            .from('trip_join_requests')
+            .update({
+              status: 'pending',
+              requested_at: new Date().toISOString(),
+              resolved_at: null,
+              resolved_by: null,
+              invite_code: normalizedInviteCode,
+              requester_name: requesterName,
+              requester_email: requesterEmail,
+            })
+            .eq('id', existingRequest.id);
+
+          if (updateError) {
+            logStep('ERROR: Failed to reset approved request', { error: updateError.message });
+            return errorResponse(
+              'Failed to resubmit join request. Please try again.',
+              500,
+              corsHeaders,
+            );
+          }
+
+          logStep('Approved request reset to pending', { requestId: existingRequest.id });
+        }
       }
 
       // Create join request with requester info stored directly (only if no existing request)

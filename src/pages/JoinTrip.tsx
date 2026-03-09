@@ -59,6 +59,9 @@ const JoinTrip = () => {
   const [inviteData, setInviteData] = useState<InvitePreviewData | null>(null);
   const [error, setError] = useState<InviteError | null>(null);
   const [joinSuccess, setJoinSuccess] = useState(false);
+  const [joinSuccessType, setJoinSuccessType] = useState<'request' | 'already_member' | 'joined'>(
+    'request',
+  );
   const autoJoinAttemptedRef = useRef(false);
 
   // Debug logging on mount
@@ -324,6 +327,7 @@ const JoinTrip = () => {
           data.message ||
             "Join request submitted! You'll see the trip on your home page once approved.",
         );
+        setJoinSuccessType('request');
         setJoinSuccess(true);
         setJoining(false);
         // Redirect to home page after 2 seconds to show pending trip card
@@ -335,8 +339,10 @@ const JoinTrip = () => {
 
       if (data.already_member) {
         toast.info(data.message || "You're already a member!");
+        setJoinSuccessType('already_member');
       } else {
         toast.success(data.message || 'Successfully joined the trip!');
+        setJoinSuccessType('joined');
       }
 
       setJoinSuccess(true);
@@ -659,15 +665,28 @@ const JoinTrip = () => {
   }
 
   if (joinSuccess) {
+    const tripName = inviteData?.trip.name || 'the trip';
+    const successContent = {
+      request: {
+        title: 'Request Submitted!',
+        message: `Your request to join ${tripName} has been sent. A trip member will review it soon.`,
+      },
+      already_member: {
+        title: 'Already a Member!',
+        message: `You're already a member of ${tripName}. Taking you there now.`,
+      },
+      joined: {
+        title: `You've joined ${tripName}!`,
+        message: 'Taking you to the trip now.',
+      },
+    }[joinSuccessType];
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
           <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-4">Request Submitted!</h1>
-          <p className="text-muted-foreground mb-6">
-            Your request to join {inviteData?.trip.name || 'the trip'} has been sent. A trip member
-            will review it soon.
-          </p>
+          <h1 className="text-2xl font-bold text-foreground mb-4">{successContent.title}</h1>
+          <p className="text-muted-foreground mb-6">{successContent.message}</p>
           <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
         </div>
