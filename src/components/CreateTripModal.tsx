@@ -671,18 +671,18 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Advanced Settings - Only for Pro/Event trips */}
           {tripType !== 'consumer' && (
             <Collapsible className="space-y-3">
-              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-colors">
-                <div className="flex items-center gap-2 text-slate-300">
+              <CollapsibleTrigger className="w-full flex items-center justify-between p-3 bg-[#222]/40 hover:bg-[#2a2a2a] rounded-xl transition-colors">
+                <div className="flex items-center gap-2 text-gray-300">
                   <Settings size={16} />
                   <span className="text-sm font-medium">Advanced</span>
                 </div>
                 <ChevronDown
                   size={16}
-                  className="text-slate-400 transition-transform duration-200 data-[state=open]:rotate-180"
+                  className="text-gray-500 transition-transform duration-200 data-[state=open]:rotate-180"
                 />
               </CollapsibleTrigger>
 
-              <CollapsibleContent className="space-y-4 bg-slate-700/20 rounded-xl p-4">
+              <CollapsibleContent className="space-y-4 bg-[#1e1e1e] rounded-xl p-4">
                 {/* Trip Color Picker */}
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
