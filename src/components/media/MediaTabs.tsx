@@ -126,7 +126,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
           </TabsTrigger>
           <TabsTrigger value="links" className="flex items-center gap-2">
             <Link size={16} />
-            Links
+            Chat Links
             {mediaCounts.links > 0 && (
               <Badge variant="secondary" className="ml-1">
                 {mediaCounts.links}
@@ -196,7 +196,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
               <section>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Link size={20} />
-                  Links ({filteredLinks.length})
+                  Chat Links ({filteredLinks.length})
                 </h3>
                 <div className="space-y-2">
                   {filteredLinks.map(link => (
@@ -363,7 +363,7 @@ function EmptyState({
   const Icon = type ? icons[type as keyof typeof icons] || Link : Camera;
   const message =
     type === 'links'
-      ? "No links yet. Share URLs in the chat and they'll appear here!"
+      ? 'No chat links yet. Links shared in conversation will appear here automatically.'
       : type
         ? `No ${type} yet. Share some in the chat!`
         : 'No media yet. Start sharing photos, videos, and files in the chat!';

@@ -87,7 +87,7 @@ describe('TripLinksDisplay', () => {
     await waitFor(
       () => {
         expect(screen.getByText('Explore')).toBeInTheDocument();
-        expect(screen.getByText(/share links for registries/i)).toBeInTheDocument();
+        expect(screen.getByText(/save links for registries/i)).toBeInTheDocument();
       },
       { timeout: 2000 },
     );

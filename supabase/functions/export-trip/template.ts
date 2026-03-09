@@ -326,14 +326,14 @@ function renderPlacesSection(places: any[] | undefined): string {
   if (!places || places.length === 0) {
     return `
     <section class="section">
-      <h2>Places & Links</h2>
-      <p class="empty-message">No places or links available</p>
+      <h2>Places & Explore Links</h2>
+      <p class="empty-message">No places or explore links saved</p>
     </section>`;
   }
 
   return `
   <section class="section">
-    <h2>Places & Links</h2>
+    <h2>Places & Explore Links</h2>
     ${places
       .map(
         place => `

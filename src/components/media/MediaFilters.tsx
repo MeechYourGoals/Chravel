@@ -13,7 +13,7 @@ export const MediaFilters = ({ activeFilter, onFilterChange }: MediaFiltersProps
     { value: 'photos', label: 'Photos' },
     { value: 'videos', label: 'Videos' },
     { value: 'files', label: 'Files' },
-    { value: 'links', label: 'Links' },
+    { value: 'links', label: 'Chat Links' },
   ];
 
   return (
