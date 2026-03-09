@@ -724,7 +724,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors"
+              className="flex-1 bg-gradient-to-r from-[#533517] to-[#c49746] hover:from-[#6a441e] hover:to-[#d4a74f] disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors"
             >
               {isLoading ? 'Creating...' : 'Create'}
             </button>
