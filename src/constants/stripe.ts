@@ -161,7 +161,8 @@ export function getTierFromProductId(productId: string): string {
   if (productId === CONSUMER_PLANS.explorer.product_id) return 'explorer';
   if (productId === CONSUMER_PLANS.explorer.product_id_annual) return 'explorer';
   if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id) return 'frequent-chraveler';
-  if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id_annual) return 'frequent-chraveler';
+  if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id_annual)
+    return 'frequent-chraveler';
 
   // Trip Pass products
   if (productId === TRIP_PASS_PLANS['pass-explorer-45'].product_id) return 'explorer';

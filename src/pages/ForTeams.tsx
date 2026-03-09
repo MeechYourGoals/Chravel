@@ -268,9 +268,7 @@ export const ForTeams = () => {
             <div className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-6 md:p-8">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Enterprise</h3>
-                <div className="text-4xl font-bold text-foreground mb-2">
-                  Custom Pricing
-                </div>
+                <div className="text-4xl font-bold text-foreground mb-2">Custom Pricing</div>
                 <p className="text-foreground">Unlimited team members</p>
               </div>
               <Button

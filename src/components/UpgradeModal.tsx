@@ -227,7 +227,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                   </>
                 )}
                 <p className="text-gray-400 text-xs mt-1">
-                  Or get a Trip Pass: {selectedPlan === 'explorer' ? '$39.99 for 45 days' : '$74.99 for 90 days'}
+                  Or get a Trip Pass:{' '}
+                  {selectedPlan === 'explorer' ? '$39.99 for 45 days' : '$74.99 for 90 days'}
                 </p>
                 <p className="text-gray-300 mb-4">14-day free trial • Cancel anytime</p>
               </div>

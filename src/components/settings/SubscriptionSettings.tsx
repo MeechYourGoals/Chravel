@@ -44,7 +44,12 @@ export function SubscriptionSettings({ className }: { className?: string }) {
         name: 'Explorer',
         price: '$9.99/mo',
         color: 'bg-blue-500',
-        features: ['10 AI queries/trip', 'Unlimited trips & storage', 'PDF export', 'Calendar sync'],
+        features: [
+          '10 AI queries/trip',
+          'Unlimited trips & storage',
+          'PDF export',
+          'Calendar sync',
+        ],
       },
       'frequent-chraveler': {
         name: 'Frequent Chraveler',
