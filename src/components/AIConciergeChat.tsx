@@ -442,11 +442,8 @@ export const AIConciergeChat = ({
   const { voiceState: dictationState, toggleVoice: toggleDictation } =
     useWebSpeechVoice(handleDictationResult);
 
-  // Voice active state — either Gemini Live is running OR dictation fallback is active
+  // Dictation active state — used for fallback mode detection
   const isDictationActive = dictationState !== 'idle' && dictationState !== 'error';
-  const isVoiceActive =
-    (DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error') ||
-    (duplexFailed && isDictationActive);
 
   /**
    * Fix 2 — streaming voice response bubble.
