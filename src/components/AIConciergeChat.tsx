@@ -606,6 +606,10 @@ export const AIConciergeChat = ({
     }
   }, [liveState, duplexFailed, isDictationActive]);
 
+  // Voice active state — either Gemini Live is running OR dictation fallback is active
+  const isVoiceActive =
+    (DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error') ||
+    (duplexFailed && isDictationActive);
 
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
