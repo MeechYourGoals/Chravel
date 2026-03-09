@@ -19,6 +19,7 @@ import {
   Lock,
   WifiOff,
   UserX,
+  Sparkles,
 } from 'lucide-react';
 import {
   InviteError,
@@ -48,6 +49,30 @@ interface InvitePreviewData {
 }
 
 const INVITE_CODE_STORAGE_KEY = 'chravel_pending_invite_code';
+
+/**
+ * Generate a contextual urgency line from trip start date.
+ * Returns null if no start date or trip is in the past.
+ */
+function getUrgencyLine(startDate: string | null): string | null {
+  if (!startDate) return null;
+
+  const start = new Date(startDate);
+  const now = new Date();
+  const diffMs = start.getTime() - now.getTime();
+
+  if (diffMs < 0) return null;
+
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 7) return `Trip starts in ${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+  if (diffDays <= 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `Trip starts in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+  }
+  const formatted = start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  return `Trip starts ${formatted}`;
+}
 
 const JoinTrip = () => {
   const { token } = useParams<{ token?: string }>();
@@ -721,7 +746,7 @@ const JoinTrip = () => {
                 <Users size={16} className="text-primary" />
                 <span className="text-foreground">
                   {inviteData.trip.member_count}{' '}
-                  {inviteData.trip.member_count === 1 ? 'member' : 'members'}
+                  {inviteData.trip.member_count === 1 ? 'traveler' : 'travelers already planning'}
                 </span>
               </div>
             )}
@@ -742,26 +767,38 @@ const JoinTrip = () => {
             )}
           </div>
 
+          {/* Urgency line */}
+          {(() => {
+            const urgency = getUrgencyLine(inviteData?.trip.start_date ?? null);
+            if (!urgency) return null;
+            return (
+              <div className="flex items-center gap-2 mb-6 px-3 py-2 bg-primary/10 border border-primary/20 rounded-xl">
+                <Sparkles size={14} className="text-primary flex-shrink-0" />
+                <span className="text-primary text-sm font-medium">{urgency}</span>
+              </div>
+            );
+          })()}
+
           {/* Actions */}
           {!user ? (
             <div className="space-y-4">
-              <p className="text-muted-foreground text-center text-sm">
-                Please log in to join this trip
-              </p>
               <div className="space-y-3">
                 <button
-                  onClick={handleLoginRedirect}
+                  onClick={handleSignupRedirect}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-6 rounded-xl transition-all duration-200 font-medium"
                 >
-                  Log In
+                  Sign Up to Join
                 </button>
                 <button
-                  onClick={handleSignupRedirect}
+                  onClick={handleLoginRedirect}
                   className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
                 >
-                  Sign Up
+                  Already have an account? Log In
                 </button>
               </div>
+              <p className="text-muted-foreground text-center text-xs">
+                Create a free account to join the trip and participate
+              </p>
             </div>
           ) : (
             <div className="space-y-4">

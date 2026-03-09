@@ -4,7 +4,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
-import { Loader2, Users, MapPin, Calendar, Share2, ExternalLink, UserPlus } from 'lucide-react';
+import { Loader2, Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 
@@ -23,6 +23,31 @@ interface TripPreviewData {
 
 const isUuid = (value: string): boolean =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+/**
+ * Generate a contextual urgency line from trip start date.
+ * Returns null if no start date or trip is in the past.
+ */
+function getUrgencyLine(startDate: string | null): string | null {
+  if (!startDate) return null;
+
+  const start = new Date(startDate);
+  const now = new Date();
+  const diffMs = start.getTime() - now.getTime();
+
+  if (diffMs < 0) return null; // Trip already started
+
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 7) return `Trip starts in ${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+  if (diffDays <= 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `Trip starts in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+  }
+  // Format the date for trips further out
+  const formatted = start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  return `Trip starts ${formatted}`;
+}
 
 const TripPreview = () => {
   const { tripId } = useParams<{ tripId: string }>();
@@ -388,10 +413,23 @@ const TripPreview = () => {
             <div className="flex items-center gap-3 text-white/80">
               <Users className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
               <span>
-                {tripData.member_count} {tripData.member_count === 1 ? 'Chraveler' : 'Chravelers'}
+                {tripData.member_count}{' '}
+                {tripData.member_count === 1 ? 'traveler' : 'travelers already planning'}
               </span>
             </div>
           </div>
+
+          {/* Urgency line */}
+          {(() => {
+            const urgency = getUrgencyLine(tripData.start_date);
+            if (!urgency) return null;
+            return (
+              <div className="flex items-center gap-2 mb-6 px-3 py-2 bg-gold-primary/10 border border-gold-primary/20 rounded-xl">
+                <Sparkles className="h-4 w-4 text-gold-primary flex-shrink-0" />
+                <span className="text-gold-primary text-sm font-medium">{urgency}</span>
+              </div>
+            );
+          })()}
 
           {/* Description if available */}
           {tripData.description && (
@@ -400,20 +438,38 @@ const TripPreview = () => {
 
           {/* CTA Buttons */}
           <div className="space-y-3">
-            <Button
-              onClick={handleViewTrip}
-              className="w-full accent-fill-gold font-semibold py-3 text-base"
-            >
-              {(() => {
-                const numericId = tripId ? parseInt(tripId, 10) : NaN;
-                const isDemoTrip = !isNaN(numericId) && numericId > 0 && numericId <= 12;
-                if (isDemoTrip) return 'Sign Up to View';
-                if (!user) return 'Sign Up to View';
-                if (isMember) return 'Open Trip';
-                if (activeInviteCode) return 'Join This Trip';
-                return 'View Full Trip';
-              })()}
-            </Button>
+            {(() => {
+              const numericId = tripId ? parseInt(tripId, 10) : NaN;
+              const isDemoTrip = !isNaN(numericId) && numericId > 0 && numericId <= 12;
+
+              let ctaLabel: string;
+              let helperText: string | null = null;
+
+              if (isDemoTrip) {
+                ctaLabel = 'Explore Demo Trip';
+              } else if (!user) {
+                ctaLabel = 'Request to Join';
+                helperText = 'Create a free account to continue';
+              } else if (isMember) {
+                ctaLabel = 'Open Trip';
+              } else if (activeInviteCode) {
+                ctaLabel = 'Join This Trip';
+              } else {
+                ctaLabel = 'Request to Join';
+              }
+
+              return (
+                <>
+                  <Button
+                    onClick={handleViewTrip}
+                    className="w-full accent-fill-gold font-semibold py-3 text-base"
+                  >
+                    {ctaLabel}
+                  </Button>
+                  {helperText && <p className="text-white/40 text-xs text-center">{helperText}</p>}
+                </>
+              );
+            })()}
 
             <Button
               onClick={handleShare}
