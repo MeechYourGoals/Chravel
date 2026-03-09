@@ -647,13 +647,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             (tripType === 'pro' || tripType === 'event') &&
             organizations.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Link to Organization (Optional)
                 </label>
                 <select
                   value={selectedOrganization}
                   onChange={e => setSelectedOrganization(e.target.value)}
-                  className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white focus:border-[#c49746] focus:outline-none transition-colors"
                 >
                   <option value="">No organization</option>
                   {organizations.map(org => (
