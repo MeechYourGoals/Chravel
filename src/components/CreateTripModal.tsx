@@ -696,7 +696,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                         onClick={() => setSelectedCardColor(color.accent)}
                         className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
                           selectedCardColor === color.accent
-                            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-110'
+                            ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110'
                             : 'opacity-70 hover:opacity-100'
                         }`}
                         title={color.accent.charAt(0).toUpperCase() + color.accent.slice(1)}
