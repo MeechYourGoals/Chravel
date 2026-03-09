@@ -420,8 +420,8 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
               <h3 className="text-lg md:text-xl font-bold text-white">Explore</h3>
               <p className="text-gray-400 text-xs md:text-sm">
                 {links.length > 0
-                  ? `${links.length} saved links • Drag to reorder`
-                  : 'Share links for registries, activities, places & more'}
+                  ? `${links.length} explore links • Drag to reorder`
+                  : 'Save links for registries, activities, places & more'}
               </p>
             </div>
           </div>
@@ -508,8 +508,8 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
               </TooltipTrigger>
               <TooltipContent>
                 <p className="text-xs">
-                  💡 Share wedding registries, activities like skydiving, restaurants, hotels &
-                  more. You can also promote links from the Media tab.
+                  💡 Save wedding registries, activities like skydiving, restaurants, hotels & more.
+                  You can also save chat links here from the Media tab.
                 </p>
               </TooltipContent>
             </Tooltip>

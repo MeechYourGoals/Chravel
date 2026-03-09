@@ -128,7 +128,7 @@ export const TripTabs = ({
     }
   }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
 
-  // Handler for promoting URLs from Media to Trip Links
+  // Handler for saving chat links to Explore Links (trip_links table)
   const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
     setLinkPrefill({
       url: urlData.url,

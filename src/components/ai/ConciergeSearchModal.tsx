@@ -154,9 +154,9 @@ export const ConciergeSearchModal = ({
       case 'payment':
         return 'Payments';
       case 'place':
-        return 'Places';
+        return 'Chat Links';
       case 'link':
-        return 'Links';
+        return 'Explore Links';
       case 'media':
         return 'Media';
       default:
