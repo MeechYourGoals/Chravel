@@ -621,7 +621,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 </label>
               </div>
               {coverImagePreview && (
-                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-slate-600">
+                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#444]">
                   <img
                     src={coverImagePreview}
                     alt="Preview"
