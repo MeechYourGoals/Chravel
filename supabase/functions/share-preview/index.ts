@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { escapeHtml, getOgSecurityHeaders } from '../_shared/ogUtils.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -27,15 +28,6 @@ function formatDateRange(startDate: string | null, endDate: string | null): stri
     return `${startStr} - ${endStr}`;
   }
   return startStr;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }
 
 function generateOGHtml(params: {
@@ -221,7 +213,11 @@ serve(async (req): Promise<Response> => {
           type: 'trip',
         });
         return new Response(html, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+          headers: {
+            ...corsHeaders,
+            ...getOgSecurityHeaders(),
+            'Content-Type': 'text/html; charset=utf-8',
+          },
         });
       }
 
@@ -241,7 +237,11 @@ serve(async (req): Promise<Response> => {
           type: 'trip',
         });
         return new Response(html, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+          headers: {
+            ...corsHeaders,
+            ...getOgSecurityHeaders(),
+            'Content-Type': 'text/html; charset=utf-8',
+          },
         });
       }
 
@@ -265,7 +265,11 @@ serve(async (req): Promise<Response> => {
           type: 'trip',
         });
         return new Response(html, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+          headers: {
+            ...corsHeaders,
+            ...getOgSecurityHeaders(),
+            'Content-Type': 'text/html; charset=utf-8',
+          },
         });
       }
 
@@ -325,10 +329,7 @@ serve(async (req): Promise<Response> => {
     const tripType = (tripData.trip_type as 'trip' | 'event' | 'pro') || 'trip';
     const dateRange = formatDateRange(tripData.start_date, tripData.end_date);
 
-    let title = `Join ${tripData.name}`;
-    if (tripType === 'event') {
-      title = `You're Invited: ${tripData.name}`;
-    }
+    const title = `You're Invited: ${tripData.name}`;
 
     const description =
       tripData.description ||
@@ -348,11 +349,15 @@ serve(async (req): Promise<Response> => {
 
     logStep('Success', { title, redirectUrl });
 
+    const etag = tripData ? `"share-${tripData.id}-${Date.now()}"` : undefined;
+
     return new Response(html, {
       headers: {
         ...corsHeaders,
+        ...getOgSecurityHeaders(),
+        ...(etag ? { ETag: etag } : {}),
         'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=60',
       },
     });
   } catch (error) {
@@ -370,7 +375,11 @@ serve(async (req): Promise<Response> => {
     });
 
     return new Response(html, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+      headers: {
+        ...corsHeaders,
+        ...getOgSecurityHeaders(),
+        'Content-Type': 'text/html; charset=utf-8',
+      },
     });
   }
 });
