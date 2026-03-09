@@ -212,7 +212,7 @@ export const useTripMembers = (tripId?: string) => {
     return !!adminData;
   }, [tripId, user?.id, tripCreatorId]);
 
-  // Remove a member from the trip (admin action)
+  // Remove a member from the trip (admin action, uses secured RPC)
   const removeMember = useCallback(
     async (userId: string): Promise<boolean> => {
       if (!tripId) {
@@ -227,15 +227,22 @@ export const useTripMembers = (tripId?: string) => {
       }
 
       try {
-        const { error } = await supabase
-          .from('trip_members')
-          .delete()
-          .eq('trip_id', tripId)
-          .eq('user_id', userId);
+        // Use secured RPC that validates auth.uid() server-side
+        const { data, error } = await (supabase.rpc as any)('remove_trip_member_safe', {
+          p_trip_id: tripId,
+          p_user_id_to_remove: userId,
+        });
 
         if (error) {
           console.error('Error removing member:', error);
           toast.error('Failed to remove member');
+          return false;
+        }
+
+        // RPC returns { success, message } rows
+        const result = Array.isArray(data) ? data[0] : data;
+        if (result && !result.success) {
+          toast.error(result.message || 'Failed to remove member');
           return false;
         }
 
