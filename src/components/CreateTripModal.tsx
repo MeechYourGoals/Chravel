@@ -703,7 +703,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                       />
                     ))}
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">
+                  <p className="text-xs text-gray-500 mt-2">
                     Color-code your {tripType === 'pro' ? 'Pro trips' : 'Events'} for easy
                     organization
                   </p>
