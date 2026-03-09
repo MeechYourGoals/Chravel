@@ -489,7 +489,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <Calendar size={16} />
                 Start Date
               </label>
@@ -499,10 +499,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 value={formData.startDate}
                 onChange={handleInputChange}
                 max={formData.endDate || undefined}
-                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                className={`w-full bg-[#222]/60 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
                   validationErrors.startDate
                     ? 'border-red-500 focus:border-red-500'
-                    : 'border-slate-600 focus:border-blue-500'
+                    : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
               />
