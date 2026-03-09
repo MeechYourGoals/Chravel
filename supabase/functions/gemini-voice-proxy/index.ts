@@ -737,7 +737,9 @@ serve(async (req: Request) => {
   let upstreamWs: WebSocket | null = null;
   let upstreamReady = false;
   const clientBuffer: string[] = []; // Buffer client messages until upstream is ready
+  const MAX_BUFFER_SIZE = 500; // Prevent unbounded memory growth
   let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+  let setupTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
 
   function closeAll(reason: string): void {
@@ -745,6 +747,10 @@ serve(async (req: Request) => {
     closed = true;
     console.log(`${tag} closing_all`, { reason, elapsedMs: Date.now() - t0 });
 
+    if (setupTimeoutId) {
+      clearTimeout(setupTimeoutId);
+      setupTimeoutId = null;
+    }
     if (keepaliveInterval) {
       clearInterval(keepaliveInterval);
       keepaliveInterval = null;
@@ -863,6 +869,23 @@ serve(async (req: Request) => {
 
       upstreamWs = new WebSocket(upstreamUrl);
 
+      // Server-side setup timeout — if Vertex doesn't respond within 30s,
+      // close everything. Client has its own 12s timeout but this prevents
+      // the proxy from hanging indefinitely if the client disappears.
+      setupTimeoutId = setTimeout(() => {
+        if (!upstreamReady) {
+          console.warn(`${tag} server_setup_timeout`, { elapsedMs: Date.now() - t0 });
+          if (clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(
+              JSON.stringify({
+                error: { code: 504, message: 'Upstream setup timed out' },
+              }),
+            );
+          }
+          closeAll('server_setup_timeout');
+        }
+      }, 30_000);
+
       let upstreamMessageCount = 0;
 
       upstreamWs.onopen = () => {
@@ -920,6 +943,12 @@ serve(async (req: Request) => {
               console.log(`${tag} setup_complete_received`, { elapsedMs: Date.now() - t0 });
               upstreamReady = true;
 
+              // Clear server-side setup timeout
+              if (setupTimeoutId) {
+                clearTimeout(setupTimeoutId);
+                setupTimeoutId = null;
+              }
+
               // Flush buffered client messages
               if (clientBuffer.length > 0) {
                 console.log(`${tag} flushing_buffer`, { count: clientBuffer.length });
@@ -933,6 +962,39 @@ serve(async (req: Request) => {
             }
           } catch {
             // Non-JSON message — still relay it
+          }
+        }
+
+        // Log significant events beyond the first 5 messages (goAway, errors, resumption)
+        if (upstreamMessageCount > 5) {
+          try {
+            const data = JSON.parse(event.data as string);
+            if (data.error) {
+              console.warn(`${tag} upstream_error_frame`, {
+                code: data.error?.code,
+                message: data.error?.message,
+                elapsedMs: Date.now() - t0,
+              });
+            }
+            const goAway = data.goAway || data.go_away;
+            if (goAway) {
+              console.warn(`${tag} upstream_go_away`, {
+                timeLeft: goAway.timeLeft || goAway.time_left,
+                hasResumptionToken: !!(
+                  goAway.sessionResumptionToken || goAway.session_resumption_token
+                ),
+                elapsedMs: Date.now() - t0,
+              });
+            }
+            const resumption = data.sessionResumptionUpdate || data.session_resumption_update;
+            if (resumption) {
+              console.log(`${tag} upstream_resumption_update`, {
+                hasNewHandle: !!(resumption.newHandle || resumption.new_handle),
+                elapsedMs: Date.now() - t0,
+              });
+            }
+          } catch {
+            // Non-JSON — ignore for logging purposes
           }
         }
 
@@ -993,6 +1055,11 @@ serve(async (req: Request) => {
 
     // If upstream not ready yet, buffer the message
     if (!upstreamReady || !upstreamWs || upstreamWs.readyState !== WebSocket.OPEN) {
+      if (clientBuffer.length >= MAX_BUFFER_SIZE) {
+        console.warn(`${tag} buffer_overflow`, { size: clientBuffer.length });
+        closeAll('buffer_overflow');
+        return;
+      }
       clientBuffer.push(data);
       return;
     }
