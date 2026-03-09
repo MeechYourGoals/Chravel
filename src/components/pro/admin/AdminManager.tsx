@@ -99,7 +99,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
     return (
       <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
         <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+          <div className="animate-spin h-5 w-5 gold-gradient-spinner" />
           <p className="text-sm text-muted-foreground">Loading admins...</p>
         </div>
       </Card>
