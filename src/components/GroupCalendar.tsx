@@ -204,7 +204,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           />
         ) : isLoading ? (
           <div className="flex justify-center items-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="animate-spin h-8 w-8 gold-gradient-spinner" />
           </div>
         ) : (
           <CalendarGrid
@@ -304,7 +304,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         />
       ) : isLoading ? (
         <div className="flex justify-center items-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <div className="animate-spin h-8 w-8 gold-gradient-spinner" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[420px]">
