@@ -20,7 +20,7 @@ export const CARD_ICON_SIZE = {
 } as const;
 
 interface CardStatItemProps {
-  icon: LucideIcon;
+  icon: LucideIcon | React.FC<{ size?: number; className?: string }>;
   value: string | number;
   label: string;
   /** Size variant — controls text scaling */
