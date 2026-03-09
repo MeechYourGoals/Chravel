@@ -403,13 +403,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         {/* Pro Trip Category Selector - Only for Pro trips */}
         {tripType === 'pro' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               Pro Trip Category
             </label>
             <select
               value={proTripCategory}
               onChange={e => setProTripCategory(e.target.value as ProCategoryEnum)}
-              className="w-full bg-slate-700/50 border border-slate-600 text-white rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full bg-[#222]/60 border border-[#444] text-white rounded-xl px-4 py-3 focus:border-[#c49746] focus:outline-none transition-colors"
             >
               {PRO_CATEGORIES_ORDERED.map(cat => (
                 <option key={cat.id} value={cat.id}>
@@ -417,7 +417,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               This determines available roles and features for your Pro trip.
             </p>
           </div>
