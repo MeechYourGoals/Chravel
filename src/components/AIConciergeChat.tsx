@@ -1830,7 +1830,7 @@ export const AIConciergeChat = ({
                 </p>
               </div>
               <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
-                I can search, show rich cards, and write directly to your trip
+                Chravel Agent can search, display info cards, and add things directly your trip
               </div>
             </div>
           </div>
