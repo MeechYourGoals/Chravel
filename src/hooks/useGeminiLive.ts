@@ -635,169 +635,46 @@ export function useGeminiLive({
         }
       }
 
-      // ── Gate 0: Token fetch + mic request IN PARALLEL ──
-      // These are independent: mic doesn't need the token, token doesn't need the mic.
-      // Running them concurrently saves 5-15s vs the old sequential approach and
-      // prevents the ephemeral token's newSessionExpireTime from being consumed by
-      // the mic permission prompt.
-      console.warn('[VOICE:G0] parallel_start', {
+      // ── Gate 0: Request microphone ──
+      console.warn('[VOICE:G0] mic_request_start', {
         sessionAttemptId,
         msFromStart: Math.round(performance.now() - t0),
       });
-      const invokeT0 = performance.now();
 
-      patchDiagnostics({ substep: 'Setting up voice & microphone…' });
+      patchDiagnostics({ substep: 'Requesting microphone…' });
 
-      const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
-        body: {
-          tripId,
-          voice,
-          sessionAttemptId,
-          ...(resumptionTokenRef.current ? { resumptionToken: resumptionTokenRef.current } : {}),
-        },
-      });
-      let sessionTimeoutId: ReturnType<typeof setTimeout>;
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        sessionTimeoutId = setTimeout(
-          () => reject(new Error('Voice session timed out. Please try again.')),
-          SESSION_TIMEOUT_MS,
-        );
-      });
-      const tokenPromise = Promise.race([sessionPromise, timeoutPromise]).then(result => {
-        patchDiagnostics({ substep: 'Voice session ready, waiting for microphone…' });
-        return result;
-      });
-
-      const micPromise = navigator.mediaDevices
-        .getUserMedia({
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             channelCount: 1,
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
           },
-        })
-        .then(stream => {
-          patchDiagnostics({ substep: 'Microphone ready, connecting…' });
-          return stream;
-        })
-        .catch((mediaErr: Error) => {
-          // Wrap mic errors with user-friendly messages but don't throw yet —
-          // let Promise.allSettled collect it so we can prioritize error display.
-          const name = mediaErr.name || '';
-          let errMsg: string;
-          if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-            errMsg =
-              'Microphone permission denied. Allow microphone access in your browser settings and try again.';
-          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-            errMsg = 'No microphone detected. Connect a microphone and try again.';
-          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-            errMsg = 'Microphone is already in use by another app. Close other apps and try again.';
-          } else {
-            errMsg = 'Could not access microphone. Check your audio settings and try again.';
-          }
-          throw new Error(errMsg);
         });
-
-      // Await token first — if it fails there's no point blocking on the
-      // browser mic-permission prompt which can stay pending indefinitely.
-      // Both promises are already in-flight so the happy path is still parallel.
-      type TokenValue = Awaited<typeof sessionPromise>;
-      let tokenResult: PromiseSettledResult<TokenValue>;
-      let micResult: PromiseSettledResult<MediaStream>;
-
-      try {
-        const tokenValue = await tokenPromise;
-        tokenResult = { status: 'fulfilled', value: tokenValue as TokenValue };
-      } catch (err) {
-        tokenResult = { status: 'rejected', reason: err };
-      }
-      // Clean up the timeout timer to prevent closure leak
-      clearTimeout(sessionTimeoutId!);
-
-      // Token failed → surface error immediately, clean up mic if it resolves later
-      if (tokenResult.status === 'rejected') {
-        micPromise.then(stream => stream.getTracks().forEach(t => t.stop())).catch(() => {});
-        const invokeErrMsg =
-          tokenResult.reason instanceof Error
-            ? tokenResult.reason.message
-            : String(tokenResult.reason);
-        console.warn('[VOICE:G0] invoke_failed_early', {
-          sessionAttemptId,
-          error: invokeErrMsg,
-          durationMs: Math.round(performance.now() - invokeT0),
-        });
-        throw new Error(invokeErrMsg);
-      }
-
-      // Token succeeded — now wait for mic (already in-flight)
-      try {
-        const micValue = await micPromise;
-        micResult = { status: 'fulfilled', value: micValue };
-      } catch (err) {
-        micResult = { status: 'rejected', reason: err };
-      }
-
-      // Mic failed — token succeeded but mic is required, so bail out
-      if (micResult.status === 'rejected') {
-        const micErrMsg =
-          micResult.reason instanceof Error ? micResult.reason.message : String(micResult.reason);
-        console.warn('[VOICE:G0] mic_failed', { sessionAttemptId, error: micErrMsg });
-        recordVoiceFailure(micErrMsg);
-        throw new Error(micErrMsg);
-      }
-
-      // Both succeeded — extract values
-      const invokeResult = tokenResult.value;
-      const { data: sessionData, error: sessionError } = invokeResult;
-      const invokeDurationMs = Math.round(performance.now() - invokeT0);
-
-      console.warn('[VOICE:G0] parallel_done', {
-        sessionAttemptId,
-        durationMs: invokeDurationMs,
-        hasData: !!sessionData,
-        hasError: !!sessionError,
-        errorMessage: sessionError?.message,
-        dataKeys: sessionData ? Object.keys(sessionData) : [],
-      });
-
-      const accessToken =
-        typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
-      const sessionErrMsg =
-        typeof (sessionData as { error?: string })?.error === 'string'
-          ? (sessionData as { error: string }).error
-          : sessionError?.message;
-
-      if (sessionError || !accessToken) {
-        const errMsg = mapSessionError(sessionErrMsg || 'Failed to get voice session');
-        console.warn('[VOICE:G1] token_failed', { sessionAttemptId, error: errMsg });
-        voiceLog('session:tokenError', { error: errMsg });
-        onErrorRef.current?.(errMsg);
-        // Clean up mic stream
-        micResult.value.getTracks().forEach(t => t.stop());
+        patchDiagnostics({ substep: 'Microphone ready, connecting…' });
+      } catch (mediaErr) {
+        const name = (mediaErr as Error).name || '';
+        let errMsg: string;
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          errMsg =
+            'Microphone permission denied. Allow microphone access in your browser settings and try again.';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          errMsg = 'No microphone detected. Connect a microphone and try again.';
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          errMsg = 'Microphone is already in use by another app. Close other apps and try again.';
+        } else {
+          errMsg = 'Could not access microphone. Check your audio settings and try again.';
+        }
+        recordVoiceFailure(errMsg);
         throw new Error(errMsg);
       }
 
-      console.warn('[VOICE:G1] token_received', {
+      console.warn('[VOICE:G0] mic_acquired', {
         sessionAttemptId,
-        model: sessionData?.model,
-        voice: sessionData?.voice,
-        hasWebsocketUrl: !!sessionData?.websocketUrl,
-        _rid: (sessionData as { _rid?: string })?._rid,
-        durationMs: invokeDurationMs,
+        msFromStart: Math.round(performance.now() - t0),
       });
-      voiceLog('session:tokenReceived', {
-        sessionId,
-        hasToken: true,
-        model: sessionData?.model,
-        voice: sessionData?.voice,
-        hasWebsocketUrl: !!sessionData?.websocketUrl,
-        _rid: (sessionData as { _rid?: string })?._rid,
-      });
-      voiceLog('timing:token', { ms: Math.round(performance.now() - sessionStartedAt) });
-
-      // ── Mic acquired from parallel request ──
-      const stream = micResult.value;
       mediaStreamRef.current = stream;
 
       const track = stream.getAudioTracks()[0];
@@ -860,31 +737,47 @@ export function useGeminiLive({
         },
       );
 
-      // ── Gate 2: Open WebSocket ──
+      // ── Gate 2: Open WebSocket to proxy ──
+      // The proxy (gemini-voice-proxy edge function) owns the upstream Vertex AI
+      // connection. The client never sees the OAuth2 token or talks to Google directly.
       patchDiagnostics({ substep: 'Opening audio channel…' });
-      const websocketUrl = sessionData?.websocketUrl as string;
-      if (!websocketUrl || typeof websocketUrl !== 'string') {
-        throw new Error('Server did not provide a WebSocket URL.');
+
+      // Get Supabase JWT for proxy auth
+      const { data: sessionTokenData } = await supabase.auth.getSession();
+      const supabaseJwt = sessionTokenData?.session?.access_token;
+      if (!supabaseJwt) {
+        throw new Error('Not authenticated. Please sign in and try again.');
       }
 
-      // Vertex AI: pass OAuth2 token as URL param
-      const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
-      const wsHost = new URL(websocketUrl).host;
-      console.warn('[VOICE:G2] ws_connecting', {
+      // Build proxy WebSocket URL
+      const supabaseUrl =
+        (supabase as unknown as { supabaseUrl?: string }).supabaseUrl ||
+        import.meta.env.VITE_SUPABASE_URL ||
+        '';
+      const proxyHttpUrl = `${supabaseUrl}/functions/v1/gemini-voice-proxy`;
+      const proxyWsUrl = proxyHttpUrl.replace(/^https?:\/\//, (match: string) =>
+        match === 'https://' ? 'wss://' : 'ws://',
+      );
+      const wsParams = new URLSearchParams({
+        token: supabaseJwt,
+        tripId: tripId || '',
+        voice,
+        ...(resumptionTokenRef.current ? { resumptionToken: resumptionTokenRef.current } : {}),
+      });
+      const wsUrl = `${proxyWsUrl}?${wsParams.toString()}`;
+
+      console.warn('[VOICE:G2] ws_connecting_proxy', {
         sessionAttemptId,
-        host: wsHost,
+        proxyUrl: proxyWsUrl,
         msFromStart: Math.round(performance.now() - t0),
       });
       voiceLog('ws:connecting', {
         sessionId,
-        endpoint: websocketUrl.split('/').pop(),
+        endpoint: 'gemini-voice-proxy',
         audioContextState: audioCtxRef.current?.state,
         audioContextSampleRate: audioCtxRef.current?.sampleRate,
       });
       const ws = new WebSocket(wsUrl);
-      // BidiGenerateContentSetup must be the first message after WS opens
-      const setupMessage = (sessionData as { setupMessage?: Record<string, unknown> })
-        ?.setupMessage;
       wsRef.current = ws;
 
       // Track first N inbound WS messages for Gate 2 diagnostics
@@ -909,17 +802,8 @@ export function useGeminiLive({
         voiceLog('ws:opened', { readyState: ws.readyState });
         voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
 
-        // BidiGenerateContentSetup MUST be the first message — no other messages before setupComplete
-        if (setupMessage && ws.readyState === WebSocket.OPEN) {
-          console.warn('[VOICE:G2] sending_setup', { sessionAttemptId });
-          ws.send(JSON.stringify(setupMessage));
-        } else if (!setupMessage) {
-          console.error('[VOICE:G2] no_setup_message', { sessionAttemptId });
-          setError('Voice setup failed: no setup message from server.');
-          transition('error', 'missing_setup_message');
-          void cleanup();
-          return;
-        }
+        // Proxy handles BidiGenerateContentSetup — client just waits for setupComplete relay
+        console.warn('[VOICE:G2] proxy_connected_awaiting_setup', { sessionAttemptId });
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`;

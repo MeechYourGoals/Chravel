@@ -3,31 +3,35 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
-import {
-  createVertexAccessToken,
-  parseServiceAccountKey,
-  type ServiceAccountKey,
-} from '../_shared/vertexAuth.ts';
+import { createVertexAccessToken, parseServiceAccountKey } from '../_shared/vertexAuth.ts';
 
-// ── Vertex AI configuration (production-only provider) ──
+/**
+ * gemini-voice-proxy — WebSocket proxy between client and Vertex AI Live API.
+ *
+ * Architecture:
+ *   Browser WebSocket → this function (proxy) → Vertex AI WebSocket
+ *
+ * The proxy owns the upstream Vertex connection and the OAuth2 token.
+ * The client never sees the access token or talks directly to Google.
+ *
+ * Message relay is pass-through: the proxy does not parse or transform
+ * message payloads. It only inspects top-level keys for logging and to
+ * detect setupComplete / close events.
+ */
+
+// ── Vertex AI configuration ──
 const VERTEX_PROJECT_ID = Deno.env.get('VERTEX_PROJECT_ID');
 const VERTEX_LOCATION = Deno.env.get('VERTEX_LOCATION') || 'us-central1';
 const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
-
-// GA model for Vertex AI Live API — gemini-live-2.5-flash-native-audio
-// The old preview model (gemini-live-2.5-flash-preview-native-audio-09-2025) is deprecated.
 const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
 
-// Feature flag: include tool declarations in setup message.
-// Set to 'true' after verifying minimal handshake works without tools.
+// Feature flags — default OFF for Phase A baseline, enable incrementally
 const VOICE_TOOLS_ENABLED =
-  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
-
-// Feature flags for preview capabilities — default ON for richer voice experience
+  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'false').toLowerCase() === 'true';
 const VOICE_AFFECTIVE_DIALOG =
-  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
 const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -35,11 +39,12 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 const DEFAULT_VOICE = 'Charon';
 
-/**
- * Function declarations for Gemini Live tool use.
- * Uses lowercase OpenAPI-style types (object, string, number, boolean, array)
- * per Vertex AI Live API function declaration schema.
- */
+// Upstream keepalive interval (server-to-Vertex)
+const UPSTREAM_KEEPALIVE_MS = 15_000;
+
+// ── Voice function declarations (Phase C — only included when VOICE_TOOLS_ENABLED) ──
+// Imported inline to keep this file self-contained for Deno edge function bundling.
+// These are identical to the declarations in gemini-voice-session/index.ts.
 const VOICE_FUNCTION_DECLARATIONS = [
   {
     name: 'addToCalendar',
@@ -647,243 +652,369 @@ When you call these tools, a visual card automatically appears in the chat windo
 - validateAddress → no visual card; just confirm the address verbally.
 Never speak URLs or markdown. The chat handles the visual output automatically.`;
 
-// Auth utilities imported from ../shared/vertexAuth.ts
-
 // ── Main handler ──
 
-serve(async req => {
+serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
 
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const isVertexConfigured = !!(VERTEX_PROJECT_ID && VERTEX_SERVICE_ACCOUNT_KEY);
-
-  // Health check
-  if (req.method === 'GET') {
+  // Health check (non-WebSocket GET)
+  const upgradeHeader = req.headers.get('upgrade') || '';
+  if (req.method === 'GET' && upgradeHeader.toLowerCase() !== 'websocket') {
     return new Response(
       JSON.stringify({
-        service: 'gemini-voice-session',
-        provider: 'vertex',
-        configured: isVertexConfigured,
+        service: 'gemini-voice-proxy',
+        architecture: 'server-side-proxy',
+        configured: !!(VERTEX_PROJECT_ID && VERTEX_SERVICE_ACCOUNT_KEY),
         model: VERTEX_LIVE_MODEL,
-        voice: DEFAULT_VOICE,
         location: VERTEX_LOCATION,
         toolsEnabled: VOICE_TOOLS_ENABLED,
-        features: {
-          affectiveDialog: VOICE_AFFECTIVE_DIALOG,
-          proactiveAudio: VOICE_PROACTIVE_AUDIO,
-        },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
   }
 
-  try {
-    const requestId = crypto.randomUUID().slice(0, 8);
-    const t0 = Date.now();
-    const tag = `[gemini-voice-session:${requestId}]`;
+  // ── WebSocket upgrade ──
+  const url = new URL(req.url);
+  const token = url.searchParams.get('token');
+  const tripId = url.searchParams.get('tripId') || undefined;
+  const requestedVoice = url.searchParams.get('voice') || DEFAULT_VOICE;
+  const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
+  const resumptionToken = url.searchParams.get('resumptionToken') || undefined;
 
-    let bodyRaw: Record<string, unknown> = {};
+  const sessionId = crypto.randomUUID().slice(0, 8);
+  const tag = `[voice-proxy:${sessionId}]`;
+  const t0 = Date.now();
+
+  console.log(`${tag} client_connecting`, { tripId, voice, hasToken: !!token });
+
+  // ── Auth: validate Supabase JWT ──
+  if (!token) {
+    console.warn(`${tag} auth_missing`);
+    return new Response(JSON.stringify({ error: 'Authentication required (token param)' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    console.warn(`${tag} auth_failed`, { error: authError?.message });
+    return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  console.log(`${tag} auth_verified`, { userId: user.id, elapsedMs: Date.now() - t0 });
+
+  // ── Validate Vertex config ──
+  if (!VERTEX_PROJECT_ID || !VERTEX_SERVICE_ACCOUNT_KEY) {
+    console.error(`${tag} vertex_not_configured`);
+    return new Response(JSON.stringify({ error: 'Vertex AI not configured on server' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // ── Upgrade client connection to WebSocket ──
+  // deno-lint-ignore no-explicit-any
+  const { socket: clientWs, response } = (Deno as any).upgradeWebSocket(req);
+
+  // ── Proxy state ──
+  let upstreamWs: WebSocket | null = null;
+  let upstreamReady = false;
+  const clientBuffer: string[] = []; // Buffer client messages until upstream is ready
+  let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+  let closed = false;
+
+  function closeAll(reason: string): void {
+    if (closed) return;
+    closed = true;
+    console.log(`${tag} closing_all`, { reason, elapsedMs: Date.now() - t0 });
+
+    if (keepaliveInterval) {
+      clearInterval(keepaliveInterval);
+      keepaliveInterval = null;
+    }
+
     try {
-      bodyRaw = await req.json();
+      if (upstreamWs && upstreamWs.readyState <= WebSocket.OPEN) {
+        upstreamWs.close(1000, reason);
+      }
     } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      /* ignore */
     }
 
-    const sessionAttemptId =
-      typeof bodyRaw?.sessionAttemptId === 'string' ? bodyRaw.sessionAttemptId : 'unknown';
-    console.log(`${tag} handler_enter`, {
-      sessionAttemptId,
-      provider: 'vertex',
-      model: VERTEX_LIVE_MODEL,
-      toolsEnabled: VOICE_TOOLS_ENABLED,
-      origin: req.headers.get('origin'),
-      t0,
-    });
-
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    try {
+      if (clientWs.readyState <= WebSocket.OPEN) {
+        clientWs.close(1000, reason);
+      }
+    } catch {
+      /* ignore */
     }
+  }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
+  // ── Client WebSocket handlers ──
+  clientWs.onopen = async () => {
+    console.log(`${tag} client_connected`, { elapsedMs: Date.now() - t0 });
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-
-    if (authError || !user) {
-      console.warn(`${tag} Auth failed`, { sessionAttemptId, error: authError?.message });
-      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log(`${tag} Authenticated`, {
-      userId: user.id,
-      sessionAttemptId,
-      elapsedMs: Date.now() - t0,
-    });
-
-    const requestedVoice = typeof bodyRaw?.voice === 'string' ? bodyRaw.voice : DEFAULT_VOICE;
-    const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
-    const tripId = typeof bodyRaw?.tripId === 'string' ? bodyRaw.tripId : undefined;
-    const resumptionToken =
-      typeof bodyRaw?.resumptionToken === 'string' ? bodyRaw.resumptionToken : undefined;
-
-    // Build system instruction
-    let systemInstruction: string;
-    if (tripId) {
-      try {
-        const contextTimeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('context_build_timeout')), 15_000),
-        );
-        const tripContext = await Promise.race([
-          TripContextBuilder.buildContextWithCache(tripId, user.id, authHeader, true),
-          contextTimeout,
-        ]);
-        systemInstruction = buildSystemPrompt(tripContext);
-        console.log(`${tag} Context built`, { elapsedMs: Date.now() - t0 });
-      } catch (contextError) {
-        const errMsg = contextError instanceof Error ? contextError.message : String(contextError);
-        console.warn(`${tag} Context failed: ${errMsg}. Using minimal prompt.`);
+    try {
+      // 1. Build system prompt
+      let systemInstruction: string;
+      if (tripId) {
+        try {
+          const contextTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('context_build_timeout')), 15_000),
+          );
+          const tripContext = await Promise.race([
+            TripContextBuilder.buildContextWithCache(tripId, user.id, `Bearer ${token}`, true),
+            contextTimeout,
+          ]);
+          systemInstruction = buildSystemPrompt(tripContext);
+          console.log(`${tag} context_built`, { elapsedMs: Date.now() - t0 });
+        } catch (contextError) {
+          const errMsg =
+            contextError instanceof Error ? contextError.message : String(contextError);
+          console.warn(`${tag} context_failed: ${errMsg}. Using minimal prompt.`);
+          systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
+        }
+      } else {
         systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
       }
-    } else {
-      systemInstruction = `You are Chravel Concierge, a helpful AI travel assistant. Current date: ${new Date().toISOString().split('T')[0]}.`;
-    }
-    systemInstruction += VOICE_ADDENDUM;
+      systemInstruction += VOICE_ADDENDUM;
 
-    // ── VERTEX AI (production-only path) ──
-    if (!VERTEX_PROJECT_ID || !VERTEX_SERVICE_ACCOUNT_KEY) {
-      throw new Error(
-        'Vertex AI not configured. Set VERTEX_PROJECT_ID, VERTEX_LOCATION, and VERTEX_SERVICE_ACCOUNT_KEY in Supabase Edge Function secrets.',
-      );
-    }
+      // 2. Mint OAuth2 token (stays server-side — never sent to client)
+      console.log(`${tag} minting_token`, { elapsedMs: Date.now() - t0 });
+      const saKey = parseServiceAccountKey(VERTEX_SERVICE_ACCOUNT_KEY!);
+      const accessToken = await createVertexAccessToken(saKey);
+      console.log(`${tag} token_minted`, { elapsedMs: Date.now() - t0 });
 
-    console.log(`${tag} Creating Vertex OAuth2 token`, {
-      projectId: VERTEX_PROJECT_ID,
-      location: VERTEX_LOCATION,
-      model: VERTEX_LIVE_MODEL,
-      voice,
-      elapsedMs: Date.now() - t0,
-    });
-
-    const saKey = parseServiceAccountKey(VERTEX_SERVICE_ACCOUNT_KEY);
-    const tokenT0 = Date.now();
-    const accessToken = await createVertexAccessToken(saKey);
-
-    console.log(`${tag} Vertex token created`, {
-      tokenMs: Date.now() - tokenT0,
-      totalMs: Date.now() - t0,
-    });
-
-    // Vertex Live API WebSocket URL
-    const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`;
-
-    // Build the BidiGenerateContentSetup message.
-    // Vertex AI Live uses snake_case on the wire.
-    //
-    // CRITICAL STRUCTURE: realtime_input_config, input_audio_transcription, and
-    // output_audio_transcription are TOP-LEVEL fields in setup — NOT nested inside
-    // generation_config. This was the primary cause of setupComplete never arriving.
-    const setupConfig: Record<string, unknown> = {
-      model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
-      generation_config: {
-        response_modalities: ['AUDIO'],
-        speech_config: {
-          voice_config: {
-            prebuilt_voice_config: {
-              voice_name: voice,
+      // 3. Build setup message
+      const setupConfig: Record<string, unknown> = {
+        model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
+        generation_config: {
+          response_modalities: ['AUDIO'],
+          speech_config: {
+            voice_config: {
+              prebuilt_voice_config: {
+                voice_name: voice,
+              },
             },
           },
+          ...(VOICE_AFFECTIVE_DIALOG ? { enable_affective_dialog: true } : {}),
         },
-      },
-      system_instruction: {
-        parts: [{ text: systemInstruction }],
-      },
-      // Top-level setup fields (NOT inside generation_config)
-      realtime_input_config: {
-        automatic_activity_detection: {
-          disabled: false,
-          start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-          end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+        system_instruction: {
+          parts: [{ text: systemInstruction }],
         },
-      },
-      input_audio_transcription: {},
-      output_audio_transcription: {},
-    };
+        realtime_input_config: {
+          automatic_activity_detection: {
+            disabled: false,
+            start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
+            end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
+          },
+        },
+        input_audio_transcription: {},
+        output_audio_transcription: {},
+      };
 
-    // Include tools only when VOICE_TOOLS_ENABLED is true.
-    // This allows verifying the minimal handshake works before adding tool complexity.
-    if (VOICE_TOOLS_ENABLED) {
-      setupConfig.tools = [
-        { function_declarations: VOICE_FUNCTION_DECLARATIONS },
-        // Google Search grounding — gives voice the same real-time web access as text mode.
-        // Gemini decides when to use it (e.g. "what's the weather in Paris?" or "is that museum open?").
-        { google_search: {} },
-      ];
-    }
+      // Phase C: Include tools when enabled
+      if (VOICE_TOOLS_ENABLED) {
+        setupConfig.tools = [
+          { function_declarations: VOICE_FUNCTION_DECLARATIONS },
+          { google_search: {} },
+        ];
+      }
 
-    // Session resumption — include token if reconnecting to resume prior conversation
-    if (resumptionToken) {
-      setupConfig.session_resumption = { handle: resumptionToken };
-      console.log(`${tag} Including session resumption token`);
-    }
+      // Session resumption
+      if (resumptionToken) {
+        setupConfig.session_resumption = { handle: resumptionToken };
+        console.log(`${tag} including_resumption_token`);
+      }
 
-    // Preview features — gated behind env flags, never part of baseline GA handshake
-    if (VOICE_AFFECTIVE_DIALOG) {
-      (setupConfig.generation_config as Record<string, unknown>).enable_affective_dialog = true;
-    }
-    if (VOICE_PROACTIVE_AUDIO) {
-      setupConfig.proactivity = { proactive_audio: true };
-    }
+      // Phase D: Proactive audio
+      if (VOICE_PROACTIVE_AUDIO) {
+        setupConfig.proactivity = { proactive_audio: true };
+      }
 
-    const setupMessage = { setup: setupConfig };
+      const setupMessage = JSON.stringify({ setup: setupConfig });
 
-    console.log(`${tag} Setup message built`, {
-      hasTools: VOICE_TOOLS_ENABLED,
-      toolCount: VOICE_TOOLS_ENABLED ? VOICE_FUNCTION_DECLARATIONS.length : 0,
-      affectiveDialog: VOICE_AFFECTIVE_DIALOG,
-      proactiveAudio: VOICE_PROACTIVE_AUDIO,
-      totalMs: Date.now() - t0,
-    });
+      // 4. Open upstream WebSocket to Vertex AI
+      const upstreamUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent?access_token=${encodeURIComponent(accessToken)}`;
 
-    return new Response(
-      JSON.stringify({
-        accessToken,
+      console.log(`${tag} upstream_connecting`, {
+        location: VERTEX_LOCATION,
         model: VERTEX_LIVE_MODEL,
-        voice,
-        provider: 'vertex',
-        websocketUrl,
-        setupMessage,
         toolsEnabled: VOICE_TOOLS_ENABLED,
-        features: {
-          affectiveDialog: VOICE_AFFECTIVE_DIALOG,
-          proactiveAudio: VOICE_PROACTIVE_AUDIO,
-        },
-        _rid: requestId,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
-    );
-  } catch (error) {
-    console.error('gemini-voice-session error:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
-  }
+        elapsedMs: Date.now() - t0,
+      });
+
+      upstreamWs = new WebSocket(upstreamUrl);
+
+      let upstreamMessageCount = 0;
+
+      upstreamWs.onopen = () => {
+        console.log(`${tag} upstream_connected`, { elapsedMs: Date.now() - t0 });
+
+        // Send setup as first message
+        upstreamWs!.send(setupMessage);
+        console.log(`${tag} setup_sent`, {
+          hasTools: VOICE_TOOLS_ENABLED,
+          toolCount: VOICE_TOOLS_ENABLED ? VOICE_FUNCTION_DECLARATIONS.length : 0,
+          elapsedMs: Date.now() - t0,
+        });
+
+        // Start upstream keepalive
+        keepaliveInterval = setInterval(() => {
+          if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
+            // Send a minimal realtime input to keep connection alive
+            upstreamWs.send(
+              JSON.stringify({
+                realtimeInput: {
+                  mediaChunks: [
+                    {
+                      mimeType: 'audio/pcm;rate=16000',
+                      data: '', // Empty audio = silence keepalive
+                    },
+                  ],
+                },
+              }),
+            );
+          } else if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+          }
+        }, UPSTREAM_KEEPALIVE_MS);
+      };
+
+      upstreamWs.onmessage = (event: MessageEvent) => {
+        upstreamMessageCount += 1;
+
+        // Log first 5 messages for diagnostics
+        if (upstreamMessageCount <= 5) {
+          try {
+            const data = JSON.parse(event.data as string);
+            const keys = Object.keys(data);
+            const hasSetupComplete =
+              keys.includes('setupComplete') || keys.includes('setup_complete');
+            console.log(`${tag} upstream_message_${upstreamMessageCount}`, {
+              keys,
+              hasSetupComplete,
+              hasError: !!data.error,
+              elapsedMs: Date.now() - t0,
+            });
+
+            if (hasSetupComplete) {
+              console.log(`${tag} setup_complete_received`, { elapsedMs: Date.now() - t0 });
+              upstreamReady = true;
+
+              // Flush buffered client messages
+              if (clientBuffer.length > 0) {
+                console.log(`${tag} flushing_buffer`, { count: clientBuffer.length });
+                for (const msg of clientBuffer) {
+                  if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
+                    upstreamWs.send(msg);
+                  }
+                }
+                clientBuffer.length = 0;
+              }
+            }
+          } catch {
+            // Non-JSON message — still relay it
+          }
+        }
+
+        // Relay upstream → client (pass-through)
+        if (clientWs.readyState === WebSocket.OPEN) {
+          clientWs.send(event.data);
+        }
+      };
+
+      upstreamWs.onerror = (ev: Event) => {
+        const errorMsg = (ev as ErrorEvent).message ?? 'unknown';
+        console.error(`${tag} upstream_error`, { error: errorMsg, elapsedMs: Date.now() - t0 });
+        // Send error to client
+        if (clientWs.readyState === WebSocket.OPEN) {
+          clientWs.send(
+            JSON.stringify({
+              error: { code: 502, message: `Upstream connection error: ${errorMsg}` },
+            }),
+          );
+        }
+      };
+
+      upstreamWs.onclose = (event: CloseEvent) => {
+        console.log(`${tag} upstream_close`, {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          elapsedMs: Date.now() - t0,
+        });
+        // Close client with same code (map to safe range)
+        const safeCode = event.code >= 1000 && event.code <= 4999 ? event.code : 1011;
+        closeAll(`upstream_closed:${event.code}`);
+        // Try to send close to client with the upstream code
+        try {
+          if (clientWs.readyState === WebSocket.OPEN) {
+            clientWs.close(safeCode, event.reason || 'Upstream closed');
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+    } catch (initError) {
+      const errMsg = initError instanceof Error ? initError.message : String(initError);
+      console.error(`${tag} init_failed`, { error: errMsg, elapsedMs: Date.now() - t0 });
+      if (clientWs.readyState === WebSocket.OPEN) {
+        clientWs.send(
+          JSON.stringify({
+            error: { code: 500, message: errMsg },
+          }),
+        );
+        clientWs.close(1011, 'Initialization failed');
+      }
+    }
+  };
+
+  clientWs.onmessage = (event: MessageEvent) => {
+    const data = event.data as string;
+
+    // If upstream not ready yet, buffer the message
+    if (!upstreamReady || !upstreamWs || upstreamWs.readyState !== WebSocket.OPEN) {
+      clientBuffer.push(data);
+      return;
+    }
+
+    // Relay client → upstream (pass-through)
+    upstreamWs.send(data);
+  };
+
+  clientWs.onerror = (ev: Event) => {
+    const errorMsg = (ev as ErrorEvent).message ?? 'unknown';
+    console.error(`${tag} client_error`, { error: errorMsg, elapsedMs: Date.now() - t0 });
+  };
+
+  clientWs.onclose = (event: CloseEvent) => {
+    console.log(`${tag} client_close`, {
+      code: event.code,
+      reason: event.reason,
+      wasClean: event.wasClean,
+      elapsedMs: Date.now() - t0,
+    });
+    closeAll(`client_closed:${event.code}`);
+  };
+
+  return response;
 });
