@@ -321,14 +321,25 @@ export async function generateClientPDF(
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 30;
 
-  // Determine section order (use customization or default)
-  const sectionOrder = customization?.sectionOrder || sections;
-  const orderedSections = sectionOrder.filter(s => sections.includes(s));
+  // Canonical section headings — sorted alphabetically by display name
+  const SECTION_HEADINGS: Record<string, string> = {
+    agenda: 'Agenda',
+    attachments: 'Attachments',
+    broadcasts: 'Broadcasts',
+    calendar: 'Calendar Events',
+    lineup: 'Lineup',
+    payments: 'Payments',
+    places: 'Places & Links',
+    polls: 'Polls',
+    roster: 'Trip Members',
+    tasks: 'Tasks',
+  };
 
-  // Sections - render in order
-  doc.setFontSize(14);
-  doc.setFont('NotoSans', 'bold');
-  doc.setTextColor(0);
+  // Determine section order: alphabetical by display heading (customization override still respected)
+  const sectionOrder = customization?.sectionOrder || sections;
+  const orderedSections = sectionOrder
+    .filter(s => sections.includes(s))
+    .sort((a, b) => (SECTION_HEADINGS[a] || a).localeCompare(SECTION_HEADINGS[b] || b));
 
   let sectionIndex = 0;
   for (const section of orderedSections) {
