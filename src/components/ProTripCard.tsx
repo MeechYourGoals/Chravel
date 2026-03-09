@@ -312,7 +312,7 @@ export const ProTripCard = ({
             </div>
 
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <CalendarCheck2 size={14} className="gold-gradient-icon shrink-0" />
+              <CalendarDays size={14} className="gold-gradient-icon shrink-0" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
