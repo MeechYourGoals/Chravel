@@ -216,9 +216,9 @@ export const ChatMessages = ({
               <div
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} ${message.type !== 'user' ? 'pl-10' : ''}`}
               >
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500/20 bg-blue-500/5 max-w-sm">
-                  <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                  <span className="text-xs text-blue-300">{rich.smartImportStatus.message}</span>
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#c49746]/20 bg-[#c49746]/5 max-w-sm">
+                  <div className="w-4 h-4 gold-gradient-spinner animate-spin shrink-0" />
+                  <span className="text-xs text-[#c49746]">{rich.smartImportStatus.message}</span>
                 </div>
               </div>
             )}

@@ -279,7 +279,7 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
       {isSearching && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg p-4 text-center">
           <div className="inline-flex items-center gap-2 text-gray-400">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
+            <div className="animate-spin h-4 w-4 gold-gradient-spinner"></div>
             Searching...
           </div>
         </div>
