@@ -360,7 +360,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
         >
           <h2 className="text-2xl font-bold text-white">Create New Trip</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
             <X size={24} />
           </button>
         </div>
