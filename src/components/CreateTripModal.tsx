@@ -534,7 +534,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Event Time Zone - Only for Event trips */}
           {tripType === 'event' && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <Globe size={16} />
                 Event Time Zone
               </label>
@@ -542,7 +542,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="timezone"
                 value={formData.timezone}
                 onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                className="w-full bg-slate-700/50 border border-slate-600 text-white rounded-xl px-4 py-3 focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full bg-[#222]/60 border border-[#444] text-white rounded-xl px-4 py-3 focus:border-[#c49746] focus:outline-none transition-colors"
               >
                 <optgroup label="United States">
                   <option value="America/New_York">Eastern Time (ET) - New York</option>
