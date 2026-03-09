@@ -511,17 +511,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">End Date</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
               <input
                 type="date"
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleInputChange}
                 min={formData.startDate || undefined}
-                className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
+                className={`w-full bg-[#222]/60 border rounded-xl px-4 py-3 text-white focus:outline-none transition-colors ${
                   validationErrors.endDate
                     ? 'border-red-500 focus:border-red-500'
-                    : 'border-slate-600 focus:border-blue-500'
+                    : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
               />
