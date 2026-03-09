@@ -341,6 +341,25 @@ export async function generateClientPDF(
     .filter(s => sections.includes(s))
     .sort((a, b) => (SECTION_HEADINGS[a] || a).localeCompare(SECTION_HEADINGS[b] || b));
 
+  // Helper: render section heading (always shown, even for empty sections)
+  const renderSectionHeading = (heading: string) => {
+    yPos = checkPageBreak(doc, yPos, 60);
+    doc.setFontSize(14);
+    doc.setFont('NotoSans', 'bold');
+    doc.setTextColor(0);
+    doc.text(heading, margin, yPos);
+    yPos += 20;
+  };
+
+  // Helper: render empty-state message
+  const renderEmptyState = (message: string) => {
+    doc.setFontSize(10);
+    doc.setFont('NotoSans', 'normal');
+    doc.setTextColor(120);
+    doc.text(message, margin, yPos);
+    yPos += 30;
+  };
+
   let sectionIndex = 0;
   for (const section of orderedSections) {
     sectionIndex++;
@@ -351,33 +370,23 @@ export async function generateClientPDF(
       `Rendering ${section}...`,
     );
 
+    // Always render the section heading first
+    renderSectionHeading(SECTION_HEADINGS[section] || section);
+
     // Calendar section
     if (section === 'calendar') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const events = (data.calendar || []).slice().sort((a, b) => {
         const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.POSITIVE_INFINITY;
         const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.POSITIVE_INFINITY;
         return aTime - bTime;
       });
       if (events.length > 0) {
-        // Paginate if too many events
         const eventChunks = events.length > maxItems ? chunkArray(events, maxItems) : [events];
 
         for (let chunkIndex = 0; chunkIndex < eventChunks.length; chunkIndex++) {
           const chunk = eventChunks[chunkIndex];
 
-          // Add page break if needed
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          // Add section header only on first chunk
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Calendar', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const eventRows = chunk.map((event: any) => {
             const description = event.description ? sanitizePdfText(event.description) : '';
@@ -404,7 +413,6 @@ export async function generateClientPDF(
 
           yPos = getFinalY(doc, yPos) + 10;
 
-          // If more chunks, add continuation note
           if (chunkIndex < eventChunks.length - 1) {
             yPos = checkPageBreak(doc, yPos, 30);
             doc.setFontSize(9);
@@ -421,36 +429,21 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No calendar events available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No calendar events available');
       }
     }
 
     // Payments section
     if (section === 'payments') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const payments = data.payments?.items || [];
       if (payments.length > 0) {
-        // Paginate if too many payments
         const paymentChunks =
           payments.length > maxItems ? chunkArray(payments, maxItems) : [payments];
 
         for (let chunkIndex = 0; chunkIndex < paymentChunks.length; chunkIndex++) {
           const chunk = paymentChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Payments', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const paymentRows = chunk.map((p: any) => [
             sanitizePdfText(p.description || 'N/A'),
@@ -471,7 +464,6 @@ export async function generateClientPDF(
 
           yPos = getFinalY(doc, yPos) + 10;
 
-          // Display total only on last chunk
           if (chunkIndex === paymentChunks.length - 1) {
             doc.setFontSize(10);
             doc.setFont('NotoSans', 'bold');
@@ -499,35 +491,20 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No payment records available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No payment records available');
       }
     }
 
     // Polls section
     if (section === 'polls') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const polls = data.polls || [];
       if (polls.length > 0) {
-        // Paginate polls if too many
         const pollChunks = polls.length > maxItems ? chunkArray(polls, maxItems) : [polls];
 
         for (let chunkIndex = 0; chunkIndex < pollChunks.length; chunkIndex++) {
           const chunk = pollChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Polls', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           chunk.forEach((poll: any, index: number) => {
             yPos = checkPageBreak(doc, yPos, 80);
@@ -585,18 +562,12 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No polls available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No polls available');
       }
     }
 
     // Places section
     if (section === 'places') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const places = data.places || [];
       if (places.length > 0) {
         const placeChunks = places.length > maxItems ? chunkArray(places, maxItems) : [places];
@@ -604,17 +575,8 @@ export async function generateClientPDF(
         for (let chunkIndex = 0; chunkIndex < placeChunks.length; chunkIndex++) {
           const chunk = placeChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Places & Links', margin, yPos);
-            yPos += 20;
-          }
-
-          // Helper to shorten URLs for display
           const shortenUrl = (url: string, maxLen: number = 45): string => {
             if (!url || url.length <= maxLen) return url;
             try {
@@ -646,9 +608,9 @@ export async function generateClientPDF(
               overflow: 'linebreak',
             },
             columnStyles: {
-              0: { cellWidth: contentWidth * 0.4 }, // Name - 40%
-              1: { cellWidth: contentWidth * 0.48 }, // URL - 48%
-              2: { cellWidth: contentWidth * 0.12, halign: 'center' }, // Votes - 12%
+              0: { cellWidth: contentWidth * 0.4 },
+              1: { cellWidth: contentWidth * 0.48 },
+              2: { cellWidth: contentWidth * 0.12, halign: 'center' },
             },
           });
 
@@ -670,18 +632,12 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No places saved', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No places saved');
       }
     }
 
     // Tasks section
     if (section === 'tasks') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const tasks = data.tasks || [];
       if (tasks.length > 0) {
         const taskChunks = tasks.length > maxItems ? chunkArray(tasks, maxItems) : [tasks];
@@ -689,15 +645,7 @@ export async function generateClientPDF(
         for (let chunkIndex = 0; chunkIndex < taskChunks.length; chunkIndex++) {
           const chunk = taskChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Tasks', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const taskRows = chunk.map((task: any) => [
             sanitizePdfText(task.title || task.description || 'N/A'),
@@ -732,18 +680,12 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No tasks available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No tasks available');
       }
     }
 
-    // Broadcasts section (Pro/Events only)
+    // Broadcasts section
     if (section === 'broadcasts') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const broadcasts = data.broadcasts || [];
       if (broadcasts.length > 0) {
         const broadcastChunks =
@@ -752,34 +694,23 @@ export async function generateClientPDF(
         for (let chunkIndex = 0; chunkIndex < broadcastChunks.length; chunkIndex++) {
           const chunk = broadcastChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Broadcasts', margin, yPos);
-            yPos += 20;
-          }
-
-          chunk.forEach((broadcast: any, index: number) => {
+          chunk.forEach((broadcast: any) => {
             yPos = checkPageBreak(doc, yPos, 80);
 
-            // Priority indicator
             const priorityColor = broadcast.priority === 'urgent' ? [220, 38, 38] : [100, 100, 100];
             doc.setTextColor(priorityColor[0], priorityColor[1], priorityColor[2]);
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'bold');
             doc.text(broadcast.priority.toUpperCase(), margin, yPos);
 
-            // Timestamp
             doc.setTextColor(100);
             doc.setFont('NotoSans', 'normal');
             const timestamp = new Date(broadcast.timestamp).toLocaleString();
             doc.text(`  •  ${timestamp}`, margin + 50, yPos);
             yPos += 15;
 
-            // Message
             doc.setFontSize(10);
             doc.setFont('NotoSans', 'normal');
             doc.setTextColor(0);
@@ -790,7 +721,6 @@ export async function generateClientPDF(
             doc.text(messageLines, margin + 10, yPos);
             yPos += messageLines.length * 14 + 5;
 
-            // Sender and read count
             doc.setFontSize(9);
             doc.setFont('NotoSans', 'italic');
             doc.setTextColor(120);
@@ -818,18 +748,12 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No broadcasts available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No broadcasts available');
       }
     }
 
-    // Pro sections (always available if selected)
+    // Roster section
     if (section === 'roster') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const roster = data.roster || [];
       if (roster.length > 0) {
         const rosterChunks = roster.length > maxItems ? chunkArray(roster, maxItems) : [roster];
@@ -837,15 +761,7 @@ export async function generateClientPDF(
         for (let chunkIndex = 0; chunkIndex < rosterChunks.length; chunkIndex++) {
           const chunk = rosterChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Trip Members', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const rosterRows = chunk.map((member: any) => [
             sanitizePdfText(member.name || 'N/A'),
@@ -880,20 +796,13 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No roster data available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No roster data available');
       }
     }
 
-    // Attachments section
+    // Attachments section (filenames only — no content embedding for privacy)
     if (section === 'attachments') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const attachments = data.attachments || [];
-      // Match server behavior: if no attachments exist, omit the section entirely.
       if (attachments.length > 0) {
         const attachmentChunks =
           attachments.length > maxItems ? chunkArray(attachments, maxItems) : [attachments];
@@ -901,26 +810,16 @@ export async function generateClientPDF(
         for (let chunkIndex = 0; chunkIndex < attachmentChunks.length; chunkIndex++) {
           const chunk = attachmentChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Attachments', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const attachmentRows = chunk.map((att: any) => [
             sanitizePdfText(att.name || 'Unnamed file'),
             sanitizePdfText(att.type || 'Unknown'),
-            sanitizePdfText(att.uploaded_by || 'Unknown'),
-            att.uploaded_at ? new Date(att.uploaded_at).toLocaleDateString() : 'N/A',
           ]);
 
           autoTable(doc, {
             startY: yPos,
-            head: [['File Name', 'Type', 'Uploaded By', 'Date']],
+            head: [['Filename', 'Type']],
             body: attachmentRows,
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
@@ -946,20 +845,19 @@ export async function generateClientPDF(
           }
         }
 
-        // Add note about viewing full attachments
         yPos = checkPageBreak(doc, yPos, 20);
         doc.setFontSize(8);
         doc.setFont('NotoSans', 'italic');
         doc.setTextColor(100);
         doc.text('Note: Download full attachments from ChravelApp', margin, yPos);
         yPos += 20;
+      } else {
+        renderEmptyState('No attachments available');
       }
     }
 
     // Agenda section (Event-specific)
     if (section === 'agenda') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const agenda = data.agenda || [];
       if (agenda.length > 0) {
         const agendaChunks = agenda.length > maxItems ? chunkArray(agenda, maxItems) : [agenda];
@@ -967,15 +865,7 @@ export async function generateClientPDF(
         for (let chunkIndex = 0; chunkIndex < agendaChunks.length; chunkIndex++) {
           const chunk = agendaChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Agenda', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const agendaRows = chunk.map((item: any) => [
             item.session_date ? sanitizePdfText(item.session_date) : '—',
@@ -1022,18 +912,12 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No agenda sessions available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No agenda sessions available');
       }
     }
 
     // Lineup section (Event-specific)
     if (section === 'lineup') {
-      yPos = checkPageBreak(doc, yPos, 60);
-
       const lineup = data.lineup || [];
       if (lineup.length > 0) {
         const lineupChunks = lineup.length > maxItems ? chunkArray(lineup, maxItems) : [lineup];
@@ -1041,15 +925,7 @@ export async function generateClientPDF(
         for (let chunkIndex = 0; chunkIndex < lineupChunks.length; chunkIndex++) {
           const chunk = lineupChunks[chunkIndex];
 
-          yPos = checkPageBreak(doc, yPos, 60);
-
-          if (chunkIndex === 0) {
-            doc.setFontSize(14);
-            doc.setFont('NotoSans', 'bold');
-            doc.setTextColor(0);
-            doc.text('Lineup', margin, yPos);
-            yPos += 20;
-          }
+          if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
           const lineupRows = chunk.map((person: any) => [
             sanitizePdfText(person.name || 'N/A'),
@@ -1086,11 +962,7 @@ export async function generateClientPDF(
           }
         }
       } else {
-        doc.setFontSize(10);
-        doc.setFont('NotoSans', 'normal');
-        doc.setTextColor(120);
-        doc.text('No lineup data available', margin, yPos);
-        yPos += 30;
+        renderEmptyState('No lineup data available');
       }
     }
   }
