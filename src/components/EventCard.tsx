@@ -248,7 +248,7 @@ export const EventCard = ({
               <span className="font-medium">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
-              <CalendarCheck2 size={16} className="gold-gradient-icon" />
+              <CalendarDays size={16} className="gold-gradient-icon" />
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
