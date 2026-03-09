@@ -19,7 +19,7 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[EXPORT-TRIP] ${step}${detailsStr}`);
 };
 
-type PaperSize = 'letter' | 'a4';
+
 
 function getBrandHeaderTemplate(): string {
   // Puppeteer header/footer templates are isolated from the page CSS, so we inline styles.
