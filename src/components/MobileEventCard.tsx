@@ -14,6 +14,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { CardStatItem } from './ui/CardStatItem';
+import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useIsMobile } from '../hooks/use-mobile';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
