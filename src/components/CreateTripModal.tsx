@@ -367,32 +367,32 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
         {/* Trip Type Toggle */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-300 mb-3">Trip Type</label>
+          <label className="block text-sm font-medium text-gray-300 mb-3">Trip Type</label>
           <ToggleGroup
             type="single"
             value={tripType}
             onValueChange={value =>
               value && handleTripTypeChange(value as 'consumer' | 'pro' | 'event')
             }
-            className="grid grid-cols-3 gap-2 bg-slate-700/30 p-1 rounded-xl"
+            className="grid grid-cols-3 gap-2 bg-[#222]/50 p-1 rounded-xl"
           >
             <ToggleGroupItem
               value="consumer"
-              className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
+              className="flex items-center gap-2 data-[state=on]:bg-gradient-to-r data-[state=on]:from-[#533517] data-[state=on]:to-[#c49746] data-[state=on]:text-white text-gray-400 hover:text-gray-200"
             >
               <Users size={16} />
               Group
             </ToggleGroupItem>
             <ToggleGroupItem
               value="pro"
-              className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
+              className="flex items-center gap-2 data-[state=on]:bg-gradient-to-r data-[state=on]:from-[#533517] data-[state=on]:to-[#c49746] data-[state=on]:text-white text-gray-400 hover:text-gray-200"
             >
               <Building size={16} />
               Pro
             </ToggleGroupItem>
             <ToggleGroupItem
               value="event"
-              className="flex items-center gap-2 data-[state=on]:bg-blue-600 data-[state=on]:text-white text-slate-300 hover:text-white"
+              className="flex items-center gap-2 data-[state=on]:bg-gradient-to-r data-[state=on]:from-[#533517] data-[state=on]:to-[#c49746] data-[state=on]:text-white text-gray-400 hover:text-gray-200"
             >
               <PartyPopper size={16} />
               Event
