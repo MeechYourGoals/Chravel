@@ -25,8 +25,8 @@ const logStep = (step: string, details?: unknown) => {
 // ============================================================
 const PRODUCT_TO_TIER: Record<string, string> = {
   // Consumer Plans - ChravelApp Plus (monthly + annual are separate products)
-  prod_U73VxEnvEHbBrx: 'explorer',          // Explorer monthly
-  prod_U73VrTc4sE8AIv: 'explorer',          // Explorer annual
+  prod_U73VxEnvEHbBrx: 'explorer', // Explorer monthly
+  prod_U73VrTc4sE8AIv: 'explorer', // Explorer annual
   prod_U73VfiKf3VrJKf: 'frequent-chraveler', // FC monthly
   prod_U73VqblRTSr2XZ: 'frequent-chraveler', // FC annual
 
