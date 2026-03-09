@@ -361,7 +361,7 @@ export const ProTripCard = ({
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
           <CardStatItem icon={Users} value={formatPeopleCount(totalPeopleCount)} label="People" />
           <CardStatItem
-            icon={CalendarCheck2}
+            icon={CalendarDays}
             value={calculateDaysCount(trip.dateRange)}
             label="Days"
           />

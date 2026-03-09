@@ -268,7 +268,7 @@ export const MobileEventCard = ({
         <div className="grid grid-cols-3 gap-3 mb-4 bg-black/20 backdrop-blur-sm rounded-xl p-3 border border-white/10">
           <CardStatItem icon={Users} value={calculatePeopleCount(event)} label="People" size="sm" />
           <CardStatItem
-            icon={CalendarCheck2}
+            icon={CalendarDays}
             value={calculateDaysCount(event.dateRange)}
             label="Days"
             size="sm"

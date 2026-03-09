@@ -497,7 +497,7 @@ export const TripCard = ({
             label="People"
           />
           <CardStatItem
-            icon={CalendarCheck2}
+            icon={CalendarDays}
             value={calculateDaysCount(trip.dateRange)}
             label="Days"
           />
