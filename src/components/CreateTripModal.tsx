@@ -604,13 +604,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
           {/* Cover Photo */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Cover Photo</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Cover Photo</label>
             <div className="flex items-start gap-4">
               <div className="flex-1">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-600 border-dashed rounded-xl cursor-pointer bg-slate-700/30 hover:bg-slate-700/50 transition-colors">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-[#444] border-dashed rounded-xl cursor-pointer bg-[#222]/40 hover:bg-[#2a2a2a] transition-colors">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-2 text-slate-400" />
-                    <p className="text-xs text-slate-400">Click to upload cover photo</p>
+                    <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                    <p className="text-xs text-gray-500">Click to upload cover photo</p>
                   </div>
                   <input
                     type="file"
