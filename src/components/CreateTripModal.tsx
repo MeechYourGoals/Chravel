@@ -582,7 +582,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                   <option value="Asia/Seoul">Seoul (KST)</option>
                 </optgroup>
               </select>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 Helps attendees from other time zones know when events occur.
               </p>
             </div>
