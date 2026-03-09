@@ -13,12 +13,16 @@ interface AiChatInputProps {
   disabled?: boolean;
   /** Conversation mode state (Gemini Live waveform button) */
   convoVoiceState?: VoiceState;
-  /** Toggle conversation mode on/off */
+  /** Tap: toggle dictation on/off */
   onConvoToggle?: () => void;
+  /** Long-press: activate Gemini Live bidirectional voice */
+  onConvoLongPress?: () => void;
   /** Whether voice features are available */
   isVoiceEligible?: boolean;
   /** Upgrade prompt for ineligible users */
   onVoiceUpgrade?: () => void;
+  /** Whether Gemini Live is currently active */
+  isLiveActive?: boolean;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -40,8 +44,10 @@ export const AiChatInput = ({
   disabled = false,
   convoVoiceState = 'idle',
   onConvoToggle,
+  onConvoLongPress,
   isVoiceEligible = false,
   onVoiceUpgrade,
+  isLiveActive = false,
   onImageAttach: _onImageAttach,
   attachedImages = [],
   onRemoveImage,
@@ -138,7 +144,9 @@ export const AiChatInput = ({
             voiceState={convoVoiceState}
             isEligible={isVoiceEligible}
             onToggle={onConvoToggle}
+            onLongPress={onConvoLongPress}
             onUpgrade={onVoiceUpgrade}
+            isLiveActive={isLiveActive}
           />
         )}
 
