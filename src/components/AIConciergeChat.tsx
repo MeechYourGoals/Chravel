@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ImagePlus } from 'lucide-react';
+import { Search, ImagePlus, X } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -416,12 +416,13 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
-  // Speech API dictation. Transcribed text fills the input field so the user
-  // can review/edit before sending. All Gemini Live hooks remain initialised
-  // (hooks rules) but are not invoked.
-  // Voice active state is derived from liveState — no separate overlay toggle needed.
-  const isVoiceActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle';
+  // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
+  // first.  If bidirectional audio fails, we fall back to Web Speech API
+  // dictation so the user can still speak — their words fill the text input.
+  //
+  // `duplexFailed` tracks whether Gemini Live errored during the current
+  // interaction so we know to activate dictation as a fallback.
+  const [duplexFailed, setDuplexFailed] = useState(false);
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -436,6 +437,12 @@ export const AIConciergeChat = ({
 
   const { voiceState: dictationState, toggleVoice: toggleDictation } =
     useWebSpeechVoice(handleDictationResult);
+
+  // Voice active state — either Gemini Live is running OR dictation fallback is active
+  const isDictationActive = dictationState !== 'idle' && dictationState !== 'error';
+  const isVoiceActive =
+    (DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error') ||
+    (duplexFailed && isDictationActive);
 
   /**
    * Fix 2 — streaming voice response bubble.
@@ -565,10 +572,38 @@ export const AIConciergeChat = ({
     onError: handleLiveError,
   });
 
-  // Voice state for the VoiceButton — uses dictation state when duplex is off
-  const convoVoiceState: VoiceState = DUPLEX_VOICE_ENABLED
-    ? mapLiveStateToVoiceState(liveState)
-    : dictationState;
+  // Voice state for the VoiceButton — shows dictation state when in fallback mode
+  const convoVoiceState: VoiceState = (() => {
+    if (!DUPLEX_VOICE_ENABLED) return dictationState;
+    // If duplex failed and dictation is running, show dictation state
+    if (duplexFailed && isDictationActive) return dictationState;
+    // Otherwise show Gemini Live state
+    return mapLiveStateToVoiceState(liveState);
+  })();
+
+  // Auto-fallback: when Gemini Live enters error state, activate dictation
+  useEffect(() => {
+    if (!DUPLEX_VOICE_ENABLED) return;
+    if (liveState === 'error' && !duplexFailed) {
+      setDuplexFailed(true);
+      toast.info('Live voice unavailable — switching to dictation', {
+        description: 'Speak and your words will appear in the text field.',
+        duration: 4000,
+      });
+      // Small delay to let the Gemini Live audio resources release before
+      // starting Web Speech API (avoids mic contention on iOS).
+      setTimeout(() => {
+        toggleDictation();
+      }, 500);
+    }
+  }, [liveState, duplexFailed, toggleDictation]);
+
+  // Reset duplexFailed when Gemini Live goes back to idle (session ended cleanly)
+  useEffect(() => {
+    if (liveState === 'idle' && duplexFailed && !isDictationActive) {
+      setDuplexFailed(false);
+    }
+  }, [liveState, duplexFailed, isDictationActive]);
 
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
@@ -578,7 +613,17 @@ export const AIConciergeChat = ({
       return;
     }
 
-    // Duplex path (preserved for when a specialist re-enables it)
+    // If in dictation fallback mode, toggle dictation off/on
+    if (duplexFailed) {
+      toggleDictation();
+      // If user taps to stop dictation, reset fallback state
+      if (isDictationActive) {
+        setDuplexFailed(false);
+      }
+      return;
+    }
+
+    // Duplex path — stop active session
     if (liveState !== 'idle' && liveState !== 'error') {
       await endLiveSession();
       return;
@@ -598,6 +643,7 @@ export const AIConciergeChat = ({
       }
     }
 
+    // Try Gemini Live first — if it fails, the useEffect above will auto-fallback
     await startLiveSession();
   }, [
     toggleDictation,
@@ -607,11 +653,18 @@ export const AIConciergeChat = ({
     isLimitedPlan,
     incrementUsageOnSuccess,
     buildLimitReachedMessage,
+    duplexFailed,
+    isDictationActive,
   ]);
 
   const handleEndLiveSession = useCallback(() => {
     void endLiveSession();
-  }, [endLiveSession]);
+    // Also stop dictation if it was running as a fallback
+    if (duplexFailed && isDictationActive) {
+      toggleDictation();
+    }
+    setDuplexFailed(false);
+  }, [endLiveSession, duplexFailed, isDictationActive, toggleDictation]);
 
   // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
   // While Gemini Live is in 'playing' state, update the transient bubble so the
@@ -1847,7 +1900,7 @@ export const AIConciergeChat = ({
         )}
 
         {/* Inline voice status bar — shown when voice session is active */}
-        {isVoiceActive && (
+        {isVoiceActive && !duplexFailed && (
           <VoiceActiveBar
             state={liveState}
             error={liveError}
@@ -1857,6 +1910,30 @@ export const AIConciergeChat = ({
             onReconnect={handleConvoToggle}
             diagnostics={liveDiagnostics}
           />
+        )}
+        {/* Dictation fallback bar — shown when Gemini Live failed and Web Speech is active */}
+        {duplexFailed && isDictationActive && (
+          <div
+            className="flex items-center gap-3 px-4 py-2.5 mx-3 mt-2 rounded-xl border bg-emerald-500/10 border-emerald-500/20 transition-colors duration-300"
+            role="status"
+            aria-label="Dictation active"
+          >
+            <span className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="relative flex items-center justify-center shrink-0">
+                <span className="size-2.5 rounded-full bg-emerald-500" />
+                <span className="absolute inset-0 rounded-full bg-emerald-500 opacity-40 animate-ping" />
+              </span>
+              <span className="text-xs text-white/70 truncate">Dictating — speak now</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleEndLiveSession}
+              className="size-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center hover:bg-red-500/20 hover:border-red-500/30 active:scale-95 transition-all shrink-0 touch-manipulation"
+              aria-label="Stop dictation"
+            >
+              <X size={12} className="text-white/70" />
+            </button>
+          </div>
         )}
 
         {/* Chat Messages */}
