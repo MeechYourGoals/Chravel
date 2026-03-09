@@ -295,7 +295,7 @@ export const EventCard = ({
         <div className="grid grid-cols-3 gap-4 mb-6 bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
           <CardStatItem icon={Users} value={totalPeopleCount} label="People" />
           <CardStatItem
-            icon={CalendarDays}
+            icon={CalendarGlyph}
             value={calculateDaysCount(event.dateRange)}
             label="Days"
           />
