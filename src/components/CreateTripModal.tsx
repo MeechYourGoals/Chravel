@@ -685,7 +685,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               <CollapsibleContent className="space-y-4 bg-[#1e1e1e] rounded-xl p-4">
                 {/* Trip Color Picker */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Trip Color Label
                   </label>
                   <div className="flex flex-wrap gap-2">
