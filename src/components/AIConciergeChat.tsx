@@ -49,13 +49,6 @@ const EMPTY_SESSION: ConciergeSession = {
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-/**
- * DUPLEX_VOICE_ENABLED — When true, the waveform button starts Gemini Live
- * bidirectional voice (Vertex AI). When false, it uses basic Web Speech API
- * dictation instead. Voice state is shown inline via VoiceActiveBar (compact
- * bar at top of chat) and transcripts appear as normal chat bubbles.
- */
-const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Map GeminiLiveState → VoiceState for VoiceButton visuals */
@@ -416,10 +409,9 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
-  // Speech API dictation. Transcribed text fills the input field so the user
-  // can review/edit before sending. All Gemini Live hooks remain initialised
-  // (hooks rules) but are not invoked.
+  // Tap = dictation (Web Speech API) — transcribed text fills the input field.
+  // Long-press = Gemini Live bidirectional voice (Vertex AI via proxy).
+  // Both hooks are always initialised (rules of hooks).
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -563,26 +555,35 @@ export const AIConciergeChat = ({
     onError: handleLiveError,
   });
 
-  // Voice state for the VoiceButton — uses dictation state when duplex is off
-  const convoVoiceState: VoiceState = DUPLEX_VOICE_ENABLED
+  // Voice state for the VoiceButton:
+  //   - When Gemini Live is active, show its state (takes priority)
+  //   - Otherwise show dictation state
+  const isLiveActive = liveState !== 'idle';
+  const convoVoiceState: VoiceState = isLiveActive
     ? mapLiveStateToVoiceState(liveState)
     : dictationState;
 
-  // Voice active state is derived from liveState — no separate overlay toggle needed.
-  const isVoiceActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle';
+  // Voice active state — true when Gemini Live bidirectional session is running
+  const isVoiceActive = isLiveActive;
 
-  // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
-  const handleConvoToggle = useCallback(async () => {
-    if (!DUPLEX_VOICE_ENABLED) {
-      // Simple dictation: toggle Web Speech API. Text fills the input field.
-      toggleDictation();
+  // Tap: toggle dictation (Web Speech API). If Gemini Live is active, tap stops it instead.
+  const handleConvoToggle = useCallback(() => {
+    if (isLiveActive) {
+      // If live session is running, tap stops it (natural escape hatch)
+      void endLiveSession();
       return;
     }
+    toggleDictation();
+  }, [isLiveActive, endLiveSession, toggleDictation]);
 
-    // Duplex path (preserved for when a specialist re-enables it)
-    if (liveState !== 'idle' && liveState !== 'error') {
-      await endLiveSession();
-      return;
+  // Long-press: activate Gemini Live bidirectional voice
+  const handleConvoLongPress = useCallback(async () => {
+    // If already active, long-press is a no-op (tap to stop)
+    if (liveState !== 'idle' && liveState !== 'error') return;
+
+    // Stop dictation if it's running before starting live
+    if (dictationState !== 'idle' && dictationState !== 'error') {
+      toggleDictation();
     }
 
     if (isLimitedPlan) {
@@ -601,10 +602,10 @@ export const AIConciergeChat = ({
 
     await startLiveSession();
   }, [
-    toggleDictation,
     liveState,
+    dictationState,
+    toggleDictation,
     startLiveSession,
-    endLiveSession,
     isLimitedPlan,
     incrementUsageOnSuccess,
     buildLimitReachedMessage,
@@ -1940,7 +1941,9 @@ export const AIConciergeChat = ({
             }
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
+            onConvoLongPress={handleConvoLongPress}
             isVoiceEligible={true}
+            isLiveActive={isLiveActive}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {
