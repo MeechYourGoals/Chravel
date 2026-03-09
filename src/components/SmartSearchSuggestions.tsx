@@ -285,7 +285,7 @@ export const SmartSearchSuggestions = ({
         <Lightbulb className="w-4 h-4 text-yellow-400" />
         <span className="text-sm font-medium text-gray-300">Smart Suggestions</span>
         {isLoading && (
-          <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-3 h-3 gold-gradient-spinner animate-spin"></div>
         )}
       </div>
 
