@@ -609,8 +609,6 @@ export const AIConciergeChat = ({
     }
   }, [liveState, duplexFailed, isDictationActive]);
 
-  // Voice active state is derived from liveState — no separate overlay toggle needed.
-  const isVoiceActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle';
 
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
