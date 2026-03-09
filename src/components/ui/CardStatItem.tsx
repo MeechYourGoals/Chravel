@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
+import { CalendarGlyph } from './CalendarGlyph';
 
 /**
  * Shared stat-item component for trip/event cards.
