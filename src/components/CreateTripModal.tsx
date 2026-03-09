@@ -427,16 +427,16 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Trip Title */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Trip Title</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Trip Title</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className={`w-full bg-slate-700/50 border rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none transition-colors ${
+              className={`w-full bg-[#222]/60 border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none transition-colors ${
                 validationErrors.title
                   ? 'border-red-500 focus:border-red-500'
-                  : 'border-slate-600 focus:border-blue-500'
+                  : 'border-[#444] focus:border-[#c49746]'
               }`}
               placeholder="e.g., Summer in Paris"
               required
