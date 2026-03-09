@@ -717,7 +717,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-medium transition-colors"
+              className="flex-1 bg-[#2a2a2a] hover:bg-[#333] border border-[#444] text-white py-3 rounded-xl font-medium transition-colors"
             >
               Cancel
             </button>
