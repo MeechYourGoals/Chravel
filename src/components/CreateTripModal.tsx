@@ -449,7 +449,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           {/* Organizer - Only for Event trips */}
           {tripType === 'event' && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
                 <Users size={16} />
                 Organizer
               </label>
@@ -458,10 +458,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 name="organizer"
                 value={formData.organizer}
                 onChange={handleInputChange}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#c49746] focus:outline-none transition-colors"
                 placeholder="e.g., Los Angeles Rams, Boys & Girls Club of Dallas"
               />
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 The organization, company, or group hosting this event
               </p>
             </div>
