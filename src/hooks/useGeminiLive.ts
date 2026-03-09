@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_PROJECT_URL } from '@/integrations/supabase/client';
 import { AudioPlaybackQueue } from '@/lib/geminiLive/audioPlayback';
 import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/audioCapture';
 import { VOICE_DIAGNOSTICS_ENABLED } from '@/config/voiceFeatureFlags';
@@ -14,6 +14,16 @@ import {
   checkCaptureSampleRate,
   AUDIO_CONTRACT,
 } from '@/voice/audioContract';
+
+/**
+ * Build the WebSocket URL for the voice proxy edge function.
+ * Supabase Edge Functions accept WS upgrades at the same URL as HTTP.
+ * Convert https:// → wss:// for the WebSocket connection.
+ */
+function getProxyWsUrl(): string {
+  const base = SUPABASE_PROJECT_URL.replace(/^https?:\/\//, '');
+  return `wss://${base}/functions/v1/gemini-voice-proxy`;
+}
 
 export type GeminiLiveState =
   | 'idle'
@@ -86,13 +96,9 @@ interface UseGeminiLiveReturn {
 }
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const SESSION_TIMEOUT_MS = 90_000;
-const WEBSOCKET_SETUP_TIMEOUT_MS = 12_000; // Gate 2: reduced from 25s to 12s
+const WEBSOCKET_SETUP_TIMEOUT_MS = 20_000; // Allow time for proxy → Vertex handshake
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
-// Session token is valid for 1 hour (Vertex OAuth2). goAway handling replaces
-// the old static 25-minute timer.
-const OAUTH_TOKEN_LIFETIME_MS = 55 * 60 * 1000; // Warn at 55 min (5 min before 1h expiry)
 const WS_KEEPALIVE_INTERVAL_MS = 15_000;
 const AUTO_RECONNECT_DELAY_MS = 2_000;
 const MAX_AUTO_RECONNECT_RETRIES = 2; // Cap retries
@@ -525,7 +531,14 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
+        // Use SILENT scheduling to prevent the model from narrating tool results
+        // (double-speech). Vertex AI supports FunctionResponseScheduling.SILENT.
+        // See gist: "Send tool responses with SILENT scheduling"
+        const silentResponses = responses.map(r => ({
+          ...r,
+          scheduling: 'SILENT',
+        }));
+        ws.send(JSON.stringify({ toolResponse: { functionResponses: silentResponses } }));
       }
     },
     [],
@@ -635,37 +648,20 @@ export function useGeminiLive({
         }
       }
 
-      // ── Gate 0: Token fetch + mic request IN PARALLEL ──
-      // These are independent: mic doesn't need the token, token doesn't need the mic.
-      // Running them concurrently saves 5-15s vs the old sequential approach and
-      // prevents the ephemeral token's newSessionExpireTime from being consumed by
-      // the mic permission prompt.
+      // ── Get auth token + mic IN PARALLEL ──
       console.warn('[VOICE:G0] parallel_start', {
         sessionAttemptId,
         msFromStart: Math.round(performance.now() - t0),
       });
-      const invokeT0 = performance.now();
 
       patchDiagnostics({ substep: 'Setting up voice & microphone…' });
 
-      const sessionPromise = supabase.functions.invoke('gemini-voice-session', {
-        body: {
-          tripId,
-          voice,
-          sessionAttemptId,
-          ...(resumptionTokenRef.current ? { resumptionToken: resumptionTokenRef.current } : {}),
-        },
-      });
-      let sessionTimeoutId: ReturnType<typeof setTimeout>;
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        sessionTimeoutId = setTimeout(
-          () => reject(new Error('Voice session timed out. Please try again.')),
-          SESSION_TIMEOUT_MS,
-        );
-      });
-      const tokenPromise = Promise.race([sessionPromise, timeoutPromise]).then(result => {
-        patchDiagnostics({ substep: 'Voice session ready, waiting for microphone…' });
-        return result;
+      // Get Supabase auth token for the proxy
+      const authTokenPromise = supabase.auth.getSession().then(({ data }) => {
+        const token = data?.session?.access_token;
+        if (!token) throw new Error('Not authenticated. Please sign in and try again.');
+        patchDiagnostics({ substep: 'Auth ready, waiting for microphone…' });
+        return token;
       });
 
       const micPromise = navigator.mediaDevices
@@ -682,8 +678,6 @@ export function useGeminiLive({
           return stream;
         })
         .catch((mediaErr: Error) => {
-          // Wrap mic errors with user-friendly messages but don't throw yet —
-          // let Promise.allSettled collect it so we can prioritize error display.
           const name = mediaErr.name || '';
           let errMsg: string;
           if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
@@ -699,105 +693,22 @@ export function useGeminiLive({
           throw new Error(errMsg);
         });
 
-      // Await token first — if it fails there's no point blocking on the
-      // browser mic-permission prompt which can stay pending indefinitely.
-      // Both promises are already in-flight so the happy path is still parallel.
-      type TokenValue = Awaited<typeof sessionPromise>;
-      let tokenResult: PromiseSettledResult<TokenValue>;
-      let micResult: PromiseSettledResult<MediaStream>;
-
+      // Await both in parallel
+      let authToken: string;
+      let stream: MediaStream;
       try {
-        const tokenValue = await tokenPromise;
-        tokenResult = { status: 'fulfilled', value: tokenValue as TokenValue };
+        [authToken, stream] = await Promise.all([authTokenPromise, micPromise]);
       } catch (err) {
-        tokenResult = { status: 'rejected', reason: err };
-      }
-      // Clean up the timeout timer to prevent closure leak
-      clearTimeout(sessionTimeoutId!);
-
-      // Token failed → surface error immediately, clean up mic if it resolves later
-      if (tokenResult.status === 'rejected') {
-        micPromise.then(stream => stream.getTracks().forEach(t => t.stop())).catch(() => {});
-        const invokeErrMsg =
-          tokenResult.reason instanceof Error
-            ? tokenResult.reason.message
-            : String(tokenResult.reason);
-        console.warn('[VOICE:G0] invoke_failed_early', {
-          sessionAttemptId,
-          error: invokeErrMsg,
-          durationMs: Math.round(performance.now() - invokeT0),
-        });
-        throw new Error(invokeErrMsg);
-      }
-
-      // Token succeeded — now wait for mic (already in-flight)
-      try {
-        const micValue = await micPromise;
-        micResult = { status: 'fulfilled', value: micValue };
-      } catch (err) {
-        micResult = { status: 'rejected', reason: err };
-      }
-
-      // Mic failed — token succeeded but mic is required, so bail out
-      if (micResult.status === 'rejected') {
-        const micErrMsg =
-          micResult.reason instanceof Error ? micResult.reason.message : String(micResult.reason);
-        console.warn('[VOICE:G0] mic_failed', { sessionAttemptId, error: micErrMsg });
-        recordVoiceFailure(micErrMsg);
-        throw new Error(micErrMsg);
-      }
-
-      // Both succeeded — extract values
-      const invokeResult = tokenResult.value;
-      const { data: sessionData, error: sessionError } = invokeResult;
-      const invokeDurationMs = Math.round(performance.now() - invokeT0);
-
-      console.warn('[VOICE:G0] parallel_done', {
-        sessionAttemptId,
-        durationMs: invokeDurationMs,
-        hasData: !!sessionData,
-        hasError: !!sessionError,
-        errorMessage: sessionError?.message,
-        dataKeys: sessionData ? Object.keys(sessionData) : [],
-      });
-
-      const accessToken =
-        typeof sessionData?.accessToken === 'string' ? sessionData.accessToken : null;
-      const sessionErrMsg =
-        typeof (sessionData as { error?: string })?.error === 'string'
-          ? (sessionData as { error: string }).error
-          : sessionError?.message;
-
-      if (sessionError || !accessToken) {
-        const errMsg = mapSessionError(sessionErrMsg || 'Failed to get voice session');
-        console.warn('[VOICE:G1] token_failed', { sessionAttemptId, error: errMsg });
-        voiceLog('session:tokenError', { error: errMsg });
-        onErrorRef.current?.(errMsg);
-        // Clean up mic stream
-        micResult.value.getTracks().forEach(t => t.stop());
+        // Clean up mic if auth failed, or vice versa
+        micPromise.then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
+        const errMsg = err instanceof Error ? err.message : 'Failed to initialize voice session';
+        console.warn('[VOICE:G0] parallel_failed', { sessionAttemptId, error: errMsg });
+        recordVoiceFailure(errMsg);
         throw new Error(errMsg);
       }
 
-      console.warn('[VOICE:G1] token_received', {
-        sessionAttemptId,
-        model: sessionData?.model,
-        voice: sessionData?.voice,
-        hasWebsocketUrl: !!sessionData?.websocketUrl,
-        _rid: (sessionData as { _rid?: string })?._rid,
-        durationMs: invokeDurationMs,
-      });
-      voiceLog('session:tokenReceived', {
-        sessionId,
-        hasToken: true,
-        model: sessionData?.model,
-        voice: sessionData?.voice,
-        hasWebsocketUrl: !!sessionData?.websocketUrl,
-        _rid: (sessionData as { _rid?: string })?._rid,
-      });
-      voiceLog('timing:token', { ms: Math.round(performance.now() - sessionStartedAt) });
-
-      // ── Mic acquired from parallel request ──
-      const stream = micResult.value;
+      console.warn('[VOICE:G0] parallel_done', { sessionAttemptId });
+      voiceLog('timing:authAndMic', { ms: Math.round(performance.now() - sessionStartedAt) });
       mediaStreamRef.current = stream;
 
       const track = stream.getAudioTracks()[0];
@@ -860,31 +771,21 @@ export function useGeminiLive({
         },
       );
 
-      // ── Gate 2: Open WebSocket ──
+      // ── Gate 2: Open WebSocket to voice proxy ──
       patchDiagnostics({ substep: 'Opening audio channel…' });
-      const websocketUrl = sessionData?.websocketUrl as string;
-      if (!websocketUrl || typeof websocketUrl !== 'string') {
-        throw new Error('Server did not provide a WebSocket URL.');
-      }
-
-      // Vertex AI: pass OAuth2 token as URL param
-      const wsUrl = `${websocketUrl}?access_token=${encodeURIComponent(accessToken)}`;
-      const wsHost = new URL(websocketUrl).host;
+      const proxyUrl = getProxyWsUrl();
       console.warn('[VOICE:G2] ws_connecting', {
         sessionAttemptId,
-        host: wsHost,
+        proxyUrl,
         msFromStart: Math.round(performance.now() - t0),
       });
       voiceLog('ws:connecting', {
         sessionId,
-        endpoint: websocketUrl.split('/').pop(),
+        proxy: proxyUrl,
         audioContextState: audioCtxRef.current?.state,
         audioContextSampleRate: audioCtxRef.current?.sampleRate,
       });
-      const ws = new WebSocket(wsUrl);
-      // BidiGenerateContentSetup must be the first message after WS opens
-      const setupMessage = (sessionData as { setupMessage?: Record<string, unknown> })
-        ?.setupMessage;
+      const ws = new WebSocket(proxyUrl);
       wsRef.current = ws;
 
       // Track first N inbound WS messages for Gate 2 diagnostics
@@ -909,16 +810,17 @@ export function useGeminiLive({
         voiceLog('ws:opened', { readyState: ws.readyState });
         voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
 
-        // BidiGenerateContentSetup MUST be the first message — no other messages before setupComplete
-        if (setupMessage && ws.readyState === WebSocket.OPEN) {
-          console.warn('[VOICE:G2] sending_setup', { sessionAttemptId });
-          ws.send(JSON.stringify(setupMessage));
-        } else if (!setupMessage) {
-          console.error('[VOICE:G2] no_setup_message', { sessionAttemptId });
-          setError('Voice setup failed: no setup message from server.');
-          transition('error', 'missing_setup_message');
-          void cleanup();
-          return;
+        // Send init message to proxy — proxy handles Vertex auth + setup internally
+        if (ws.readyState === WebSocket.OPEN) {
+          const initMessage = {
+            authToken,
+            tripId,
+            voice,
+            sessionAttemptId,
+            ...(resumptionTokenRef.current ? { resumptionToken: resumptionTokenRef.current } : {}),
+          };
+          console.warn('[VOICE:G2] sending_init', { sessionAttemptId });
+          ws.send(JSON.stringify(initMessage));
         }
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
@@ -1055,25 +957,10 @@ export function useGeminiLive({
             clearSetupTimeout();
             isStartingRef.current = false;
 
-            // Warn before OAuth2 token expires (1 hour lifetime, warn at 55 min).
-            // If auto-reconnect is allowed, seamlessly restart the session with
-            // the resumption token so the user doesn't lose context.
-            sessionExpiryTimerRef.current = setTimeout(() => {
-              if (
-                autoReconnectAllowedRef.current &&
-                resumptionTokenRef.current &&
-                !isCircuitBreakerOpen()
-              ) {
-                voiceLog('session:token_expiry_reconnect', {});
-                patchDiagnostics({ substep: 'Refreshing session…' });
-                void cleanup().then(() => {
-                  void startSessionRef.current();
-                });
-                return;
-              }
-              onErrorRef.current?.('Voice session expiring soon. Please restart to continue.');
-              patchDiagnostics({ lastError: 'Session nearing expiry' });
-            }, OAUTH_TOKEN_LIFETIME_MS);
+            // No session expiry timer needed — the proxy manages the Vertex AI
+            // token server-side and handles upstream keepalive. goAway messages
+            // from Vertex are relayed through the proxy to trigger client-side
+            // session resumption when needed.
 
             // Start keepalive ping — sends an empty audio chunk periodically to keep
             // the WebSocket alive and detect dead connections before the browser's

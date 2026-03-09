@@ -260,7 +260,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({ tripId, tripCreatorI
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
-                   <div className="animate-spin h-4 w-4 gold-gradient-spinner" />
+                  <div className="animate-spin h-4 w-4 gold-gradient-spinner" />
                   Promoting...
                 </div>
               ) : (
