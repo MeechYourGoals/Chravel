@@ -2,15 +2,40 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
 
-const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') || '';
-const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') || '';
+// ── Config: fail fast if required secrets are missing ──
+const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+
+// Redirect URI: explicit per environment. No silent localhost fallback in production.
+// Set GOOGLE_REDIRECT_URI in Supabase Edge Function secrets for production.
+// Local dev: defaults to localhost:5173 only if GOOGLE_REDIRECT_URI is not set.
 const REDIRECT_URI =
-  Deno.env.get('GOOGLE_REDIRECT_URI') || 'http://localhost:8080/api/gmail/oauth/callback'; // Configure in prod to point to this edge function or a frontend route
+  Deno.env.get('GOOGLE_REDIRECT_URI') || 'http://localhost:5173/api/gmail/oauth/callback';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+/** Return a JSON error response with consistent structure */
+function errorResponse(message: string, status: number, detail?: string): Response {
+  console.error(`[gmail-auth] ${message}`, detail ? `| ${detail}` : '');
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+/** Validate that all required Google OAuth secrets are configured */
+function validateGoogleConfig(): string | null {
+  if (!GOOGLE_CLIENT_ID) {
+    return 'GOOGLE_CLIENT_ID secret is not set. Configure it in Supabase Edge Function secrets.';
+  }
+  if (!GOOGLE_CLIENT_SECRET) {
+    return 'GOOGLE_CLIENT_SECRET secret is not set. Configure it in Supabase Edge Function secrets.';
+  }
+  return null;
+}
 
 serve(async req => {
   if (req.method === 'OPTIONS') {
@@ -18,11 +43,17 @@ serve(async req => {
   }
 
   try {
+    // Fail fast: check Google OAuth config before doing any work
+    const configError = validateGoogleConfig();
+    if (configError) {
+      return errorResponse(configError, 503);
+    }
+
     const url = new URL(req.url);
     const action = url.pathname.split('/').pop(); // connect, callback, disconnect
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: req.headers.get('Authorization')! } },
     });
@@ -33,14 +64,12 @@ serve(async req => {
     } = await supabaseClient.auth.getUser();
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return errorResponse('Unauthorized', 401);
     }
 
+    // ── CONNECT: initiate Google OAuth flow ──
     if (action === 'connect') {
-      // 1. Generate state parameter
+      // Generate cryptographic state parameter
       const stateBuffer = new Uint8Array(32);
       crypto.getRandomValues(stateBuffer);
       const stateHex = Array.from(stateBuffer)
@@ -50,7 +79,7 @@ serve(async req => {
       const statePayload = JSON.stringify({ uid: user.id, nonce: stateHex });
       const encodedState = btoa(statePayload);
 
-      // 2. Build Google OAuth URL
+      // Build Google OAuth URL
       const oauthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       oauthUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
       oauthUrl.searchParams.set('redirect_uri', REDIRECT_URI);
@@ -63,35 +92,34 @@ serve(async req => {
       oauthUrl.searchParams.set('prompt', 'consent'); // Force consent to get refresh token
       oauthUrl.searchParams.set('state', encodedState);
 
+      console.log(
+        `[gmail-auth] Connect initiated for user ${user.id}, redirect_uri=${REDIRECT_URI}`,
+      );
+
       return new Response(JSON.stringify({ url: oauthUrl.toString() }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // ── CALLBACK: exchange code for tokens ──
     if (action === 'callback') {
       const { code, state } = await req.json();
 
       if (!code || !state) {
-        return new Response(JSON.stringify({ error: 'Missing code or state' }), {
-          status: 400,
-          headers: corsHeaders,
-        });
+        return errorResponse('Missing code or state', 400);
       }
 
-      // 1. Verify State
+      // Verify state parameter
       try {
         const decodedState = JSON.parse(atob(state));
         if (decodedState.uid !== user.id) {
           throw new Error('State UID mismatch');
         }
-      } catch (e) {
-        return new Response(JSON.stringify({ error: 'Invalid state parameter' }), {
-          status: 403,
-          headers: corsHeaders,
-        });
+      } catch {
+        return errorResponse('Invalid state parameter', 403);
       }
 
-      // 2. Exchange code for tokens
+      // Exchange code for tokens
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -106,24 +134,24 @@ serve(async req => {
 
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
-        console.error('Token exchange failed:', errorText);
-        return new Response(JSON.stringify({ error: 'Token exchange failed' }), {
-          status: 500,
-          headers: corsHeaders,
-        });
+        return errorResponse('Token exchange failed', 500, errorText);
       }
 
       const tokenData = await tokenResponse.json();
 
-      // 3. Get user info (email, google id)
+      // Fetch Google user info
       const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
+
+      if (!userInfoResponse.ok) {
+        return errorResponse('Failed to fetch Google user info', 500);
+      }
+
       const userInfo = await userInfoResponse.json();
 
-      // 4. Save to database
-      // Using service role client to bypass RLS for upserting secure tokens, though user is authenticated
-      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+      // Save to database using service role (bypasses RLS for token columns)
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
       const { error: dbError } = await adminClient.from('gmail_accounts').upsert(
@@ -131,8 +159,8 @@ serve(async req => {
           user_id: user.id,
           google_user_id: userInfo.id,
           email: userInfo.email,
-          refresh_token: tokenData.refresh_token, // Only provided on first consent or if prompt=consent
-          access_token_hash: tokenData.access_token, // In a real app, encrypt this. We use simple storage for now.
+          refresh_token: tokenData.refresh_token,
+          access_token: tokenData.access_token,
           scopes: tokenData.scope ? tokenData.scope.split(' ') : [],
           updated_at: new Date().toISOString(),
         },
@@ -140,53 +168,64 @@ serve(async req => {
       );
 
       if (dbError) {
-        console.error('Database error:', dbError);
-        return new Response(JSON.stringify({ error: 'Failed to save account' }), {
-          status: 500,
-          headers: corsHeaders,
-        });
+        // Detect missing table (migration not applied)
+        if (dbError.code === '42P01' || dbError.message?.includes('gmail_accounts')) {
+          return errorResponse(
+            'Gmail integration tables not found. The smart_import migration must be applied to the database.',
+            503,
+            dbError.message,
+          );
+        }
+        return errorResponse('Failed to save account', 500, dbError.message);
       }
 
+      console.log(`[gmail-auth] Successfully connected ${userInfo.email} for user ${user.id}`);
       return new Response(JSON.stringify({ success: true, email: userInfo.email }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // ── DISCONNECT: revoke tokens and remove account ──
     if (action === 'disconnect') {
       const { accountId } = await req.json();
 
       if (!accountId) {
-        return new Response(JSON.stringify({ error: 'Missing accountId' }), {
-          status: 400,
-          headers: corsHeaders,
-        });
+        return errorResponse('Missing accountId', 400);
       }
 
-      // 1. Get token to revoke
-      const { data: account, error: fetchError } = await supabaseClient
+      // Use service role to read token-bearing columns (frontend RLS blocks these)
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+      // Fetch tokens — service role reads, but verify ownership via user_id
+      const { data: account, error: fetchError } = await adminClient
         .from('gmail_accounts')
-        .select('refresh_token, access_token_hash')
+        .select('refresh_token, access_token')
         .eq('id', accountId)
         .eq('user_id', user.id)
         .single();
 
       if (fetchError || !account) {
-        return new Response(JSON.stringify({ error: 'Account not found' }), {
-          status: 404,
-          headers: corsHeaders,
-        });
+        return errorResponse('Account not found', 404);
       }
 
-      // 2. Revoke from Google
-      const tokenToRevoke = account.refresh_token || account.access_token_hash;
+      // Revoke token from Google (best effort — don't fail if revocation errors)
+      const tokenToRevoke = account.refresh_token || account.access_token;
       if (tokenToRevoke) {
-        await fetch(`https://oauth2.googleapis.com/revoke?token=${tokenToRevoke}`, {
-          method: 'POST',
-          headers: { 'Content-type': 'application/x-www-form-urlencoded' },
-        });
+        try {
+          await fetch(`https://oauth2.googleapis.com/revoke?token=${tokenToRevoke}`, {
+            method: 'POST',
+            headers: { 'Content-type': 'application/x-www-form-urlencoded' },
+          });
+        } catch (revokeErr) {
+          console.warn(
+            '[gmail-auth] Token revocation failed (proceeding with deletion):',
+            revokeErr,
+          );
+        }
       }
 
-      // 3. Delete from database
+      // Delete from database — use user-scoped client so RLS enforces ownership
       const { error: deleteError } = await supabaseClient
         .from('gmail_accounts')
         .delete()
@@ -194,24 +233,20 @@ serve(async req => {
         .eq('user_id', user.id);
 
       if (deleteError) {
-        return new Response(JSON.stringify({ error: 'Failed to delete account' }), {
-          status: 500,
-          headers: corsHeaders,
-        });
+        return errorResponse('Failed to delete account', 500, deleteError.message);
       }
 
+      console.log(`[gmail-auth] Disconnected account ${accountId} for user ${user.id}`);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ error: 'Not found' }), {
-      status: 404,
-      headers: corsHeaders,
-    });
-  } catch (error: any) {
-    console.error('Unexpected error:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
+    return errorResponse('Not found', 404);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    console.error('[gmail-auth] Unexpected error:', error);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

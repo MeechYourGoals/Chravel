@@ -38,6 +38,7 @@ import { tripKeys } from '@/lib/queryKeys';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
 import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
 import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CalendarImportModalProps {
   isOpen: boolean;
@@ -516,6 +517,27 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                   toast.success(
                     `Imported ${result.imported} event${result.imported !== 1 ? 's' : ''} from Gmail`,
                   );
+                }
+
+                // Mark accepted candidates in the database so re-imports don't re-surface them
+                const acceptedIds = accepted.map(c => c.id).filter(Boolean);
+                if (acceptedIds.length > 0) {
+                  await supabase
+                    .from('smart_import_candidates')
+                    .update({ status: 'accepted', updated_at: new Date().toISOString() })
+                    .in('id', acceptedIds);
+                }
+
+                // Mark unselected candidates as rejected
+                const rejectedIds = gmailCandidates
+                  .filter(c => !acceptedIds.includes(c.id))
+                  .map(c => c.id)
+                  .filter(Boolean);
+                if (rejectedIds.length > 0) {
+                  await supabase
+                    .from('smart_import_candidates')
+                    .update({ status: 'rejected', updated_at: new Date().toISOString() })
+                    .in('id', rejectedIds);
                 }
 
                 // Invalidate cache and close

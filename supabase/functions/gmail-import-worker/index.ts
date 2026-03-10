@@ -2,13 +2,22 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { runtimePrompt } from './prompt.ts';
 
-const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') || '';
-const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') || '';
+const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+/** Return a JSON error response with consistent structure */
+function configErrorResponse(message: string): Response {
+  console.error(`[gmail-import-worker] ${message}`);
+  return new Response(JSON.stringify({ error: message }), {
+    status: 503,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
 
 /** Refresh an expired Google access token using the stored refresh_token */
 async function refreshAccessToken(refreshToken: string): Promise<string> {
@@ -167,6 +176,20 @@ serve(async req => {
   }
 
   try {
+    // Fail fast: check required config before doing any work
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      return configErrorResponse(
+        'Google OAuth secrets (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) are not configured. Set them in Supabase Edge Function secrets.',
+      );
+    }
+
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      return configErrorResponse(
+        'GEMINI_API_KEY is not configured. Gmail import requires Gemini API for email parsing. Set it in Supabase Edge Function secrets.',
+      );
+    }
+
     const { tripId, accountId } = await req.json();
 
     if (!tripId || !accountId) {
@@ -176,9 +199,9 @@ serve(async req => {
       });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: req.headers.get('Authorization')! } },
@@ -198,10 +221,10 @@ serve(async req => {
       });
     }
 
-    // 2. Fetch the connected Gmail account
-    const { data: account, error: accountError } = await supabaseClient
+    // 2. Fetch the connected Gmail account — use service role to read token columns
+    const { data: account, error: accountError } = await adminClient
       .from('gmail_accounts')
-      .select('access_token_hash, refresh_token')
+      .select('access_token, refresh_token')
       .eq('id', accountId)
       .eq('user_id', user.id)
       .single();
@@ -214,7 +237,7 @@ serve(async req => {
     }
 
     // 3. Get a valid access token (refresh if needed)
-    let accessToken = account.access_token_hash;
+    let accessToken = account.access_token;
 
     const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -226,7 +249,7 @@ serve(async req => {
       // Persist the refreshed token
       await adminClient
         .from('gmail_accounts')
-        .update({ access_token_hash: accessToken, updated_at: new Date().toISOString() })
+        .update({ access_token: accessToken, updated_at: new Date().toISOString() })
         .eq('id', accountId);
     } else if (testResponse.status === 401) {
       return new Response(
@@ -306,7 +329,6 @@ serve(async req => {
 
     const allCandidates: Record<string, unknown>[] = [];
     const stats = { scanned: messages.length, parsed: 0, skipped: 0, errors: 0 };
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     const tripContextStr = buildTripContextForPrompt(tripContext);
 
     // 7. Process each message
@@ -354,112 +376,105 @@ serve(async req => {
             ? emailContent.substring(0, 12000) + '\n[...truncated]'
             : emailContent;
 
-        // 8. Send to LLM with trip context
-        if (geminiApiKey) {
-          const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n\nEmail Body:\n${truncatedContent}`;
+        // 8. Send to LLM with trip context (geminiApiKey validated at function start)
+        const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n\nEmail Body:\n${truncatedContent}`;
 
-          const aiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: fullPrompt }] }],
-                generationConfig: { responseMimeType: 'application/json' },
-              }),
-            },
-          );
+        const aiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: fullPrompt }] }],
+              generationConfig: { responseMimeType: 'application/json' },
+            }),
+          },
+        );
 
-          if (!aiResponse.ok) {
-            stats.errors++;
-            await logMessage(
-              supabaseClient,
-              job.id,
-              msg.id,
-              'error',
-              `AI API error: ${aiResponse.status}`,
-            );
-            continue;
-          }
-
-          const aiData = await aiResponse.json();
-          const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (!resultText) {
-            stats.skipped++;
-            await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No AI output');
-            continue;
-          }
-
-          let parsedJSON: Record<string, unknown>;
-          try {
-            parsedJSON = JSON.parse(resultText);
-          } catch {
-            stats.errors++;
-            await logMessage(supabaseClient, job.id, msg.id, 'error', 'Failed to parse AI JSON');
-            continue;
-          }
-
-          const reservations = parsedJSON.reservations as
-            | Array<Record<string, unknown>>
-            | undefined;
-          const relevanceScore = (parsedJSON.trip_relevance_score as number) ?? 0;
-          const relevanceReason = (parsedJSON.trip_relevance_reason as string) ?? '';
-
-          if (!reservations || reservations.length === 0) {
-            stats.skipped++;
-            await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No reservations found');
-            continue;
-          }
-
-          for (const res of reservations) {
-            const dedupe_key = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}`;
-
-            // Check for existing duplicates
-            const { data: existing } = await supabaseClient
-              .from('smart_import_candidates')
-              .select('id')
-              .eq('trip_id', tripId)
-              .eq('dedupe_key', dedupe_key)
-              .limit(1);
-
-            if (existing && existing.length > 0) {
-              stats.skipped++;
-              continue;
-            }
-
-            // All items go to review (pending). Relevance score helps user prioritize.
-            const { data: candidate, error: candidateError } = await supabaseClient
-              .from('smart_import_candidates')
-              .insert({
-                job_id: job.id,
-                user_id: user.id,
-                trip_id: tripId,
-                reservation_data: {
-                  ...res,
-                  _relevance_score: relevanceScore,
-                  _relevance_reason: relevanceReason,
-                  _gmail_message_id: msg.id,
-                  _email_subject: subject,
-                },
-                status: 'pending',
-                dedupe_key,
-              })
-              .select()
-              .single();
-
-            if (!candidateError && candidate) {
-              allCandidates.push(candidate);
-              stats.parsed++;
-            }
-          }
-
-          const logKey = reservations.map(r => `${r.type}_${r.confirmation_code || ''}`).join(',');
-          await logMessage(supabaseClient, job.id, msg.id, 'parsed', logKey);
-        } else {
+        if (!aiResponse.ok) {
           stats.errors++;
-          await logMessage(supabaseClient, job.id, msg.id, 'error', 'No GEMINI_API_KEY configured');
+          await logMessage(
+            supabaseClient,
+            job.id,
+            msg.id,
+            'error',
+            `AI API error: ${aiResponse.status}`,
+          );
+          continue;
         }
+
+        const aiData = await aiResponse.json();
+        const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!resultText) {
+          stats.skipped++;
+          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No AI output');
+          continue;
+        }
+
+        let parsedJSON: Record<string, unknown>;
+        try {
+          parsedJSON = JSON.parse(resultText);
+        } catch {
+          stats.errors++;
+          await logMessage(supabaseClient, job.id, msg.id, 'error', 'Failed to parse AI JSON');
+          continue;
+        }
+
+        const reservations = parsedJSON.reservations as Array<Record<string, unknown>> | undefined;
+        const relevanceScore = (parsedJSON.trip_relevance_score as number) ?? 0;
+        const relevanceReason = (parsedJSON.trip_relevance_reason as string) ?? '';
+
+        if (!reservations || reservations.length === 0) {
+          stats.skipped++;
+          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No reservations found');
+          continue;
+        }
+
+        for (const res of reservations) {
+          const dedupe_key = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}`;
+
+          // Check for existing duplicates
+          const { data: existing } = await supabaseClient
+            .from('smart_import_candidates')
+            .select('id')
+            .eq('trip_id', tripId)
+            .eq('dedupe_key', dedupe_key)
+            .limit(1);
+
+          if (existing && existing.length > 0) {
+            stats.skipped++;
+            continue;
+          }
+
+          // All items go to review (pending). Relevance score helps user prioritize.
+          const { data: candidate, error: candidateError } = await supabaseClient
+            .from('smart_import_candidates')
+            .insert({
+              job_id: job.id,
+              user_id: user.id,
+              trip_id: tripId,
+              reservation_data: {
+                ...res,
+                _relevance_score: relevanceScore,
+                _relevance_reason: relevanceReason,
+                _gmail_message_id: msg.id,
+                _email_subject: subject,
+              },
+              status: 'pending',
+              dedupe_key,
+            })
+            .select()
+            .single();
+
+          if (!candidateError && candidate) {
+            allCandidates.push(candidate);
+            stats.parsed++;
+          }
+        }
+
+        const logKey = reservations.map(r => `${r.type}_${r.confirmation_code || ''}`).join(',');
+        await logMessage(supabaseClient, job.id, msg.id, 'parsed', logKey);
       } catch (err) {
         console.error(`Error processing message ${msg.id}:`, err);
         stats.errors++;
