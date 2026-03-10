@@ -339,7 +339,7 @@ serve(async (req: Request) => {
     responseHeaders['X-Voice-Fallback'] = 'true';
   }
 
-  return new Response(audioBytes, {
+  return new Response(audioBytes as unknown as BodyInit, {
     status: 200,
     headers: responseHeaders,
   });

@@ -1,21 +1,32 @@
 
 
-## Fix Build Errors + Confirm Gmail Secrets Are Working
+## Problem
 
-### Secrets Status
-Your `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` are **already set** in Supabase (confirmed from your screenshot). Edge functions access them via `Deno.env.get()` — no migration or additional setup needed. The previous analysis was wrong because it used Lovable's `fetch_secrets` tool which only sees secrets managed through Lovable, not ones added manually in the Supabase dashboard. **No action needed on the secrets front.**
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
-### Build Error Fixes (4 errors in 3 files)
+## Changes
 
-**1. `supabase/functions/concierge-tts/index.ts` line 342**
-- `Uint8Array` not assignable to `BodyInit` — Deno type mismatch
-- Fix: Cast `audioBytes` → `audioBytes as unknown as BodyInit`
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-**2. `supabase/functions/execute-concierge-tool/index.ts` line 117**
-- `tripId` is typed `unknown`, needs to be `string` for `generateCapabilityToken`
-- Fix: Cast `tripId` → `tripId as string`
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-**3. `supabase/functions/lovable-concierge/index.ts` lines 2364 and 2544**
-- `userId` variable doesn't exist in scope (only `user` exists, declared at line 783)
-- Fix: Replace `user?.id || userId` → `user?.id` in both locations
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
+
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
+```
+
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
+```
+
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
+
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 
