@@ -1862,41 +1862,17 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Inline voice status bar — shown when voice session is active */}
-        {isVoiceActive && !duplexFailed && (
+        {/* Inline voice status bar — shown when Gemini Live session is active */}
+        {isLiveSessionActive && (
           <VoiceActiveBar
             state={liveState}
             error={liveError}
             circuitBreakerOpen={liveCircuitBreakerOpen}
             onEnd={handleEndLiveSession}
             onResetCircuitBreaker={resetLiveCircuitBreaker}
-            onReconnect={handleConvoToggle}
+            onReconnect={handleLiveToggle}
             diagnostics={liveDiagnostics}
           />
-        )}
-        {/* Dictation fallback bar — shown when Gemini Live failed and Web Speech is active */}
-        {duplexFailed && isDictationActive && (
-          <div
-            className="flex items-center gap-3 px-4 py-2.5 mx-3 mt-2 rounded-xl border bg-emerald-500/10 border-emerald-500/20 transition-colors duration-300"
-            role="status"
-            aria-label="Dictation active"
-          >
-            <span className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="relative flex items-center justify-center shrink-0">
-                <span className="size-2.5 rounded-full bg-emerald-500" />
-                <span className="absolute inset-0 rounded-full bg-emerald-500 opacity-40 animate-ping" />
-              </span>
-              <span className="text-xs text-white/70 truncate">Dictating — speak now</span>
-            </span>
-            <button
-              type="button"
-              onClick={handleEndLiveSession}
-              className="size-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center hover:bg-red-500/20 hover:border-red-500/30 active:scale-95 transition-all shrink-0 touch-manipulation"
-              aria-label="Stop dictation"
-            >
-              <X size={12} className="text-white/70" />
-            </button>
-          </div>
         )}
 
         {/* Chat Messages */}
