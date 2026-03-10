@@ -19,6 +19,7 @@ export interface PersonalBasecamp {
   address?: string;
   latitude?: number;
   longitude?: number;
+  confirmation_number?: string;
   created_at: string;
   updated_at: string;
 }
