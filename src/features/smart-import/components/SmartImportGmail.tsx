@@ -91,7 +91,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
           Connect your Gmail in Settings to magically find flights, hotels, and event tickets for
           this trip.
         </p>
-        <Button variant="outline" size="sm" onClick={() => (window.location.href = '/settings')}>
+        <Button variant="outline" size="sm" onClick={() => navigate('/settings', { state: { section: 'integrations' } })}>
           Go to Settings
         </Button>
       </div>

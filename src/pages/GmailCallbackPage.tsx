@@ -37,7 +37,7 @@ export const GmailCallbackPage = () => {
       } catch (err: any) {
         setError(err.message || 'Failed to complete Gmail connection');
         toast.error('Failed to complete Gmail connection');
-        setTimeout(() => navigate('/settings'), 3000);
+        setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 3000);
       }
     };
 
