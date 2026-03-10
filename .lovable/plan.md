@@ -1,39 +1,32 @@
 
 
-## Fix: Organization Logo Section Alignment
+## Problem
 
-### Problem
-The Organization Logo card (lines 78–105 of `OrganizationSection.tsx`) has elements scattered with inconsistent alignment: the logo placeholder sits top-left, the camera overlay button floats bottom-right of the logo, and the "Upload Logo" button and helper text sit beside/below with `items-start` — creating a visually sloppy, off-center layout as shown in the screenshot.
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
-### Proposed Fix
-Vertically center-align all elements within the logo card into a single clean column layout:
+## Changes
 
-**File: `src/components/enterprise/OrganizationSection.tsx` (lines 78–105)**
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-Replace the current scattered `flex-col items-start` layout with a centered stack:
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-```
-┌─────────────────────────────┐
-│     Organization Logo       │  ← heading, centered
-│                             │
-│        ┌──────────┐         │
-│        │  Logo    │         │  ← 24×24 rounded icon, centered
-│        │  Icon    │         │
-│        └──────────┘         │
-│           📷                │  ← camera overlay, centered on logo
-│                             │
-│      [ Upload Logo ]        │  ← button, centered
-│                             │
-│  PNG, SVG or JPG. Max 2MB.  │  ← helper text, centered
-└─────────────────────────────┘
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
+
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
 ```
 
-Changes:
-- Outer flex container: `flex flex-col items-center` (was `items-start`)
-- Heading: add `text-center w-full`
-- Logo placeholder: keep centered via parent flex
-- "Upload Logo" button: centered naturally by parent
-- Helper text: add `text-center`
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
+```
 
-This is a pure CSS alignment change — no structural, logic, or behavioral modifications.
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
+
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 

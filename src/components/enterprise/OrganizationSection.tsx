@@ -76,8 +76,8 @@ export const OrganizationSection = ({
           </div>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-xl p-4 min-w-0">
-          <h4 className="text-base font-semibold text-white mb-3 break-words">Organization Logo</h4>
-          <div className="flex flex-col items-start gap-4 min-w-0">
+          <h4 className="text-base font-semibold text-white mb-3 text-center">Organization Logo</h4>
+          <div className="flex flex-col items-center gap-4 min-w-0">
             <div className="relative flex-shrink-0">
               <div className="w-24 h-24 bg-gradient-to-r from-glass-orange to-glass-yellow rounded-xl flex items-center justify-center">
                 <Building size={32} className="text-white" />
@@ -89,18 +89,16 @@ export const OrganizationSection = ({
                 <Camera size={16} />
               </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <button
-                type="button"
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors text-center"
-              >
-                <Upload size={16} className="flex-shrink-0" />
-                Upload Logo
-              </button>
-              <p className="text-sm text-gray-400 mt-2 break-words">
-                PNG, SVG or JPG. Max size 2MB.
-              </p>
-            </div>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <Upload size={16} className="flex-shrink-0" />
+              Upload Logo
+            </button>
+            <p className="text-sm text-gray-400 text-center break-words">
+              PNG, SVG or JPG. Max 2MB.
+            </p>
           </div>
         </div>
       </div>
