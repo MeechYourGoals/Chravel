@@ -1956,6 +1956,9 @@ export const AIConciergeChat = ({
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
+            onLiveToggle={DUPLEX_VOICE_ENABLED ? handleLiveToggle : undefined}
+            isLiveActive={isLiveSessionActive}
+            isLiveEligible={DUPLEX_VOICE_ENABLED}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {
