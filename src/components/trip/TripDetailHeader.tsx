@@ -15,12 +15,12 @@ interface TripDetailHeaderProps {
 }
 
 export const TripDetailHeader = ({
-  tripContext,
-  showInbox,
-  onToggleInbox,
-  onShowInvite,
-  onShowTripSettings,
-  onShowAuth,
+  _tripContext,
+  _showInbox,
+  _onToggleInbox,
+  _onShowInvite,
+  _onShowTripSettings,
+  _onShowAuth,
 }: TripDetailHeaderProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();

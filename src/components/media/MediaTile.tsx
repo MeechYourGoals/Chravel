@@ -28,7 +28,7 @@ export function MediaTile({
   url,
   mimeType,
   fileName,
-  metadata,
+  _metadata,
   onDelete,
   onView,
 }: MediaTileProps) {

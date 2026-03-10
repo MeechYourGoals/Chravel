@@ -8,7 +8,7 @@ interface CountdownBadgeProps {
   className?: string;
 }
 
-export const CountdownBadge = ({ targetDate, tripName, className }: CountdownBadgeProps) => {
+export const CountdownBadge = ({ targetDate, _tripName, className }: CountdownBadgeProps) => {
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
   function calculateTimeLeft() {

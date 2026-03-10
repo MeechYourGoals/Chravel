@@ -107,7 +107,7 @@ class RoleChannelService {
   /**
    * Check if user can access a channel (based on their role)
    */
-  canUserAccessChannel(channel: RoleChannel, userRole: string): boolean {
+  canUserAccessChannel(_channel: RoleChannel, _userRole: string): boolean {
     // Ideally this check should happen on the server/RLS
     // For client-side, we might want to check if the user has the role
     // matching the channel name.

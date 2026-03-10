@@ -27,7 +27,7 @@ export const ConfirmPaymentDialog = ({
   open,
   onOpenChange,
   balance,
-  tripId,
+  _tripId,
 }: ConfirmPaymentDialogProps) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);

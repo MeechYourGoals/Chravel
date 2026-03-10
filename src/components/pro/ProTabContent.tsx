@@ -83,7 +83,7 @@ export const ProTabContent = ({
   basecamp,
   tripData,
   category,
-  onUpdateRoomAssignments,
+  _onUpdateRoomAssignments,
   onUpdateMemberRole,
   trip,
   tripCreatorId,

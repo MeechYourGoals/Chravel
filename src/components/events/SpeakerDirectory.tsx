@@ -10,7 +10,7 @@ interface SpeakerDirectoryProps {
   userRole: 'organizer' | 'speaker' | 'exhibitor' | 'attendee';
 }
 
-export const SpeakerDirectory = ({ speakers, userRole }: SpeakerDirectoryProps) => {
+export const SpeakerDirectory = ({ speakers, _userRole }: SpeakerDirectoryProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpeaker, setSelectedSpeaker] = useState<Speaker | null>(null);
 

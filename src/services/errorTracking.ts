@@ -68,7 +68,7 @@ class ErrorTrackingService {
   /**
    * Set user context for error tracking
    */
-  setUser(userId: string, userData?: Record<string, any>) {
+  setUser(userId: string, _userData?: Record<string, any>) {
     this.userId = userId;
 
     // TODO: Set Sentry user context
@@ -116,7 +116,7 @@ class ErrorTrackingService {
   captureMessage(
     message: string,
     level: 'info' | 'warning' | 'error' = 'info',
-    context?: ErrorContext,
+    _context?: ErrorContext,
   ) {
     // TODO: Send to Sentry
     // Sentry.captureMessage(message, {

@@ -341,7 +341,7 @@ export function subscribeToReadReceipts(
         table: 'message_read_receipts',
         filter: `message_id=eq.${messageId}`,
       },
-      async payload => {
+      async _payload => {
         // Fetch all receipts for this message
         const receipts = await getMessageReadReceipts({ messageId, messageType }, false);
         callback(receipts);

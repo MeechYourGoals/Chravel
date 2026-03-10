@@ -150,7 +150,7 @@ export class TravelBookingService {
     }
   }
 
-  async searchHotels(params: HotelSearchParams): Promise<HotelResult[]> {
+  async searchHotels(_params: HotelSearchParams): Promise<HotelResult[]> {
     try {
       // Mock implementation - would integrate with Booking.com, Expedia, or Hotels.com APIs
       const mockResults: HotelResult[] = [
@@ -187,7 +187,7 @@ export class TravelBookingService {
     }
   }
 
-  async searchRestaurants(params: RestaurantSearchParams): Promise<RestaurantResult[]> {
+  async searchRestaurants(_params: RestaurantSearchParams): Promise<RestaurantResult[]> {
     try {
       // Mock implementation - would integrate with OpenTable, Resy, or Yelp APIs
       const mockResults: RestaurantResult[] = [
@@ -222,7 +222,7 @@ export class TravelBookingService {
     }
   }
 
-  async searchTransportation(params: TransportationSearchParams): Promise<TransportationResult[]> {
+  async searchTransportation(_params: TransportationSearchParams): Promise<TransportationResult[]> {
     try {
       // Mock implementation - would integrate with Uber, Lyft APIs
       const mockResults: TransportationResult[] = [
@@ -255,9 +255,9 @@ export class TravelBookingService {
 
   // Utility methods for booking management
   async saveBooking(
-    type: 'flight' | 'hotel' | 'restaurant' | 'transportation',
-    booking: any,
-    tripId: string,
+    _type: 'flight' | 'hotel' | 'restaurant' | 'transportation',
+    _booking: any,
+    _tripId: string,
   ) {
     try {
       // This would save to Supabase
@@ -283,7 +283,7 @@ export class TravelBookingService {
     }
   }
 
-  async cancelBooking(bookingId: string) {
+  async cancelBooking(_bookingId: string) {
     try {
       // This would cancel the booking with the provider
       return { success: true, refundAmount: 299 };

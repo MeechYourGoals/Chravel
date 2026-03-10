@@ -84,9 +84,9 @@ export const smartCropService = {
    * Calculate zoom bounds based on image vs target aspect
    */
   calculateZoomBounds(
-    imageWidth: number,
-    imageHeight: number,
-    targetAspect: number,
+    _imageWidth: number,
+    _imageHeight: number,
+    _targetAspect: number,
   ): { min: number; max: number; default: number } {
     // Min zoom: 1 (no additional zoom beyond fit)
     // Max zoom: 3x or until quality degrades

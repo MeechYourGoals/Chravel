@@ -28,7 +28,7 @@ interface EventRSVPManagerProps {
 export const EventRSVPManager: React.FC<EventRSVPManagerProps> = ({
   eventId,
   eventTitle,
-  eventCapacity,
+  _eventCapacity,
   registrationStatus = 'open',
 }) => {
   const { rsvp, capacity, isLoading, isSubmitting, submitRSVP } = useEventRSVP(eventId);

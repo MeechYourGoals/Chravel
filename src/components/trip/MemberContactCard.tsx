@@ -39,7 +39,7 @@ export const MemberContactCard: React.FC<MemberContactCardProps> = ({
   open,
   onOpenChange,
   member,
-  tripId,
+  _tripId,
   onSendMessage,
 }) => {
   const [contactInfo, setContactInfo] = useState<MemberContactInfo | null>(null);

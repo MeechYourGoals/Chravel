@@ -27,7 +27,7 @@ interface ProTripDetailContentProps {
 export const ProTripDetailContent = ({
   activeTab,
   onTabChange,
-  onShowTripsPlusModal,
+  _onShowTripsPlusModal,
   tripId,
   basecamp,
   tripData,
@@ -52,7 +52,7 @@ export const ProTripDetailContent = ({
 
   const visibleTabs = getVisibleTabs(userRole, userPermissions, selectedCategory);
 
-  const handleUpdateRoomAssignments = (assignments: any[]) => {
+  const handleUpdateRoomAssignments = (_assignments: any[]) => {
     // In a real app, this would update the trip data
   };
 

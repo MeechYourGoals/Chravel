@@ -29,12 +29,12 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   tripId,
   places,
   basecamp,
-  personalBasecamp,
+  _personalBasecamp,
   onPlaceAdded,
-  onPlaceRemoved,
-  onAddToLinks,
-  linkedPlaceIds,
-  onEventAdded,
+  _onPlaceRemoved,
+  _onAddToLinks,
+  _linkedPlaceIds,
+  _onEventAdded,
 }) => {
   const { user } = useAuth();
   const { subscription } = useSubscription();

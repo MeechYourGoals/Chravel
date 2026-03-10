@@ -518,7 +518,7 @@ class DemoModeService {
     return proMessages;
   }
 
-  private getTripSpecificMessages(tripType: string, currentUserId?: string): MockMessage[] {
+  private getTripSpecificMessages(tripType: string, _currentUserId?: string): MockMessage[] {
     switch (tripType) {
       case 'friends-trip':
         return [

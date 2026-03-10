@@ -300,7 +300,7 @@ export class EnhancedTripContextService {
     }
   }
 
-  private static async getTripPhotos(tripId: string): Promise<TripPhoto[]> {
+  private static async getTripPhotos(_tripId: string): Promise<TripPhoto[]> {
     return [
       {
         id: 'photo-1',
@@ -436,7 +436,7 @@ export class EnhancedTripContextService {
     }
   }
 
-  private static async getTripReceipts(tripId: string): Promise<TripReceipt[]> {
+  private static async getTripReceipts(_tripId: string): Promise<TripReceipt[]> {
     return [
       {
         id: 'receipt-1',
@@ -573,7 +573,7 @@ export class EnhancedTripContextService {
     return Array.from(places);
   }
 
-  private static async getWeatherContext(location: string) {
+  private static async getWeatherContext(_location: string) {
     // Mock weather data
     return {
       current: 'Sunny, 72°F',
@@ -611,7 +611,7 @@ export class EnhancedTripContextService {
     }
   }
 
-  private static async getTripPayments(tripId: string): Promise<any[]> {
+  private static async getTripPayments(_tripId: string): Promise<any[]> {
     try {
       // Note: trip_payments table doesn't exist in current schema
       // Using mock data for now - this should be replaced with actual payment data

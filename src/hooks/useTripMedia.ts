@@ -85,7 +85,7 @@ export const useTripMedia = (tripId: string) => {
           table: 'trip_media_index',
           filter: `trip_id=eq.${tripId}`,
         },
-        payload => {
+        _payload => {
           queryClient.invalidateQueries({ queryKey: ['tripMedia', tripId] });
         },
       )

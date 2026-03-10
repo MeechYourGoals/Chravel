@@ -37,7 +37,7 @@ interface MemberSearchAutocompleteProps {
  * - Mobile-responsive design
  */
 export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> = ({
-  tripId,
+  _tripId,
   existingMemberIds,
   onSelect,
   onRemove,

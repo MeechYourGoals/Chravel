@@ -58,7 +58,7 @@ export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
     loadChannels();
   };
 
-  const handleChannelUpdated = (updatedChannel: ChannelWithStats) => {
+  const handleChannelUpdated = (_updatedChannel: ChannelWithStats) => {
     loadChannels();
   };
 

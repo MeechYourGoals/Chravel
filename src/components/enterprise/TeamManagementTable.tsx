@@ -16,12 +16,12 @@ interface TeamManagementTableProps {
 
 export const TeamManagementTable = ({
   members,
-  selectedMembers,
-  onMemberSelect,
-  onSelectAll,
-  onEditMember,
-  onDeleteMember,
-  onResendInvite,
+  _selectedMembers,
+  _onMemberSelect,
+  _onSelectAll,
+  _onEditMember,
+  _onDeleteMember,
+  _onResendInvite,
 }: TeamManagementTableProps) => {
   return (
     <div className="space-y-4">

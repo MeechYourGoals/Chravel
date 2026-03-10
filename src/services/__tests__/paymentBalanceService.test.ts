@@ -18,7 +18,7 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
     or: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
     single: vi.fn().mockResolvedValue(resolvedValue),
-    then: vi.fn((resolve: any, reject: any) => {
+    then: vi.fn((resolve: any, _reject: any) => {
       // If resolvedValue contains error, we might want to consider it a "success" response from Supabase client
       // (Supabase client doesn't throw on error usually, unless .throwOnError() is used, which is not here)
       // So we resolve with the value.

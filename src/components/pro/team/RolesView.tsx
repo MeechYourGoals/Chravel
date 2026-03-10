@@ -63,7 +63,7 @@ export const RolesView = ({
   isLoadingRoster = false,
   tripId,
   tripCreatorId,
-  trip,
+  _trip,
   availableRoles = [],
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();

@@ -81,7 +81,7 @@ const features: Feature[] = [
 export const FeatureShowcase = () => {
   const [selectedDemo, setSelectedDemo] = useState<string | null>(null);
 
-  const handleFeatureClick = (featureId: string) => {
+  const handleFeatureClick = (_featureId: string) => {
     // In a real implementation, this would show a modal or demo
   };
 

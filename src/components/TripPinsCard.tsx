@@ -24,7 +24,7 @@ export const TripPinsCard = ({
   onPlaceAdded,
   onPlaceRemoved,
   onEventAdded,
-  distanceUnit,
+  _distanceUnit,
   preferredMode,
 }: TripPinsCardProps) => {
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);

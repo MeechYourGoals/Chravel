@@ -15,13 +15,13 @@ class AnalyticsService {
   private isInitialized = false;
   private userId: string | null = null;
 
-  init(config?: { writeKey?: string }) {
+  init(_config?: { writeKey?: string }) {
     // In production, initialize Segment here
     // analytics.load(config?.writeKey);
     this.isInitialized = true;
   }
 
-  identify(userId: string, traits?: Record<string, any>) {
+  identify(userId: string, _traits?: Record<string, any>) {
     this.userId = userId;
 
     // In production, send to Segment
@@ -47,7 +47,7 @@ class AnalyticsService {
     // analytics.track(eventName, event.properties);
   }
 
-  page(name: string, properties?: Record<string, any>) {
+  page(_name: string, _properties?: Record<string, any>) {
     if (!this.isInitialized) {
       console.warn('[Analytics] Not initialized');
     }

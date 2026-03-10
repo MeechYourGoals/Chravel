@@ -22,7 +22,7 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
   members,
   searchQuery,
   onSelect,
-  onClose,
+  _onClose,
   selectedIndex,
   onSelectedIndexChange,
 }) => {

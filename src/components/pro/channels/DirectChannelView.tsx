@@ -15,7 +15,7 @@ const DEMO_TRIP_IDS = [
   'eli-lilly-c-suite-retreat-2026',
 ];
 
-export const DirectChannelView = ({ tripId, userRole }: DirectChannelViewProps) => {
+export const DirectChannelView = ({ tripId, _userRole }: DirectChannelViewProps) => {
   const [channels, setChannels] = useState<TripChannel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<TripChannel | null>(null);
   const [loading, setLoading] = useState(true);

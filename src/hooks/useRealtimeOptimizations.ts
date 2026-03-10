@@ -195,8 +195,8 @@ export const usePresenceTracking = (tripId: string, userId: string) => {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {})
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {})
+      .on('presence', { event: 'join' }, ({ _key, _newPresences }) => {})
+      .on('presence', { event: 'leave' }, ({ _key, _leftPresences }) => {})
       .subscribe(async status => {
         if (status === 'SUBSCRIBED') {
           await channel.track({

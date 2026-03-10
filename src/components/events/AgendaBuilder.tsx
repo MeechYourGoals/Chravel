@@ -13,7 +13,7 @@ interface AgendaBuilderProps {
   userRole: 'organizer' | 'speaker' | 'exhibitor' | 'attendee';
 }
 
-export const AgendaBuilder = ({ tracks, sessions, speakers, userRole }: AgendaBuilderProps) => {
+export const AgendaBuilder = ({ tracks, sessions, speakers, _userRole }: AgendaBuilderProps) => {
   const [selectedTrack, setSelectedTrack] = useState<string>('all');
   const [addedSessions, setAddedSessions] = useState<Set<string>>(new Set(['1', '3'])); // Pre-selected sessions for demo
 

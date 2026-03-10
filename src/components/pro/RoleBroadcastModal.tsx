@@ -26,7 +26,7 @@ export const RoleBroadcastModal = ({
   onClose,
   tripId,
   roster,
-  category,
+  _category,
   availableRoles,
   preselectedRole,
 }: RoleBroadcastModalProps) => {

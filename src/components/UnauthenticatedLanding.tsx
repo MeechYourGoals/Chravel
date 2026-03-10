@@ -7,7 +7,7 @@ interface UnauthenticatedLandingProps {
   onSignUp: () => void;
 }
 
-export const UnauthenticatedLanding = ({ onSignIn, onSignUp }: UnauthenticatedLandingProps) => {
+export const UnauthenticatedLanding = ({ _onSignIn, onSignUp }: UnauthenticatedLandingProps) => {
   return (
     <div className="flex flex-col items-center justify-start px-4 pt-12 pb-12 md:pt-2 md:pb-16">
       {/* Hero Section */}

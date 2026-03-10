@@ -20,7 +20,7 @@ export const AiMessageModal = ({
   isOpen,
   onClose,
   tripId,
-  tourId,
+  _tourId,
   tripContext,
 }: AiMessageModalProps) => {
   const [currentView, setCurrentView] = useState<'composer' | 'templates' | 'scheduling'>(

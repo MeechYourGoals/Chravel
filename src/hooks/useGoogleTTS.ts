@@ -129,7 +129,7 @@ export function useGoogleTTS(options: UseGoogleTTSOptions = {}): UseGoogleTTSRet
       try {
         await new Promise<void>((resolve, reject) => {
           audio.onended = () => resolve();
-          audio.onerror = e => reject(new Error('Audio playback failed in queue'));
+          audio.onerror = _e => reject(new Error('Audio playback failed in queue'));
           audio.play().catch(reject);
         });
       } catch (err) {

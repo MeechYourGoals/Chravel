@@ -20,7 +20,7 @@ const DEMO_TRIP_IDS = [
   '16',
 ];
 
-export const InlineChannelList = ({ tripId, userRole }: InlineChannelListProps) => {
+export const InlineChannelList = ({ tripId, _userRole }: InlineChannelListProps) => {
   const [channels, setChannels] = useState<TripChannel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<TripChannel | null>(null);
   const [loading, setLoading] = useState(true);

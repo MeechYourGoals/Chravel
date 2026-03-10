@@ -26,7 +26,7 @@ export class MockEmbeddingService {
    * In production, these would be 768-dimensional vectors from google/text-embedding-004
    * For demo purposes, we use simplified 8-dimensional vectors
    */
-  private static getMockEmbeddings(tripId: string): MockEmbedding[] {
+  private static getMockEmbeddings(_tripId: string): MockEmbedding[] {
     return [
       // Chat messages
       {

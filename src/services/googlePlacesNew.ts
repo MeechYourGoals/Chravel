@@ -810,7 +810,7 @@ export async function autocomplete(
  */
 export async function fetchPlaceDetails(
   placeId: string,
-  sessionToken?: string,
+  _sessionToken?: string,
 ): Promise<ConvertedPlace | null> {
   await loadMaps();
 
@@ -1034,7 +1034,7 @@ export async function resolveQuery(
  */
 async function resolveQueryOSM(
   query: string,
-  origin: SearchOrigin,
+  _origin: SearchOrigin,
 ): Promise<ConvertedPlace | null> {
   try {
     // Try OSM search

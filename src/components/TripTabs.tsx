@@ -62,8 +62,8 @@ interface TripTabsProps {
 }
 
 export const TripTabs = ({
-  activeTab: parentActiveTab,
-  onTabChange: parentOnTabChange,
+  activeTab: _parentActiveTab,
+  onTabChange: _parentOnTabChange,
   tripId = '1',
   tripName,
   basecamp,

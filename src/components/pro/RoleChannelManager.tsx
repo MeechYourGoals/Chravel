@@ -25,8 +25,8 @@ export const RoleChannelManager = ({
   onClose,
   tripId,
   roster,
-  userRole,
-  existingRoles,
+  _userRole,
+  _existingRoles,
 }: RoleChannelManagerProps) => {
   const [channels, setChannels] = useState<TripChannel[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<TripChannel | null>(null);

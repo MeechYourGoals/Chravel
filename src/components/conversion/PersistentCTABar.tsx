@@ -10,8 +10,8 @@ interface PersistentCTABarProps {
 
 export const PersistentCTABar = ({
   viewMode = 'tripsPro',
-  onScheduleDemo,
-  onSeePricing,
+  _onScheduleDemo,
+  _onSeePricing,
 }: PersistentCTABarProps) => {
   const getCTAButton = () => {
     if (viewMode === 'events') {

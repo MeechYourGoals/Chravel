@@ -10,7 +10,7 @@ interface InviteSettingsSectionProps {
 }
 
 export const InviteSettingsSection = ({
-  requireApproval,
+  _requireApproval,
   expireIn7Days,
   onRequireApprovalChange,
   onExpireIn7DaysChange,

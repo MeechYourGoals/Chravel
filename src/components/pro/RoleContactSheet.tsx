@@ -22,7 +22,7 @@ export const RoleContactSheet = ({
   onClose,
   role,
   members,
-  category,
+  _category,
   onSendGroupMessage,
 }: RoleContactSheetProps) => {
   const [message, setMessage] = useState('');
