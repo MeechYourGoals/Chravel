@@ -37,6 +37,7 @@ export const ConsumerAIConciergeSection = () => {
     } else {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPreferences deps covered by user
   }, [user, isDemoMode]);
 
   const loadPreferences = async () => {

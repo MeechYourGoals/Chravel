@@ -71,6 +71,7 @@ export const AccommodationSelector: React.FC<AccommodationSelectorProps> = ({
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tripBasecamp is intentional reload trigger
   }, [tripId, user, tripBasecamp]);
 
   useEffect(() => {

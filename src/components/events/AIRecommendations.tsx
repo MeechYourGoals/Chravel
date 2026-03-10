@@ -37,6 +37,7 @@ export const AIRecommendations = ({
 
   useEffect(() => {
     generateRecommendations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- generateRecommendations deps covered by sessions+speakers+userInterests
   }, [sessions, speakers, userInterests, userSchedule]);
 
   const generateRecommendations = async () => {

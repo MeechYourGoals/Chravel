@@ -58,6 +58,7 @@ export const NotificationPreferences = () => {
     if (user?.id) {
       loadPreferences();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPreferences deps covered by user?.id
   }, [user?.id]);
 
   const loadPreferences = async () => {

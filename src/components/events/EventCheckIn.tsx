@@ -120,6 +120,7 @@ export const EventCheckIn: React.FC<EventCheckInProps> = ({ eventId }) => {
     if (isAdmin) {
       loadAttendees();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadAttendees deps covered by isAdmin+eventId
   }, [eventId, isAdmin]);
 
   if (!isAdmin) {

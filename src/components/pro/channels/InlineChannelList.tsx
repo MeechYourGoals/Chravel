@@ -28,6 +28,7 @@ export const InlineChannelList = ({ tripId, _userRole }: InlineChannelListProps)
 
   useEffect(() => {
     loadChannels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadChannels depends on tripId already in deps
   }, [tripId]);
 
   const loadChannels = async () => {

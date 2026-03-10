@@ -226,6 +226,7 @@ export const MobileTripTabs = ({
     if (tripId) {
       prefetchAdjacentTabs(tripId, activeTab, enabledTabIds);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- enabledTabIds is unstable array ref; prefetch is best-effort
   }, [activeTab, tripId, prefetchAdjacentTabs]);
 
   // Scroll active tab into view and set CSS var for tabs height
@@ -479,6 +480,10 @@ export const MobileTripTabs = ({
       category,
       tripCreatorId,
       tripData,
+      agendaSessions,
+      handleLineupUpdate,
+      isLoadingRoster,
+      onTabChange,
     ],
   );
 

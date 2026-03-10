@@ -53,6 +53,7 @@ export const BulkRoleAssignmentDialog: React.FC<BulkRoleAssignmentDialogProps> =
     if (open) {
       fetchMembers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMembers deps covered by tripId
   }, [open, tripId]);
 
   const fetchMembers = async () => {

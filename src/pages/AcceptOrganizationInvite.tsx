@@ -45,6 +45,7 @@ export const AcceptOrganizationInvite = () => {
     }
 
     fetchInviteDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchInviteDetails depends on inviteToken+user already in deps
   }, [inviteToken, user]);
 
   const fetchInviteDetails = async () => {

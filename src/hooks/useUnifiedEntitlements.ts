@@ -103,6 +103,7 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
       await store.refreshEntitlements(user.id, user.email);
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- store from Zustand is unstable; would cause infinite loop
   }, [isDemoMode, user?.id, user?.email, isSuperAdminByEmail]);
 
   const refreshEntitlements = useCallback(async () => {

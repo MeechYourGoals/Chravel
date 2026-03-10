@@ -34,6 +34,7 @@ export const PendingJoinRequests = ({ tripId }: PendingJoinRequestsProps) => {
     if (user && tripId) {
       fetchRequests();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchRequests deps already covered by user+tripId in deps
   }, [user, tripId]);
 
   const fetchRequests = async () => {

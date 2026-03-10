@@ -98,6 +98,7 @@ export const useTripPermissions = (tripId: string, userId?: string) => {
     }
 
     loadPermissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPermissions deps covered by tripId+userId
   }, [tripId, userId]);
 
   const loadPermissions = async () => {

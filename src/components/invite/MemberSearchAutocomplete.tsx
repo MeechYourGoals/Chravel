@@ -84,6 +84,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
         clearTimeout(searchTimeoutRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- performSearch deps covered by searchQuery
   }, [searchQuery]);
 
   const performSearch = async (query: string) => {

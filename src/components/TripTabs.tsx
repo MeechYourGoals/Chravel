@@ -45,6 +45,18 @@ import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from './loading';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
+// Static tab order for adjacent prefetching (module-level constant)
+const TAB_ORDER = [
+  'chat',
+  'calendar',
+  'concierge',
+  'media',
+  'payments',
+  'places',
+  'polls',
+  'tasks',
+];
+
 interface TripTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -93,18 +105,6 @@ export const TripTabs = ({
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
 
-  // Tab order for adjacent prefetching
-  const tabOrder = [
-    'chat',
-    'calendar',
-    'concierge',
-    'media',
-    'payments',
-    'places',
-    'polls',
-    'tasks',
-  ];
-
   // ⚡ MOBILE/PWA OPTIMIZATION: Prefetch priority tabs on mount
   // Since mobile users can't hover, we prefetch commonly used tabs immediately
   useEffect(() => {
@@ -120,19 +120,19 @@ export const TripTabs = ({
     }
     // ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
     if (tripId) {
-      prefetchAdjacentTabs(tripId, activeTab, tabOrder);
+      prefetchAdjacentTabs(tripId, activeTab, TAB_ORDER);
     }
   }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
 
   // Handler for saving chat links to Explore Links (trip_links table)
-  const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
+  const handlePromoteToTripLink = useCallback((urlData: NormalizedUrl) => {
     setLinkPrefill({
       url: urlData.url,
       title: urlData.title || urlData.domain,
       note: `Shared in chat on ${new Date(urlData.lastSeenAt).toLocaleDateString()}`,
     });
     setIsAddLinkModalOpen(true);
-  };
+  }, []);
 
   const handleCloseLinkModal = () => {
     setIsAddLinkModalOpen(false);

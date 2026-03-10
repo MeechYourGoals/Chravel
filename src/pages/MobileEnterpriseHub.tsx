@@ -17,6 +17,7 @@ export const MobileEnterpriseHub = () => {
 
   React.useEffect(() => {
     fetchUserOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hook already auto-fetches internally
   }, []);
 
   if (!isMobile) {

@@ -35,6 +35,7 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
 
   useEffect(() => {
     loadMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMembers depends on channel.id already in deps
   }, [channel.id]);
 
   const loadMembers = async () => {

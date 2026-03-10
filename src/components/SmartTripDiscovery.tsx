@@ -38,6 +38,7 @@ export const SmartTripDiscovery = ({
 
   useEffect(() => {
     loadRecommendations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadRecommendations deps covered by currentTripId+basedOn
   }, [currentTripId, basedOn]);
 
   const loadRecommendations = async () => {

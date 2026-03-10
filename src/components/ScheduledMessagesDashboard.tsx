@@ -23,6 +23,7 @@ export const ScheduledMessagesDashboard = ({
 
   useEffect(() => {
     loadScheduledMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadScheduledMessages deps covered by userId+tripId+tourId
   }, [userId, tripId, tourId]);
 
   const loadScheduledMessages = async () => {

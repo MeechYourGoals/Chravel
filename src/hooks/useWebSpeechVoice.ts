@@ -338,7 +338,7 @@ export function useWebSpeechVoice(
     };
 
     return recognition;
-  }, [finalizeTranscript]);
+  }, [finalizeTranscript, cleanup]);
 
   // ── Start voice recognition ─────────────────────────────────────────────
   const startVoice = useCallback(async () => {

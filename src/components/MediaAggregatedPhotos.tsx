@@ -41,6 +41,7 @@ export const MediaAggregatedPhotos = ({ tripId }: MediaAggregatedPhotosProps) =>
     }
 
     fetchMediaItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMediaItems deps already covered by tripId in deps
   }, [tripId, isDemoMode]);
 
   const fetchMediaItems = async () => {

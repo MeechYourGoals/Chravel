@@ -42,6 +42,7 @@ export const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
     if (user) {
       loadRecommendations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadRecommendations deps covered by tripId+userPreferences+basedOn
   }, [tripId, userPreferences, basedOn]);
 
   const loadRecommendations = async () => {

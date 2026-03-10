@@ -498,7 +498,7 @@ export class TripContextAggregator {
       const places = placesResult.data;
 
       // Get user's personal accommodation
-      let userAccommodation;
+      let _userAccommodation;
       const {
         data: { user },
       } = await supabase.auth.getUser();

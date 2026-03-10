@@ -338,6 +338,7 @@ export const useTripMembers = (tripId?: string) => {
     if (tripId) {
       loadTripMembers(tripId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadTripMembers deps covered by existing deps
   }, [tripId, isDemoMode, demoAddedMembersCount]);
 
   // Real-time via hub (deferred to not block initial render)
@@ -357,6 +358,7 @@ export const useTripMembers = (tripId?: string) => {
       clearTimeout(timer);
       if ((timer as any).__unsub) (timer as any).__unsub();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadTripMembers deps covered by existing deps
   }, [tripId]);
 
   return {

@@ -56,6 +56,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
     if (canUseAI && isOpen) {
       loadKnowledgeStats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadKnowledgeStats deps covered by tripContext.tripId
   }, [tripContext.tripId, canUseAI, isOpen]);
 
   const loadKnowledgeStats = async () => {

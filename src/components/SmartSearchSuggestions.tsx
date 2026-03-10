@@ -37,6 +37,7 @@ export const SmartSearchSuggestions = ({
     } else {
       setSuggestions(getDefaultSuggestions());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- generateSmartSuggestions deps covered by currentQuery+tripId
   }, [currentQuery, tripId]);
 
   const generateSmartSuggestions = async () => {

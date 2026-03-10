@@ -74,6 +74,7 @@ export function useBilling(): UseBillingReturn {
       setEntitlements(null);
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadEntitlements is useCallback'd; user?.id already in deps
   }, [user?.id]);
 
   // Auto-refresh entitlements periodically (every 60 seconds)
@@ -85,6 +86,7 @@ export function useBilling(): UseBillingReturn {
     }, 60000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadEntitlements is useCallback'd; user?.id already in deps
   }, [user?.id]);
 
   /**
@@ -105,6 +107,7 @@ export function useBilling(): UseBillingReturn {
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- user?.id is intentionally narrower than user
   }, [user?.id]);
 
   /**

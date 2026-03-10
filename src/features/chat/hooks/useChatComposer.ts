@@ -152,7 +152,7 @@ export const useChatComposer = ({
 
       return message;
     },
-    [inputMessage, createMessage, demoMode, tripId, parseMessage],
+    [inputMessage, createMessage, demoMode, tripId, parseMessage, isEvent],
   );
 
   const setReply = useCallback((messageId: string, messageText: string, senderName: string) => {

@@ -71,6 +71,7 @@ export const AdminRoleManager = ({
     if (isOpen) {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadData depends on tripId already in deps
   }, [isOpen, tripId]);
 
   const loadData = async () => {

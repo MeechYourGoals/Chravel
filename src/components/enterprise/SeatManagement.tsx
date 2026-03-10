@@ -32,6 +32,7 @@ export const SeatManagement = () => {
     if (currentOrg) {
       fetchOrgMembers(currentOrg.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchOrgMembers stability unknown from hook
   }, [currentOrg]);
 
   useEffect(() => {

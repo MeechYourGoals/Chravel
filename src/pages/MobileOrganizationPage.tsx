@@ -24,7 +24,7 @@ export const MobileOrganizationPage = () => {
     if (orgId) {
       fetchOrgMembers(orgId);
     }
-  }, [orgId]);
+  }, [orgId, fetchOrgMembers]);
 
   const organization = organizations.find(org => org.id === orgId);
 

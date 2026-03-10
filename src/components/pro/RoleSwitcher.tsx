@@ -123,7 +123,7 @@ export const RoleSwitcher = ({ category }: RoleSwitcherProps) => {
     if (!lowerRoles.includes(user.proRole)) {
       switchRole(lowerRoles[0]);
     }
-  }, [category]);
+  }, [category, config.roles, switchRole, user?.isPro, user.proRole]);
 
   if (!user?.isPro) return null;
 

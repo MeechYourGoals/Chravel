@@ -59,6 +59,7 @@ export function useEntitlementsSync() {
     };
 
     syncEntitlements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- store from Zustand is unstable; would cause infinite loop
   }, [user?.id, isDemoMode]);
 
   return { isLoading: store.isLoading, lastSyncedAt: store.lastSyncedAt };

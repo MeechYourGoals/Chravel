@@ -34,6 +34,7 @@ export const CountdownBadge = ({ targetDate, _tripName, className }: CountdownBa
     }, 60000); // Update every minute
 
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- calculateTimeLeft only depends on targetDate already in deps
   }, [targetDate]);
 
   if (timeLeft.isExpired) {

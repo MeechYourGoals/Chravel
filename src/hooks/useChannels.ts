@@ -156,6 +156,7 @@ export const useChannelMessages = (channelId: string) => {
       const interval = setInterval(loadMessages, 5000);
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMessages deps covered by channelId; avoids interval churn
   }, [channelId]);
 
   const sendMessage = async (content: string, tripId: string) => {

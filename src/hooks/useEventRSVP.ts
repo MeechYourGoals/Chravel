@@ -129,6 +129,7 @@ export const useEventRSVP = (eventId: string) => {
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- user.email cannot change independently of user?.id
   }, [user?.id, eventId]);
 
   // Submit RSVP
@@ -206,6 +207,7 @@ export const useEventRSVP = (eventId: string) => {
         setIsSubmitting(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- user.email cannot change independently of user?.id
     [user?.id, eventId, capacity, loadRSVP],
   );
 

@@ -107,6 +107,7 @@ export function useIntersectionObserver(
  * Caches result until dependencies change
  */
 export function useComputedValue<T>(compute: () => T, deps: React.DependencyList): T {
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dynamic deps wrapper pattern by design
   return React.useMemo(compute, deps);
 }
 

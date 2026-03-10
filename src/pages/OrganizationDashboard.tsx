@@ -42,6 +42,7 @@ export const OrganizationDashboard = () => {
 
   useEffect(() => {
     fetchUserOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hook already auto-fetches internally
   }, []);
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export const OrganizationDashboard = () => {
         setCurrentOrg(org);
       }
     }
-  }, [orgId, organizations]);
+  }, [orgId, organizations, fetchOrgMembers, setCurrentOrg]);
 
   const fetchLinkedTrips = async (organizationId: string) => {
     try {

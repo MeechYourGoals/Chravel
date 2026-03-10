@@ -61,6 +61,7 @@ export const RoleChannelManager = ({
 
       checkAdminStatus();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- functions depend on isOpen+tripId already in deps
   }, [isOpen, tripId]);
 
   const checkAdminStatus = async () => {

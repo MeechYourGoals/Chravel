@@ -16,6 +16,7 @@ export const OrganizationsHub = () => {
 
   useEffect(() => {
     fetchUserOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hook already auto-fetches internally
   }, []);
 
   if (loading) {

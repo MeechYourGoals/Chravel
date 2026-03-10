@@ -136,6 +136,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
       setReactions(formatted);
     };
     fetchReactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- liveMessages.length is intentionally narrower than liveMessages
   }, [liveMessages.length, user?.id]);
 
   React.useEffect(() => {

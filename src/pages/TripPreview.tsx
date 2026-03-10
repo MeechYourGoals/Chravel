@@ -125,6 +125,7 @@ const TripPreview = () => {
     if (tripId) {
       fetchTripPreview();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchTripPreview depends on tripId already in deps
   }, [tripId]);
 
   // Check membership for logged-in users

@@ -167,7 +167,7 @@ export const useRolePermissions = (tripId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, tripId, isDemoMode]);
+  }, [user?.id, user?.email, tripId, isDemoMode]);
 
   useEffect(() => {
     loadPermissions();
