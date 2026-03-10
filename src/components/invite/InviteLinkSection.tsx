@@ -101,7 +101,7 @@ export const InviteLinkSection = ({
 
       {/* Demo mode indicator */}
       {(isDemoMode || isDemoLink) && inviteLink && (
-        <div className="mt-2 flex items-center gap-2 text-xs text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 rounded-lg px-2 py-1.5">
+        <div className="mt-2 flex items-center gap-2 text-xs text-gold-primary bg-gold-primary/10 border border-gold-primary/20 rounded-lg px-2 py-1.5">
           <AlertTriangle size={14} className="shrink-0" />
           <span>Demo Mode: Link is for demonstration only.</span>
         </div>

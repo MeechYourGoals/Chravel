@@ -19,6 +19,7 @@ import {
   Lock,
   WifiOff,
   UserX,
+  Sparkles,
 } from 'lucide-react';
 import {
   InviteError,
@@ -48,6 +49,30 @@ interface InvitePreviewData {
 }
 
 const INVITE_CODE_STORAGE_KEY = 'chravel_pending_invite_code';
+
+/**
+ * Generate a contextual urgency line from trip start date.
+ * Returns null if no start date or trip is in the past.
+ */
+function getUrgencyLine(startDate: string | null): string | null {
+  if (!startDate) return null;
+
+  const start = new Date(startDate);
+  const now = new Date();
+  const diffMs = start.getTime() - now.getTime();
+
+  if (diffMs < 0) return null;
+
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 7) return `Trip starts in ${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+  if (diffDays <= 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `Trip starts in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+  }
+  const formatted = start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  return `Trip starts ${formatted}`;
+}
 
 const JoinTrip = () => {
   const { token } = useParams<{ token?: string }>();
@@ -410,7 +435,7 @@ const JoinTrip = () => {
       spec.severity === 'error'
         ? 'text-red-400'
         : spec.severity === 'warning'
-          ? 'text-yellow-400'
+          ? 'text-gold-primary'
           : 'text-blue-400';
 
     switch (spec.icon) {
@@ -570,7 +595,7 @@ const JoinTrip = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8 shadow-xl">
-          <WifiOff className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+          <WifiOff className="h-12 w-12 text-gold-primary mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h1>
           <p className="text-muted-foreground mb-6">
             We couldn't load the invite details. Please try again.
@@ -619,8 +644,8 @@ const JoinTrip = () => {
 
           {/* Account mismatch context */}
           {error.code === 'ACCOUNT_MISMATCH' && error.metadata?.invitedEmail && (
-            <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-              <p className="text-sm text-yellow-400">
+            <div className="mb-6 p-3 bg-gold-primary/10 border border-gold-primary/20 rounded-xl">
+              <p className="text-sm text-gold-primary">
                 Invite sent to: <span className="font-medium">{error.metadata.invitedEmail}</span>
               </p>
               {error.metadata.currentEmail && (
@@ -737,7 +762,7 @@ const JoinTrip = () => {
                 <Users size={16} className="text-primary" />
                 <span className="text-foreground">
                   {inviteData.trip.member_count}{' '}
-                  {inviteData.trip.member_count === 1 ? 'member' : 'members'}
+                  {inviteData.trip.member_count === 1 ? 'Chraveler' : 'Chravelers already planning'}
                 </span>
               </div>
             )}
@@ -758,6 +783,18 @@ const JoinTrip = () => {
             )}
           </div>
 
+          {/* Urgency line */}
+          {(() => {
+            const urgency = getUrgencyLine(inviteData?.trip.start_date ?? null);
+            if (!urgency) return null;
+            return (
+              <div className="flex items-center gap-2 mb-6 px-3 py-2 bg-primary/10 border border-primary/20 rounded-xl">
+                <Sparkles size={14} className="text-primary flex-shrink-0" />
+                <span className="text-primary text-sm font-medium">{urgency}</span>
+              </div>
+            );
+          })()}
+
           {/* Actions */}
           {!user ? (
             <div className="space-y-4">
@@ -766,18 +803,21 @@ const JoinTrip = () => {
               </p>
               <div className="space-y-3">
                 <button
-                  onClick={handleLoginRedirect}
+                  onClick={handleSignupRedirect}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-6 rounded-xl transition-all duration-200 font-medium"
                 >
-                  Log In
+                  Sign Up to Join
                 </button>
                 <button
-                  onClick={handleSignupRedirect}
+                  onClick={handleLoginRedirect}
                   className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground py-3 px-6 rounded-xl transition-colors"
                 >
-                  Sign Up
+                  Already have an account? Log In
                 </button>
               </div>
+              <p className="text-muted-foreground text-center text-xs">
+                Create a free account to join the trip and participate
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
