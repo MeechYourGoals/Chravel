@@ -1575,7 +1575,7 @@ export const AIConciergeChat = ({
                 setMessages(prev => {
                   // Check if cards/actions were already attached by tool calls
                   const existing = prev.find(m => m.id === streamingMessageId);
-                  const hasCards = existing?.hotelResults?.length || existing?.placeResults?.length || (existing?.conciergeActions && existing.conciergeActions.length > 0);
+                  const hasCards = existing?.functionCallHotels?.length || existing?.functionCallPlaces?.length || (existing?.conciergeActions && existing.conciergeActions.length > 0);
                   return [
                     ...prev.filter(m => m.id !== streamingMessageId),
                     {
@@ -1585,15 +1585,15 @@ export const AIConciergeChat = ({
                         ? "Here's what I found:"
                         : 'Sorry, I encountered an error processing your request.',
                       timestamp: new Date().toISOString(),
-                      ...(existing?.hotelResults ? { hotelResults: existing.hotelResults } : {}),
-                      ...(existing?.placeResults ? { placeResults: existing.placeResults } : {}),
+                      ...(existing?.functionCallHotels ? { functionCallHotels: existing.functionCallHotels } : {}),
+                      ...(existing?.functionCallPlaces ? { functionCallPlaces: existing.functionCallPlaces } : {}),
                       ...(existing?.conciergeActions ? { conciergeActions: existing.conciergeActions } : {}),
                     },
                   ];
                 });
               } else {
                 updateStreamMsg(msg => {
-                  const hasCards = msg.hotelResults?.length || msg.placeResults?.length || (msg.conciergeActions && msg.conciergeActions.length > 0);
+                  const hasCards = msg.functionCallHotels?.length || msg.functionCallPlaces?.length || (msg.conciergeActions && msg.conciergeActions.length > 0);
                   return msg.content.length > 0 || hasCards
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' };
