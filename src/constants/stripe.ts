@@ -183,7 +183,7 @@ export function getTierFromProductId(productId: string): string {
 export const STRIPE_PRODUCTS = {
   'consumer-explorer': {
     product_id_monthly: CONSUMER_PLANS.explorer.product_id,
-    product_id_annual: CONSUMER_PLANS.explorer.product_id,
+    product_id_annual: CONSUMER_PLANS.explorer.product_id_annual,
     price_monthly_id: CONSUMER_PLANS.explorer.monthly.price_id,
     price_annual_id: CONSUMER_PLANS.explorer.annual.price_id,
     name: 'Explorer',
@@ -192,7 +192,7 @@ export const STRIPE_PRODUCTS = {
   },
   'consumer-frequent-chraveler': {
     product_id_monthly: CONSUMER_PLANS['frequent-chraveler'].product_id,
-    product_id_annual: CONSUMER_PLANS['frequent-chraveler'].product_id,
+    product_id_annual: CONSUMER_PLANS['frequent-chraveler'].product_id_annual,
     price_monthly_id: CONSUMER_PLANS['frequent-chraveler'].monthly.price_id,
     price_annual_id: CONSUMER_PLANS['frequent-chraveler'].annual.price_id,
     name: 'Frequent Chraveler',
