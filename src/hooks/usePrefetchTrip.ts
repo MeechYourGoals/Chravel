@@ -10,6 +10,7 @@ import { fetchTripPlaces } from '@/services/tripPlacesService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
+import { preloadTabChunk, preloadTabChunks } from '@/lib/tabChunkPreloader';
 
 /**
  * Enhanced hook for prefetching trip data on hover/focus
@@ -50,19 +51,16 @@ export const usePrefetchTrip = () => {
     [isDemoMode, queryClient],
   );
 
-  const prefetchExtended = useCallback(
-    (tripId: string) => {
-      if (isDemoMode) return;
-      prefetch(tripId);
-    },
-    [isDemoMode, prefetch],
-  );
-
   /**
-   * ⚡ Prefetch specific tab data — static imports for zero module-load latency
+   * ⚡ Prefetch specific tab data AND preload its JS chunk.
+   * The chunk preload eliminates the Suspense skeleton on first visit.
    */
   const prefetchTab = useCallback(
     (tripId: string, tabId: string) => {
+      // Always preload the JS chunk — even in demo mode the component needs
+      // to be downloaded before it can render demo/mock data.
+      preloadTabChunk(tabId);
+
       if (isDemoMode) return;
 
       switch (tabId) {
@@ -198,39 +196,56 @@ export const usePrefetchTrip = () => {
   /**
    * ⚡ MOBILE/PWA: Prefetch high-priority tabs on trip load
    *
-   * Payments messages are prefetched at 800ms (lightweight query).
+   * Two-phase strategy:
+   *  1. Immediately preload ALL JS chunks so Suspense skeletons never show.
+   *  2. Stagger DATA prefetches to avoid saturating the network.
+   *
+   * Payments messages are prefetched at 400ms (lightweight query).
    * Balance summary is prefetched via prefetchTab when hovering or
    * visiting adjacent tabs, since it involves multiple DB round-trips.
    */
   const prefetchPriorityTabs = useCallback(
     (tripId: string) => {
+      // Phase 1: Preload ALL tab JS chunks immediately.
+      // import() requests are low-priority and don't block the main thread.
+      preloadTabChunks([
+        'chat',
+        'calendar',
+        'tasks',
+        'polls',
+        'media',
+        'places',
+        'payments',
+        'concierge',
+      ]);
+
       if (isDemoMode) return;
 
+      // Phase 2: Stagger data prefetches (tighter timing than before).
       // Immediate: Chat (default tab)
       prefetchTab(tripId, 'chat');
 
-      // After 200ms: Calendar (second most used)
-      setTimeout(() => prefetchTab(tripId, 'calendar'), 200);
+      // After 100ms: Calendar (second most used)
+      setTimeout(() => prefetchTab(tripId, 'calendar'), 100);
 
-      // After 500ms: Tasks (lightweight)
-      setTimeout(() => prefetchTab(tripId, 'tasks'), 500);
+      // After 250ms: Tasks (lightweight)
+      setTimeout(() => prefetchTab(tripId, 'tasks'), 250);
 
-      // After 800ms: Payments (messages are lightweight; balance prefetched via prefetchTab)
-      setTimeout(() => prefetchTab(tripId, 'payments'), 800);
+      // After 400ms: Payments
+      setTimeout(() => prefetchTab(tripId, 'payments'), 400);
 
-      // After 1200ms: Media + Places + Polls in low-priority background
+      // After 600ms: Polls + Places + Media
       setTimeout(() => {
-        prefetchTab(tripId, 'media');
-        prefetchTab(tripId, 'places');
         prefetchTab(tripId, 'polls');
-      }, 1200);
+        prefetchTab(tripId, 'places');
+        prefetchTab(tripId, 'media');
+      }, 600);
     },
     [isDemoMode, prefetchTab],
   );
 
   return {
     prefetch,
-    prefetchExtended,
     prefetchTab,
     prefetchAdjacentTabs,
     prefetchPriorityTabs,
