@@ -41,7 +41,7 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
     }
   }, [user, eventId, sessions]);
 
-  const fetchMySchedule = async () => {
+  const _fetchMySchedule = async () => {
     // Mock implementation
   };
 

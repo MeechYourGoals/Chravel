@@ -237,7 +237,7 @@ describe('useTripTasks', () => {
     });
 
     it('should toggle task status successfully', async () => {
-      const mockTask = {
+      const _mockTask = {
         id: 'task-1',
         version: 1,
       };

@@ -12,7 +12,7 @@ interface TaskAssignmentModalProps {
 }
 
 export const TaskAssignmentModal = ({ taskId, tripId, onClose }: TaskAssignmentModalProps) => {
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectedUsers, _setSelectedUsers] = useState<string[]>([]);
   const [assignmentMode, setAssignmentMode] = useState<'individual' | 'role'>('individual');
   const [selectedRole, setSelectedRole] = useState<string>('');
 

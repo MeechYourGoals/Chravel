@@ -25,7 +25,7 @@ export const SmartSearchSuggestions = ({
   currentQuery,
   tripId,
   onSuggestionClick,
-  userHistory = [],
+  _userHistory = [],
   maxSuggestions = 6,
 }: SmartSearchSuggestionsProps) => {
   const [suggestions, setSuggestions] = useState<SmartSuggestion[]>([]);

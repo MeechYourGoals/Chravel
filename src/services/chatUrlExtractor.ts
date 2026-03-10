@@ -45,7 +45,7 @@ function parsePreview(preview: ChatRow['link_preview']): Record<string, unknown>
   return undefined;
 }
 
-function extractTitleFromLinkPreview(preview: ChatRow['link_preview']): string | undefined {
+function _extractTitleFromLinkPreview(preview: ChatRow['link_preview']): string | undefined {
   const obj = parsePreview(preview);
   if (!obj) return undefined;
   const candidates = ['title', 'og_title', 'ogTitle', 'site_name', 'siteName', 'name'] as const;

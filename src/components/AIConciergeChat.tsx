@@ -560,7 +560,7 @@ export const AIConciergeChat = ({
     error: liveError,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
-    conversationHistory: liveConversationHistory,
+    conversationHistory: _liveConversationHistory,
     startSession: startLiveSession,
     endSession: endLiveSession,
     diagnostics: liveDiagnostics,

@@ -27,7 +27,7 @@ export const MessageFilters = ({
   hidePayments = false,
   isPro = false,
   hasChannels = false,
-  channelCount = 0,
+  _channelCount = 0,
   availableChannels = [],
   activeChannel = null,
   onChannelSelect,

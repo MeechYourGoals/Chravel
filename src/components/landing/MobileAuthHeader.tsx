@@ -11,7 +11,7 @@ interface MobileAuthHeaderProps {
 const HEADER_HEIGHT = 52;
 
 export const MobileAuthHeader: React.FC<MobileAuthHeaderProps> = ({ onSignUp }) => {
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [_showAuthModal, setShowAuthModal] = useState(false);
 
   const handleAuthClick = () => {
     if (onSignUp) {

@@ -193,7 +193,7 @@ export const usePresenceTracking = (tripId: string, userId: string) => {
 
     channel
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
+        const _state = channel.presenceState();
       })
       .on('presence', { event: 'join' }, ({ _key, _newPresences }) => {})
       .on('presence', { event: 'leave' }, ({ _key, _leftPresences }) => {})

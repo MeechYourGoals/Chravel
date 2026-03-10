@@ -429,7 +429,7 @@ describe('paymentBalanceService', () => {
     it('should handle errors gracefully', async () => {
       // This test simulates a DB error that is NOT unauthorized
       // The service catches generic errors and returns empty summary
-      const mockSelect = vi.fn().mockReturnValue({
+      const _mockSelect = vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'Database error' },

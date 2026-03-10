@@ -17,7 +17,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({
   imagePosition = 'center',
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isInView, setIsInView] = useState(false);
+  const [_isInView, setIsInView] = useState(false);
   const [useVideo, setUseVideo] = useState(false);
 
   useEffect(() => {

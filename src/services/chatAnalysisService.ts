@@ -509,7 +509,7 @@ async function getHistoricalPaymentSuggestions(
 
         return suggestions.sort((a, b) => b.confidence - a.confidence);
       }
-    } catch (patternTableError) {
+    } catch (_patternTableError) {
       // Table might not exist yet, fall through to legacy method
       if (import.meta.env.DEV) {
         console.debug(

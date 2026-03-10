@@ -33,7 +33,7 @@ class AnalyticsService {
       console.warn('[Analytics] Not initialized');
     }
 
-    const event: AnalyticsEvent = {
+    const _event: AnalyticsEvent = {
       name: eventName,
       properties: {
         ...properties,

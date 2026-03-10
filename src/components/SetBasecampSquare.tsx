@@ -18,7 +18,7 @@ export const SetBasecampSquare = ({
   const {
     basecamp: contextBasecamp,
     setBasecamp: setContextBasecamp,
-    isBasecampSet,
+    _isBasecampSet,
   } = useBasecamp();
   const { toast } = useToast();
 

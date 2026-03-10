@@ -54,7 +54,7 @@ const ErrorDisplay = ({ type }: { type: ErrorState }) => {
 export const GoogleMapsWidget = ({ widgetToken, height = 300 }: GoogleMapsWidgetProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [errorState, setErrorState] = useState<ErrorState>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [_isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     // Reset state on mount/token change

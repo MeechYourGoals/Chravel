@@ -25,7 +25,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
   const [activeTab, setActiveTab] = useState<'airlines' | 'hotels' | 'rentals'>('airlines');
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [_isSaving, setIsSaving] = useState(false);
 
   const [airlinePrograms, setAirlinePrograms] = useState<AirlineProgram[]>([]);
   const [hotelPrograms, setHotelPrograms] = useState<HotelProgram[]>([]);

@@ -44,7 +44,7 @@ export class MobileLocationService {
 
     try {
       // Test if we can get location
-      const position = await this.getCurrentPosition();
+      const _position = await this.getCurrentPosition();
       return true;
     } catch (error) {
       if (import.meta.env.DEV) {

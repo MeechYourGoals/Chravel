@@ -19,7 +19,7 @@ interface Metric {
   trend?: string;
 }
 
-const testimonials: Testimonial[] = [
+const _testimonials: Testimonial[] = [
   {
     name: 'Paul George Elite AAU Team',
     role: 'AAU Travel Coach',

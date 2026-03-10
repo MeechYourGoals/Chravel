@@ -75,7 +75,7 @@ export class MobileOptimizationService {
   static trackMobilePerformance(): (() => void) | undefined {
     if (!this.isMobile || import.meta.env.PROD) return;
 
-    let frameCount = 0;
+    const _frameCount = 0;
     let lastTime = performance.now();
     let rafId: number;
     const stopTime = Date.now() + 10000; // Stop after 10 seconds

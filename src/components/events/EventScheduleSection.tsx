@@ -16,19 +16,19 @@ export const EventScheduleSection = ({
     scheduleData: eventData.schedule || {},
   });
 
-  const handleIndustrySelect = (industry: string) => {
+  const _handleIndustrySelect = (industry: string) => {
     const updated = { ...scheduleData, industry };
     setScheduleData(updated);
     onEventDataChange?.({ ...eventData, industry });
   };
 
-  const handleTemplateSelect = (template: IndustryTemplate) => {
+  const _handleTemplateSelect = (template: IndustryTemplate) => {
     const updated = { ...scheduleData, template };
     setScheduleData(updated);
     onEventDataChange?.({ ...eventData, template });
   };
 
-  const handleScheduleImport = (schedule: EventScheduleData) => {
+  const _handleScheduleImport = (schedule: EventScheduleData) => {
     const updated = { ...scheduleData, scheduleData: schedule };
     setScheduleData(updated);
     onEventDataChange?.({ ...eventData, schedule });

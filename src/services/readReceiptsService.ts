@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { MessageReadReceipt } from '@/types/messages';
 
-type ReadReceipt = Database['public']['Tables']['message_read_receipts']['Row'];
+type _ReadReceipt = Database['public']['Tables']['message_read_receipts']['Row'];
 type ReadReceiptInsert = Database['public']['Tables']['message_read_receipts']['Insert'];
 
 export interface MarkAsReadParams {

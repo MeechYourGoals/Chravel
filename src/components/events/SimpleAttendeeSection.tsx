@@ -8,7 +8,7 @@ import { InviteInstructions } from '../invite/InviteInstructions';
 import { EventAttendee, RSVPStatus } from '../../types/events';
 
 export const SimpleAttendeeSection = () => {
-  const [attendees, setAttendees] = useState<EventAttendee[]>([
+  const [attendees, _setAttendees] = useState<EventAttendee[]>([
     {
       id: '1',
       name: 'John Smith',

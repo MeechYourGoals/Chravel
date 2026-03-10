@@ -102,7 +102,7 @@ export const TripSettings = ({
   };
 
   const handleSaveCategory = () => {
-    const finalCategory = showCustomInput ? customCategory : tripCategory;
+    const _finalCategory = showCustomInput ? customCategory : tripCategory;
     // This would save to your backend
   };
 

@@ -17,7 +17,7 @@ export const RoomAssignmentsModal = ({
   roster,
   onUpdateAssignments,
 }: RoomAssignmentsModalProps) => {
-  const [assignments, setAssignments] = useState<RoomAssignment[]>(roomAssignments);
+  const [assignments, _setAssignments] = useState<RoomAssignment[]>(roomAssignments);
 
   if (!isOpen) return null;
 

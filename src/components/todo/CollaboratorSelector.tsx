@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
 import { useTripMembers } from '../../hooks/useTripMembers';
 
-interface TripMember {
+interface _TripMember {
   id: string;
   name: string;
   avatar?: string;

@@ -128,7 +128,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
       setMessages(prev => [...prev, assistantMessage]);
     } catch (err) {
       setAiStatus('error');
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      const _errorMessage = err instanceof Error ? err.message : 'An error occurred';
 
       const errorResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),

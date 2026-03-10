@@ -25,7 +25,7 @@ interface PendingTripCardProps {
 }
 
 export const PendingTripCard = ({ trip }: PendingTripCardProps) => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
 
   const handleClick = () => {
     // Show message that trip is pending approval

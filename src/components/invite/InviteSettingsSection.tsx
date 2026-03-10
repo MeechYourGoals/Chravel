@@ -14,7 +14,7 @@ export const InviteSettingsSection = ({
   expireIn7Days,
   onRequireApprovalChange,
   onExpireIn7DaysChange,
-  tripType = 'consumer',
+  _tripType = 'consumer',
 }: InviteSettingsSectionProps) => {
   // All trip types require approval - this is enforced on the backend.
   // The toggle is locked on and shown to communicate the policy to the user.

@@ -75,9 +75,9 @@ export const ChatInput = ({
   onFileUpload,
   isTyping,
   tripMembers = [],
-  hidePayments = false,
-  isInChannelMode = false,
-  isPro = false,
+  _hidePayments = false,
+  _isInChannelMode = false,
+  _isPro = false,
   tripId,
   onTypingChange,
   safeAreaBottom = true,
@@ -99,7 +99,7 @@ export const ChatInput = ({
   const [mentionedUsers, setMentionedUsers] = useState<TripMember[]>([]);
 
   const {
-    shareFile,
+    _shareFile,
     shareLink,
     shareMultipleFiles,
     isUploading: isShareUploading,
@@ -112,7 +112,7 @@ export const ChatInput = ({
     uploadFiles,
     uploadQueue,
     isUploading: isMediaUploading,
-    clearQueue,
+    _clearQueue,
   } = useMediaUpload({
     tripId,
     onComplete: () => {
@@ -391,7 +391,7 @@ export const ChatInput = ({
   };
 
   // Detect file type from drag event
-  const getFileTypeFromDrag = (e: React.DragEvent): 'image' | 'video' | 'document' | 'mixed' => {
+  const _getFileTypeFromDrag = (e: React.DragEvent): 'image' | 'video' | 'document' | 'mixed' => {
     const items = e.dataTransfer.items;
     if (!items || items.length === 0) return 'document';
 

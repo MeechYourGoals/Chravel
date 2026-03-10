@@ -34,7 +34,7 @@ export const SemanticSearch: React.FC<SemanticSearchProps> = ({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchType, setSearchType] = useState<'semantic' | 'keyword' | 'hybrid'>('hybrid');
-  const { user } = useAuth();
+  const { _user } = useAuth();
 
   const handleSearch = async () => {
     if (!query.trim()) return;

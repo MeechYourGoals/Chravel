@@ -82,7 +82,7 @@ class ErrorTrackingService {
 
   captureMessage(
     message: string,
-    level: 'info' | 'warning' | 'error' = 'info',
+    _level: 'info' | 'warning' | 'error' = 'info',
     _context?: ErrorContext,
   ) {
     if (!this.isInitialized) {

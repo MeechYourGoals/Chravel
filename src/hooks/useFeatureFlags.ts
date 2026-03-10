@@ -23,7 +23,8 @@ export const useFeatureFlags = () => {
     // In a real app, you'd fetch these from your feature flag service
     // For now, we'll use environment variables and user roles
     const userRole = (user as any)?.proRole || (user as any)?.role || 'consumer';
-    const isProUser = userRole === 'pro' || userRole === 'enterprise_admin' || userRole === 'admin';
+    const _isProUser =
+      userRole === 'pro' || userRole === 'enterprise_admin' || userRole === 'admin';
 
     setFlags({
       CHANNELS_ENABLED: true, // Always enabled for now

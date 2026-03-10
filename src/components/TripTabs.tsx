@@ -85,7 +85,7 @@ export const TripTabs = ({
     | undefined
   >(undefined);
 
-  const { accentColors } = useTripVariant();
+  const { _accentColors } = useTripVariant();
   const features = useFeatureToggle(tripData || {});
   const { isSuperAdmin } = useSuperAdmin();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();

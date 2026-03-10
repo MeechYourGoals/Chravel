@@ -23,8 +23,8 @@ export const TripDetailHeader = ({
   _onShowAuth,
 }: TripDetailHeaderProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { variant, accentColors } = useTripVariant();
+  const { _user } = useAuth();
+  const { _variant, accentColors } = useTripVariant();
 
   return (
     <div className="flex items-center justify-between mb-4">

@@ -41,7 +41,7 @@ class RoleBroadcastService {
       if (!user) throw new Error('No authenticated user');
 
       // Insert message into trip_messages with role targeting
-      const { data, error } = await supabase
+      const { _data, error } = await supabase
         .from('trip_chat_messages' as any)
         .insert({
           trip_id: tripId,

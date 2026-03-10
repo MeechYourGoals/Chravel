@@ -80,7 +80,7 @@ export const EventDetailContent = ({
   eventData,
   tripContext: _tripContext,
 }: EventDetailContentProps) => {
-  const { accentColors } = useTripVariant();
+  const { _accentColors } = useTripVariant();
   const {
     eventPermissions,
     isOrganizer,

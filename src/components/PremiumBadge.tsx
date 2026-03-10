@@ -7,7 +7,7 @@ interface PremiumBadgeProps {
   variant?: 'default' | 'outline';
 }
 
-export const PremiumBadge = ({ className = '', variant = 'default' }: PremiumBadgeProps) => {
+export const PremiumBadge = ({ className = '', _variant = 'default' }: PremiumBadgeProps) => {
   return (
     <Badge
       variant="secondary"

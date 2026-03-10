@@ -511,7 +511,7 @@ export class TripContextAggregator {
           .maybeSingle();
 
         if (accommodation) {
-          userAccommodation = {
+          _userAccommodation = {
             label: accommodation.accommodation_name,
             address: accommodation.address,
             lat: accommodation.latitude,

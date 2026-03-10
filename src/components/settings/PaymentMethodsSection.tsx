@@ -29,7 +29,7 @@ const PAYMENT_METHOD_TYPES: PaymentMethodType[] = [
 ];
 
 export const PaymentMethodsSection: React.FC = () => {
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const { paymentMethods, addPaymentMethod, deletePaymentMethod } = usePayments();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);

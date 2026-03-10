@@ -43,7 +43,7 @@ export const AdminRoleManager = ({
       grantedAt: string;
     }>
   >([]);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
 
   // Section 1: Role Management State
   const [newRoleName, setNewRoleName] = useState('');

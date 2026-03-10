@@ -10,9 +10,9 @@ export const EventInvitationsSection = ({
   eventData = {},
   onEventDataChange,
 }: EventInvitationsSectionProps) => {
-  const [invitations, setInvitations] = useState<EventInvitation[]>(eventData.invitations || []);
+  const [_invitations, setInvitations] = useState<EventInvitation[]>(eventData.invitations || []);
 
-  const handleInvitationsUpdate = (updatedInvitations: EventInvitation[]) => {
+  const _handleInvitationsUpdate = (updatedInvitations: EventInvitation[]) => {
     setInvitations(updatedInvitations);
     onEventDataChange?.({ ...eventData, invitations: updatedInvitations });
   };

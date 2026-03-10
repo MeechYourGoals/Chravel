@@ -34,7 +34,7 @@ export const RoleChannelManager = ({
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [loading, setLoading] = useState(true);
   const [demoMode, setDemoMode] = useState(false);
-  const { toast } = useToast();
+  const { _toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -95,7 +95,7 @@ export const RoleChannelManager = ({
     setLoading(false);
   };
 
-  const enterDemoMode = () => {
+  const _enterDemoMode = () => {
     const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
     setChannels(demoChannels);
     setDemoMode(true);

@@ -83,7 +83,7 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
 
   // Free users can see archived trips but cannot restore them without upgrading
   const isFreeUser = tier === 'free';
-  const canRestoreTrips = !isFreeUser;
+  const _canRestoreTrips = !isFreeUser;
 
   // Helper to force refresh of trips list
   const refreshTrips = useCallback(() => {

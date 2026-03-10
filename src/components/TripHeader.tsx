@@ -147,7 +147,7 @@ export const TripHeader = ({
       return () => clearTimeout(timeoutId);
     }
   }, [searchParams, setSearchParams]);
-  const { variant, accentColors } = useTripVariant();
+  const { variant, _accentColors } = useTripVariant();
   const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
     trip.id.toString(),
     trip.coverPhoto,
@@ -300,7 +300,7 @@ export const TripHeader = ({
   const isEvent = trip.trip_type === 'event';
   const recapLabel = isEvent ? 'Event Recap' : 'PDF Recap';
   const recapActionLabel = isEvent ? 'Create Event Recap' : 'Create PDF Recap';
-  const hasCoverPhoto = Boolean(coverPhoto);
+  const _hasCoverPhoto = Boolean(coverPhoto);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddCoverPhotoClick = () => {

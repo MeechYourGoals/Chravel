@@ -247,7 +247,7 @@ export async function removeDuplicates(
       const sorted = [...group.files].sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
-      const keep = sorted[0];
+      const _keep = sorted[0];
       const remove = sorted.slice(1);
 
       // Delete duplicates

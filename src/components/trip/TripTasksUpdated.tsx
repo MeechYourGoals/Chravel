@@ -14,7 +14,7 @@ interface TripTasksUpdatedProps {
 
 export const TripTasksUpdated = ({ tripId }: TripTasksUpdatedProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { tasks, isLoading, createTaskMutation, toggleTaskMutation } = useTripTasks(tripId);
+  const { tasks, isLoading, _createTaskMutation, _toggleTaskMutation } = useTripTasks(tripId);
   const { user } = useAuth();
 
   if (isLoading) {

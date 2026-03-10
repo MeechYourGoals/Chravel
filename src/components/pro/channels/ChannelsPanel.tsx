@@ -18,7 +18,7 @@ interface ChannelsPanelProps {
 
 export const ChannelsPanel: React.FC<ChannelsPanelProps> = ({
   tripId,
-  userRole = 'staff',
+  _userRole = 'staff',
   isAdmin = false,
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);

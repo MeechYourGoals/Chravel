@@ -951,7 +951,7 @@ export async function resolveQuery(
     }
 
     // 2) Try searchByText with type detection
-    const detectedType = detectPlaceType(query);
+    const _detectedType = detectPlaceType(query);
 
     const places = await retryWithBackoff(async () => searchByText(query, origin, 1));
 

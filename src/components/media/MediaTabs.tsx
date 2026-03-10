@@ -30,7 +30,7 @@ export function MediaTabs({ tripId, onAddMedia }: MediaTabsProps) {
   const [activeTab, setActiveTab] = React.useState<'all' | 'photos' | 'videos' | 'files' | 'links'>(
     'all',
   );
-  const [filterQuery, setFilterQuery] = React.useState('');
+  const [filterQuery, _setFilterQuery] = React.useState('');
 
   if (error) {
     return (

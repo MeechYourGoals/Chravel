@@ -60,7 +60,7 @@ const getResultTypeLabel = (type: string) => {
 };
 
 export const SearchResults = ({ results, onResultClick, isLoading }: SearchResultsProps) => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
 
   if (isLoading) {
     return (

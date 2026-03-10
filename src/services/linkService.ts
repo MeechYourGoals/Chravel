@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
-type Tables = Database['public']['Tables'];
+type _Tables = Database['public']['Tables'];
 
 export async function insertLinkIndex(params: {
   tripId: string;

@@ -13,7 +13,7 @@ export const AppInitializer = ({ children }: { children: React.ReactNode }) => {
 
   // Only run health checks for authenticated users NOT in demo mode
   const shouldRunHealthChecks = user && !isDemoMode;
-  const { isInitialized, conciergeStatus, mapsStatus } = useApiHealth(shouldRunHealthChecks);
+  const { _isInitialized, _conciergeStatus, _mapsStatus } = useApiHealth(shouldRunHealthChecks);
 
   // CSP violation monitoring with error safety
   useEffect(() => {

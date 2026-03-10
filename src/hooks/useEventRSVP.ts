@@ -169,7 +169,7 @@ export const useEventRSVP = (eventId: string) => {
         }
 
         // Upsert RSVP
-        const { data, error } = await supabase
+        const { _data, error } = await supabase
           .from('event_rsvps' as any)
           .upsert(
             {

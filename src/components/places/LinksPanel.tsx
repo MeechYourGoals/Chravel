@@ -36,16 +36,18 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   _linkedPlaceIds,
   _onEventAdded,
 }) => {
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const { subscription } = useSubscription();
-  const isProUser = subscription?.plan === 'pro';
+  const _isProUser = subscription?.plan === 'pro';
 
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
   const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set(['all']));
 
-  const availableCategories = PlaceCategoryEnum.filter(cat => places.some(p => p.category === cat));
+  const _availableCategories = PlaceCategoryEnum.filter(cat =>
+    places.some(p => p.category === cat),
+  );
 
-  const categoryIcons: { [key in PlaceCategory]: React.ElementType } = {
+  const _categoryIcons: { [key in PlaceCategory]: React.ElementType } = {
     Appetite: MapPin,
     Activity: Calendar,
     Accommodation: MapPin,
@@ -53,7 +55,7 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
     Other: Link,
   };
 
-  const toggleCategory = (category: PlaceCategory | 'all') => {
+  const _toggleCategory = (category: PlaceCategory | 'all') => {
     const newVisible = new Set(visibleCategories);
     if (category === 'all') {
       newVisible.clear();
@@ -72,7 +74,7 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
     setVisibleCategories(newVisible);
   };
 
-  const filteredPlaces = visibleCategories.has('all')
+  const _filteredPlaces = visibleCategories.has('all')
     ? places
     : places.filter(p => p.category && visibleCategories.has(p.category));
 

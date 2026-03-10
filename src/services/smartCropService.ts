@@ -34,7 +34,7 @@ export const smartCropService = {
    * and target display aspect ratio (e.g., 3:1 for desktop banner)
    */
   calculateSmartCrop(imageWidth: number, imageHeight: number, targetAspect: number): CropSettings {
-    const imageAspect = imageWidth / imageHeight;
+    const _imageAspect = imageWidth / imageHeight;
     const orientation = this.detectOrientation(imageWidth, imageHeight);
 
     // Landscape photo into landscape banner: fit entire width

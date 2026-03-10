@@ -14,8 +14,8 @@ interface BasecampCardProps {
 }
 
 export const BasecampCard: React.FC<BasecampCardProps> = ({ tripId }) => {
-  const { user } = useAuth();
-  const { data: tripBasecamp, isLoading: isLoadingBasecamp } = useTripBasecamp(tripId);
+  const { _user } = useAuth();
+  const { data: tripBasecamp, isLoading: _isLoadingBasecamp } = useTripBasecamp(tripId);
   const updateBasecampMutation = useUpdateTripBasecamp(tripId);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({

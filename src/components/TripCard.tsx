@@ -68,7 +68,7 @@ interface Trip {
 }
 
 // Query key constant shared with useTrips
-const TRIPS_QUERY_KEY = 'trips';
+const _TRIPS_QUERY_KEY = 'trips';
 
 interface TripCardProps {
   trip: Trip;

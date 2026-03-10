@@ -67,7 +67,7 @@ describe('VoiceButton', () => {
 
   it('shows upgrade path when voice is unavailable', async () => {
     vi.useRealTimers();
-    const user = userEvent.setup();
+    const _user = userEvent.setup();
     const onToggle = vi.fn();
     const onUpgrade = vi.fn();
 

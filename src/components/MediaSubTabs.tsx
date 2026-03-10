@@ -271,7 +271,7 @@ export const MediaSubTabs = ({
 
         // Upload to Supabase Storage with explicit contentType
         // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: _uploadData, error: uploadError } = await supabase.storage
           .from('trip-media')
           .upload(fileName, file, {
             cacheControl: '3600',

@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useDemoMode } from '../../hooks/useDemoMode';
 
 export const ConsumerAIConciergeSection = () => {
-  const { isPlus, upgradeToPlus } = useConsumerSubscription();
+  const { _isPlus, _upgradeToPlus } = useConsumerSubscription();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [preferences, setPreferences] = useState<TripPreferencesType | null>(null);

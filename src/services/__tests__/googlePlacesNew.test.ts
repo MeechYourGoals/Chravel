@@ -136,7 +136,7 @@ describe('Google Places New API Service', () => {
     it('should use cached results when available', async () => {
       const input = 'Coffee Shop';
       const origin: SearchOrigin = { lat: 40.758, lng: -73.9855 };
-      const sessionToken = generateSessionToken();
+      const _sessionToken = generateSessionToken();
 
       const cachedResults = [{ place_id: '123', description: 'Coffee Shop NYC' }];
 
@@ -163,7 +163,7 @@ describe('Google Places New API Service', () => {
     it('should use cached results when available', async () => {
       const query = 'Starbucks NYC';
       const origin: SearchOrigin = { lat: 40.758, lng: -73.9855 };
-      const sessionToken = generateSessionToken();
+      const _sessionToken = generateSessionToken();
 
       const cachedResult = {
         place_id: '123',

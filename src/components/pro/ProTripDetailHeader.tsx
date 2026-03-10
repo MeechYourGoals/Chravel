@@ -23,7 +23,7 @@ export const ProTripDetailHeader = ({
   _onShowAuth,
 }: ProTripDetailHeaderProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const { accentColors } = useTripVariant();
 
   return (

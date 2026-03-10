@@ -94,8 +94,8 @@ export const FilesTab = ({ tripId }: FilesTabProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   // Reserved for future calendar event integration
-  const [pendingEvents, setPendingEvents] = useState<any[]>([]);
-  const [showEventModal, setShowEventModal] = useState(false);
+  const [_pendingEvents, setPendingEvents] = useState<any[]>([]);
+  const [_showEventModal, setShowEventModal] = useState(false);
   const [showReceiptUploadModal, setShowReceiptUploadModal] = useState(false);
   const [showReceiptViewModal, setShowReceiptViewModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<TripFile | null>(null);

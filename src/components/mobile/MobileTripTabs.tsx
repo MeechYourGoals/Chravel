@@ -98,7 +98,7 @@ export const MobileTripTabs = ({
   tripCreatorId,
   isLoadingRoster = false,
 }: MobileTripTabsProps) => {
-  const { accentColors } = useTripVariant();
+  const { _accentColors } = useTripVariant();
   const { isDemoMode } = useDemoMode();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
   const contentRef = useRef<HTMLDivElement>(null);

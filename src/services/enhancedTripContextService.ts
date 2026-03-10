@@ -188,8 +188,8 @@ export class EnhancedTripContextService {
 
     // 🆕 Enhanced contextual data for AI Concierge
     const tasks = await this.getTripTasks(context.tripId);
-    const payments = await this.getTripPayments(context.tripId);
-    const calendar = await this.getTripCalendar(context.tripId);
+    const _payments = await this.getTripPayments(context.tripId);
+    const _calendar = await this.getTripCalendar(context.tripId);
 
     // 🆕 Geocode basecamp if it doesn't have coordinates
     if (context.basecamp && typeof context.basecamp === 'object') {

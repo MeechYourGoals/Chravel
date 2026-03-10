@@ -203,7 +203,7 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   const trip = tripQuery.data ? convertSupabaseTripToMock(tripQuery.data) : null;
 
   // Show loading while auth is resolving or data is fetching
-  const isLoading = isAuthLoading || tripQuery.isLoading;
+  const _isLoading = isAuthLoading || tripQuery.isLoading;
 
   // Guarantee at least creator as a member (never show "0 Chravelers")
   let tripMembers = membersQuery.data?.members || [];

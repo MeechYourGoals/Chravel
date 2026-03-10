@@ -68,11 +68,11 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
     }
   };
 
-  const getPlusPrice = () => {
+  const _getPlusPrice = () => {
     return billingCycle === 'monthly' ? TRIPS_PLUS_PRICE : TRIPS_PLUS_ANNUAL_PRICE;
   };
 
-  const calculateSavings = () => {
+  const _calculateSavings = () => {
     const monthlyCost = TRIPS_PLUS_PRICE * 12;
     const annualCost = TRIPS_PLUS_ANNUAL_PRICE;
     return Math.round(((monthlyCost - annualCost) / monthlyCost) * 100);

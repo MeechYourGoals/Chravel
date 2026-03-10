@@ -13,7 +13,7 @@ export const PrivacyModeSelector = ({
   tripType,
   selectedMode,
   onModeChange,
-  showOverrideOption = true,
+  _showOverrideOption = true,
 }: PrivacyModeSelectorProps) => {
   const defaultMode = getDefaultPrivacyMode(tripType);
   const isOverriding = selectedMode !== defaultMode;

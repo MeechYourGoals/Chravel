@@ -42,7 +42,7 @@ export const useLocationStore = create<LocationState & LocationActions>((set, ge
 
   removeLocation: userId =>
     set(state => {
-      const { [userId]: removed, ...remaining } = state.locations;
+      const { [userId]: _removed, ...remaining } = state.locations;
       return {
         locations: remaining,
         lastUpdate: Date.now(),

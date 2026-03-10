@@ -71,7 +71,7 @@ class WebMediaPicker implements MediaService {
     });
   }
 
-  async takePicture(options: { quality?: number } = {}): Promise<MediaPickerResult> {
+  async takePicture(_options: { quality?: number } = {}): Promise<MediaPickerResult> {
     // Web: Opens camera via file input
     return new Promise(resolve => {
       const input = document.createElement('input');

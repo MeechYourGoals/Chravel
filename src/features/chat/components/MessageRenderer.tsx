@@ -25,7 +25,7 @@ interface MessageRendererProps {
 
 export const MessageRenderer: React.FC<MessageRendererProps> = ({
   message,
-  showMapWidgets = false,
+  _showMapWidgets = false,
   ttsPlaybackState,
   ttsPlayingMessageId,
   onTTSPlay,

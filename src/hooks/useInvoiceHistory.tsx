@@ -46,7 +46,7 @@ export function useInvoiceHistory() {
       try {
         setIsLoading(true);
 
-        const params = new URLSearchParams({
+        const _params = new URLSearchParams({
           limit: '100',
           ...(cursor && { starting_after: cursor }),
         });

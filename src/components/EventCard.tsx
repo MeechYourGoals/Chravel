@@ -51,7 +51,7 @@ import {
 const EMPTY_PARTICIPANTS: Array<{ id: number | string; name: string; avatar?: string }> = [];
 
 // Extended event type for fields that may exist on real trip objects but aren't in EventData
-type ExtendedEvent = EventData & { card_color?: string; created_by?: string; coverPhoto?: string };
+type _ExtendedEvent = EventData & { card_color?: string; created_by?: string; coverPhoto?: string };
 
 interface EventCardProps {
   event: EventData;

@@ -12,7 +12,7 @@ const formatBytes = (bytes: number): string => {
 };
 
 export const DatabaseMonitoringDashboard = () => {
-  const { tableMetrics, storageMetrics, totalDbSize, totalRowCount, isLoading } =
+  const { tableMetrics, storageMetrics, totalDbSize, _totalRowCount, isLoading } =
     useDatabaseMetrics();
 
   if (isLoading) {

@@ -78,7 +78,7 @@ export async function tagMediaItem(
 
     // Determine category
     let category = 'general';
-    const activityLower = (analysis.activity || '').toLowerCase();
+    const _activityLower = (analysis.activity || '').toLowerCase();
     const tagsLower = tags.map(t => t.toLowerCase()).join(' ');
 
     if (

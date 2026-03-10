@@ -95,8 +95,8 @@ export const TripActionBar = ({
   const {
     notifications,
     unreadCount,
-    fetchNotifications,
-    fetchUnreadCount,
+    _fetchNotifications,
+    _fetchUnreadCount,
     markAsRead,
     markAllAsRead,
     clearAll,

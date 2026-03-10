@@ -35,7 +35,7 @@ export const DemoChat = ({ tripId }: DemoChatProps) => {
   const [reactions, setReactions] = useState<
     Record<string, Record<string, { count: number; userReacted: boolean }>>
   >({});
-  const [isTyping, setIsTyping] = useState(false);
+  const [_isTyping, setIsTyping] = useState(false);
 
   const { shareMultipleFiles } = useShareAsset(tripId);
 

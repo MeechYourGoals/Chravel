@@ -146,7 +146,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaScrollSentinelRef = useRef<HTMLDivElement>(null);
 
-  const { isPulling, isRefreshing, pullDistance } = usePullToRefresh({
+  const { _isPulling, isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: async () => {
       await refetch();
     },

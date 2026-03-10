@@ -131,7 +131,7 @@ export async function uploadToChatMedia(
   }
 
   // Upload to private bucket
-  const { data, error } = await supabase.storage
+  const { _data, error } = await supabase.storage
     .from(BUCKET_NAME)
     .upload(storagePath, fileToUpload, {
       contentType: file.type,

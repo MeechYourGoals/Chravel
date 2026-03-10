@@ -20,7 +20,7 @@ interface PermissionMatrix {
   [key: string]: PermissionLevel;
 }
 
-interface TripMemberPermissions {
+interface _TripMemberPermissions {
   userId: string;
   role: string;
   permissions: PermissionMatrix;

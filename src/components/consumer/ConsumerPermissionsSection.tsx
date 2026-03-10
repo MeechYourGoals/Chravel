@@ -238,7 +238,7 @@ export const ConsumerPermissionsSection = () => {
         {cards.map(card => {
           const status = statuses?.[card.id];
           const state = status?.state ?? 'unknown';
-          const canOpenSettings = status?.canOpenSettings ?? false;
+          const _canOpenSettings = status?.canOpenSettings ?? false;
           const detail = status?.detail;
 
           const isGranted = state === 'granted';
