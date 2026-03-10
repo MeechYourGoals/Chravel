@@ -595,7 +595,13 @@ export const AIConciergeChat = ({
       }
     }
 
-    await startLiveSession();
+    toast.info('Starting live voice…');
+    try {
+      await startLiveSession();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to start live voice session';
+      toast.error(msg);
+    }
   }, [
     isDictationActive,
     toggleDictation,

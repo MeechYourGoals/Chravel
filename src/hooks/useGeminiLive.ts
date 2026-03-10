@@ -1319,6 +1319,7 @@ export function useGeminiLive({
       setError(errMsg);
       patchDiagnostics({ lastError: errMsg, connectionStatus: 'error' });
       transition('error', 'start_failed');
+      toast.error(errMsg);
       void cleanup();
     }
   }, [
