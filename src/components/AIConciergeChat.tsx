@@ -576,30 +576,30 @@ export const AIConciergeChat = ({
   const isLiveSessionActive =
     DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
-  // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
-  const handleConvoToggle = useCallback(async () => {
-    if (!DUPLEX_VOICE_ENABLED) {
-      // Simple dictation: toggle Web Speech API. Text fills the input field.
+  // Waveform button — dictation only. Stops Live if active first.
+  const handleConvoToggle = useCallback(() => {
+    if (isLiveSessionActive) {
+      void endLiveSession();
+    }
+    toggleDictation();
+  }, [isLiveSessionActive, endLiveSession, toggleDictation]);
+
+  // Live button — Gemini Live toggle. Stops dictation if active first.
+  const handleLiveToggle = useCallback(async () => {
+    if (!DUPLEX_VOICE_ENABLED) return;
+
+    // Stop dictation if running
+    if (isDictationActive) {
       toggleDictation();
-      return;
     }
 
-    // If in dictation fallback mode, toggle dictation off/on
-    if (duplexFailed) {
-      toggleDictation();
-      // If user taps to stop dictation, reset fallback state
-      if (isDictationActive) {
-        setDuplexFailed(false);
-      }
-      return;
-    }
-
-    // Duplex path — stop active session
-    if (liveState !== 'idle' && liveState !== 'error') {
+    // If Live is already active, stop it
+    if (isLiveSessionActive) {
       await endLiveSession();
       return;
     }
 
+    // Check plan limits
     if (isLimitedPlan) {
       let incrementResult;
       try {
@@ -614,28 +614,21 @@ export const AIConciergeChat = ({
       }
     }
 
-    // Try Gemini Live first — if it fails, the useEffect above will auto-fallback
     await startLiveSession();
   }, [
+    isDictationActive,
     toggleDictation,
-    liveState,
-    startLiveSession,
+    isLiveSessionActive,
     endLiveSession,
+    startLiveSession,
     isLimitedPlan,
     incrementUsageOnSuccess,
     buildLimitReachedMessage,
-    duplexFailed,
-    isDictationActive,
   ]);
 
   const handleEndLiveSession = useCallback(() => {
     void endLiveSession();
-    // Also stop dictation if it was running as a fallback
-    if (duplexFailed && isDictationActive) {
-      toggleDictation();
-    }
-    setDuplexFailed(false);
-  }, [endLiveSession, duplexFailed, isDictationActive, toggleDictation]);
+  }, [endLiveSession]);
 
   // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
   // While Gemini Live is in 'playing' state, update the transient bubble so the
