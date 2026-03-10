@@ -1572,22 +1572,32 @@ export const AIConciergeChat = ({
               if (!isMounted.current) return;
               setIsTyping(false);
               if (!receivedAnyChunk) {
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    id: streamingMessageId,
-                    type: 'assistant' as const,
-                    content: 'Sorry, I encountered an error processing your request.',
-                    timestamp: new Date().toISOString(),
-                  },
-                ]);
+                setMessages(prev => {
+                  // Check if cards/actions were already attached by tool calls
+                  const existing = prev.find(m => m.id === streamingMessageId);
+                  const hasCards = existing?.functionCallHotels?.length || existing?.functionCallPlaces?.length || (existing?.conciergeActions && existing.conciergeActions.length > 0);
+                  return [
+                    ...prev.filter(m => m.id !== streamingMessageId),
+                    {
+                      id: streamingMessageId,
+                      type: 'assistant' as const,
+                      content: hasCards
+                        ? "Here's what I found:"
+                        : 'Sorry, I encountered an error processing your request.',
+                      timestamp: new Date().toISOString(),
+                      ...(existing?.functionCallHotels ? { functionCallHotels: existing.functionCallHotels } : {}),
+                      ...(existing?.functionCallPlaces ? { functionCallPlaces: existing.functionCallPlaces } : {}),
+                      ...(existing?.conciergeActions ? { conciergeActions: existing.conciergeActions } : {}),
+                    },
+                  ];
+                });
               } else {
-                updateStreamMsg(msg =>
-                  msg.content.length > 0 ||
-                  (msg.conciergeActions && msg.conciergeActions.length > 0)
+                updateStreamMsg(msg => {
+                  const hasCards = msg.functionCallHotels?.length || msg.functionCallPlaces?.length || (msg.conciergeActions && msg.conciergeActions.length > 0);
+                  return msg.content.length > 0 || hasCards
                     ? {}
-                    : { content: 'Sorry, I encountered an error processing your request.' },
-                );
+                    : { content: 'Sorry, I encountered an error processing your request.' };
+                });
                 // Cache the completed response for offline fallback.
                 // Use the locally accumulated string — no setState read needed.
                 if (accumulatedStreamContent) {
