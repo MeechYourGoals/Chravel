@@ -22,6 +22,7 @@ const TripVariantContext = createContext<TripVariantContextType>({
   },
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTripVariant = () => useContext(TripVariantContext);
 
 interface TripVariantProviderProps {

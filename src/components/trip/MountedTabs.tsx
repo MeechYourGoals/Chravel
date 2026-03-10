@@ -80,6 +80,7 @@ MountedTabs.displayName = 'MountedTabs';
  * Hook to prefetch tab data on hover
  * Use with onMouseEnter on tab buttons
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTabPrefetch = (
   tripId: string,
   prefetchTab: (tripId: string, tabId: string) => void,

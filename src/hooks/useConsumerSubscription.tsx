@@ -177,6 +177,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useConsumerSubscription = () => {
   const context = useContext(ConsumerSubscriptionContext);
   if (context === undefined) {

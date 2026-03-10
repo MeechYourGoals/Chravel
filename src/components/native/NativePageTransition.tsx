@@ -206,6 +206,7 @@ export const NativeNavigationStack = ({ children, rootScreen }: NativeNavigation
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNavigationStack = () => {
   const context = React.useContext(NavigationStackContext);
   if (!context) {

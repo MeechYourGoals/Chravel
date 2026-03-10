@@ -21,6 +21,7 @@ export const DataSourceProvider = ({
   return <DataSourceContext.Provider value={value}>{children}</DataSourceContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDataSource = () => {
   const ctx = useContext(DataSourceContext);
   if (!ctx) throw new Error('useDataSource must be used within DataSourceProvider');

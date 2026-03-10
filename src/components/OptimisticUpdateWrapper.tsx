@@ -28,6 +28,7 @@ interface OptimisticUpdateConfig<T, TResult = void> {
  * await execute(newMemberData);
  * ```
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOptimisticUpdate<T, TResult = void>(config: OptimisticUpdateConfig<T, TResult>) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
