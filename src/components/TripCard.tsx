@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
+  CalendarDays,
   MapPin,
   User,
+  Users,
   MoreHorizontal,
   Archive,
   Flame,
@@ -12,6 +13,8 @@ import {
   FileDown,
   Trash2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
+import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useShallow } from 'zustand/react/shallow';
 import { InviteModal } from './InviteModal';
 import { ShareTripModal } from './share/ShareTripModal';
@@ -224,7 +227,7 @@ export const TripCard = ({
 
   // Complete PDF export handler - same logic as in-trip export
   const handleExportPdf = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const tripIdStr = trip.id.toString();
       const isNumericId = !tripIdStr.includes('-'); // UUIDs have dashes, demo IDs don't
@@ -323,6 +326,8 @@ export const TripCard = ({
         if (import.meta.env.DEV)
           console.log('[TripCard Export] PDF generated, blob size:', blob.size);
 
+        signal.throwIfAborted();
+
         // Generate filename
         const sanitizedTitle = trip.title.replace(/[^a-zA-Z0-9]/g, '_');
         const filename = `Trip_${sanitizedTitle}_${Date.now()}.pdf`;
@@ -335,6 +340,7 @@ export const TripCard = ({
           description: `PDF downloaded: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         toast({
           title: 'Recap failed',
           description:
@@ -378,12 +384,12 @@ export const TripCard = ({
 
   return (
     <div
-      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-yellow-500/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
+      className="group bg-white/5 hover:bg-white/10 backdrop-blur-xl border border-white/10 hover:border-gold-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl shadow-lg md:shadow-black/20"
       onMouseEnter={handlePrefetch}
       onFocus={handlePrefetch}
     >
       {/* Trip Image/Header - Responsive with lazy loading */}
-      <div className="relative h-32 md:h-48 bg-gradient-to-br from-yellow-600/20 via-yellow-500/10 to-transparent p-4 md:p-6">
+      <div className="relative h-32 md:h-48 bg-gradient-to-br from-gold-dark/20 via-gold-primary/10 to-transparent p-4 md:p-6">
         {trip.coverPhoto && (
           <OptimizedImage
             src={trip.coverPhoto}
@@ -398,7 +404,7 @@ export const TripCard = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="flex items-start gap-3 mb-2">
               <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-white group-hover:text-yellow-300 transition-colors line-clamp-2">
+                <h3 className="text-lg md:text-xl font-bold text-white group-hover:gold-gradient-text transition-all duration-300 line-clamp-2">
                   {trip.title}
                 </h3>
                 {/* Trip Status Badges - Hidden on mobile to save space */}
@@ -425,7 +431,7 @@ export const TripCard = ({
                     {daysUntil > 0 && daysUntil <= 7 && (
                       <Badge
                         variant="secondary"
-                        className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30 animate-pulse"
+                        className="bg-gold-primary/20 text-gold-light border-gold-primary/30 animate-pulse"
                       >
                         {daysUntil} {daysUntil === 1 ? 'day' : 'days'} left
                       </Badge>
@@ -435,13 +441,13 @@ export const TripCard = ({
               </div>
             </div>
             <div className="flex items-center gap-2 text-white/80 mb-1 md:mb-3 text-sm md:text-base">
-              <MapPin size={14} className="md:hidden text-yellow-400" />
-              <MapPin size={18} className="hidden md:block text-yellow-400" />
+              <MapPin size={14} className="md:hidden gold-gradient-icon" />
+              <MapPin size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80 text-sm md:text-base">
-              <Calendar size={14} className="md:hidden text-yellow-400" />
-              <Calendar size={18} className="hidden md:block text-yellow-400" />
+              <CalendarDays size={14} className="md:hidden gold-gradient-icon" />
+              <CalendarDays size={18} className="hidden md:block gold-gradient-icon" />
               <span className="font-medium truncate">{trip.dateRange}</span>
             </div>
           </div>
@@ -484,24 +490,19 @@ export const TripCard = ({
 
       {/* Trip Content - Responsive padding */}
       <div className="p-4 md:p-6">
-        {/* Quick Stats - Responsive sizing */}
+        {/* Quick Stats - icon above → number → label */}
         <div className="flex justify-between items-center md:grid md:grid-cols-3 md:gap-4 mb-4 md:mb-6">
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {trip.peopleCount ?? participantsWithAvatars.length}
-            </div>
-            <div className="text-xs md:text-sm text-gray-400">People</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">
-              {calculateDaysCount(trip.dateRange)}
-            </div>
-            <div className="text-xs md:text-sm text-gray-400">Days</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl md:text-2xl font-bold text-white">{trip.placesCount ?? 0}</div>
-            <div className="text-xs md:text-sm text-gray-400">Places</div>
-          </div>
+          <CardStatItem
+            icon={Users}
+            value={trip.peopleCount ?? participantsWithAvatars.length}
+            label="People"
+          />
+          <CardStatItem
+            icon={CalendarGlyph}
+            value={calculateDaysCount(trip.dateRange)}
+            label="Days"
+          />
+          <CardStatItem icon={MapPin} value={trip.placesCount ?? 0} label="Places" />
         </div>
 
         {/* Action Buttons - 2x2 grid: Export/Invite top, View/Share bottom */}
@@ -509,7 +510,7 @@ export const TripCard = ({
           {/* Top Row */}
           <button
             onClick={() => setShowExportModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5"
           >
             <FileDown size={14} className="md:hidden" />
             <FileDown size={16} className="hidden md:block" />
@@ -518,7 +519,7 @@ export const TripCard = ({
 
           <button
             onClick={() => setShowInviteModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm flex items-center justify-center gap-1.5"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm flex items-center justify-center gap-1.5"
           >
             <User size={14} className="md:hidden" />
             <User size={16} className="hidden md:block" />
@@ -530,14 +531,14 @@ export const TripCard = ({
             onClick={handleViewTrip}
             onMouseEnter={handlePrefetch}
             onFocus={handlePrefetch}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm"
           >
             View
           </button>
 
           <button
             onClick={() => setShowShareModal(true)}
-            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gray-700 hover:border-gray-600 text-xs md:text-sm"
+            className="bg-gray-800/50 hover:bg-gray-700/50 text-white py-2.5 md:py-3 px-2 md:px-3 rounded-lg md:rounded-xl transition-all duration-200 font-medium border border-gold-primary/30 hover:border-gold-primary/50 text-xs md:text-sm"
           >
             Share
           </button>

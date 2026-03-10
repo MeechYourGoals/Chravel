@@ -189,7 +189,7 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
   if (!isDemoMode && isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500" />
+        <div className="animate-spin rounded-full h-8 w-8 gold-gradient-spinner" />
       </div>
     );
   }
@@ -206,7 +206,7 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
       {/* Header */}
       <div className={EVENT_PARITY_ROW_CLASS}>
         <div className={`flex items-center gap-3 ${EVENT_PARITY_HEADER_SPAN_CLASS}`}>
-          <ClipboardList size={24} className="text-yellow-500" />
+          <ClipboardList size={24} className="gold-gradient-icon" />
           <div>
             <h2 className="text-xl font-semibold text-white">Event Tasks</h2>
             <p className="text-gray-400 text-sm">
@@ -309,8 +309,8 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
                         <GripVertical size={16} />
                       </div>
                     )}
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center mt-0.5">
-                      <span className="text-yellow-500 text-xs font-medium">{index + 1}</span>
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gold-primary/20 border border-gold-primary/50 flex items-center justify-center mt-0.5">
+                      <span className="gold-gradient-icon text-xs font-medium">{index + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-medium">{task.title}</h3>

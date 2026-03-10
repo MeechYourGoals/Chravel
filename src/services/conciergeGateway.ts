@@ -59,6 +59,7 @@ export interface StreamMetadataEvent {
   googleMapsWidget?: string | null;
   model?: string;
   functionCalls?: string[];
+  keepAlive?: boolean;
 }
 
 export interface StreamErrorEvent {
@@ -183,6 +184,8 @@ export type ConciergeStreamEvent =
   | StreamSmartImportStatusEvent;
 
 export interface ConciergeStreamCallbacks {
+  /** Invoked whenever any valid SSE event is received (used for client watchdog activity). */
+  onActivity?: () => void;
   onChunk: (text: string) => void;
   onMetadata: (metadata: StreamMetadataEvent) => void;
   onFunctionCall?: (name: string, result: Record<string, unknown>) => void;
@@ -264,6 +267,7 @@ export function invokeConciergeStream(
       // If the server did not return SSE (e.g. Lovable fallback), parse as JSON
       if (!contentType.includes('text/event-stream')) {
         const data = (await response.json()) as ConciergeInvokeResponse;
+        callbacks.onActivity?.();
         if (data.response) {
           callbacks.onChunk(data.response);
         }
@@ -325,30 +329,39 @@ export function invokeConciergeStream(
 
             switch (event.type) {
               case 'chunk':
+                callbacks.onActivity?.();
                 callbacks.onChunk(event.text);
                 break;
               case 'metadata':
+                callbacks.onActivity?.();
                 callbacks.onMetadata(event);
                 break;
               case 'function_call':
+                callbacks.onActivity?.();
                 callbacks.onFunctionCall?.(event.name, event.result);
                 break;
               case 'reservation_draft':
+                callbacks.onActivity?.();
                 callbacks.onReservationDraft?.(event.draft);
                 break;
               case 'trip_cards':
+                callbacks.onActivity?.();
                 callbacks.onTripCards?.(event.cards, event.message ?? null);
                 break;
               case 'smart_import_preview':
+                callbacks.onActivity?.();
                 callbacks.onSmartImportPreview?.(event as StreamSmartImportPreviewEvent);
                 break;
               case 'smart_import_status':
+                callbacks.onActivity?.();
                 callbacks.onSmartImportStatus?.(event.status, event.message);
                 break;
               case 'error':
+                callbacks.onActivity?.();
                 callbacks.onError(event.message);
                 break;
               case 'done':
+                callbacks.onActivity?.();
                 if (idleTimer) clearTimeout(idleTimer);
                 callbacks.onDone();
                 return;

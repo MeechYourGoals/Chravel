@@ -248,10 +248,11 @@ export class TripContextBuilder {
 
       const tasks = rawTasks.map((t: any) => ({
         id: t.id,
-        content: t.content,
+        title: t.title,
+        description: t.description,
         assignee: t.assignee_id ? names.get(t.assignee_id) || 'Team Member' : undefined,
-        dueDate: t.due_date,
-        isComplete: t.is_complete,
+        dueDate: t.due_at,
+        isComplete: t.completed,
       }));
 
       const payments = rawPayments.map((p: any) => ({
@@ -273,7 +274,7 @@ export class TripContextBuilder {
 
       const files = rawFiles.map((f: any) => ({
         id: f.id,
-        name: f.file_name,
+        name: f.name,
         type: f.file_type,
         url: f.file_url,
         uploadedBy: f.uploaded_by ? names.get(f.uploaded_by) || 'Trip Member' : 'Unknown',
@@ -548,7 +549,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_tasks')
-        .select('id, content, assignee_id, due_date, is_complete')
+        .select('id, title, description, assignee_id, due_at, completed')
         .eq('trip_id', tripId);
 
       if (error) throw error;
@@ -671,7 +672,7 @@ export class TripContextBuilder {
     try {
       const { data, error } = await supabase
         .from('trip_files')
-        .select('id, file_name, file_type, file_url, uploaded_by, created_at')
+        .select('id, name, file_type, uploaded_by, created_at')
         .eq('trip_id', tripId);
 
       if (error) throw error;

@@ -36,6 +36,9 @@ import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { tripKeys } from '@/lib/queryKeys';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
+import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
+import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CalendarImportModalProps {
   isOpen: boolean;
@@ -51,7 +54,7 @@ interface CalendarImportModalProps {
   onStartBackgroundImport?: (url: string) => void;
 }
 
-type ImportState = 'idle' | 'parsing' | 'preview' | 'importing' | 'complete';
+type ImportState = 'idle' | 'parsing' | 'preview' | 'importing' | 'complete' | 'gmail-review';
 
 const FORMAT_BADGES = [
   { label: 'ICS', icon: Calendar },
@@ -81,6 +84,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
+  const [gmailCandidates, setGmailCandidates] = useState<Record<string, unknown>[]>([]);
   const queryClient = useQueryClient();
 
   const processParseResult = useCallback(
@@ -134,6 +138,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     setPasteText('');
     setUrlInput('');
     setParsingSource('file');
+    setGmailCandidates([]);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -376,6 +381,21 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                 </div>
               </div>
 
+              {/* Gmail Smart Import section */}
+              <SmartImportGmail
+                tripId={tripId}
+                onImportStarted={() => setState('parsing')}
+                onImportComplete={candidates => {
+                  if (candidates.length > 0) {
+                    setGmailCandidates(candidates);
+                    setState('gmail-review');
+                  } else {
+                    setState('idle');
+                  }
+                }}
+                onImportError={() => setState('idle')}
+              />
+
               {/* Paste schedule toggle */}
               <div className="flex items-center gap-3 px-1">
                 <Switch
@@ -416,7 +436,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
           {/* ── Parsing State ── */}
           {state === 'parsing' && (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+              <div className="animate-spin h-10 w-10 gold-gradient-spinner mb-4" />
               <p className="text-muted-foreground">
                 {parsingSource === 'url'
                   ? 'Scanning website for schedule...'
@@ -427,6 +447,109 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                       : 'Parsing calendar file...'}
               </p>
             </div>
+          )}
+
+          {/* ── Gmail Review State ── */}
+          {state === 'gmail-review' && (
+            <SmartImportReview
+              candidates={gmailCandidates}
+              onAccept={async accepted => {
+                // Map Gmail candidates to calendar events via the calendarService
+                const eventsToInsert = accepted
+                  .map(c => {
+                    const data = c.reservation_data as Record<string, unknown>;
+                    if (!data) return null;
+
+                    const type = data.type as string;
+                    let title = 'Imported Reservation';
+                    let startTime: string | null = null;
+                    let endTime: string | null = null;
+                    let location: string | null = null;
+
+                    if (type === 'flight') {
+                      title =
+                        `${data.airline_name || data.airline_code || ''} Flight ${data.flight_number || ''}`.trim();
+                      startTime = data.departure_time_local as string | null;
+                      endTime = data.arrival_time_local as string | null;
+                      location = `${data.departure_airport_code || ''} → ${data.arrival_airport_code || ''}`;
+                    } else if (type === 'lodging') {
+                      title = (data.property_name as string) || 'Hotel Stay';
+                      startTime = data.check_in_local as string | null;
+                      endTime = data.check_out_local as string | null;
+                      location = (data.address as string) || (data.city as string) || null;
+                    } else if (type === 'ground_transport') {
+                      title = (data.provider_name as string) || 'Ground Transport';
+                      startTime = data.pickup_time_local as string | null;
+                      endTime = data.dropoff_time_local as string | null;
+                      location = `${data.pickup_location || ''} → ${data.dropoff_location || ''}`;
+                    } else if (type === 'event_ticket') {
+                      title = (data.event_name as string) || 'Event';
+                      startTime = data.start_time_local as string | null;
+                      endTime = data.end_time_local as string | null;
+                      location = (data.venue_name as string) || (data.city as string) || null;
+                    }
+
+                    if (!startTime) return null;
+
+                    return {
+                      trip_id: tripId,
+                      title,
+                      start_time: startTime,
+                      end_time: endTime || undefined,
+                      location: location || undefined,
+                      event_category: 'other' as const,
+                      include_in_itinerary: true,
+                      source_type: 'gmail_import',
+                      source_data: {
+                        imported_from: 'gmail',
+                        reservation_type: type,
+                        confirmation_code: data.confirmation_code,
+                        candidate_id: c.id,
+                      },
+                    };
+                  })
+                  .filter(Boolean);
+
+                if (eventsToInsert.length > 0) {
+                  const result = await calendarService.bulkCreateEvents(
+                    eventsToInsert as Parameters<typeof calendarService.bulkCreateEvents>[0],
+                  );
+                  toast.success(
+                    `Imported ${result.imported} event${result.imported !== 1 ? 's' : ''} from Gmail`,
+                  );
+                }
+
+                // Mark accepted candidates in the database so re-imports don't re-surface them
+                const acceptedIds = accepted.map(c => c.id).filter(Boolean);
+                if (acceptedIds.length > 0) {
+                  await supabase
+                    .from('smart_import_candidates')
+                    .update({ status: 'accepted', updated_at: new Date().toISOString() })
+                    .in('id', acceptedIds);
+                }
+
+                // Mark unselected candidates as rejected
+                const rejectedIds = gmailCandidates
+                  .filter(c => !acceptedIds.includes(c.id))
+                  .map(c => c.id)
+                  .filter(Boolean);
+                if (rejectedIds.length > 0) {
+                  await supabase
+                    .from('smart_import_candidates')
+                    .update({ status: 'rejected', updated_at: new Date().toISOString() })
+                    .in('id', rejectedIds);
+                }
+
+                // Invalidate cache and close
+                await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+                onImportComplete?.();
+                handleClose();
+              }}
+              onCancel={() => {
+                setGmailCandidates([]);
+                setState('idle');
+              }}
+            />
           )}
 
           {/* ── Preview State ── */}
@@ -537,7 +660,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
           {/* ── Importing State ── */}
           {state === 'importing' && (
             <div className="flex flex-col items-center justify-center py-12 px-4 w-full max-w-sm mx-auto">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+              <div className="animate-spin h-10 w-10 gold-gradient-spinner mb-4" />
               <p className="text-muted-foreground mb-3 text-center">
                 {importingProgress.total > 0
                   ? `Importing ${importingProgress.completed}/${importingProgress.total} events`

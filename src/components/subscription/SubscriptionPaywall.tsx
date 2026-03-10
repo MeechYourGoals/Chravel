@@ -306,15 +306,15 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                     onClick={() => setSelectedPackage(packageInfo.pkg)}
                     disabled={purchasing}
                     className={cn(
-                      'w-full p-4 rounded-xl border-2 text-left transition-all relative',
+                      'w-full p-4 rounded-xl text-left transition-all relative',
                       selectedPackage?.identifier === packageInfo.pkg.identifier
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50 bg-card',
+                        ? 'accent-ring-active'
+                        : 'border-2 border-border hover:border-gold-primary/30 bg-card',
                       purchasing && 'opacity-50 cursor-not-allowed',
                     )}
                   >
                     {packageInfo.isBestValue && (
-                      <div className="absolute -top-2.5 left-4 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center gap-1">
+                      <div className="absolute -top-2.5 left-4 px-2 py-0.5 accent-fill-gold text-xs font-medium rounded-full flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
                         Best Value
                       </div>
@@ -347,12 +347,12 @@ export const SubscriptionPaywall: React.FC<SubscriptionPaywallProps> = ({
                       className={cn(
                         'absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center',
                         selectedPackage?.identifier === packageInfo.pkg.identifier
-                          ? 'border-primary bg-primary'
+                          ? 'border-gold-primary bg-gold-primary/15 shadow-ring-glow'
                           : 'border-muted-foreground',
                       )}
                     >
                       {selectedPackage?.identifier === packageInfo.pkg.identifier && (
-                        <Check className="w-3 h-3 text-primary-foreground" />
+                        <Check className="w-3 h-3 text-gold-primary" />
                       )}
                     </div>
                   </button>

@@ -26,7 +26,7 @@ const BASE =
 
 const VARIANT_CLASSES: Record<ActionPillProps['variant'], string> = {
   manualOutline: 'bg-black/60 border border-white/30 text-white hover:bg-white/10',
-  aiOutline: 'bg-black/60 border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10',
+  aiOutline: 'bg-black/60 border border-white/30 text-white hover:bg-white/10',
 };
 
 export const ActionPill = React.forwardRef<HTMLButtonElement, ActionPillProps>(

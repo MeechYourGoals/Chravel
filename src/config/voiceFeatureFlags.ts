@@ -14,7 +14,9 @@
 type VoiceEnvKey =
   | 'VITE_VOICE_LIVE_ENABLED'
   | 'VITE_VOICE_DIAGNOSTICS_ENABLED'
-  | 'VITE_VOICE_USE_WEBSOCKET_ONLY';
+  | 'VITE_VOICE_USE_WEBSOCKET_ONLY'
+  | 'VITE_VOICE_AFFECTIVE_DIALOG'
+  | 'VITE_VOICE_PROACTIVE_AUDIO';
 
 const getEnv = (key: VoiceEnvKey, fallback: string): string => {
   try {
@@ -38,15 +40,25 @@ export const VOICE_DIAGNOSTICS_ENABLED = parseBool(
 /** Require WebSocket for Live voice; reject silent downgrade to SSE/HTTP. Default: true. */
 export const VOICE_USE_WEBSOCKET_ONLY = parseBool(getEnv('VITE_VOICE_USE_WEBSOCKET_ONLY', 'true'));
 
+/** Preview: Enable affective dialog (emotional tone awareness). Default: true. */
+export const VOICE_AFFECTIVE_DIALOG = parseBool(getEnv('VITE_VOICE_AFFECTIVE_DIALOG', 'true'));
+
+/** Preview: Enable proactive audio (model-initiated speech). Default: true. */
+export const VOICE_PROACTIVE_AUDIO = parseBool(getEnv('VITE_VOICE_PROACTIVE_AUDIO', 'true'));
+
 /** All voice flags for debugging / diagnostics. */
 export function getVoiceFlags(): {
   VOICE_LIVE_ENABLED: boolean;
   VOICE_DIAGNOSTICS_ENABLED: boolean;
   VOICE_USE_WEBSOCKET_ONLY: boolean;
+  VOICE_AFFECTIVE_DIALOG: boolean;
+  VOICE_PROACTIVE_AUDIO: boolean;
 } {
   return {
     VOICE_LIVE_ENABLED,
     VOICE_DIAGNOSTICS_ENABLED,
     VOICE_USE_WEBSOCKET_ONLY,
+    VOICE_AFFECTIVE_DIALOG,
+    VOICE_PROACTIVE_AUDIO,
   };
 }

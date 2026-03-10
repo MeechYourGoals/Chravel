@@ -935,6 +935,39 @@ export type Database = {
           },
         ];
       };
+      gmail_accounts: {
+        Row: {
+          access_token: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          refresh_token: string | null;
+          token_expires_at: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          access_token?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
+          refresh_token?: string | null;
+          token_expires_at?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          access_token?: string | null;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          refresh_token?: string | null;
+          token_expires_at?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       invite_links: {
         Row: {
           code: string;
@@ -2312,6 +2345,7 @@ export type Database = {
           event_category: string | null;
           id: string;
           include_in_itinerary: boolean | null;
+          is_all_day: boolean | null;
           location: string | null;
           source_data: Json | null;
           source_type: string | null;
@@ -2329,6 +2363,7 @@ export type Database = {
           event_category?: string | null;
           id?: string;
           include_in_itinerary?: boolean | null;
+          is_all_day?: boolean | null;
           location?: string | null;
           source_data?: Json | null;
           source_type?: string | null;
@@ -2346,6 +2381,7 @@ export type Database = {
           event_category?: string | null;
           id?: string;
           include_in_itinerary?: boolean | null;
+          is_all_day?: boolean | null;
           location?: string | null;
           source_data?: Json | null;
           source_type?: string | null;

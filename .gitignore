@@ -34,3 +34,9 @@ dist-ssr
 .mcp.json
 .cursor/mcp_config.json
 .claude/worktrees/
+
+# Loop state (ephemeral, session-scoped)
+tmp/loop-status/*
+tmp/loop-history/*
+!tmp/loop-status/.gitkeep
+!tmp/loop-history/.gitkeep

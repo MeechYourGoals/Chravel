@@ -11,14 +11,35 @@ serve(async req => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Authenticate: require valid user JWT for POST, cron secret for GET (poll)
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     if (req.method === 'POST') {
+      // Verify caller identity from JWT
+      const token = authHeader.replace('Bearer ', '');
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !userData.user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const body = await req.json();
-      const { content, send_at, trip_id, user_id, priority } = body;
+      const { content, send_at, trip_id, priority } = body;
+      // Use authenticated user ID instead of client-supplied user_id
+      const user_id = userData.user.id;
       if (!content || !send_at || !user_id) {
         return new Response(JSON.stringify({ error: 'Missing required fields' }), {
           status: 400,

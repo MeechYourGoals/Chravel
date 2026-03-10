@@ -38,21 +38,21 @@ const PLANS: PricingPlan[] = [
     name: 'Explorer',
     subtitle: 'Perfect for casual travelers',
     monthlyPrice: '$9.99',
-    yearlyPrice: '$99.99',
-    yearlyPerMonth: '$8.33',
+    yearlyPrice: '$99',
+    yearlyPerMonth: '$8.25',
     savings: 'Save 17%',
-    packageId: '$rc_monthly', // RevenueCat monthly package
+    packageId: '$rc_monthly',
     icon: <Sparkles size={24} />,
     gradient: 'from-blue-500 to-cyan-400',
     features: [
-      { text: 'Up to 5 trips', included: true },
-      { text: 'Up to 10 collaborators per trip', included: true },
-      { text: 'AI Concierge (50 queries/month)', included: true },
-      { text: 'Media uploads (5GB storage)', included: true },
-      { text: 'Basic expense splitting', included: true },
+      { text: 'Unlimited saved trips', included: true },
+      { text: '10 AI queries per trip', included: true },
+      { text: 'Unlimited PDF exports', included: true },
+      { text: 'Smart Calendar Import', included: true },
+      { text: 'Location-aware AI suggestions', included: true },
       { text: 'Calendar sync', included: true },
-      { text: 'Unlimited trips', included: false },
-      { text: 'Priority support', included: false },
+      { text: 'Unlimited AI queries', included: false },
+      { text: 'Pro trip creation', included: false },
     ],
   },
   {
@@ -60,19 +60,19 @@ const PLANS: PricingPlan[] = [
     name: 'Frequent Chraveler',
     subtitle: 'For the avid traveler',
     monthlyPrice: '$19.99',
-    yearlyPrice: '$199.99',
-    yearlyPerMonth: '$16.66',
+    yearlyPrice: '$199',
+    yearlyPerMonth: '$16.58',
     savings: 'Save 17%',
     popular: true,
-    packageId: '$rc_annual', // RevenueCat annual package
+    packageId: '$rc_annual',
     icon: <Crown size={24} />,
     gradient: 'from-purple-500 to-pink-500',
     features: [
-      { text: 'Unlimited trips', included: true },
-      { text: 'Up to 25 collaborators per trip', included: true },
-      { text: 'AI Concierge (unlimited)', included: true },
-      { text: 'Media uploads (50GB storage)', included: true },
-      { text: 'Advanced expense splitting', included: true },
+      { text: 'Everything in Explorer', included: true },
+      { text: 'Unlimited AI queries (24/7)', included: true },
+      { text: 'Smart Import (URL, paste, file)', included: true },
+      { text: 'Role-based channels', included: true },
+      { text: 'Pro trip creation', included: true },
       { text: 'Calendar sync + export', included: true },
       { text: 'Priority support', included: true },
       { text: 'Early access to new features', included: true },
@@ -268,7 +268,7 @@ export const NativeSubscriptionPaywall = ({
                 'w-full p-4 rounded-2xl text-left transition-all relative overflow-hidden',
                 'border-2',
                 selectedPlan === plan.id
-                  ? 'border-primary bg-primary/10'
+                  ? 'accent-ring-active border-transparent'
                   : 'border-white/10 bg-white/5 active:bg-white/10',
               )}
             >
@@ -284,7 +284,9 @@ export const NativeSubscriptionPaywall = ({
                 <div
                   className={cn(
                     'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-1',
-                    selectedPlan === plan.id ? 'border-primary bg-primary' : 'border-white/30',
+                    selectedPlan === plan.id
+                      ? 'border-gold-primary bg-gold-primary/15 shadow-ring-glow'
+                      : 'border-white/30',
                   )}
                 >
                   {selectedPlan === plan.id && (

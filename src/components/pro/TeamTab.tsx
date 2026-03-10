@@ -1,16 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ProParticipant, TeamTripContext } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { RolesView } from './team/RolesView';
-import { Button } from '@/components/ui/button';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { CreateRoleDialog } from './admin/CreateRoleDialog';
 import { AssignRoleDialog } from './admin/AssignRoleDialog';
 import { useProTripAdmin } from '@/hooks/useProTripAdmin';
-import { supabase } from '@/integrations/supabase/client';
-import { TripRole } from '@/types/roleChannels';
-import { Plus, UserPlus } from 'lucide-react';
+import { useTripRoles } from '@/hooks/useTripRoles';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 
@@ -42,8 +39,11 @@ export const TeamTab = ({
   const { isAdmin, hasPermission, isLoading: adminLoading } = useProTripAdmin(tripId || '');
   const { isDemoMode } = useDemoMode();
   const { isSuperAdmin } = useSuperAdmin();
-  const [roles, setRoles] = useState<TripRole[]>([]);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
+  const {
+    roles,
+    isLoading: isLoadingRoles,
+    refetch: refetchRoles,
+  } = useTripRoles({ tripId: tripId || '', enabled: !!tripId });
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
   const [assignRoleOpen, setAssignRoleOpen] = useState(false);
 
@@ -52,47 +52,9 @@ export const TeamTab = ({
   // Super admins never have read-only restrictions
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
 
-  const loadRoles = useCallback(async () => {
-    if (!tripId) return;
-
-    setIsLoadingRoles(true);
-    try {
-      const { data, error } = await supabase
-        .from('trip_roles')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      // Map database fields to TripRole type
-      const mappedRoles: TripRole[] = (data || []).map(role => ({
-        id: role.id,
-        tripId: role.trip_id,
-        roleName: role.role_name,
-        description: role.description || undefined,
-        permissionLevel: role.permission_level as any,
-        featurePermissions: role.feature_permissions as any,
-        createdBy: role.created_by,
-        createdAt: role.created_at,
-        updatedAt: role.updated_at,
-      }));
-
-      setRoles(mappedRoles);
-    } catch (error) {
-      console.error('Error loading roles:', error);
-    } finally {
-      setIsLoadingRoles(false);
-    }
-  }, [tripId]);
-
-  useEffect(() => {
-    loadRoles();
-  }, [loadRoles]);
-
   const handleRefresh = useCallback(async () => {
-    await loadRoles();
-  }, [loadRoles]);
+    await refetchRoles();
+  }, [refetchRoles]);
 
   const { isRefreshing, pullDistance } = usePullToRefresh({
     onRefresh: handleRefresh,
@@ -101,12 +63,11 @@ export const TeamTab = ({
   });
 
   const handleRoleCreated = () => {
-    loadRoles();
+    refetchRoles();
   };
 
   const handleRoleAssigned = () => {
-    loadRoles();
-    // Optionally refresh roster data
+    refetchRoles();
   };
 
   // Super admins always have full role management capabilities

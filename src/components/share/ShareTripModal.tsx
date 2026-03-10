@@ -153,15 +153,15 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-white/80 text-xs">
                 <div className="flex items-center gap-1">
-                  <MapPin size={12} className="text-yellow-400" />
+                  <MapPin size={12} className="text-gold-primary" />
                   <span>{trip.location}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Calendar size={12} className="text-yellow-400" />
+                  <Calendar size={12} className="text-gold-primary" />
                   <span>{trip.dateRange}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Users size={12} className="text-yellow-400" />
+                  <Users size={12} className="text-gold-primary" />
                   <span>{chravelerCount} Chravelers</span>
                 </div>
               </div>

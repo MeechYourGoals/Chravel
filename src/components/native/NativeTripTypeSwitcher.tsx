@@ -246,9 +246,7 @@ export const NativeTripTypeSwitcher = ({
                     'w-full flex items-center gap-4 p-4 rounded-xl',
                     'transition-all duration-150',
                     isRecsDisabled && 'opacity-50 cursor-not-allowed',
-                    isSelected
-                      ? 'bg-primary/20 ring-2 ring-primary'
-                      : 'bg-white/5 active:bg-white/10',
+                    isSelected ? 'accent-ring-active' : 'bg-white/5 active:bg-white/10',
                   )}
                 >
                   {/* Icon */}
@@ -256,7 +254,7 @@ export const NativeTripTypeSwitcher = ({
                     className={cn(
                       'w-12 h-12 rounded-full flex items-center justify-center shrink-0',
                       isSelected
-                        ? 'bg-primary text-primary-foreground'
+                        ? 'bg-gold-primary/15 gold-gradient-icon border border-gold-primary/40'
                         : 'bg-white/10 text-white/70',
                     )}
                   >
@@ -290,8 +288,8 @@ export const NativeTripTypeSwitcher = ({
 
                   {/* Checkmark */}
                   {isSelected && !isRecsDisabled && (
-                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                      <Check size={14} className="text-primary-foreground" strokeWidth={3} />
+                    <div className="w-6 h-6 rounded-full bg-gold-primary/15 border border-gold-primary/50 flex items-center justify-center shrink-0">
+                      <Check size={14} className="gold-gradient-icon" strokeWidth={3} />
                     </div>
                   )}
                 </button>

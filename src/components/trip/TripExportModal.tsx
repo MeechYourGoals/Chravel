@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState } from 'react';
 import { X, Download, Loader2, FileText, Crown, Gift, Sparkles } from 'lucide-react';
 import { ExportSection } from '@/types/tripExport';
 import { isConsumerTrip } from '@/utils/tripTierDetector';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 interface TripExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExport: (sections: ExportSection[]) => Promise<void>;
+  onExport: (sections: ExportSection[], signal: AbortSignal) => Promise<void>;
   tripName: string;
   tripId: string;
   tripType?: 'consumer' | 'pro' | 'event';
@@ -19,11 +19,11 @@ const TRIP_SECTIONS: Array<{ id: ExportSection; label: string }> = [
   { id: 'calendar', label: 'Calendar' },
   { id: 'payments', label: 'Payments' },
   { id: 'polls', label: 'Polls' },
-  { id: 'places', label: 'Places' },
+  { id: 'places', label: 'Places & Explore Links' },
   { id: 'attachments', label: 'Attachments' },
   { id: 'tasks', label: 'Tasks' },
-  { id: 'broadcasts', label: 'Broadcast Log' },
-  { id: 'roster', label: 'Roster' },
+  { id: 'broadcasts', label: 'Broadcasts' },
+  { id: 'roster', label: 'Members' },
 ];
 
 const EVENT_SECTIONS: Array<{ id: ExportSection; label: string }> = [
@@ -43,9 +43,9 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   tripId,
   tripType,
 }) => {
-  const isConsumer = isConsumerTrip(tripId);
+  const _isConsumer = isConsumerTrip(tripId);
   const { upgradeToTier, isLoading: isUpgrading } = useConsumerSubscription();
-  const { usage, recordExport, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
+  const { recordExport, getUsageStatus, isPaidUser, canExport } = usePdfExportUsage(tripId);
 
   const isEvent = tripType === 'event';
   const sections = isEvent ? EVENT_SECTIONS : TRIP_SECTIONS;
@@ -58,6 +58,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
   );
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const toggleSection = (sectionId: ExportSection) => {
     setSelectedSections(prev =>
@@ -71,19 +72,38 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
       return;
     }
 
+    // Abort any previous in-flight export
+    abortControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    // Auto-abort after 90 seconds
+    const timeoutId = setTimeout(() => {
+      controller.abort(new Error('Export timed out. Please try again.'));
+    }, 90_000);
+
     setIsExporting(true);
     setError(null);
 
     try {
-      await onExport(selectedSections);
+      await onExport(selectedSections, controller.signal);
       // Record the export for free users
       if (!isPaidUser) {
         recordExport();
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create trip recap');
+      // If the abort was triggered, surface the abort reason as the error
+      if (controller.signal.aborted) {
+        const reason = controller.signal.reason;
+        setError(reason instanceof Error ? reason.message : 'Export timed out. Please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to create trip recap');
+      }
     } finally {
+      clearTimeout(timeoutId);
+      abortControllerRef.current = null;
       setIsExporting(false);
     }
   };
@@ -92,7 +112,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
 
   // Free users: 1 export per trip, Paid users: unlimited
   const hasAccess = hasExportAccess;
-  const usageStatus = getUsageStatus();
+  const _usageStatus = getUsageStatus();
   const showFreeExportBanner = !isPaidUser && canExport;
   const showUpgradePrompt = !isPaidUser && !canExport;
 
@@ -147,14 +167,14 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                   disabled={isUpgrading}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
                 >
-                  {isUpgrading ? 'Processing...' : 'Explorer $9.99/mo'}
+                  {isUpgrading ? 'Processing...' : 'Explorer from $9.99/mo'}
                 </button>
                 <button
                   onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
                   disabled={isUpgrading}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
                 >
-                  {isUpgrading ? 'Processing...' : 'Frequent Chraveler $19.99/mo'}
+                  {isUpgrading ? 'Processing...' : 'Frequent Chraveler from $19.99/mo'}
                 </button>
               </div>
               <p className="text-gray-400 text-[10px] mt-2 text-center">

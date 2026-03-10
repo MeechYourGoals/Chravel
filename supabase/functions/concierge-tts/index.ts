@@ -1,261 +1,346 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
-const GOOGLE_TTS_URL = 'https://texttospeech.googleapis.com/v1/text:synthesize';
-const DEFAULT_VOICE = 'en-US-Neural2-J';
-const FALLBACK_VOICE = 'en-US-Wavenet-D';
+const GOOGLE_CLOUD_TTS_API_KEY = Deno.env.get('GOOGLE_CLOUD_TTS_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-// ── OAuth2 Service Account helpers (same pattern as gemini-voice-session) ──
+const VOICE_TTS_FREE_FOR_ALL = (Deno.env.get('VOICE_TTS_FREE_FOR_ALL') ?? 'true') !== 'false';
 
-interface ServiceAccountKey {
-  client_email: string;
-  private_key: string;
-  token_uri: string;
-}
+/** Hardcoded fallback voices — only used if DB lookup fails. */
+const HARDCODED_PRIMARY_VOICE = 'en-US-Chirp3-HD-Charon';
+const HARDCODED_FALLBACK_VOICE = 'en-US-Neural2-J';
 
-function base64UrlEncode(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) binary += String.fromCharCode(data[i]);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
+/** Max chars to send to Google Cloud TTS (prevents abuse and excessive cost). */
+const MAX_TEXT_CHARS = 1500;
 
-async function createAccessToken(saKey: ServiceAccountKey): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const payload = {
-    iss: saKey.client_email,
-    sub: saKey.client_email,
-    aud: saKey.token_uri || 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-    scope: 'https://www.googleapis.com/auth/cloud-platform',
-  };
+/** Daily TTS requests per user on free tier. */
+const FREE_TIER_DAILY_LIMIT = 30;
+/** Daily TTS requests per user on Explorer/Plus tier. */
+const EXPLORER_TIER_DAILY_LIMIT = 100;
 
-  const enc = new TextEncoder();
-  const headerB64 = base64UrlEncode(enc.encode(JSON.stringify(header)));
-  const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
-  const signingInput = `${headerB64}.${payloadB64}`;
+/** Status codes from Google Cloud TTS that warrant a fallback voice retry. */
+const FALLBACK_RETRY_STATUSES = new Set([400, 404]);
 
-  const pemBody = saKey.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-    .replace(/-----END PRIVATE KEY-----/g, '')
-    .replace(/\s/g, '');
-  const keyBuffer = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+const isActiveEntitlement = (status?: string | null, periodEnd?: string | null): boolean => {
+  if (status !== 'active' && status !== 'trialing') return false;
+  if (!periodEnd) return true;
+  const parsed = Date.parse(periodEnd);
+  if (Number.isNaN(parsed)) return true;
+  return parsed > Date.now();
+};
 
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    keyBuffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
+const mapPlanToDailyLimit = (plan?: string | null): number | null => {
+  if (!plan || plan === 'free') return FREE_TIER_DAILY_LIMIT;
+  if (plan === 'explorer' || plan === 'plus') return EXPLORER_TIER_DAILY_LIMIT;
+  return null;
+};
 
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    cryptoKey,
-    enc.encode(signingInput),
-  );
-
-  const signatureB64 = base64UrlEncode(new Uint8Array(signature));
-  const jwt = `${signingInput}.${signatureB64}`;
-
-  const tokenUri = saKey.token_uri || 'https://oauth2.googleapis.com/token';
-  const tokenResp = await fetch(tokenUri, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-    signal: AbortSignal.timeout(15_000),
-  });
-
-  if (!tokenResp.ok) {
-    const body = await tokenResp.text();
-    throw new Error(`OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`);
-  }
-
-  const tokenData = await tokenResp.json();
-  if (!tokenData.access_token) {
-    throw new Error('OAuth2 response missing access_token');
-  }
-  return tokenData.access_token;
-}
-
-function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
+async function getAppSetting(key: string): Promise<string | null> {
   try {
-    const json = atob(base64Key);
-    const parsed = JSON.parse(json);
-    if (!parsed.client_email || !parsed.private_key) {
-      throw new Error('Missing client_email or private_key in service account JSON');
-    }
-    return parsed;
-  } catch (e) {
-    throw new Error(
-      `Invalid VERTEX_SERVICE_ACCOUNT_KEY: ${e instanceof Error ? e.message : 'parse failed'}. ` +
-        'Ensure the value is base64-encoded JSON of the service account key file.',
+    const serviceClient = createClient(
+      SUPABASE_URL,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || SUPABASE_ANON_KEY,
     );
-  }
-}
-
-// ── TTS helpers ──
-
-function resolveEncoding(format: string): { encoding: string; contentType: string } {
-  switch (format) {
-    case 'mp3_22050_32':
-    case 'mp3_44100_64':
-    case 'mp3_44100_96':
-    case 'mp3_44100_128':
-    case 'mp3':
-      return { encoding: 'MP3', contentType: 'audio/mpeg' };
-    case 'ogg':
-    case 'ogg_opus':
-      return { encoding: 'OGG_OPUS', contentType: 'audio/ogg' };
-    case 'pcm':
-    case 'pcm_16000':
-      return { encoding: 'LINEAR16', contentType: 'audio/wav' };
-    default:
-      return { encoding: 'MP3', contentType: 'audio/mpeg' };
-  }
-}
-
-function resolveSampleRate(format: string): number {
-  const match = format.match(/_(\d{4,6})_/);
-  return match ? Number(match[1]) : 24000;
-}
-
-function resolveVoice(voiceId?: string): { languageCode: string; name: string } {
-  if (voiceId && voiceId.match(/^[a-z]{2}-[A-Z]{2}-/)) {
-    const languageCode = voiceId.split('-').slice(0, 2).join('-');
-    return { languageCode, name: voiceId };
-  }
-  return { languageCode: 'en-US', name: DEFAULT_VOICE };
-}
-
-// ── Main handler ──
-
-Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: getCorsHeaders(req) });
-  }
-
-  const corsHeaders = getCorsHeaders(req);
-
-  try {
-    // Use service account OAuth2 instead of API key
-    const saKeyRaw = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
-    if (!saKeyRaw) {
-      return new Response(
-        JSON.stringify({ error: 'TTS service not configured (missing service account)' }),
-        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+    const { data, error } = await serviceClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    if (error) {
+      console.warn(`[concierge-tts] app_settings lookup failed for "${key}":`, error.message);
+      return null;
     }
+    return data?.value ?? null;
+  } catch (e) {
+    console.warn(`[concierge-tts] app_settings exception for "${key}":`, e);
+    return null;
+  }
+}
 
-    const body = await req.json().catch(() => null);
-    if (!body || !body.speech_text) {
-      return new Response(JSON.stringify({ error: 'speech_text is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+const toGoogleVoiceName = (rawVoice: string): string => {
+  const trimmed = rawVoice.trim();
+  if (!trimmed) return HARDCODED_PRIMARY_VOICE;
 
-    const {
-      speech_text,
-      voice_id,
-      output_format = 'mp3',
-    } = body as {
-      speech_text: string;
-      voice_id?: string;
-      output_format?: string;
-    };
+  if (trimmed.toLowerCase() === 'charon') {
+    return HARDCODED_PRIMARY_VOICE;
+  }
 
-    if (speech_text.length > 5000) {
-      return new Response(JSON.stringify({ error: 'speech_text exceeds 5000 character limit' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+  // Backward compatibility for previous provider IDs previously stored in app_settings.
+  if (!trimmed.includes('-')) {
+    return HARDCODED_PRIMARY_VOICE;
+  }
 
-    const { encoding, contentType } = resolveEncoding(output_format);
-    const sampleRate = resolveSampleRate(output_format);
-    const voice = resolveVoice(voice_id);
+  return trimmed;
+};
 
-    // Mint OAuth2 access token from service account
-    const saKey = parseServiceAccountKey(saKeyRaw);
-    const accessToken = await createAccessToken(saKey);
+const decodeBase64Audio = (audioContent: string): Uint8Array => {
+  const binary = atob(audioContent);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+};
 
-    const ttsPayload = {
-      input: { text: speech_text },
+async function callGoogleCloudTTS(text: string, voiceName: string): Promise<Response> {
+  const url =
+    'https://texttospeech.googleapis.com/v1/text:synthesize' +
+    `?key=${encodeURIComponent(GOOGLE_CLOUD_TTS_API_KEY!)}`;
+
+  return await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      input: { text },
       voice: {
-        languageCode: voice.languageCode,
-        name: voice.name,
+        languageCode: 'en-US',
+        name: voiceName,
+        ssmlGender: 'MALE',
       },
       audioConfig: {
-        audioEncoding: encoding,
-        sampleRateHertz: sampleRate,
+        audioEncoding: 'MP3',
+        speakingRate: 1,
       },
-    };
+    }),
+  });
+}
 
-    let res = await fetch(GOOGLE_TTS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(ttsPayload),
-    });
+serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+  const t0 = Date.now();
 
-    // If primary voice fails, retry with fallback voice
-    if (!res.ok && voice.name !== FALLBACK_VOICE) {
-      console.warn(
-        `Primary voice ${voice.name} failed (${res.status}), retrying with fallback ${FALLBACK_VOICE}`,
-      );
-      ttsPayload.voice = { languageCode: 'en-US', name: FALLBACK_VOICE };
-      res = await fetch(GOOGLE_TTS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(ttsPayload),
-      });
-    }
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('Google TTS error:', res.status, errText);
-      return new Response(JSON.stringify({ error: 'TTS synthesis failed', status: res.status }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+  }
 
-    const data = await res.json();
-    const audioContent: string = data.audioContent;
-
-    if (!audioContent) {
-      return new Response(JSON.stringify({ error: 'No audio content returned' }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Decode base64 audio → binary
-    const raw = atob(audioContent);
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) {
-      bytes[i] = raw.charCodeAt(i);
-    }
-
-    return new Response(bytes.buffer as ArrayBuffer, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400',
-      },
-    });
-  } catch (err) {
-    console.error('concierge-tts error:', err);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+  if (!GOOGLE_CLOUD_TTS_API_KEY) {
+    console.error('[concierge-tts] GOOGLE_CLOUD_TTS_API_KEY is not set');
+    return new Response(JSON.stringify({ error: 'Google Cloud TTS API key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Authorization required' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  let body: {
+    speech_text?: string;
+    voice_id?: string;
+  };
+
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const [dbPrimaryVoice, dbFallbackVoice] = await Promise.all([
+    getAppSetting('tts_primary_voice_id'),
+    getAppSetting('tts_fallback_voice_id'),
+  ]);
+
+  const primaryVoice = toGoogleVoiceName(dbPrimaryVoice || HARDCODED_PRIMARY_VOICE);
+  const fallbackVoice = toGoogleVoiceName(dbFallbackVoice || HARDCODED_FALLBACK_VOICE);
+
+  const { speech_text, voice_id: requestedVoiceId } = body;
+  const resolvedVoiceId = toGoogleVoiceName(requestedVoiceId || primaryVoice);
+
+  if (!speech_text) {
+    return new Response(JSON.stringify({ error: 'speech_text is required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (speech_text.trim().length === 0) {
+    return new Response(JSON.stringify({ error: 'speech_text must not be empty' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (!VOICE_TTS_FREE_FOR_ALL) {
+    let dailyLimit: number | null = FREE_TIER_DAILY_LIMIT;
+    const { data: entitlementData, error: entitlementError } = await supabase
+      .from('user_entitlements')
+      .select('plan, status, current_period_end')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (entitlementError) {
+      console.error('[concierge-tts] Entitlement lookup failed:', entitlementError.message);
+    }
+
+    if (
+      entitlementData &&
+      isActiveEntitlement(entitlementData.status, entitlementData.current_period_end)
+    ) {
+      dailyLimit = mapPlanToDailyLimit(entitlementData.plan);
+    } else {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('app_role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('[concierge-tts] Profile plan fallback failed:', profileError.message);
+      }
+
+      dailyLimit = mapPlanToDailyLimit(profileData?.app_role);
+    }
+
+    const { data: usageRow, error: usageError } = await supabase
+      .from('tts_usage')
+      .select('request_count')
+      .eq('user_id', user.id)
+      .eq('usage_date', today)
+      .maybeSingle();
+
+    if (usageError) {
+      console.error('[concierge-tts] Usage check failed:', usageError.message);
+    }
+
+    const currentCount = usageRow?.request_count ?? 0;
+    if (dailyLimit !== null && currentCount >= dailyLimit) {
+      return new Response(
+        JSON.stringify({
+          error: 'Daily TTS limit reached. Upgrade to Pro for unlimited voice responses.',
+          limit: dailyLimit,
+          used: currentCount,
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+  }
+
+  const text = speech_text.slice(0, MAX_TEXT_CHARS);
+
+  console.log(
+    `[concierge-tts] Request: voice=${resolvedVoiceId}, textLen=${text.length}, user=${user.id}`,
+  );
+
+  let ttsRes: Response;
+  let usedFallback = false;
+
+  try {
+    ttsRes = await callGoogleCloudTTS(text, resolvedVoiceId);
+
+    if (
+      !ttsRes.ok &&
+      FALLBACK_RETRY_STATUSES.has(ttsRes.status) &&
+      resolvedVoiceId !== fallbackVoice
+    ) {
+      const errBody = await ttsRes.text().catch(() => '');
+      console.warn(
+        `[concierge-tts] Primary voice ${resolvedVoiceId} returned ${ttsRes.status}: ${errBody}. Retrying with fallback voice ${fallbackVoice}`,
+      );
+
+      ttsRes = await callGoogleCloudTTS(text, fallbackVoice);
+      usedFallback = true;
+      console.log(`[concierge-tts] Fallback voice result: status=${ttsRes.status}`);
+    }
+  } catch (fetchError) {
+    console.error('[concierge-tts] Fetch to Google Cloud TTS failed:', fetchError);
+    return new Response(JSON.stringify({ error: 'Failed to reach Google Cloud TTS service' }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!ttsRes.ok) {
+    const errBody = await ttsRes.text().catch(() => '');
+    console.error(`[concierge-tts] Google Cloud TTS error ${ttsRes.status}: ${errBody}`);
+
+    let detail = `Google Cloud TTS returned ${ttsRes.status}`;
+    try {
+      const parsed = JSON.parse(errBody);
+      if (parsed?.error?.message) detail = parsed.error.message;
+      else if (typeof parsed?.detail === 'string') detail = parsed.detail;
+    } catch {
+      // use default detail
+    }
+
+    return new Response(JSON.stringify({ error: detail }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  let audioBytes: Uint8Array;
+  try {
+    const payload = await ttsRes.json();
+    const audioContent = payload?.audioContent;
+    if (typeof audioContent !== 'string' || audioContent.length === 0) {
+      throw new Error('Missing audioContent');
+    }
+    audioBytes = decodeBase64Audio(audioContent);
+  } catch (parseError) {
+    console.error('[concierge-tts] Failed to parse Google TTS audio payload:', parseError);
+    return new Response(JSON.stringify({ error: 'Voice service returned invalid audio payload' }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { error: upsertError } = await supabase.rpc('increment_tts_usage', {
+    p_user_id: user.id,
+    p_date: today,
+  });
+
+  if (upsertError) {
+    console.warn('[concierge-tts] Failed to increment usage:', upsertError.message);
+  }
+
+  const elapsed = Date.now() - t0;
+  console.log(`[concierge-tts] Success: fallback=${usedFallback}, elapsed=${elapsed}ms`);
+
+  const responseHeaders: Record<string, string> = {
+    ...corsHeaders,
+    'Content-Type': 'audio/mpeg',
+    'Cache-Control': 'no-store',
+  };
+
+  if (usedFallback) {
+    responseHeaders['X-Voice-Fallback'] = 'true';
+  }
+
+  return new Response(audioBytes, {
+    status: 200,
+    headers: responseHeaders,
+  });
 });

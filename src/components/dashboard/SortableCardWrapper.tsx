@@ -64,7 +64,7 @@ export const SortableCardWrapper: React.FC<SortableCardWrapperProps> = ({
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          className="absolute top-2 right-2 z-10 p-1 rounded-md opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-grab active:cursor-grabbing transition-opacity hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50"
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-10 p-1 rounded-md opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-grab active:cursor-grabbing transition-opacity hidden md:flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50"
           aria-label="Drag to reorder"
         >
           <GripVertical size={16} />

@@ -197,7 +197,7 @@ export const ProTripDetailDesktop = () => {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin h-12 w-12 gold-gradient-spinner mx-auto mb-4"></div>
           <p className="text-gray-400">Initializing...</p>
         </div>
       </div>
@@ -248,7 +248,7 @@ export const ProTripDetailDesktop = () => {
   const _broadcasts = tripData.broadcasts || [];
   const _links = tripData.links || [];
 
-  const handleExport = async (sections: ExportSection[]) => {
+  const handleExport = async (sections: ExportSection[], signal: AbortSignal) => {
     const orderedSections = orderExportSections(sections);
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
@@ -382,20 +382,71 @@ export const ProTripDetailDesktop = () => {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token || '';
 
-        const response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/export-trip`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            tripId: proTripId,
-            sections: orderedSections,
-            layout: 'pro',
-            paper: 'letter',
-            privacyRedaction: true,
-          }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60_000);
+        // Also abort the fetch if the modal's signal fires
+        const onModalAbort = () => controller.abort();
+        signal.addEventListener('abort', onModalAbort, { once: true });
+
+        let response: Response;
+        try {
+          response = await fetch(`${SUPABASE_PROJECT_URL}/functions/v1/export-trip`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              tripId: proTripId,
+              sections: orderedSections,
+              layout: 'pro',
+              paper: 'letter',
+              privacyRedaction: true,
+            }),
+            signal: controller.signal,
+          });
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          const isTimeout = fetchErr instanceof DOMException && fetchErr.name === 'AbortError';
+          console.warn('[PRO-EXPORT] Edge function', isTimeout ? 'timed out' : 'failed:', fetchErr);
+          toast.error(
+            isTimeout
+              ? 'Export timed out, generating offline PDF.'
+              : 'Live export failed, generating offline PDF.',
+          );
+
+          const { getExportData } = await import('../services/tripExportDataService');
+          const realData = await getExportData(proTripId || '', orderedSections);
+          const { generateClientPDF: fallbackPDF } = await import('../utils/exportPdfClient');
+          blob = await fallbackPDF(
+            {
+              tripId: proTripId || '',
+              tripTitle: realData.trip.title || tripData.title,
+              destination: realData.trip.destination || tripData.location,
+              dateRange: realData.trip.dateRange || tripData.dateRange,
+              description: realData.trip.description || tripData.description || '',
+              calendar: realData.calendar || [],
+              payments: realData.payments,
+              polls: realData.polls,
+              tasks: realData.tasks,
+              places: realData.places,
+              roster: realData.roster || [],
+              broadcasts: (realData as any).broadcasts,
+              attachments: (realData as any).attachments,
+            },
+            orderedSections,
+          );
+
+          const filename = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+          await openOrDownloadBlob(blob, filename, {
+            preOpenedWindow,
+            mimeType: 'application/pdf',
+          });
+          toast.success('PDF exported successfully (offline fallback)!');
+          return;
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -437,11 +488,14 @@ export const ProTripDetailDesktop = () => {
         }
       }
 
+      signal.throwIfAborted();
+
       const filename = `Trip_${tripData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
       await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
 
       toast.success('PDF exported successfully!');
     } catch (error) {
+      if (signal.aborted) throw signal.reason;
       console.error('[PRO-EXPORT] Export error details:', {
         error,
         errorMessage: error instanceof Error ? error.message : String(error),

@@ -41,7 +41,7 @@ export function AddEventModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900/95 border border-white/10 rounded-2xl p-6 max-w-md mx-auto">
+      <DialogContent className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-6 max-w-md mx-auto shadow-enterprise-lg">
         <DialogHeader>
           <DialogTitle className="text-white text-lg font-semibold">
             {isEditing
@@ -57,7 +57,7 @@ export function AddEventModal({
             </Label>
             <Input
               id="modal-title"
-              className="mt-1.5 bg-gray-800 border-white/10 text-white"
+              className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
               value={newEvent.title}
               onChange={e => onUpdateField('title', e.target.value)}
               placeholder="Event title"
@@ -73,7 +73,7 @@ export function AddEventModal({
               <Input
                 id="modal-start-time"
                 type="time"
-                className="mt-1.5 bg-gray-800 border-white/10 text-white"
+                className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
                 value={newEvent.time}
                 onChange={e => onUpdateField('time', e.target.value)}
                 disabled={isSubmitting}
@@ -86,7 +86,7 @@ export function AddEventModal({
               <Input
                 id="modal-end-time"
                 type="time"
-                className="mt-1.5 bg-gray-800 border-white/10 text-white"
+                className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
                 value={newEvent.endTime || ''}
                 onChange={e => onUpdateField('endTime', e.target.value)}
                 disabled={isSubmitting}
@@ -100,7 +100,7 @@ export function AddEventModal({
             </Label>
             <Input
               id="modal-location"
-              className="mt-1.5 bg-gray-800 border-white/10 text-white"
+              className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
               value={newEvent.location}
               onChange={e => onUpdateField('location', e.target.value)}
               placeholder="e.g., Central Park, NYC"
@@ -114,7 +114,7 @@ export function AddEventModal({
             </Label>
             <Textarea
               id="modal-description"
-              className="mt-1.5 bg-gray-800 border-white/10 text-white resize-none"
+              className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 resize-none"
               rows={3}
               value={newEvent.description}
               onChange={e => onUpdateField('description', e.target.value)}
@@ -129,14 +129,14 @@ export function AddEventModal({
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
-            className="bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+            className="border-glass-slate-border text-gray-300 hover:bg-glass-slate-bg hover:text-white"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!newEvent.title || isSubmitting}
-            className="bg-indigo-600 text-white hover:bg-indigo-500"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {isSubmitting ? 'Saving...' : isEditing ? 'Update Event' : 'Save Event'}
           </Button>

@@ -52,8 +52,8 @@ export const ProTabNavigation = ({
             onClick={() => onTabChange(tab.id)}
             className={`flex items-center justify-center gap-1.5 ${paddingClass} py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm ${buttonSizeClass} ${
               activeTab === tab.id
-                ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
-                : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'
+                ? 'accent-ring-active text-white shadow-md'
+                : 'accent-ring-idle text-gray-300 hover:text-white'
             } ${isReadOnly ? 'opacity-75' : ''}`}
           >
             {Icon && <Icon size={16} />}

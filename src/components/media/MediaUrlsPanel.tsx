@@ -5,7 +5,7 @@
  * 1. Automatically extracted from trip chat messages (trip_link_index with message_id)
  * 2. Manually added via the "Add Link" form (trip_link_index without message_id)
  *
- * Users can open, copy, delete, or promote URLs to Trip Links.
+ * Users can open, copy, delete, or save URLs to Explore Links (trip_links table).
  * Manual additions do NOT auto-post to chat.
  */
 
@@ -365,7 +365,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <div className="animate-spin h-8 w-8 gold-gradient-spinner"></div>
       </div>
     );
   }
@@ -374,7 +374,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
     return (
       <div className="text-center py-12">
         <Globe className="mx-auto h-12 w-12 text-red-400 mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Links</h3>
+        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Chat Links</h3>
         <p className="text-muted-foreground mb-4">{error}</p>
         <Button onClick={fetchLinks} variant="outline">
           Retry
@@ -390,7 +390,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
     <div className="space-y-4">
       {/* Header with Add Link button */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-foreground">Links ({links.length})</h3>
+        <h3 className="text-lg font-semibold text-foreground">Chat Links ({links.length})</h3>
         <Button
           variant="ghost"
           size="sm"
@@ -446,8 +446,10 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {links.length === 0 && !showAddForm && (
         <div className="text-center py-12">
           <Link className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No Links Yet</h3>
-          <p className="text-muted-foreground">Share a URL in Chat or add one here manually</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">No Chat Links Yet</h3>
+          <p className="text-muted-foreground">
+            Links shared in chat will appear here automatically
+          </p>
         </div>
       )}
 
@@ -503,8 +505,8 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {links.length > 0 && (
         <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-lg">
           <p className="text-xs text-muted-foreground">
-            Links shared in Chat automatically appear here. You can also add links manually using
-            the "+ Add Link" button above.
+            Chat links are automatically collected from conversation. You can also add links
+            manually. To save a link for trip planning, use "Save to Explore."
           </p>
         </div>
       )}
@@ -602,7 +604,7 @@ function LinkCard({
                 className="text-xs h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
               >
                 <Plus className="w-3 h-3 mr-1" />
-                {isPromoting ? 'Adding...' : 'Promote to Trip Link'}
+                {isPromoting ? 'Adding...' : 'Save to Explore'}
               </Button>
             )}
           </div>

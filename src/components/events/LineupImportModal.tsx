@@ -34,6 +34,8 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
+import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
 import {
   parseLineupFile,
   parseLineupText,
@@ -48,6 +50,7 @@ export type LineupImportMode = 'merge' | 'replace';
 interface LineupImportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  tripId?: string;
   onImportNames: (payload: {
     names: string[];
     mode: LineupImportMode;
@@ -55,7 +58,7 @@ interface LineupImportModalProps {
   }) => Promise<number>;
 }
 
-type ImportState = 'idle' | 'parsing' | 'preview';
+type ImportState = 'idle' | 'parsing' | 'preview' | 'review_gmail';
 
 const FORMAT_BADGES = [
   { label: 'ICS', icon: Calendar },
@@ -69,6 +72,7 @@ const FORMAT_BADGES = [
 export const LineupImportModal: React.FC<LineupImportModalProps> = ({
   isOpen,
   onClose,
+  tripId,
   onImportNames,
 }) => {
   const [state, setState] = useState<ImportState>('idle');
@@ -80,7 +84,8 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
   const [showPasteInput, setShowPasteInput] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
-  const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
+  const [gmailCandidates, setGmailCandidates] = useState<any[]>([]);
+  const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url' | 'gmail'>('file');
 
   const processParseResult = useCallback((result: LineupParseResult) => {
     setParseResult(result);
@@ -119,6 +124,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
     setShowPasteInput(false);
     setPasteText('');
     setUrlInput('');
+    setGmailCandidates([]);
     setParsingSource('file');
   }, []);
 
@@ -258,6 +264,23 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                 </div>
               </div>
 
+              {tripId && (
+                <div className="py-2">
+                  <SmartImportGmail
+                    tripId={tripId}
+                    onImportStarted={() => {
+                      setParsingSource('gmail');
+                      setState('parsing');
+                    }}
+                    onImportComplete={candidates => {
+                      setGmailCandidates(candidates);
+                      setState('review_gmail');
+                    }}
+                    onImportError={() => setState('idle')}
+                  />
+                </div>
+              )}
+
               <div className="flex items-center gap-3 px-1">
                 <Switch
                   checked={showPasteInput}
@@ -296,7 +319,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
 
           {state === 'parsing' && (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4" />
+              <div className="animate-spin h-10 w-10 gold-gradient-spinner mb-4" />
               <p className="text-muted-foreground">
                 {parsingSource === 'url'
                   ? 'Scanning website for lineup...'
@@ -306,6 +329,39 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                       ? 'AI is extracting names...'
                       : 'Parsing file...'}
               </p>
+            </div>
+          )}
+
+          {state === 'review_gmail' && (
+            <div className="p-4">
+              <SmartImportReview
+                candidates={gmailCandidates}
+                onAccept={async accepted => {
+                  // For Lineup, we are extracting names from reservations (typically attendees or artists from event tickets)
+                  const namesToImport = accepted
+                    .flatMap(c => {
+                      const data = c.reservation_data;
+                      if (data.type === 'event_ticket') {
+                        return [...(data.attendee_names || []), data.event_name];
+                      } else if (data.passenger_names) {
+                        return data.passenger_names;
+                      } else if (data.guest_names) {
+                        return data.guest_names;
+                      }
+                      return [];
+                    })
+                    .filter(Boolean);
+
+                  if (namesToImport.length > 0) {
+                    setParsedNames(Array.from(new Set(namesToImport)));
+                    setState('preview');
+                  } else {
+                    toast.error('No names found in these reservations');
+                    resetState();
+                  }
+                }}
+                onCancel={resetState}
+              />
             </div>
           )}
 

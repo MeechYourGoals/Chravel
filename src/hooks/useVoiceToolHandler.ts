@@ -61,13 +61,14 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
         switch (name) {
           case 'addToCalendar': {
             const title = requireString(args.title, 'title', 200);
-            const startTime = validateDatetime(args.startTime, 'startTime');
+            // Edge function declares param as `datetime`; handle both naming conventions
+            const startTime = validateDatetime(args.datetime ?? args.startTime, 'datetime');
             if (!startTime) {
-              return { success: false, error: 'startTime is required for calendar events' };
+              return { success: false, error: 'datetime is required for calendar events' };
             }
-            const endTime = validateDatetime(args.endTime, 'endTime');
+            const endTime = validateDatetime(args.endDatetime ?? args.endTime, 'endTime');
             const location = optionalString(args.location, 300);
-            const description = optionalString(args.description, 1000);
+            const description = optionalString(args.notes ?? args.description, 1000);
 
             const { data, error } = await supabase
               .from('trip_events')
@@ -240,6 +241,12 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           case 'searchImages':
           case 'getDistanceMatrix':
           case 'validateAddress':
+          case 'savePlace':
+          case 'setBasecamp':
+          case 'addToAgenda':
+          case 'searchFlights':
+          case 'emitSmartImportPreview':
+          case 'emitReservationDraft':
           // falls through — new agentic tools (routed through server-side functionExecutor)
           case 'updateCalendarEvent':
           case 'deleteCalendarEvent':
@@ -248,12 +255,17 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           case 'searchTripData':
           case 'detectCalendarConflicts':
           case 'createBroadcast':
+          case 'createNotification':
           case 'getWeatherForecast':
           case 'convertCurrency':
           case 'browseWebsite':
           case 'makeReservation':
           case 'settleExpense':
-          case 'generateTripImage': {
+          case 'generateTripImage':
+          case 'setTripHeaderImage':
+          case 'getDeepLink':
+          case 'explainPermission':
+          case 'verify_artifact': {
             const { data: toolData, error: toolError } = await supabase.functions.invoke(
               'execute-concierge-tool',
               {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 type DashboardType = 'my_trips' | 'pro' | 'events';
@@ -50,45 +50,25 @@ async function fetchRemoteOrder(
   return Array.isArray(ids) ? ids : null;
 }
 
-let upsertTimer: ReturnType<typeof setTimeout> | null = null;
-
-function debouncedUpsert(userId: string, dashboardType: DashboardType, ids: string[]): void {
-  if (upsertTimer) clearTimeout(upsertTimer);
-  upsertTimer = setTimeout(async () => {
-    try {
-      await supabase.from('dashboard_card_order' as any).upsert(
-        {
-          user_id: userId,
-          dashboard_type: dashboardType,
-          ordered_ids: ids,
-          updated_at: new Date().toISOString(),
-        } as any,
-        { onConflict: 'user_id,dashboard_type' },
-      );
-    } catch {
-      // Network error — localStorage still has the value
-    }
-  }, 500);
-}
-
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
 
 export function useDashboardCardOrder(userId: string | undefined, dashboardType: DashboardType) {
   const lastSavedRef = useRef<string>('');
-  // Holds the remote order once fetched so applyOrder can use it synchronously
-  const remoteOrderRef = useRef<string[] | null>(null);
+  const upsertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Background fetch from Supabase on mount — updates localStorage cache
+  // State instead of ref so remote fetch triggers re-render
+  const [remoteOrder, setRemoteOrder] = useState<string[] | null>(null);
+
+  // Background fetch from Supabase on mount
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
 
     fetchRemoteOrder(userId, dashboardType).then(remote => {
       if (cancelled || !remote) return;
-      remoteOrderRef.current = remote;
-      // Sync remote → localStorage so next render uses the latest
+      setRemoteOrder(remote);
       persistLocalOrder(userId, dashboardType, remote);
     });
 
@@ -102,7 +82,7 @@ export function useDashboardCardOrder(userId: string | undefined, dashboardType:
       if (!userId || items.length <= 1) return items;
 
       // Prefer remote order if already fetched, else fall back to localStorage
-      const savedIds = remoteOrderRef.current ?? loadLocalOrder(userId, dashboardType);
+      const savedIds = remoteOrder ?? loadLocalOrder(userId, dashboardType);
       if (savedIds.length === 0) return items;
 
       const currentIdSet = new Set(items.map(getId));
@@ -115,7 +95,7 @@ export function useDashboardCardOrder(userId: string | undefined, dashboardType:
 
       return [...newItems, ...orderedItems];
     },
-    [userId, dashboardType],
+    [userId, dashboardType, remoteOrder],
   );
 
   const saveOrder = useCallback(
@@ -127,8 +107,28 @@ export function useDashboardCardOrder(userId: string | undefined, dashboardType:
 
       // Write to both localStorage (instant) and Supabase (cross-device)
       persistLocalOrder(userId, dashboardType, orderedIds);
-      remoteOrderRef.current = orderedIds;
-      debouncedUpsert(userId, dashboardType, orderedIds);
+      setRemoteOrder(orderedIds);
+
+      // Instance-scoped debounce
+      if (upsertTimerRef.current) clearTimeout(upsertTimerRef.current);
+      upsertTimerRef.current = setTimeout(async () => {
+        try {
+          const { error } = await supabase.from('dashboard_card_order' as any).upsert(
+            {
+              user_id: userId,
+              dashboard_type: dashboardType,
+              ordered_ids: orderedIds,
+              updated_at: new Date().toISOString(),
+            } as any,
+            { onConflict: 'user_id,dashboard_type' },
+          );
+          if (error) {
+            console.error('[CardOrder] Upsert failed:', error.message);
+          }
+        } catch (err) {
+          console.error('[CardOrder] Network error during upsert:', err);
+        }
+      }, 500);
     },
     [userId, dashboardType],
   );

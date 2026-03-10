@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-import { createSecureResponse, createErrorResponse } from '../_shared/securityHeaders.ts';
+import {
+  createSecureResponse,
+  createErrorResponse,
+  createOptionsResponse,
+} from '../_shared/securityHeaders.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { verifyCronAuth } from '../_shared/cronGuard.ts';
 
 /**
  * Edge function to send scheduled broadcasts
@@ -8,7 +14,17 @@ import { createSecureResponse, createErrorResponse } from '../_shared/securityHe
  * every minute to check for broadcasts that need to be sent
  */
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
+
+  if (req.method === 'OPTIONS') {
+    return createOptionsResponse(req);
+  }
+
   try {
+    // Verify cron/service caller authentication
+    const guard = verifyCronAuth(req, corsHeaders);
+    if (!guard.authorized) return guard.response!;
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

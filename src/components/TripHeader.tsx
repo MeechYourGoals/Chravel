@@ -607,7 +607,7 @@ export const TripHeader = ({
             {/* Header: Trip Members | count | Show all - consolidated layout */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Users size={20} className={`text-${accentColors.primary}`} />
+                <Users size={20} className="gold-gradient-icon" />
                 <h3 className="text-white font-semibold text-sm">
                   {isEvent ? 'Event Team' : 'Trip Members'}
                 </h3>
@@ -631,7 +631,7 @@ export const TripHeader = ({
                 {onManageUsers && (
                   <button
                     onClick={onManageUsers}
-                    className={`text-gray-400 hover:text-${accentColors.primary} transition-colors p-1 rounded-lg hover:bg-white/10`}
+                    className="text-gray-400 hover:text-gold-primary transition-colors p-1 rounded-lg hover:bg-white/10"
                     title="Manage users"
                   >
                     <Settings size={16} />

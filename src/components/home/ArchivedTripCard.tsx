@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Lock, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { CalendarDays, MapPin, Lock, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -161,7 +161,7 @@ export const ArchivedTripCard = ({
         )}
 
         <div className="flex items-center gap-2 text-white/70 text-sm mb-4">
-          <Calendar size={14} className="text-amber-400" />
+          <CalendarDays size={14} className="gold-gradient-icon" />
           <span>{formatDateRange()}</span>
         </div>
 

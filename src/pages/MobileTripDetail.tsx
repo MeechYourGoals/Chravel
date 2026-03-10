@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MoreVertical, Info, LogIn } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Info, LogIn, Users } from 'lucide-react';
 import { MobileTripTabs } from '../components/mobile/MobileTripTabs';
 import { MobileErrorBoundary } from '../components/mobile/MobileErrorBoundary';
 import { MobileTripInfoDrawer } from '../components/mobile/MobileTripInfoDrawer';
@@ -132,7 +132,7 @@ export const MobileTripDetail = () => {
 
   // PDF Export handler - same logic as TripCard
   const handleExport = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const tripIdStr = tripId || '1';
       const isNumericId = !tripIdStr.includes('-');
@@ -213,6 +213,9 @@ export const MobileTripDetail = () => {
           );
         }
 
+        // Check if export was cancelled before downloading
+        signal.throwIfAborted();
+
         // Generate filename
         const sanitizedTitle = (tripWithUpdatedDescription?.title || 'Trip').replace(
           /[^a-zA-Z0-9]/g,
@@ -227,6 +230,7 @@ export const MobileTripDetail = () => {
           description: `PDF ready: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         console.error('[MobileTripDetail Export] Error:', error);
         toast.error('Recap failed', {
           description:
@@ -309,9 +313,9 @@ export const MobileTripDetail = () => {
   if (loading || isAuthLoading) {
     return (
       <MobileErrorBoundary>
-        <div className="flex flex-col min-h-screen bg-black" aria-hidden="true">
+        <div className="flex flex-col h-[100dvh] bg-black overflow-hidden" aria-hidden="true">
           {/* Skeleton Header */}
-          <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/[0.06] mobile-safe-header">
+          <div className="flex-shrink-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/[0.06] mobile-safe-header">
             <div className="px-4 py-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="w-[44px] h-[44px] rounded-full bg-white/[0.06] animate-pulse" />
@@ -324,7 +328,7 @@ export const MobileTripDetail = () => {
             </div>
           </div>
           {/* Skeleton Tabs */}
-          <div className="sticky z-40 bg-black/95 backdrop-blur-md border-b border-white/[0.06] py-2 px-4">
+          <div className="flex-shrink-0 z-40 bg-black/95 backdrop-blur-md border-b border-white/[0.06] py-2 px-4">
             <div className="flex gap-2 overflow-hidden">
               {[1, 2, 3, 4, 5].map(i => (
                 <div
@@ -378,16 +382,56 @@ export const MobileTripDetail = () => {
     );
   }
 
-  // 🔒 Handle other fetch errors - show retry option
+  // 🔒 Handle other fetch errors - distinguish permission errors from generic failures
   if (tripError) {
+    const isPermissionError =
+      tripError.message.includes('permission') ||
+      tripError.message.includes('403') ||
+      tripError.message.includes('not found');
+
+    // If user is logged in but got a permission/not-found error, they're likely not a member
+    // Show a "Not a Member" screen with options to find an invite or go back
+    if (isPermissionError && user && tripId) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <Users className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-4">Not a Member</h1>
+            <p className="text-gray-400 mb-6">
+              You're not a member of this trip yet. Ask the trip organizer for an invite link to
+              join.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  navigate(`/trip/${tripId}/preview`);
+                }}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              >
+                View Trip Preview
+              </button>
+              <button
+                onClick={() => {
+                  hapticService.light();
+                  navigate('/');
+                }}
+                className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              >
+                Back to My Trips
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-white mb-4">Couldn't Load Trip</h1>
           <p className="text-gray-400 mb-6">
-            {tripError.message.includes('permission')
-              ? "You don't have access to this trip."
-              : 'There was a problem loading this trip. Please try again.'}
+            There was a problem loading this trip. Please try again.
           </p>
           <div className="flex flex-col gap-3">
             <button
@@ -490,11 +534,11 @@ export const MobileTripDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col min-h-screen bg-black">
-        {/* Mobile Header - Sticky with iOS safe area */}
+      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+        {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
-          className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
+          className="flex-shrink-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
         >
           <div className="px-4 py-2">
             <div className="flex items-center justify-between gap-2">

@@ -54,7 +54,7 @@ interface EventDetailContentProps {
 const TabSkeleton = () => (
   <div className="flex items-center justify-center h-full min-h-[300px]">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-10 h-10 border-3 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      <div className="w-10 h-10 gold-gradient-spinner animate-spin" />
       <p className="text-sm text-gray-400">Loading...</p>
     </div>
   </div>
@@ -207,8 +207,8 @@ export const EventDetailContent = ({
               onClick={() => handleTabClick(tab)}
               className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm flex-1 ${
                 isActive
-                  ? `bg-gradient-to-r ${accentColors.gradient} text-white shadow-md`
-                  : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'
+                  ? 'accent-ring-active text-white shadow-md'
+                  : 'accent-ring-idle text-gray-300 hover:text-white'
               }`}
             >
               {Icon && <Icon size={16} className="shrink-0" />}

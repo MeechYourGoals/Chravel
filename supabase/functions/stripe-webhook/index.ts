@@ -58,18 +58,20 @@ const logStep = (step: string, details?: unknown) => {
 // PRODUCT IDS - ChravelApp Stripe Products
 // ============================================================
 const PRODUCT_TO_TIER: Record<string, string> = {
-  // Consumer Plans - ChravelApp Plus
-  prod_Tc0SWNhLkoCDIi: 'explorer',
-  prod_Tc0WEzRDTCkfPM: 'frequent-chraveler',
+  // Consumer Plans - ChravelApp Plus (monthly + annual are separate products)
+  prod_U73VxEnvEHbBrx: 'explorer', // Explorer monthly
+  prod_U73VrTc4sE8AIv: 'explorer', // Explorer annual
+  prod_U73VfiKf3VrJKf: 'frequent-chraveler', // FC monthly
+  prod_U73VqblRTSr2XZ: 'frequent-chraveler', // FC annual
 
   // Pro Plans - ChravelApp Pro
-  prod_Tc0YVR1N0fmtDG: 'pro-starter',
-  prod_Tc0afc0pIUt87D: 'pro-growth',
-  prod_Tc0cJshKNpvxV0: 'pro-enterprise',
+  prod_U73Vlcl4lqgsb4: 'pro-starter',
+  prod_U73VPX6TlClQ7J: 'pro-growth',
+  prod_U73Vd6QW4pEY9x: 'pro-enterprise',
 
-  // Trip Pass Products
-  prod_Tx0AZIWAubAWD3: 'explorer',
-  prod_Tx0Ap1aT22IGl2: 'frequent-chraveler',
+  // Trip Pass Products (one-time)
+  prod_U73WaALe9yjrAR: 'explorer',
+  prod_U73W99ebeJvbLB: 'frequent-chraveler',
 };
 
 type StripeEntitlementStatus = 'active' | 'trialing' | 'expired' | 'canceled';
@@ -121,6 +123,34 @@ serve(async req => {
       logError('STRIPE_WEBHOOK', err);
       return createErrorResponse('Invalid signature', 400);
     }
+
+    // Idempotency: skip already-processed events to prevent duplicate processing
+    // during webhook retries or storm scenarios
+    const { data: existingEvent, error: idempotencyError } = await supabaseClient
+      .from('webhook_events')
+      .select('id')
+      .eq('event_id', event.id)
+      .maybeSingle();
+
+    if (idempotencyError) {
+      // Log but don't block — DB might not have the table yet
+      console.warn('[STRIPE-WEBHOOK] Idempotency check failed:', idempotencyError.message);
+    } else if (existingEvent) {
+      logStep('Duplicate event skipped (idempotency)', { eventId: event.id });
+      return createSecureResponse({ received: true, duplicate: true, eventType: event.type });
+    }
+
+    // Record event as processed (best-effort — table may not exist yet)
+    await supabaseClient
+      .from('webhook_events')
+      .insert({
+        event_id: event.id,
+        event_type: event.type,
+        processed_at: new Date().toISOString(),
+      })
+      .then(({ error: insertErr }) => {
+        if (insertErr) console.warn('[STRIPE-WEBHOOK] Failed to record event:', insertErr.message);
+      });
 
     // Handle different event types
     switch (event.type) {

@@ -1,44 +1,32 @@
 
 
-# Fix concierge-tts: Switch from API Key to OAuth2 Service Account Auth
+## Problem
 
-## Root Cause (Confirmed)
-
-The edge function logs are definitive:
-
-```
-"API keys are not supported by this API. Expected OAuth2 access token"
-```
-
-**Google Cloud Text-to-Speech v1 does NOT support API keys** — not via query param, not via `x-goog-api-key` header. It requires OAuth2 Bearer tokens. No amount of API key configuration will fix this.
-
-## Solution
-
-The `VERTEX_SERVICE_ACCOUNT_KEY` secret is already configured and working (used by `gemini-voice-session` for Gemini Live). We reuse the same OAuth2 JWT-to-access-token flow in `concierge-tts`.
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
 ## Changes
 
-### 1. `supabase/functions/concierge-tts/index.ts`
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-Replace the API key auth with OAuth2 service account auth:
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-- Remove `GOOGLE_CLOUD_TTS_API_KEY` usage entirely
-- Add `VERTEX_SERVICE_ACCOUNT_KEY` reading + parsing (same pattern as `gemini-voice-session`)
-- Add `base64UrlEncode()`, `createAccessToken()`, `parseServiceAccountKey()` functions (copied from `gemini-voice-session`)
-- Mint an OAuth2 access token and use `Authorization: Bearer <token>` header instead of `x-goog-api-key`
-- The TTS endpoint stays `https://texttospeech.googleapis.com/v1/text:synthesize` (this is correct, it just needs OAuth2)
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
 
-### 2. Deploy the updated function
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
+```
 
-After code change, deploy `concierge-tts` to Supabase.
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
+```
 
-## No other files change
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
 
-The client hook (`useConciergeReadAloud`) and all consumer components are already correctly wired from the previous migration. This is purely a backend auth fix.
-
-## Files
-
-| File | Action |
-|------|--------|
-| `supabase/functions/concierge-tts/index.ts` | Replace API key auth with OAuth2 service account |
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 

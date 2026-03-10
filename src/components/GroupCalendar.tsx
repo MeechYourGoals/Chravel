@@ -204,7 +204,7 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
           />
         ) : isLoading ? (
           <div className="flex justify-center items-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="animate-spin h-8 w-8 gold-gradient-spinner" />
           </div>
         ) : (
           <CalendarGrid
@@ -304,11 +304,11 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
         />
       ) : isLoading ? (
         <div className="flex justify-center items-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <div className="animate-spin h-8 w-8 gold-gradient-spinner" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:h-[420px]">
-          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-2 flex items-center h-full">
+          <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-2 flex items-center h-full shadow-enterprise-lg">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -319,15 +319,15 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
               }}
               modifiersStyles={{
                 hasEvents: {
-                  backgroundColor: 'hsl(var(--primary) / 0.3)',
-                  color: 'hsl(var(--primary-foreground))',
+                  backgroundColor: 'rgba(196, 151, 70, 0.3)',
+                  color: '#feeaa5',
                   fontWeight: 'bold',
                 },
               }}
             />
           </div>
 
-          <div className="bg-gray-900/80 border border-white/10 rounded-2xl p-4 flex flex-col h-full">
+          <div className="bg-glass-slate-card border border-glass-slate-border rounded-2xl p-4 flex flex-col h-full shadow-enterprise-lg">
             <h3 className="text-white font-medium mb-3">
               {selectedDate
                 ? `Events for ${format(selectedDate, 'EEEE, MMM d')}`

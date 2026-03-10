@@ -163,10 +163,12 @@ export function VoiceLiveOverlay({
           </div>
         )}
 
-        {/* Ready / listening — waiting for first speech */}
+        {/* Ready / listening — waiting for first speech (or proactive model speech) */}
         {isActive && !showTranscripts && !isConnecting && (
           <div className="flex flex-col items-center justify-center h-full gap-3">
-            <span className={`size-3 rounded-full ${dotColor}`} />
+            <span
+              className={`size-3 rounded-full ${dotColor} ${isSpeaking ? 'animate-pulse' : ''}`}
+            />
             <p className="text-base text-white/60">{statusDetail}</p>
           </div>
         )}

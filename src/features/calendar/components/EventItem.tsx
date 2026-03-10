@@ -1,7 +1,8 @@
 import React from 'react';
 import { CalendarEvent } from '@/types/calendar';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, Trash2, Pencil } from 'lucide-react';
+import { Clock, MapPin, Trash2, Pencil, Sun, CalendarDays } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface EventItemProps {
   event: CalendarEvent;
@@ -30,10 +31,28 @@ export const EventItem = ({ event, onEdit, onDelete, isDeleting = false }: Event
           </div>
 
           <div className="space-y-1 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>{event.time}</span>
-            </div>
+            {event.is_all_day ? (
+              <div className="flex items-center gap-2">
+                {event.end_date && event.end_date.toDateString() !== event.date.toDateString() ? (
+                  <>
+                    <CalendarDays className="h-4 w-4" />
+                    <span>
+                      {format(event.date, 'MMM d')} - {format(event.end_date, 'MMM d')}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Sun className="h-4 w-4" />
+                    <span>All day</span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>{event.time}</span>
+              </div>
+            )}
 
             {event.location && (
               <div className="flex items-center gap-2">
