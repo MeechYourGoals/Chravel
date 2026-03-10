@@ -123,7 +123,7 @@ serve(async (req: Request) => {
       capabilityToken,
       toolName,
       argsObj,
-      locationContext
+      locationContext,
     );
 
     return new Response(JSON.stringify(result), {
