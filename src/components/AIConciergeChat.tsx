@@ -58,25 +58,6 @@ const UPLOAD_ENABLED = true;
 const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Map GeminiLiveState → VoiceState for VoiceButton visuals */
-const mapLiveStateToVoiceState = (s: GeminiLiveState): VoiceState => {
-  switch (s) {
-    case 'requesting_mic':
-      return 'connecting';
-    case 'ready':
-    case 'listening':
-    case 'interrupted':
-      return 'listening';
-    case 'sending':
-      return 'thinking';
-    case 'playing':
-      return 'speaking';
-    case 'error':
-      return 'error';
-    default:
-      return 'idle';
-  }
-};
 
 interface AIConciergeChatProps {
   tripId: string;
