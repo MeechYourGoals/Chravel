@@ -26,7 +26,7 @@ CREATE POLICY "Anon users can read app_settings"
 
 -- Seed TTS voice configuration
 INSERT INTO public.app_settings (key, value, description) VALUES
-  ('tts_primary_voice_id', '1SM7GgM6IMuvQlz2BwM3', 'ElevenLabs primary voice ID (Mark)'),
-  ('tts_fallback_voice_id', 'nPczCjzI2devNBz1zQrb', 'ElevenLabs fallback voice ID (Brian - free-tier safe)'),
-  ('tts_model_id', 'eleven_multilingual_v2', 'ElevenLabs TTS model')
+  ('tts_primary_voice_id', 'en-US-Chirp3-HD-Charon', 'Google Cloud TTS primary voice ID (Charon)'),
+  ('tts_fallback_voice_id', 'en-US-Neural2-J', 'Google Cloud TTS fallback voice ID (Neural2-J)'),
+  ('tts_model_id', 'google_chirp3_hd', 'Concierge TTS model')
 ON CONFLICT (key) DO NOTHING;

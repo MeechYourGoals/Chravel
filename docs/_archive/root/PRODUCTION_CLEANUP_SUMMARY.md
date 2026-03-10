@@ -29,7 +29,7 @@ Successfully completed production-ready cleanup of the Chravel codebase, impleme
 - ✅ Removed deprecated `@11labs/react` package from `package.json`
 - ✅ Removed deprecated `@11labs/client` package 
 - ✅ Ran `npm install` to clean dependencies
-- ✅ Updated `README.md` to reference Google Gemini instead of ElevenLabs
+- ✅ Updated `README.md` to reference Google Gemini instead of the prior TTS provider
 - ⚠️ Note: 6 moderate security vulnerabilities remain (related to dev dependencies - esbuild/vite, not critical for production)
 
 **Files Modified:**
