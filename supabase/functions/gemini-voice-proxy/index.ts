@@ -913,11 +913,20 @@ serve(async (req: Request) => {
         const upstreamUrlWithAuth = `${upstreamUrl}?access_token=${encodeURIComponent(accessToken)}`;
         upstreamWs = new WebSocket(upstreamUrlWithAuth);
 
+        let setupCompleteReceived = false;
+        let firstUpstreamMessageLogged = false;
+
         upstreamWs.onopen = () => {
           log('upstream_opened');
           // Send setup message as first message
           upstreamWs!.send(setupMessage);
-          log('setup_sent');
+          log('setup_sent', {
+            modelPath: setupConfig.model,
+            voice,
+            toolsEnabled: VOICE_TOOLS_ENABLED,
+            affective: VOICE_AFFECTIVE_DIALOG,
+            proactive: VOICE_PROACTIVE_AUDIO,
+          });
           upstreamReady = true;
 
           // Flush any buffered client messages
@@ -926,17 +935,16 @@ serve(async (req: Request) => {
             upstreamWs!.send(msg);
           }
 
-          // Start keepalive pings (30s per gist)
+          // Start keepalive pings (30s per gist) — camelCase
           keepaliveInterval = setInterval(() => {
             if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
-              // Send empty realtime_input to keep connection alive
               upstreamWs.send(
                 JSON.stringify({
-                  realtime_input: {
-                    media_chunks: [
+                  realtimeInput: {
+                    mediaChunks: [
                       {
-                        mime_type: 'audio/pcm;rate=16000',
-                        data: '', // Empty audio = silence keepalive
+                        mimeType: 'audio/pcm;rate=16000',
+                        data: '',
                       },
                     ],
                   },
@@ -947,6 +955,34 @@ serve(async (req: Request) => {
         };
 
         upstreamWs.onmessage = (upstreamEvent: MessageEvent) => {
+          // Protocol observability: log first upstream message verbatim
+          if (!firstUpstreamMessageLogged) {
+            firstUpstreamMessageLogged = true;
+            const data = typeof upstreamEvent.data === 'string' ? upstreamEvent.data : '';
+            try {
+              const parsed = JSON.parse(data);
+              const hasSetupComplete = !!(parsed.setupComplete || parsed.setup_complete);
+              if (hasSetupComplete) {
+                setupCompleteReceived = true;
+                log('setup_complete_received');
+              }
+              // Log structure keys (not full payload to avoid PII leaks)
+              log('first_upstream_message', { keys: Object.keys(parsed), hasSetupComplete });
+            } catch {
+              log('first_upstream_message', { raw_length: data.length, parse_failed: true });
+            }
+          } else {
+            // Check subsequent messages for setupComplete too
+            const data = typeof upstreamEvent.data === 'string' ? upstreamEvent.data : '';
+            try {
+              const parsed = JSON.parse(data);
+              if (!setupCompleteReceived && (parsed.setupComplete || parsed.setup_complete)) {
+                setupCompleteReceived = true;
+                log('setup_complete_received');
+              }
+            } catch { /* binary frame, ignore */ }
+          }
+
           // Relay upstream messages to client
           if (clientWs.readyState === WebSocket.OPEN) {
             const data = typeof upstreamEvent.data === 'string' ? upstreamEvent.data : '';
@@ -959,9 +995,13 @@ serve(async (req: Request) => {
         };
 
         upstreamWs.onclose = (ev: CloseEvent) => {
-          log('upstream_closed', { code: ev.code, reason: ev.reason, wasClean: ev.wasClean });
+          log('upstream_closed', {
+            code: ev.code,
+            reason: ev.reason,
+            wasClean: ev.wasClean,
+            setupCompleteReceived,
+          });
           upstreamReady = false;
-          // Relay close to client
           closeAll(safeCloseCode(ev.code), ev.reason || 'Upstream closed');
         };
 
