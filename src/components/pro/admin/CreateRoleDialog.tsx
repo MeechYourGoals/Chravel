@@ -185,7 +185,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
           <SelectContent>
             <SelectItem value="admin">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-red-500" />
+                <Shield className="w-4 h-4 text-amber-500" />
                 <div>
                   <div className="font-medium">Admin</div>
                   <div className="text-xs text-muted-foreground">
@@ -196,7 +196,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
             </SelectItem>
             <SelectItem value="edit">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-blue-500" />
+                <Users className="w-4 h-4 text-amber-400" />
                 <div>
                   <div className="font-medium">Edit</div>
                   <div className="text-xs text-muted-foreground">Can create and modify content</div>
@@ -240,7 +240,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
         <Button
           type="submit"
           disabled={isProcessing}
-          className={isMobile ? 'min-h-[44px] order-1' : ''}
+          className={`bg-amber-500 hover:bg-amber-600 text-black font-medium ${isMobile ? 'min-h-[44px] order-1' : ''}`}
         >
           {isProcessing ? 'Creating...' : 'Create Role'}
         </Button>

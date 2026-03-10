@@ -22,7 +22,7 @@ export const JoinRequestsDialog = ({ open, onOpenChange, tripId }: JoinRequestsD
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl overflow-y-auto">
           <SheetHeader className="pb-4">
             <SheetTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-orange-400" />
+              <Clock className="w-5 h-5 text-amber-400" />
               Join Requests
             </SheetTitle>
           </SheetHeader>
@@ -37,7 +37,7 @@ export const JoinRequestsDialog = ({ open, onOpenChange, tripId }: JoinRequestsD
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gray-900/95 backdrop-blur-md border-white/20">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
-            <Clock className="w-5 h-5 text-orange-400" />
+            <Clock className="w-5 h-5 text-amber-400" />
             Join Requests
           </DialogTitle>
         </DialogHeader>

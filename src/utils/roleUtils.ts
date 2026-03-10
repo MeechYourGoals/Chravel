@@ -96,19 +96,10 @@ export const normalizeRole = (role: string): string => {
 };
 
 /**
- * Get role color class for badges
+ * Get role color class for badges — unified gold/amber system
  */
-export const getRoleColorClass = (role: string, category: ProTripCategory): string => {
-  const categoryConfig = getCategoryConfig(category);
-
-  // Use different colors for predefined vs custom roles
-  if (categoryConfig.roles.includes(role)) {
-    // Predefined roles get the primary red color
-    return 'bg-red-600/20 text-red-400';
-  } else {
-    // Custom roles get a secondary red color to match the "All" filter
-    return 'bg-red-600/20 text-red-400';
-  }
+export const getRoleColorClass = (_role: string, _category: ProTripCategory): string => {
+  return 'bg-amber-500/15 text-amber-400 border border-amber-500/25';
 };
 
 /**

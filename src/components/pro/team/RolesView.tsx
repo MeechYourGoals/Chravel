@@ -124,6 +124,13 @@ export const RolesView = ({
 
   const existingRoles = extractUniqueRoles(roster);
 
+  // Reset selected role filter if the role was deleted
+  React.useEffect(() => {
+    if (selectedRole !== 'all' && !roles.includes(selectedRole)) {
+      setSelectedRole('all');
+    }
+  }, [roles, selectedRole]);
+
   // Check if there are unassigned roles (members with default/empty roles)
   const hasUnassignedRoles = roster.some(
     member =>
@@ -308,7 +315,7 @@ export const RolesView = ({
                     onClick={() => setSelectedRole(role)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                       selectedRole === role
-                        ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-105'
+                        ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30 scale-105'
                         : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-[1.02] border border-gray-600'
                     }`}
                   >
@@ -325,8 +332,8 @@ export const RolesView = ({
 
         {/* Manual Role Input Notice for Corporate & Business */}
         {availableRoles.length === 0 && (
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-            <p className="text-blue-400 text-sm">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+            <p className="text-amber-400/80 text-sm">
               Team members can have custom titles entered manually.{' '}
               {isAdmin && 'Use the "Create Role" button above to add new roles.'}
             </p>
@@ -415,7 +422,7 @@ export const RolesView = ({
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <QuickContactMenu member={member}>
-                        <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
+                        <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-amber-400 transition-colors leading-tight">
                           {member.name}
                         </h3>
                       </QuickContactMenu>
@@ -432,7 +439,7 @@ export const RolesView = ({
                             key={`${pill.name}-${index}`}
                             className={`${
                               pill.isAdmin
-                                ? 'bg-red-600/30 text-red-300 border border-red-500/30'
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                                 : getRoleColorClass(pill.name, category)
                             } px-1.5 py-0.5 rounded text-xs font-medium`}
                           >
