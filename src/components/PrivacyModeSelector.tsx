@@ -1,7 +1,6 @@
 import React from 'react';
-import { Shield, Bot, Lock, CheckCircle, XCircle } from 'lucide-react';
+import { Shield, Lock } from 'lucide-react';
 import { PrivacyMode, PRIVACY_MODE_CONFIG, getDefaultPrivacyMode } from '../types/privacy';
-import { Card, CardContent } from './ui/card';
 
 interface PrivacyModeSelectorProps {
   tripType: 'consumer' | 'pro' | 'event';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Crown, Settings } from 'lucide-react';
+import { Sparkles, Settings } from 'lucide-react';
 import { TripPreferences } from '../TripPreferences';
 import { TripPreferences as TripPreferencesType } from '../../types/consumer';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { useDemoMode } from '../../hooks/useDemoMode';
 
 export const ConsumerAIConciergeSection = () => {
-  const { isPlus, upgradeToPlus } = useConsumerSubscription();
+  useConsumerSubscription();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [preferences, setPreferences] = useState<TripPreferencesType | null>(null);

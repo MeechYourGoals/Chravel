@@ -114,7 +114,7 @@ export class ProductionNotificationService {
     deviceId?: string,
   ): Promise<boolean> {
     try {
-      const { data, error } = await supabase.functions.invoke('push-notifications', {
+      const { error } = await supabase.functions.invoke('push-notifications', {
         body: {
           action: 'save_token',
           userId,
@@ -223,7 +223,7 @@ export class ProductionNotificationService {
 
   async sendPushNotification(userId: string, payload: NotificationPayload): Promise<boolean> {
     try {
-      const { data, error } = await supabase.functions.invoke('push-notifications', {
+      const { error } = await supabase.functions.invoke('push-notifications', {
         body: {
           action: 'send_push',
           userId,
@@ -249,7 +249,7 @@ export class ProductionNotificationService {
 
   async sendEmailNotification(userId: string, subject: string, content: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase.functions.invoke('push-notifications', {
+      const { error } = await supabase.functions.invoke('push-notifications', {
         body: {
           action: 'send_email',
           userId,
@@ -272,7 +272,7 @@ export class ProductionNotificationService {
 
   async sendSMSNotification(userId: string, message: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase.functions.invoke('push-notifications', {
+      const { error } = await supabase.functions.invoke('push-notifications', {
         body: {
           action: 'send_sms',
           userId,

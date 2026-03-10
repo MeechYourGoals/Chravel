@@ -1,6 +1,6 @@
 import React from 'react';
 import { getInitials, isValidAvatarUrl } from '../../utils/avatarUtils';
-import { formatCollaboratorName, shouldShowFullNameInAvatar } from '../../utils/nameFormatUtils';
+import { formatCollaboratorName } from '../../utils/nameFormatUtils';
 
 export interface CollaboratorItem {
   id: number | string;

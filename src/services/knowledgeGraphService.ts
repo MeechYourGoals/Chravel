@@ -6,7 +6,7 @@ export class KnowledgeGraphService {
    */
   static async ingestMessage(messageId: string, tripId: string, content: string) {
     try {
-      const { data, error } = await supabase.functions.invoke('ai-ingest', {
+      const { error } = await supabase.functions.invoke('ai-ingest', {
         body: {
           source: 'message',
           sourceId: messageId,
@@ -32,7 +32,7 @@ export class KnowledgeGraphService {
    */
   static async ingestPoll(pollId: string, tripId: string) {
     try {
-      const { data, error } = await supabase.functions.invoke('ai-ingest', {
+      const { error } = await supabase.functions.invoke('ai-ingest', {
         body: {
           source: 'poll',
           sourceId: pollId,
@@ -57,7 +57,7 @@ export class KnowledgeGraphService {
    */
   static async ingestFile(fileId: string, tripId: string) {
     try {
-      const { data, error } = await supabase.functions.invoke('ai-ingest', {
+      const { error } = await supabase.functions.invoke('ai-ingest', {
         body: {
           source: 'file',
           sourceId: fileId,
@@ -82,7 +82,7 @@ export class KnowledgeGraphService {
    */
   static async ingestLink(linkId: string, tripId: string) {
     try {
-      const { data, error } = await supabase.functions.invoke('ai-ingest', {
+      const { error } = await supabase.functions.invoke('ai-ingest', {
         body: {
           source: 'link',
           sourceId: linkId,

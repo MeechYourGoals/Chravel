@@ -4,13 +4,6 @@
  * Configure with SEGMENT_WRITE_KEY in production
  */
 
-interface AnalyticsEvent {
-  name: string;
-  properties?: Record<string, any>;
-  userId?: string;
-  timestamp?: Date;
-}
-
 class AnalyticsService {
   private isInitialized = false;
   private userId: string | null = null;
@@ -33,18 +26,8 @@ class AnalyticsService {
       console.warn('[Analytics] Not initialized');
     }
 
-    const event: AnalyticsEvent = {
-      name: eventName,
-      properties: {
-        ...properties,
-        demo_mode: localStorage.getItem('TRIPS_DEMO_MODE') === 'true',
-        timestamp: new Date().toISOString(),
-      },
-      userId: this.userId || undefined,
-    };
-
     // In production, send to Segment
-    // analytics.track(eventName, event.properties);
+    // analytics.track(eventName, { ...properties, demo_mode: localStorage.getItem('TRIPS_DEMO_MODE') === 'true', timestamp: new Date().toISOString() });
   }
 
   page(name: string, properties?: Record<string, any>) {

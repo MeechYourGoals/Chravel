@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * DemoModeSelector - DISABLED
  * This component has been disabled per user request.

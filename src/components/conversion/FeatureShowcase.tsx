@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import React from 'react';
+import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -79,9 +79,7 @@ const features: Feature[] = [
 ];
 
 export const FeatureShowcase = () => {
-  const [selectedDemo, setSelectedDemo] = useState<string | null>(null);
-
-  const handleFeatureClick = (featureId: string) => {
+  const handleFeatureClick = (_featureId: string) => {
     // In a real implementation, this would show a modal or demo
   };
 

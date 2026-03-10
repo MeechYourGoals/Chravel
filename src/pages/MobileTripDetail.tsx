@@ -14,7 +14,7 @@ import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { useTripDetailData } from '../hooks/useTripDetailData';
-import { generateTripMockData, Trip as MockTrip } from '../data/tripsData';
+import { generateTripMockData } from '../data/tripsData';
 import { ExportSection } from '../types/tripExport';
 import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
@@ -36,10 +36,8 @@ export const MobileTripDetail = () => {
     tripMembers,
     tripCreatorId,
     isLoading: loading,
-    isMembersLoading,
     isAuthLoading,
     tripError,
-    membersError,
   } = useTripDetailData(tripId);
 
   // Persist activeTab in sessionStorage to survive orientation changes

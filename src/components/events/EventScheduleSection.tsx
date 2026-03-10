@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { EventSetupData, IndustryTemplate, EventScheduleData } from '@/types';
+import React from 'react';
+import { EventSetupData } from '@/types';
 
 interface EventScheduleSectionProps {
   eventData?: EventSetupData;
@@ -10,30 +10,6 @@ export const EventScheduleSection = ({
   eventData = {},
   onEventDataChange,
 }: EventScheduleSectionProps) => {
-  const [scheduleData, setScheduleData] = useState({
-    industry: eventData.industry || '',
-    template: eventData.template || null,
-    scheduleData: eventData.schedule || {},
-  });
-
-  const handleIndustrySelect = (industry: string) => {
-    const updated = { ...scheduleData, industry };
-    setScheduleData(updated);
-    onEventDataChange?.({ ...eventData, industry });
-  };
-
-  const handleTemplateSelect = (template: IndustryTemplate) => {
-    const updated = { ...scheduleData, template };
-    setScheduleData(updated);
-    onEventDataChange?.({ ...eventData, template });
-  };
-
-  const handleScheduleImport = (schedule: EventScheduleData) => {
-    const updated = { ...scheduleData, scheduleData: schedule };
-    setScheduleData(updated);
-    onEventDataChange?.({ ...eventData, schedule });
-  };
-
   return (
     <div className="space-y-8">
       <div>

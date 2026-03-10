@@ -13,7 +13,6 @@ import {
   Film,
   File,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,7 +99,6 @@ export const ChatInput = ({
   const [mentionedUsers, setMentionedUsers] = useState<TripMember[]>([]);
 
   const {
-    shareFile,
     shareLink,
     shareMultipleFiles,
     isUploading: isShareUploading,
@@ -113,7 +111,6 @@ export const ChatInput = ({
     uploadFiles,
     uploadQueue,
     isUploading: isMediaUploading,
-    clearQueue,
   } = useMediaUpload({
     tripId,
     onComplete: () => {
@@ -389,28 +386,6 @@ export const ChatInput = ({
         }
       }
     }
-  };
-
-  // Detect file type from drag event
-  const getFileTypeFromDrag = (e: React.DragEvent): 'image' | 'video' | 'document' | 'mixed' => {
-    const items = e.dataTransfer.items;
-    if (!items || items.length === 0) return 'document';
-
-    let hasImage = false;
-    let hasVideo = false;
-    let hasDocument = false;
-
-    for (let i = 0; i < items.length; i++) {
-      const type = items[i].type;
-      if (type.startsWith('image/')) hasImage = true;
-      else if (type.startsWith('video/')) hasVideo = true;
-      else hasDocument = true;
-    }
-
-    if (hasImage && !hasVideo && !hasDocument) return 'image';
-    if (hasVideo && !hasImage && !hasDocument) return 'video';
-    if (hasDocument && !hasImage && !hasVideo) return 'document';
-    return 'mixed';
   };
 
   return (

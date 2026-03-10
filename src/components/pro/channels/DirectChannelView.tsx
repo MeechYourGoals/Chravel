@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Hash, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { TripChannel } from '../../../types/roleChannels';
 import { getDemoChannelsForTrip } from '../../../data/demoChannelData';
 import { ChannelChatView } from './ChannelChatView';

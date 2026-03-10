@@ -1,12 +1,7 @@
-import React from 'react';
 import {
-  Crown,
   Users,
   Calendar as CalendarIcon,
   DollarSign,
-  Shield,
-  Award,
-  FileCheck,
   ClipboardList,
   BarChart3,
   Camera,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Settings, ArrowRight, Upload, Download, Share2 } from 'lucide-react';
+import { Calendar, Upload, Download, Share2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
