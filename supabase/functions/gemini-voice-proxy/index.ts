@@ -43,7 +43,7 @@ const VOICE_TOOLS_ENABLED =
 const VOICE_AFFECTIVE_DIALOG =
   (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
 const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 const DEFAULT_VOICE = 'Charon';
