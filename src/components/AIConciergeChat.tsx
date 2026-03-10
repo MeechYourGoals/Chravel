@@ -58,7 +58,6 @@ const UPLOAD_ENABLED = true;
 const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
-
 interface AIConciergeChatProps {
   tripId: string;
   basecamp?: { name: string; address: string };
@@ -399,7 +398,7 @@ export const AIConciergeChat = ({
   // ─── Voice ─────────────────────────────────────────────────────────────────
   // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
   // first.  If bidirectional audio fails, we fall back to Web Speech API
-   // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
+  // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
   // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
   // Speech API dictation. Transcribed text fills the input field so the user
   // can review/edit before sending. All Gemini Live hooks remain initialised
@@ -554,8 +553,7 @@ export const AIConciergeChat = ({
   const convoVoiceState: VoiceState = dictationState;
 
   // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
-  const isLiveSessionActive =
-    DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
+  const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   // Waveform button — dictation only. Stops Live if active first.
   const handleConvoToggle = useCallback(() => {
@@ -1520,7 +1518,10 @@ export const AIConciergeChat = ({
                 setMessages(prev => {
                   // Check if cards/actions were already attached by tool calls
                   const existing = prev.find(m => m.id === streamingMessageId);
-                  const hasCards = existing?.functionCallHotels?.length || existing?.functionCallPlaces?.length || (existing?.conciergeActions && existing.conciergeActions.length > 0);
+                  const hasCards =
+                    existing?.functionCallHotels?.length ||
+                    existing?.functionCallPlaces?.length ||
+                    (existing?.conciergeActions && existing.conciergeActions.length > 0);
                   return [
                     ...prev.filter(m => m.id !== streamingMessageId),
                     {
@@ -1530,15 +1531,24 @@ export const AIConciergeChat = ({
                         ? "Here's what I found:"
                         : 'Sorry, I encountered an error processing your request.',
                       timestamp: new Date().toISOString(),
-                      ...(existing?.functionCallHotels ? { functionCallHotels: existing.functionCallHotels } : {}),
-                      ...(existing?.functionCallPlaces ? { functionCallPlaces: existing.functionCallPlaces } : {}),
-                      ...(existing?.conciergeActions ? { conciergeActions: existing.conciergeActions } : {}),
+                      ...(existing?.functionCallHotels
+                        ? { functionCallHotels: existing.functionCallHotels }
+                        : {}),
+                      ...(existing?.functionCallPlaces
+                        ? { functionCallPlaces: existing.functionCallPlaces }
+                        : {}),
+                      ...(existing?.conciergeActions
+                        ? { conciergeActions: existing.conciergeActions }
+                        : {}),
                     },
                   ];
                 });
               } else {
                 updateStreamMsg(msg => {
-                  const hasCards = msg.functionCallHotels?.length || msg.functionCallPlaces?.length || (msg.conciergeActions && msg.conciergeActions.length > 0);
+                  const hasCards =
+                    msg.functionCallHotels?.length ||
+                    msg.functionCallPlaces?.length ||
+                    (msg.conciergeActions && msg.conciergeActions.length > 0);
                   return msg.content.length > 0 || hasCards
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' };
@@ -1946,7 +1956,9 @@ export const AIConciergeChat = ({
             onLiveToggle={DUPLEX_VOICE_ENABLED ? handleLiveToggle : undefined}
             isLiveActive={isLiveSessionActive}
             isLiveEligible={DUPLEX_VOICE_ENABLED}
-            isLiveConnecting={DUPLEX_VOICE_ENABLED && (liveState === 'requesting_mic' || liveState === 'ready')}
+            isLiveConnecting={
+              DUPLEX_VOICE_ENABLED && (liveState === 'requesting_mic' || liveState === 'ready')
+            }
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {

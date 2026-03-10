@@ -200,7 +200,11 @@ export const AiChatInput = ({
             rows={2}
             disabled={disabled}
             className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-              isConvoActive ? 'border-primary/30 bg-primary/5' : isLiveActive ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10'
+              isConvoActive
+                ? 'border-primary/30 bg-primary/5'
+                : isLiveActive
+                  ? 'border-emerald-500/30 bg-emerald-500/5'
+                  : 'border-white/10'
             }`}
           />
         </div>

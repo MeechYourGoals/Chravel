@@ -828,9 +828,7 @@ serve(async req => {
 
     // Mode 2+: tools (OFF by default in Phase A)
     if (VOICE_TOOLS_ENABLED) {
-      setupConfig.tools = [
-        { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
-      ];
+      setupConfig.tools = [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }];
     }
 
     // Mode 4+: affective dialog (OFF by default in Phase A)
