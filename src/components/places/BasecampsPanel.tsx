@@ -251,6 +251,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           address: location.address,
           latitude: undefined,
           longitude: undefined,
+          confirmation_number: location.confirmationNumber,
         });
       }
 
