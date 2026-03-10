@@ -114,7 +114,7 @@ serve(async (req: Request) => {
     // so it uses the common tool router to enforce safety constraints.
     const capabilityToken = await generateCapabilityToken({
       user_id: user.id,
-      trip_id: tripId,
+      trip_id: tripId as string,
       allowed_tools: ['*'],
     });
 
