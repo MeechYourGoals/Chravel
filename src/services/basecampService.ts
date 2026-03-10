@@ -713,6 +713,7 @@ class BasecampService {
             address: payload.address,
             latitude: finalLatitude,
             longitude: finalLongitude,
+            confirmation_number: payload.confirmation_number || null,
           },
           {
             onConflict: 'trip_id,user_id',

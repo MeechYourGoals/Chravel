@@ -2911,6 +2911,7 @@ export type Database = {
       trip_personal_basecamps: {
         Row: {
           address: string
+          confirmation_number: string | null
           created_at: string | null
           id: string
           latitude: number | null
@@ -2922,6 +2923,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          confirmation_number?: string | null
           created_at?: string | null
           id?: string
           latitude?: number | null
@@ -2933,6 +2935,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          confirmation_number?: string | null
           created_at?: string | null
           id?: string
           latitude?: number | null

@@ -460,6 +460,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           onBasecampSet={handlePersonalBasecampSet}
           onBasecampClear={handlePersonalBasecampDelete}
           currentBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : undefined}
+          isPersonal
         />
       )}
     </>
