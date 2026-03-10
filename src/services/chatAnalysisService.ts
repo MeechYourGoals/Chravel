@@ -746,8 +746,9 @@ export async function recordPaymentSplitPattern(
   try {
     // Check if payment_split_patterns table exists
     // Table not in generated types yet - temporary until types regenerated
-    const { error: checkError } = await supabase
-      .from('payment_split_patterns' as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+    const { error: checkError } = await (supabase as any)
+      .from('payment_split_patterns')
       .select('id')
       .limit(1);
 
@@ -765,8 +766,9 @@ export async function recordPaymentSplitPattern(
 
       // Check if pattern exists
       // Table not in generated types yet - temporary until types regenerated
-      const { data: existing } = await supabase
-        .from('payment_split_patterns' as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+      const { data: existing } = await (supabase as any)
+        .from('payment_split_patterns')
         .select('id, frequency')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
@@ -778,8 +780,9 @@ export async function recordPaymentSplitPattern(
       if (typedExisting) {
         // Update frequency and last_split_at
         // Table not in generated types yet - temporary until types regenerated
-        await supabase
-          .from('payment_split_patterns' as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+        await (supabase as any)
+          .from('payment_split_patterns')
           .update({
             frequency: (typedExisting.frequency || 0) + 1,
             last_split_at: new Date().toISOString(),

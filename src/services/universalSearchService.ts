@@ -418,18 +418,21 @@ async function searchPolls(
     return [];
   }
 
-  return (data || []).map((poll: any) => ({
-    id: poll.id,
-    contentType: 'poll' as const,
-    tripId: poll.trip_id,
-    tripName: poll.trips?.name || 'Unknown Trip',
-    title: poll.question,
-    snippet: `${poll.total_votes || 0} votes`,
-    matchScore: 0.84,
-    deepLink: `/trip/${poll.trip_id}#poll-${poll.id}`,
-    metadata: { totalVotes: poll.total_votes },
-    timestamp: poll.created_at,
-  }));
+  return (data || []).map(poll => {
+    const tripName = (poll.trips as { name: string } | null)?.name || 'Unknown Trip';
+    return {
+      id: poll.id,
+      contentType: 'poll' as const,
+      tripId: poll.trip_id,
+      tripName,
+      title: poll.question,
+      snippet: `${poll.total_votes || 0} votes`,
+      matchScore: 0.84,
+      deepLink: `/trip/${poll.trip_id}#poll-${poll.id}`,
+      metadata: { totalVotes: poll.total_votes },
+      timestamp: poll.created_at,
+    };
+  });
 }
 
 /**
@@ -464,7 +467,7 @@ async function searchPayments(
     return [];
   }
 
-  return (data || []).map((payment: any) => ({
+  return (data || []).map(payment => ({
     id: payment.id,
     contentType: 'payment' as const,
     tripId: payment.trip_id,
@@ -509,7 +512,7 @@ async function searchPlaces(
     return [];
   }
 
-  return (data || []).map((place: any) => ({
+  return (data || []).map(place => ({
     id: place.id,
     contentType: 'place' as const,
     tripId: place.trip_id,
@@ -518,7 +521,7 @@ async function searchPlaces(
     snippet: place.og_description || '',
     matchScore: 0.84,
     deepLink: `/trip/${place.trip_id}#place-${place.id}`,
-    timestamp: place.created_at,
+    timestamp: place.created_at ?? undefined,
   }));
 }
 
