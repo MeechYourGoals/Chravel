@@ -857,47 +857,44 @@ serve(async (req: Request) => {
         const accessToken = await createVertexAccessToken(saKey);
         log('token_minted');
 
-        // Build setup message
+        // Build setup message — camelCase matching confirmed-working gist
+        // Phase A: Mode 0 boring handshake — no tools, no affective, no proactive
         const setupConfig: Record<string, unknown> = {
           model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
-          generation_config: {
-            response_modalities: ['AUDIO'],
-            speech_config: {
-              voice_config: {
-                prebuilt_voice_config: { voice_name: voice },
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: voice },
               },
             },
           },
-          system_instruction: {
+          systemInstruction: {
             parts: [{ text: systemInstruction }],
           },
-          realtime_input_config: {
-            automatic_activity_detection: {
-              disabled: false,
-              start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-              end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
-            },
+          realtimeInputConfig: {
+            activityHandling: 'START_OF_ACTIVITY_INTERRUPTS',
           },
-          input_audio_transcription: {},
-          output_audio_transcription: {},
-          // Context window compression for long sessions (from gist)
-          context_window_compression: { sliding_window: {} },
-          // Session resumption — always enabled for architecture support
-          session_resumption: resumptionToken ? { handle: resumptionToken } : {},
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+          contextWindowCompression: { slidingWindow: {} },
+          sessionResumption: resumptionToken ? { handle: resumptionToken } : {},
         };
 
+        // Mode 2+: tools (OFF by default in Phase A)
         if (VOICE_TOOLS_ENABLED) {
           setupConfig.tools = [
-            { function_declarations: VOICE_FUNCTION_DECLARATIONS },
-            { google_search: {} },
+            { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
           ];
         }
 
+        // Mode 4+: affective dialog (OFF by default in Phase A)
         if (VOICE_AFFECTIVE_DIALOG) {
-          (setupConfig.generation_config as Record<string, unknown>).enable_affective_dialog = true;
+          (setupConfig.generationConfig as Record<string, unknown>).enableAffectiveDialog = true;
         }
+        // Mode 5+: proactive audio (OFF by default in Phase A)
         if (VOICE_PROACTIVE_AUDIO) {
-          setupConfig.proactivity = { proactive_audio: true };
+          setupConfig.proactivity = { proactiveAudio: true };
         }
 
         const setupMessage = JSON.stringify({ setup: setupConfig });
