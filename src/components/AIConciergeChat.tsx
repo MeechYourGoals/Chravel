@@ -1940,6 +1940,7 @@ export const AIConciergeChat = ({
             onLiveToggle={DUPLEX_VOICE_ENABLED ? handleLiveToggle : undefined}
             isLiveActive={isLiveSessionActive}
             isLiveEligible={DUPLEX_VOICE_ENABLED}
+            isLiveConnecting={DUPLEX_VOICE_ENABLED && (liveState === 'requesting_mic' || liveState === 'ready')}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {

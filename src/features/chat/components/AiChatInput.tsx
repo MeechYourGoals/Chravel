@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Send, X, CalendarPlus, Bookmark, ListChecks, Sparkles } from 'lucide-react';
+import { Send, X, CalendarPlus, Bookmark, ListChecks, Sparkles, Loader2 } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -35,6 +35,8 @@ interface AiChatInputProps {
   isLiveActive?: boolean;
   /** Whether user is eligible for Gemini Live */
   isLiveEligible?: boolean;
+  /** Whether Gemini Live is in a connecting/loading state */
+  isLiveConnecting?: boolean;
 }
 
 export const AiChatInput = ({
@@ -56,6 +58,7 @@ export const AiChatInput = ({
   onLiveToggle,
   isLiveActive = false,
   isLiveEligible = false,
+  isLiveConnecting = false,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -88,6 +91,7 @@ export const AiChatInput = ({
   // Dynamic placeholder based on active mode
   const getPlaceholder = () => {
     if (isConvoActive) return 'Listening\u2026';
+    if (isLiveActive) return 'Live conversation active\u2026';
     return '';
   };
 
@@ -140,18 +144,53 @@ export const AiChatInput = ({
         </div>
       )}
 
-      <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Waveform / Dictation button */}
+      <div className="chat-composer flex flex-nowrap items-end gap-2 sm:gap-3 min-w-0">
+        {/* Left voice control stack: Live button (top) + Waveform/Dictation (bottom) */}
         {onConvoToggle && (
-          <VoiceButton
-            voiceState={convoVoiceState}
-            isEligible={isVoiceEligible}
-            onToggle={onConvoToggle}
-            onUpgrade={onVoiceUpgrade}
-          />
+          <div className="flex flex-col items-center gap-1.5 shrink-0">
+            {/* Gemini Live button — stacked above waveform */}
+            {isLiveEligible && onLiveToggle && (
+              <button
+                type="button"
+                onClick={onLiveToggle}
+                className={`relative h-8 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
+                  isLiveActive
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 border-transparent'
+                    : isLiveConnecting
+                      ? 'bg-gray-800/80 text-white/70 border-[hsl(var(--gold-primary))]/40'
+                      : 'bg-gray-800/80 text-white/50 hover:text-white/80 hover:bg-gray-700/80'
+                }`}
+                aria-label={isLiveActive ? 'Stop live voice' : 'Start live voice'}
+              >
+                {/* Active glow ring */}
+                {isLiveActive && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-emerald-400/30 to-teal-400/20 blur-sm"
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1">
+                  {isLiveConnecting ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={12} />
+                  )}
+                  <span className="text-[10px] font-medium leading-none">Live</span>
+                </span>
+              </button>
+            )}
+
+            {/* Waveform / Dictation button */}
+            <VoiceButton
+              voiceState={convoVoiceState}
+              isEligible={isVoiceEligible}
+              onToggle={onConvoToggle}
+              onUpgrade={onVoiceUpgrade}
+            />
+          </div>
         )}
 
-        {/* Input container */}
+        {/* Input container — clean, no embedded Live button */}
         <div className="relative flex-1 min-w-0">
           <textarea
             value={inputMessage}
@@ -160,27 +199,10 @@ export const AiChatInput = ({
             placeholder={getPlaceholder()}
             rows={2}
             disabled={disabled}
-            className={`w-full bg-white/5 border rounded-2xl px-4 py-3 ${isLiveEligible ? 'pr-20' : ''} text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-              isConvoActive ? 'border-primary/30 bg-primary/5' : 'border-white/10'
+            className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+              isConvoActive ? 'border-primary/30 bg-primary/5' : isLiveActive ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10'
             }`}
           />
-
-          {/* Gemini Live button — inside the input */}
-          {isLiveEligible && onLiveToggle && (
-            <button
-              type="button"
-              onClick={onLiveToggle}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 h-7 px-2 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation ${
-                isLiveActive
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-500/20'
-                  : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70'
-              }`}
-              aria-label={isLiveActive ? 'Stop live voice' : 'Start live voice'}
-            >
-              <Sparkles size={14} />
-              <span className="text-[10px] font-medium">Live</span>
-            </button>
-          )}
         </div>
 
         {/* Send button */}
