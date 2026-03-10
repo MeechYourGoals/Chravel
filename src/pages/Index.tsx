@@ -509,26 +509,30 @@ const Index = () => {
     const result: Trip[] = [...filteredData.trips];
 
     // Convert pro trips (Record<string, ProTripData>) to Trip[]
-    Object.entries(filteredData.proTrips).forEach(([id, pro]: [string, any]) => {
+    Object.entries(filteredData.proTrips).forEach(([id, pro]) => {
+      const proTrip = pro as ProTripData;
       result.push({
         id,
-        title: pro.title,
-        location: pro.location,
-        dateRange: pro.dateRange,
-        description: pro.description || '',
-        coverPhoto: pro.coverPhoto,
+        title: proTrip.title,
+        location: proTrip.location,
+        dateRange: proTrip.dateRange,
+        description: proTrip.description || '',
+        coverPhoto: proTrip.coverPhoto,
         participants:
-          pro.participants?.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            avatar: p.avatar,
-          })) || [],
+          proTrip.participants?.map(
+            (p): TripParticipant => ({
+              id: p.id,
+              name: p.name,
+              avatar: p.avatar,
+            }),
+          ) || [],
         trip_type: 'pro' as const,
       });
     });
 
     // Convert events (Record<string, EventData>) to Trip[]
-    Object.entries(filteredData.events).forEach(([id, evt]: [string, any]) => {
+    Object.entries(filteredData.events).forEach(([id, evt]) => {
+      const event = evt as EventData;
       result.push({
         id,
         title: evt.title,
