@@ -19,6 +19,7 @@ export interface PersonalBasecamp {
   address?: string;
   latitude?: number;
   longitude?: number;
+  confirmation_number?: string;
   created_at: string;
   updated_at: string;
 }
@@ -656,6 +657,7 @@ class BasecampService {
       address: string;
       latitude?: number;
       longitude?: number;
+      confirmation_number?: string;
     },
     options?: { skipHistory?: boolean },
   ): Promise<PersonalBasecamp | null> {
@@ -711,6 +713,7 @@ class BasecampService {
             address: payload.address,
             latitude: finalLatitude,
             longitude: finalLongitude,
+            confirmation_number: payload.confirmation_number || null,
           },
           {
             onConflict: 'trip_id,user_id',
@@ -947,6 +950,7 @@ class BasecampService {
         basecamp.latitude && basecamp.longitude
           ? { lat: basecamp.latitude, lng: basecamp.longitude }
           : undefined,
+      confirmationNumber: basecamp.confirmation_number || undefined,
     };
   }
 }

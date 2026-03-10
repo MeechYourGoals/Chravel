@@ -10,6 +10,7 @@ interface BasecampSelectorProps {
   onBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
   onBasecampClear?: () => Promise<void> | void;
   currentBasecamp?: BasecampLocation;
+  isPersonal?: boolean;
 }
 
 export const BasecampSelector = ({
@@ -18,12 +19,14 @@ export const BasecampSelector = ({
   onBasecampSet,
   onBasecampClear,
   currentBasecamp,
+  isPersonal = false,
 }: BasecampSelectorProps) => {
   const [address, setAddress] = useState(currentBasecamp?.address || '');
   const [name, setName] = useState(currentBasecamp?.name || '');
   const [type, setType] = useState<'hotel' | 'short-term' | 'other'>(
     currentBasecamp?.type || 'hotel',
   );
+  const [confirmationNumber, setConfirmationNumber] = useState(currentBasecamp?.confirmationNumber || '');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,6 +151,21 @@ export const BasecampSelector = ({
               className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
             />
           </div>
+
+          {isPersonal && (
+            <div>
+              <label className="block text-sm font-semibold text-white mb-2">
+                Confirmation / Reservation #
+              </label>
+              <input
+                type="text"
+                value={confirmationNumber}
+                onChange={e => setConfirmationNumber(e.target.value)}
+                placeholder="e.g., ABC123, 20688856"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-semibold text-white mb-2">Type</label>
