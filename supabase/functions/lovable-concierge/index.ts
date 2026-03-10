@@ -2361,7 +2361,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           let functionResult: any;
           try {
             const capabilityToken = await generateCapabilityToken({
-              user_id: user?.id || userId,
+              user_id: user?.id,
               trip_id: tripId,
               allowed_tools: ['*'],
             });
