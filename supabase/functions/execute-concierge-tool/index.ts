@@ -19,6 +19,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { executeFunctionCall } from '../_shared/functionExecutor.ts';
+import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
+import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -108,13 +110,20 @@ serve(async (req: Request) => {
     }
 
     // ── Execute ────────────────────────────────────────────────────────────
-    const result = await executeFunctionCall(
+    // Voice client has user auth. We generate a short-lived capability token
+    // so it uses the common tool router to enforce safety constraints.
+    const capabilityToken = await generateCapabilityToken({
+      user_id: user.id,
+      trip_id: tripId,
+      allowed_tools: ['*'],
+    });
+
+    const result = await executeToolSecurely(
       supabase,
+      capabilityToken,
       toolName,
       argsObj,
-      tripIdStr,
-      user.id,
-      locationContext,
+      locationContext
     );
 
     return new Response(JSON.stringify(result), {
