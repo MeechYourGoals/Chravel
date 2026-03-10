@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from "https://deno.land/x/jose@v5.2.0/index.ts";
+import { SignJWT, jwtVerify } from 'https://deno.land/x/jose@v5.2.0/index.ts';
 
 export interface CapabilityTokenPayload {
   user_id?: string;
@@ -13,7 +13,7 @@ const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 export async function generateCapabilityToken(
   payload: Omit<CapabilityTokenPayload, 'exp'>,
-  expiresInSeconds = 300
+  expiresInSeconds = 300,
 ): Promise<string> {
   const jwt = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
@@ -29,6 +29,8 @@ export async function verifyCapabilityToken(token: string): Promise<CapabilityTo
     const { payload } = await jwtVerify(token, secretKey);
     return payload as unknown as CapabilityTokenPayload;
   } catch (err) {
-    throw new Error(`Invalid or expired capability token: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(
+      `Invalid or expired capability token: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
