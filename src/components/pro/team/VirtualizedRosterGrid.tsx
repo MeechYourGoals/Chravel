@@ -10,7 +10,6 @@ import { QuickContactMenu } from '../QuickContactMenu';
 
 const ROW_HEIGHT = 120;
 const COLS_DESKTOP = 4;
-const COLS_TABLET = 3;
 const COLS_MOBILE = 1;
 
 interface VirtualizedRosterGridProps {
@@ -103,7 +102,7 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <QuickContactMenu member={member}>
-                          <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-blue-400 transition-colors leading-tight">
+                          <h3 className="text-white text-sm font-medium truncate cursor-pointer hover:text-amber-400 transition-colors leading-tight">
                             {member.name}
                           </h3>
                         </QuickContactMenu>
@@ -121,7 +120,7 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
                               key={`${pill.name}-${index}`}
                               className={`${
                                 pill.isAdmin
-                                  ? 'bg-red-600/30 text-red-300 border border-red-500/30'
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                                   : getRoleColorClass(pill.name, category)
                               } px-1.5 py-0.5 rounded text-xs font-medium`}
                             >

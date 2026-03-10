@@ -197,7 +197,7 @@ export const AssignRoleDialog: React.FC<AssignRoleDialogProps> = ({
         <Button
           type="submit"
           disabled={isProcessing || selectedMembers.length === 0}
-          className={isMobile ? 'min-h-[44px] order-1' : ''}
+          className={`bg-amber-500 hover:bg-amber-600 text-black font-medium ${isMobile ? 'min-h-[44px] order-1' : ''}`}
         >
           <UserPlus className="w-4 h-4 mr-2" />
           {isProcessing ? 'Assigning...' : `Assign to ${selectedMembers.length} Member(s)`}

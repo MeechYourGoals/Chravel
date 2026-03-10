@@ -136,7 +136,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       await createRole(newRoleName);
       setShowCreateDialog(false);
       setNewRoleName('');
-    } catch (error) {
+    } catch (_error) {
       // Error handled in hook
     }
   };
@@ -155,9 +155,8 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       toast.success(`Role "${roleToDelete.roleName}" and its channel have been deleted`);
       setShowDeleteConfirm(false);
       setRoleToDelete(null);
-    } catch (error) {
-      console.error('Error deleting role:', error);
-      toast.error('Failed to delete role');
+    } catch (_error) {
+      // Error shown by hook
     }
   };
 
@@ -167,22 +166,16 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
     setShowMembersDialog(true);
   };
 
-  // Get members for a specific role
-  const getRoleMembersList = (roleId: string) => {
-    return assignments.filter(a => a.role_id === roleId);
-  };
-
   // Handle removing a user from a role
   const handleRemoveUserFromRole = async (userId: string, roleId: string, userName?: string) => {
     setRemovingUserId(userId);
     try {
       await removeRole(userId, roleId);
       toast.success(`${userName || 'User'} has been removed from this role`);
-      await refetchRoles(); // Refresh to update member counts
+      await refetchRoles();
       await refetchAssignments();
-    } catch (error) {
-      console.error('Error removing user from role:', error);
-      toast.error('Failed to remove user from role');
+    } catch (_error) {
+      // Error shown by hook
     } finally {
       setRemovingUserId(null);
     }
@@ -194,11 +187,10 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
     try {
       await assignRole(userId, roleId);
       toast.success(`${userName || 'User'} has been added to this role`);
-      await refetchRoles(); // Refresh to update member counts
+      await refetchRoles();
       await refetchAssignments();
-    } catch (error) {
-      console.error('Error adding user to role:', error);
-      toast.error('Failed to add user to role');
+    } catch (_error) {
+      // Error shown by hook
     } finally {
       setAddingUserId(null);
     }
@@ -220,8 +212,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
         await promoteToAdmin(userId);
         toast.success(`${userName || 'User'} is now an admin`);
       }
-    } catch (error) {
-      console.error('Error toggling admin status:', error);
+    } catch (_error) {
       toast.error('Failed to update admin status');
     }
   };
@@ -277,6 +268,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       setShowEditDialog(false);
       setRoleToEdit(null);
       setEditedRoleName('');
+      // Invalidate TanStack Query cache so all views refresh
       await refetchRoles();
     } catch (error) {
       console.error('Error renaming role:', error);
@@ -300,23 +292,22 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
   return (
     <>
       <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
-        {/* Header - Stacked for mobile */}
+        {/* Header */}
         <div className="mb-6">
-          {/* Title Row */}
           <div className="flex items-center gap-2 mb-3">
-            <Users className="w-5 h-5 text-purple-500" />
+            <Users className="w-5 h-5 text-amber-400" />
             <h3 className="font-semibold text-foreground">Role Management</h3>
           </div>
 
-          {/* Actions Row - Centered */}
+          {/* Actions Row */}
           <div className="flex items-center justify-center gap-3">
-            <span className="text-xs bg-purple-500/20 text-purple-500 px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/25 px-2 py-0.5 rounded-full">
               {roles.length} / {MAX_ROLES_PER_TRIP}
             </span>
             <Button
               onClick={() => setShowCreateDialog(true)}
               disabled={roles.length >= MAX_ROLES_PER_TRIP}
-              className="rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-3"
+              className="rounded-full bg-amber-500 hover:bg-amber-600 text-black text-xs h-8 px-3 font-medium"
               size="sm"
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
@@ -334,7 +325,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
             </p>
             <Button
               onClick={() => setShowCreateDialog(true)}
-              className="rounded-full bg-purple-600 hover:bg-purple-700"
+              className="rounded-full bg-amber-500 hover:bg-amber-600 text-black font-medium"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create First Role
@@ -351,14 +342,14 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                   key={role.id}
                   className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
                 >
-                  {/* Role Info - Full Width */}
+                  {/* Role Info */}
                   <div className="mb-3">
                     <h4 className="font-medium text-foreground mb-1">{role.roleName}</h4>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       <span>{role.memberCount || 0} members</span>
                       {hasChannel && !(channel as any).is_archived && (
                         <>
-                          <span>•</span>
+                          <span>·</span>
                           <div className="flex items-center gap-1">
                             <LinkIcon className="w-3 h-3" />
                             <span>#{(channel as any).channel_name}</span>
@@ -368,13 +359,13 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                     </div>
                   </div>
 
-                  {/* Action Buttons - Centered Row */}
+                  {/* Action Buttons */}
                   <div className="flex items-center justify-center gap-2 pt-3 border-t border-white/5">
                     <Button
                       variant="outline"
                       size="icon"
                       onClick={() => handleEditRoleClick(role)}
-                      className="rounded-full border-white/10 hover:bg-white/10 h-9 w-9"
+                      className="rounded-full border-white/10 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 h-9 w-9"
                       title="Rename role and channel"
                     >
                       <Pencil className="w-4 h-4" />
@@ -383,7 +374,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                       variant="outline"
                       size="icon"
                       onClick={() => handleManageMembers(role)}
-                      className="rounded-full border-white/10 hover:bg-white/10 h-9 w-9"
+                      className="rounded-full border-white/10 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 h-9 w-9"
                       title="Manage role members"
                     >
                       <UserMinus className="w-4 h-4" />
@@ -413,9 +404,9 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
           className="w-full flex items-center justify-between text-left"
         >
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-500" />
+            <Shield className="w-5 h-5 text-amber-400" />
             <h3 className="font-semibold text-foreground">Admin Access</h3>
-            <span className="text-xs bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/25 px-2 py-0.5 rounded-full">
               {admins.length} admins
             </span>
           </div>
@@ -449,7 +440,9 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                     <div
                       key={member.id}
                       className={`flex items-center justify-between p-3 rounded-xl border ${
-                        isAdmin ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/10'
+                        isAdmin
+                          ? 'bg-amber-500/10 border-amber-500/20'
+                          : 'bg-white/5 border-white/10'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -463,7 +456,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                           <p className="font-medium text-sm text-foreground flex items-center gap-2">
                             {member.name || 'Unknown User'}
                             {isTripCreator && (
-                              <span className="text-xs bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded-full">
+                              <span className="text-xs bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">
                                 Creator
                               </span>
                             )}
@@ -478,8 +471,8 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                         disabled={adminProcessing || isTripCreator}
                         className={`rounded-full h-8 px-3 ${
                           isAdmin
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'border-white/20 hover:bg-blue-500/10 hover:border-blue-500/50'
+                            ? 'bg-amber-500 hover:bg-amber-600 text-black font-medium'
+                            : 'border-white/20 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-400'
                         }`}
                         title={
                           isTripCreator
@@ -539,7 +532,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
             <Button
               onClick={handleCreateRole}
               disabled={!newRoleName.trim() || isProcessing}
-              className="rounded-full bg-purple-600 hover:bg-purple-700"
+              className="rounded-full bg-amber-500 hover:bg-amber-600 text-black font-medium"
             >
               {isProcessing ? 'Creating...' : 'Create Role'}
             </Button>
@@ -552,7 +545,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
         <DialogContent className="sm:max-w-[425px] bg-background border-white/10">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-purple-500" />
+              <Pencil className="w-5 h-5 text-amber-400" />
               Rename Role
             </DialogTitle>
             <DialogDescription>
@@ -591,7 +584,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
             <Button
               onClick={handleSaveRoleEdit}
               disabled={!editedRoleName.trim() || isSavingEdit}
-              className="rounded-full bg-purple-600 hover:bg-purple-700"
+              className="rounded-full bg-amber-500 hover:bg-amber-600 text-black font-medium"
             >
               {isSavingEdit ? 'Saving...' : 'Save Changes'}
             </Button>
@@ -631,12 +624,12 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Manage Role Members Dialog - Shows ALL trip members with add/remove */}
+      {/* Manage Role Members Dialog */}
       <Dialog open={showMembersDialog} onOpenChange={setShowMembersDialog}>
         <DialogContent className="sm:max-w-[550px] bg-background border-white/10">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-purple-500" />
+              <Users className="w-5 h-5 text-amber-400" />
               Manage &quot;{managingRole?.roleName}&quot; Members
             </DialogTitle>
             <DialogDescription>
@@ -661,19 +654,19 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                 {/* Assigned Members Section */}
                 {assignedMembers.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-green-500 flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-amber-400 flex items-center gap-2">
                       <Check className="w-4 h-4" />
                       Assigned to this role ({assignedMembers.length})
                     </h4>
                     {assignedMembers.map(member => (
                       <div
                         key={member.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/20"
+                        className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
                       >
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-green-500/30">
+                          <Avatar className="h-10 w-10 border-2 border-amber-500/30">
                             <AvatarImage src={member.avatar} />
-                            <AvatarFallback className="bg-green-500/20 text-green-500 text-sm">
+                            <AvatarFallback className="bg-amber-500/20 text-amber-400 text-sm">
                               {member.name?.[0]?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
@@ -682,10 +675,10 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                               {member.name || 'Unknown User'}
                             </p>
                             {member.isPrimary && (
-                              <span className="text-xs text-purple-400">Primary Role</span>
+                              <span className="text-xs text-amber-400">Primary Role</span>
                             )}
                             {member.isCreator && (
-                              <span className="text-xs text-yellow-400 ml-1">Creator</span>
+                              <span className="text-xs text-amber-400 ml-1">Creator</span>
                             )}
                           </div>
                         </div>
@@ -737,7 +730,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                               {member.name || 'Unknown User'}
                             </p>
                             {member.isCreator && (
-                              <span className="text-xs text-yellow-400">Creator</span>
+                              <span className="text-xs text-amber-400">Creator</span>
                             )}
                           </div>
                         </div>
@@ -749,7 +742,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                             handleAddUserToRole(member.id, managingRole.id, member.name)
                           }
                           disabled={addingUserId === member.id}
-                          className="rounded-full border-white/20 hover:bg-green-500/10 hover:border-green-500/50 hover:text-green-500"
+                          className="rounded-full border-white/20 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-400"
                         >
                           {addingUserId === member.id ? (
                             <span className="animate-spin">...</span>
