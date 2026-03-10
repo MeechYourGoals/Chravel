@@ -3,6 +3,7 @@ import { ConsumerSubscription } from '../types/consumer';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { getTierFromProductId } from '@/constants/stripe';
+import { openExternalUrl } from '@/platform/navigation';
 import { toast } from 'sonner';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
@@ -128,7 +129,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       if (error) throw error;
 
       if (data.url) {
-        window.open(data.url, '_blank');
+        openExternalUrl(data.url);
       }
     } catch (error) {
       console.error('Error creating checkout:', error);

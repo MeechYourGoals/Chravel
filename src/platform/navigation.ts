@@ -4,6 +4,8 @@
  * Mobile: Will use React Navigation or native routing
  */
 
+import { Capacitor } from '@capacitor/core';
+
 export interface NavigationOptions {
   replace?: boolean;
   state?: Record<string, unknown>;
@@ -39,6 +41,24 @@ class WebNavigation implements NavigationService {
 }
 
 export const platformNavigation: NavigationService = new WebNavigation();
+
+/**
+ * Open an external URL safely on both web and native.
+ *
+ * On web: opens in a new tab via window.open.
+ * On native (Capacitor): uses window.location.assign to stay in the WebView,
+ * since window.open('_blank') is blocked or opens in external Safari.
+ *
+ * Use this for checkout URLs, customer portals, and any external link that
+ * the user should return from (e.g., Stripe Checkout with a return URL).
+ */
+export function openExternalUrl(url: string): void {
+  if (Capacitor.isNativePlatform()) {
+    window.location.assign(url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
 
 /**
  * Note: For in-app navigation with React Router, continue using:

@@ -178,15 +178,18 @@ export class AppleIAPProvider extends BaseBillingProvider {
     this.log('Opening iOS subscription settings');
 
     // Deep link to iOS subscription settings
-    // This URL opens the App Store subscriptions page
     const url = 'itms-apps://apps.apple.com/account/subscriptions';
 
-    // TODO: Use Capacitor App plugin to open URL
-    // await App.openUrl({ url });
-
-    // Fallback: try window.open (may not work in native context)
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank');
+    try {
+      // Use Capacitor App plugin to open the URL natively
+      const { App } = await import('@capacitor/app');
+      // @ts-expect-error - openUrl exists in Capacitor App plugin
+      await App.openUrl?.({ url });
+    } catch {
+      // Fallback: use location.assign on native, window.open on web
+      if (typeof window !== 'undefined') {
+        window.location.assign(url);
+      }
     }
   }
 
