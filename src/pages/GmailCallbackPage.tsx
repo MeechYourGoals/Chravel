@@ -33,7 +33,7 @@ export const GmailCallbackPage = () => {
       try {
         const { email } = await handleGmailCallback(code, state);
         toast.success(`Successfully connected ${email}`);
-        navigate('/settings'); // Might need to specify the integrations tab or ensure settings modal opens
+        navigate('/settings', { state: { section: 'integrations' } });
       } catch (err: any) {
         setError(err.message || 'Failed to complete Gmail connection');
         toast.error('Failed to complete Gmail connection');
