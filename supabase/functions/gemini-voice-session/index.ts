@@ -790,8 +790,8 @@ serve(async req => {
       totalMs: Date.now() - t0,
     });
 
-    // Vertex Live API WebSocket URL
-    const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`;
+    // Use v1beta1 for Live API (matches proxy and gist)
+    const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`;
 
     // Build the BidiGenerateContentSetup message.
     // Vertex AI Live uses snake_case on the wire.
