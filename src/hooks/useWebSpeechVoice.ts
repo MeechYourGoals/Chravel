@@ -305,6 +305,13 @@ export function useWebSpeechVoice(
         setTimeout(() => {
           if (!activeRef.current || intentionalStopRef.current) return;
           try {
+            // CRITICAL: Reset result index for the new recognition session.
+            // Each SpeechRecognition instance has its own result list starting at
+            // index 0.  If we carry over resultIndexRef from the previous session
+            // the loop in onresult starts at an offset ≥ event.results.length and
+            // silently skips every result — this is the exact cause of transcripts
+            // not filling the input on iOS PWA / Safari after the first pause.
+            resultIndexRef.current = 0;
             const newRecognition = createRecognition();
             recognitionRef.current = newRecognition;
             newRecognition.start();

@@ -128,7 +128,7 @@ export const TripTabs = ({
     }
   }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
 
-  // Handler for promoting URLs from Media to Trip Links
+  // Handler for saving chat links to Explore Links (trip_links table)
   const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
     setLinkPrefill({
       url: urlData.url,
@@ -182,7 +182,7 @@ export const TripTabs = ({
   const DefaultTabSkeleton = () => (
     <div className="flex items-center justify-center h-full min-h-[400px]">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <div className="w-12 h-12 gold-gradient-spinner animate-spin" />
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     </div>
@@ -309,19 +309,19 @@ export const TripTabs = ({
                         onTouchStart={() => enabled && handleTabHover(tab.id)}
                         onFocus={() => enabled && handleTabHover(tab.id)}
                         className={`
-                      flex items-center justify-center gap-1.5 
+                      flex items-center justify-center gap-1.5
                       px-3.5 py-2.5 min-h-[42px]
                       rounded-xl font-medium text-sm
                       transition-all duration-200
                       flex-1
                       ${
                         isActive && enabled
-                          ? 'bg-white/20 text-white border border-white/30 shadow-sm'
+                          ? 'accent-ring-active text-white'
                           : enabled
-                            ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white hover:shadow-sm'
+                            ? 'accent-ring-idle text-gray-300 hover:text-white'
                             : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40 grayscale'
                       }
-                      ${enabled ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent' : 'pointer-events-none'}
+                      ${enabled ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent' : 'pointer-events-none'}
                     `}
                       >
                         <Icon size={16} className="flex-shrink-0" />

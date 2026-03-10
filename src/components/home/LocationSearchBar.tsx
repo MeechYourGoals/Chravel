@@ -141,7 +141,7 @@ export const LocationSearchBar = ({
       {isLoading && (
         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-xl shadow-lg p-4">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <div className="animate-spin h-4 w-4 gold-gradient-spinner"></div>
             <span className="text-sm">Searching locations...</span>
           </div>
         </div>

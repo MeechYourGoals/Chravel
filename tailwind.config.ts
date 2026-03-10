@@ -69,11 +69,11 @@ export default {
       colors: {
         // Premium Black & Gold color system
         glass: {
-          // Gold-focused enterprise colors - unified darkest gold #C4912F
-          'enterprise-gold': 'hsl(38, 61%, 48%)', // #C4912F
-          'enterprise-gold-light': 'hsl(38, 61%, 48%)', // Same darkest gold
-          'accent-gold': 'hsl(38, 61%, 48%)', // Same darkest gold
-          'accent-gold-dark': 'hsl(38, 61%, 48%)', // Dark gold
+          // Premium gold enterprise colors
+          'enterprise-gold': '#c49746', // warm metallic gold
+          'enterprise-gold-light': '#e8af48', // warm glow gold
+          'accent-gold': '#c49746', // warm metallic gold
+          'accent-gold-dark': '#533517', // dark bronze
           'slate-bg': 'hsl(0, 0%, 4%)', // Pure black bg
           'slate-card': 'hsl(0, 0%, 8%)', // Dark card
           'slate-border': 'hsl(42, 20%, 15%)', // Gold-tinted border
@@ -82,11 +82,12 @@ export default {
           'text-primary': 'hsl(0, 0%, 100%)', // White text
           green: '#62D621',
         },
-        // Gold accent colors - unified darkest gold #C4912F
-        'gold-primary': 'hsl(38, 61%, 48%)',
-        'gold-light': 'hsl(38, 61%, 48%)',
-        'gold-dark': 'hsl(38, 61%, 48%)',
-        'gold-glow': 'hsla(38, 61%, 48%, 0.3)',
+        // Premium gold accent family
+        'gold-primary': '#c49746', // warm metallic gold
+        'gold-light': '#feeaa5', // light champagne
+        'gold-dark': '#533517', // dark bronze
+        'gold-glow': 'rgba(232, 175, 72, 0.3)', // warm glow
+        'gold-mid': '#e8af48', // warm glow gold
         // Legacy cinematic colors (keeping for compatibility)
         'cinematic-blue': 'hsl(217, 79%, 60%)',
         'cinematic-purple': 'hsl(258, 74%, 63%)',
@@ -203,10 +204,13 @@ export default {
         enterprise: '0 4px 16px rgba(0, 0, 0, 0.5)',
         'enterprise-md': '0 8px 24px rgba(0, 0, 0, 0.6)',
         'enterprise-lg': '0 12px 32px rgba(0, 0, 0, 0.7)',
-        // Colored shadows for CTAs - darkest gold #C4912F
-        'primary-glow': '0 8px 32px rgba(196, 145, 47, 0.4), 0 4px 16px rgba(196, 145, 47, 0.3)',
-        'accent-glow': '0 8px 32px rgba(196, 145, 47, 0.4), 0 4px 16px rgba(196, 145, 47, 0.3)',
-        'gold-glow': '0 8px 32px rgba(196, 145, 47, 0.5), 0 4px 16px rgba(196, 145, 47, 0.4)',
+        // Colored shadows for CTAs — premium warm gold
+        'primary-glow': '0 8px 32px rgba(232, 175, 72, 0.35), 0 4px 16px rgba(196, 151, 70, 0.25)',
+        'accent-glow': '0 8px 32px rgba(232, 175, 72, 0.35), 0 4px 16px rgba(196, 151, 70, 0.25)',
+        'gold-glow': '0 8px 32px rgba(232, 175, 72, 0.4), 0 4px 16px rgba(196, 151, 70, 0.3)',
+        // Ring treatment glow (subtle, for app UI)
+        'ring-glow': '0 0 12px rgba(232, 175, 72, 0.25), 0 0 4px rgba(196, 151, 70, 0.15)',
+        'ring-glow-lg': '0 0 20px rgba(232, 175, 72, 0.3), 0 0 8px rgba(196, 151, 70, 0.2)',
         // Mobile shadows
         'mobile-nav': '0 -4px 16px rgba(0, 0, 0, 0.4)',
         'mobile-sheet': '0 -12px 32px rgba(0, 0, 0, 0.6)',
@@ -271,6 +275,13 @@ export default {
           '0%, 100%': { transform: 'rotate(-0.5deg)' },
           '50%': { transform: 'rotate(0.5deg)' },
         },
+        // Bouncy overshoot for nav switching
+        'bounce-select': {
+          '0%': { transform: 'scale(1)' },
+          '40%': { transform: 'scale(1.25)' },
+          '70%': { transform: 'scale(0.95)' },
+          '100%': { transform: 'scale(1)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -288,6 +299,7 @@ export default {
         'parallax-medium': 'parallax 15s ease-in-out infinite',
         'parallax-fast': 'parallax 10s ease-in-out infinite',
         wiggle: 'wiggle 0.3s ease-in-out infinite',
+        'bounce-select': 'bounce-select 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
       backdropBlur: {
         xs: '2px',

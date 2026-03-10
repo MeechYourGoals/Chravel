@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { TaskList } from './TaskList';
 import { TaskFilters } from './TaskFilters';
 import { TaskCreateModal } from './TaskCreateModal';
+import { TaskCreateForm } from './TaskCreateForm';
 import { ActionPill } from '../ui/ActionPill';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useTripVariant } from '../../contexts/TripVariantContext';
@@ -88,6 +89,10 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   // Use mock tasks if no real tasks are available
   const displayTasks = tasks && tasks.length > 0 ? tasks : isDemoMode ? mockTasks : [];
 
+  // Determine if we're in the mobile empty state
+  const isEmptyState = displayTasks.length === 0;
+  const showInlineCreate = isEmptyState;
+
   // Apply filters
   const filteredTasks = applyFilters(displayTasks);
 
@@ -114,7 +119,7 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin h-8 w-8 gold-gradient-spinner"></div>
       </div>
     );
   }
@@ -136,47 +141,62 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
         >
           Tasks
         </h2>
-        <ActionPill
-          variant="manualOutline"
-          leftIcon={<Plus />}
-          iconOnly
-          onClick={() => setShowCreateModal(true)}
-          className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} w-full`}
-        />
+        {!showInlineCreate && (
+          <ActionPill
+            variant="manualOutline"
+            leftIcon={<Plus />}
+            iconOnly
+            onClick={() => setShowCreateModal(true)}
+            className={`${variant === 'pro' ? PRO_PARITY_COL_START.team : variant === 'events' ? EVENT_PARITY_COL_START.tasks : TRIP_PARITY_COL_START.tasks} w-full`}
+          />
+        )}
       </div>
 
-      {/* Subtitle + Filters on same row */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-gray-400 text-sm">Keep track of everything that needs to get done</p>
-        <TaskFilters
-          status={status}
-          sortBy={sortBy}
-          onStatusChange={setStatus}
-          onSortChange={setSortBy}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-        />
-      </div>
-
-      {/* Open Tasks */}
-      <TaskList
-        tasks={openTasks}
-        tripId={tripId}
-        title="To Do"
-        emptyMessage="All caught up! No pending tasks."
-        onEditTask={task => setEditingTask(task)}
-      />
-
-      {/* Completed Tasks */}
-      {completedTasks.length > 0 && (
-        <TaskList
-          tasks={completedTasks}
+      {showInlineCreate ? (
+        /* Mobile empty state: show inline create form */
+        <TaskCreateForm
           tripId={tripId}
-          title="Completed"
-          showCompleted={showCompleted}
-          onToggleCompleted={() => setShowCompleted(!showCompleted)}
-          onEditTask={task => setEditingTask(task)}
+          onClose={() => {
+            /* no-op for inline: form stays visible until first task is created */
+          }}
+          isInlineEmptyState
         />
+      ) : (
+        <>
+          {/* Subtitle + Filters on same row */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-gray-400 text-sm">Keep track of everything that needs to get done</p>
+            <TaskFilters
+              status={status}
+              sortBy={sortBy}
+              onStatusChange={setStatus}
+              onSortChange={setSortBy}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+            />
+          </div>
+
+          {/* Open Tasks */}
+          <TaskList
+            tasks={openTasks}
+            tripId={tripId}
+            title="To Do"
+            emptyMessage="All caught up! No pending tasks."
+            onEditTask={task => setEditingTask(task)}
+          />
+
+          {/* Completed Tasks */}
+          {completedTasks.length > 0 && (
+            <TaskList
+              tasks={completedTasks}
+              tripId={tripId}
+              title="Completed"
+              showCompleted={showCompleted}
+              onToggleCompleted={() => setShowCompleted(!showCompleted)}
+              onEditTask={task => setEditingTask(task)}
+            />
+          )}
+        </>
       )}
 
       {/* Create Task Modal */}

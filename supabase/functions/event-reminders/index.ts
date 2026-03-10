@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { formatTimeForTimezone } from '../_shared/smsTemplates.ts';
+import { verifyCronAuth } from '../_shared/cronGuard.ts';
 
 interface CalendarReminderRow {
   id: string;
@@ -42,6 +43,10 @@ serve(async req => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
+  // Verify cron/service caller authentication
+  const guard = verifyCronAuth(req, corsHeaders);
+  if (!guard.authorized) return guard.response!;
 
   try {
     const supabase = createClient(

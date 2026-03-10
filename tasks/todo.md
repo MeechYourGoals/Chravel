@@ -1,5 +1,18 @@
 # TODO
 
+## Security hardening follow-up (invite edge functions)
+- [x] Consolidate duplicated invite-security helpers into shared Edge function utilities.
+- [x] Harden invite body parsing and method validation to return deterministic client-safe errors.
+- [x] Re-run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit, verify branch status, and publish PR update.
+
+## Security + scale readiness hardening (invite surfaces)
+- [x] Scope architecture and trust boundaries for auth/invite/AI/uploads/payments/realtime paths.
+- [x] Audit externally reachable invite endpoints for abuse risks and choose lowest-regression controls.
+- [x] Implement safe hardening for invite preview/join abuse resistance (rate limit + request validation + safer logs).
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) and targeted checks.
+- [x] Commit changes, verify branch tracking, and open PR.
+
 ## Settings profile persistence fix (real name + display name)
 - [x] Scope bug by tracing consumer settings save path and auth rehydration path.
 - [x] Implement targeted persistence hardening for name fields.
@@ -106,20 +119,42 @@
 - [x] Validate via required gates (`npm run lint && npm run typecheck && npm run build`) and capture mobile verification evidence.
 - [x] Commit changes, verify branch tracking/push status, and open PR.
 
-## previous TTS provider "Invalid API Key" deep-dive + TTS alternative recommendation
-- [x] Trace previous TTS provider request path end-to-end (client hook → edge function → previous TTS provider API headers).
-- [x] Audit repository for hardcoded previous TTS provider API keys and secret naming mismatches.
+## ElevenLabs "Invalid API Key" deep-dive + TTS alternative recommendation
+- [x] Trace ElevenLabs request path end-to-end (client hook → edge function → ElevenLabs API headers).
+- [x] Audit repository for hardcoded ElevenLabs API keys and secret naming mismatches.
 - [x] Document highest-probability failure modes and concrete Supabase verification commands.
 - [x] Recommend a free non-robotic TTS replacement with a warm male voice profile.
 
-## Replace previous TTS provider with Google Cloud TTS
+## Replace ElevenLabs provider with Google Cloud TTS
 - [x] Scope current TTS call path + identify smallest provider swap surface.
 - [x] Implement edge function provider swap (Google Cloud TTS) while preserving existing client contract.
 - [x] Update docs/env requirements for new secret + voice defaults.
 - [x] Add/update tests for error mapping and audio response expectations.
 - [x] Run lint, typecheck, build, and focused tests.
 
-## Remove prior provider naming references from codebase
-- [x] Rename remaining hook/function/document names away from prior provider branding.
-- [x] Replace prior provider text references in active docs, runtime code, and migrations with Google/neutral wording.
-- [x] Re-run focused TTS tests plus lint/typecheck/build validation gates.
+## AI concierge voice controls cleanup + dictation fix
+- [x] Scope the waveform/dictation regression and confirm why click no longer starts speech-to-text into the composer.
+- [x] Remove the autoplay voice toggle button from the chat composer UI and disable its autoplay path.
+- [x] Restore expected waveform button click behavior (tap to dictate into input, editable before send).
+- [x] Add/adjust focused regression tests for voice button interactions.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) plus targeted tests.
+
+## AI concierge timeout deep-dive + stream resilience hardening
+- [x] Scope timeout failure path across concierge stream client + edge function and confirm likely root cause for Google Flights requests.
+- [x] Implement minimal keepalive/idle-timeout hardening to prevent false "Request timed out" failures during long-running tool loops.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`) and a focused concierge test sweep.
+- [x] Produce component-by-component reliability scoring (0-100) with concrete actions for any area below 90.
+
+## AI concierge tool-calling audit (text + voice)
+- [x] Scope concierge tool inventories across lovable-concierge, voice session config, and executors.
+- [x] Compare declared tools vs implemented tools and identify parity gaps between text and voice paths.
+- [x] Document trigger prompts, semantic-routing behavior, rich-card support, and latency simplification opportunities.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit audit deliverable + open PR.
+
+## AI concierge tool parity implementation (text + voice)
+- [x] Restore shared `functionExecutor` coverage so all declared text concierge tools execute server-side.
+- [x] Align `gemini-voice-session` tool declarations to match text concierge tools one-for-one.
+- [x] Route newly-added parity tools through `useVoiceToolHandler` bridge to `execute-concierge-tool`.
+- [x] Run required gates (`npm run lint && npm run typecheck && npm run build`).
+- [x] Commit implementation + verify branch tracking/push + open PR.

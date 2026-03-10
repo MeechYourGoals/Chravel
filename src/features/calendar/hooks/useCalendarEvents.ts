@@ -46,7 +46,7 @@ export const useCalendarEvents = (tripId?: string) => {
       try {
         const result = await withTimeout(
           calendarService.getTripEvents(tripId!),
-          30000,
+          10000,
           'Failed to load calendar events: Timeout',
         );
 
@@ -94,6 +94,8 @@ export const useCalendarEvents = (tripId?: string) => {
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.calendar.refetchOnWindowFocus,
+    retry: 1,
+    retryDelay: 1000,
   });
 
   // Real-time subscription for authenticated mode (shared hook)

@@ -123,7 +123,7 @@ export const PersonalizedAgenda = ({ eventId, sessions }: PersonalizedAgendaProp
   if (isLoading) {
     return (
       <div className="text-center py-8">
-        <div className="animate-spin w-8 h-8 border-2 border-glass-orange border-t-transparent rounded-full mx-auto"></div>
+        <div className="animate-spin w-8 h-8 gold-gradient-spinner mx-auto"></div>
         <p className="text-gray-400 mt-2">Loading your agenda...</p>
       </div>
     );

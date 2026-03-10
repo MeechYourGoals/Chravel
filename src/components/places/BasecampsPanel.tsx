@@ -309,7 +309,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-4 ">
         {/* Trip Base Camp Card */}
-        <div className="rounded-xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden">
+        <div className="rounded-xl bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg overflow-hidden">
           <div className="p-2.5">
             {tripBasecamp ? (
               <>
@@ -322,13 +322,13 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowTripSelector(true)}
-                    className="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-2 py-1 rounded-lg transition-colors text-xs border border-sky-500/30"
+                    className="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-3 py-2 rounded-lg transition-colors text-sm border border-sky-500/30 min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>
                 </div>
 
-                <div className="bg-gray-800/50 rounded-lg p-2.5 border border-gray-700">
+                <div className="bg-glass-slate-bg/50 rounded-lg p-2.5 border border-glass-slate-border/50">
                   <div className="flex items-center gap-3">
                     <MapPin size={18} className="text-sky-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -366,7 +366,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         </div>
 
         {/* Personal Base Camp Card */}
-        <div className="rounded-xl bg-gray-900/80 border border-white/10 shadow-lg overflow-hidden">
+        <div className="rounded-xl bg-glass-slate-card border border-glass-slate-border shadow-enterprise-lg overflow-hidden">
           <div className="p-2.5">
             {loading ? (
               <div className="animate-pulse">
@@ -388,13 +388,13 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowPersonalSelector(true)}
-                    className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-2 py-1 rounded-lg transition-colors text-xs border border-emerald-500/30"
+                    className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-3 py-2 rounded-lg transition-colors text-sm border border-emerald-500/30 min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>
                 </div>
 
-                <div className="bg-gray-800/50 rounded-lg p-2.5 border border-gray-700">
+                <div className="bg-glass-slate-bg/50 rounded-lg p-2.5 border border-glass-slate-border/50">
                   <div className="flex items-center gap-3">
                     <MapPin size={18} className="text-emerald-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">

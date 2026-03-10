@@ -1,4 +1,4 @@
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from './cors.ts';
 
 // Input validation and sanitization for Edge Functions
 export function validateAndSanitizeInput(data: any): {
@@ -49,6 +49,57 @@ export function validateAndSanitizeInput(data: any): {
     return { isValid: true, sanitized };
   } catch (error) {
     return { isValid: false, error: 'Input validation failed' };
+  }
+}
+
+export interface JsonBodyParseResult<T> {
+  data?: T;
+  error?: string;
+}
+
+export function getClientIp(req: Request): string {
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0]?.trim() ?? 'unknown-ip';
+  }
+
+  return (
+    req.headers.get('x-real-ip') ??
+    req.headers.get('cf-connecting-ip') ??
+    req.headers.get('fly-client-ip') ??
+    'unknown-ip'
+  );
+}
+
+export function redactSensitiveToken(value: string): string {
+  const trimmedValue = value.trim();
+  if (trimmedValue.length <= 8) {
+    return `${trimmedValue.slice(0, 2)}***`;
+  }
+
+  return `${trimmedValue.slice(0, 4)}***${trimmedValue.slice(-2)}`;
+}
+
+export async function readJsonBody<T>(
+  req: Request,
+  maxBytes: number,
+): Promise<JsonBodyParseResult<T>> {
+  const rawBody = await req.text();
+  const bodyBytes = new TextEncoder().encode(rawBody).length;
+
+  if (bodyBytes > maxBytes) {
+    return { error: 'Request body too large.' };
+  }
+
+  if (!rawBody.trim()) {
+    return { error: 'Request body is required.' };
+  }
+
+  try {
+    const data = JSON.parse(rawBody) as T;
+    return { data };
+  } catch {
+    return { error: 'Invalid request body JSON.' };
   }
 }
 
@@ -132,9 +183,9 @@ export function checkRateLimitLocal(
   return { allowed: true, remaining: maxRequests - existing.count };
 }
 
-// Enhanced security headers for Edge Functions
+// Enhanced security headers for Edge Functions (uses validated CORS, not wildcard)
 export const securityHeaders = {
-  ...corsHeaders,
+  ...getCorsHeaders(),
   'Content-Type': 'application/json',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',

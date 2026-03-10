@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
+  CalendarDays,
   MapPin,
   Users,
   MoreHorizontal,
@@ -12,6 +12,8 @@ import {
   FileDown,
   Share2,
 } from 'lucide-react';
+import { CardStatItem } from './ui/CardStatItem';
+import { CalendarGlyph } from './ui/CalendarGlyph';
 import { useShallow } from 'zustand/react/shallow';
 import { EventData } from '../types/events';
 import { useTripVariant } from '../contexts/TripVariantContext';
@@ -48,6 +50,9 @@ import {
 // Stable empty array reference - prevents infinite re-renders from Zustand selector
 const EMPTY_PARTICIPANTS: Array<{ id: number | string; name: string; avatar?: string }> = [];
 
+// Extended event type for fields that may exist on real trip objects but aren't in EventData
+type ExtendedEvent = EventData & { card_color?: string; created_by?: string; coverPhoto?: string };
+
 interface EventCardProps {
   event: EventData;
   onArchiveSuccess?: () => void;
@@ -64,7 +69,7 @@ export const EventCard = ({
   const navigate = useNavigate();
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -75,7 +80,7 @@ export const EventCard = ({
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
-  const eventColor = getProTripColor(event.id, (event as any).card_color);
+  const eventColor = getProTripColor(event.id, event.card_color);
 
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -101,9 +106,11 @@ export const EventCard = ({
   };
 
   const handleExportPdf = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const exportData = await getExportData(event.id.toString(), orderedSections);
+
+      signal.throwIfAborted();
 
       const blob = await generateClientPDF(
         {
@@ -125,6 +132,8 @@ export const EventCard = ({
         },
         orderedSections,
       );
+
+      signal.throwIfAborted();
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -184,7 +193,7 @@ export const EventCard = ({
     }
 
     try {
-      const result = await deleteTrip(event.id.toString(), (event as any).created_by);
+      const result = await deleteTrip(event.id.toString(), event.created_by);
       toast({
         title: result.action === 'archived' ? 'Event archived' : 'Event removed',
         description:
@@ -210,7 +219,7 @@ export const EventCard = ({
     location: event.location,
     dateRange: event.dateRange,
     participants: [] as Array<{ id: number | string; name: string; avatar: string }>,
-    coverPhoto: (event as any).coverPhoto,
+    coverPhoto: event.coverPhoto,
     peopleCount: getPeopleCountValue(event),
   };
 
@@ -223,10 +232,10 @@ export const EventCard = ({
         className={`relative h-48 bg-gradient-to-br from-${accentColors.primary}/20 to-${accentColors.secondary}/20 p-6`}
       >
         {/* Cover photo overlay if available */}
-        {(event as any).coverPhoto ? (
+        {event.coverPhoto ? (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={{ backgroundImage: `url(${(event as any).coverPhoto})` }}
+            style={{ backgroundImage: `url(${event.coverPhoto})` }}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -236,11 +245,11 @@ export const EventCard = ({
           <div className="flex-1 min-h-0 overflow-hidden flex flex-col justify-end">
             <h3 className="text-2xl font-bold text-white mb-2 line-clamp-2">{event.title}</h3>
             <div className="flex items-center gap-2 text-white/80 mb-2">
-              <MapPin size={16} className={`text-${accentColors.primary}`} />
+              <MapPin size={16} className="gold-gradient-icon" />
               <span className="font-medium">{event.location}</span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
-              <Calendar size={16} className={`text-${accentColors.primary}`} />
+              <CalendarDays size={16} className="gold-gradient-icon" />
               <span className="font-medium">{event.dateRange}</span>
             </div>
           </div>
@@ -283,44 +292,32 @@ export const EventCard = ({
 
       {/* Content */}
       <div className="p-6">
-        {/* Stats Grid - People, Days, Places */}
+        {/* Stats Grid - icon above → number → label (bordered container for Events) */}
         <div className="grid grid-cols-3 gap-4 mb-6 bg-black/20 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Users size={14} className={`text-${accentColors.primary}`} />
-              <span className="text-xs text-white/60 uppercase tracking-wide">People</span>
-            </div>
-            <div className="text-lg font-bold text-white">{totalPeopleCount}</div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Calendar size={14} className={`text-${accentColors.primary}`} />
-              <span className="text-xs text-white/60 uppercase tracking-wide">Days</span>
-            </div>
-            <div className="text-lg font-bold text-white">
-              {calculateDaysCount(event.dateRange)}
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <MapPin size={14} className={`text-${accentColors.primary}`} />
-              <span className="text-xs text-white/60 uppercase tracking-wide">Places</span>
-            </div>
-            <div className="text-lg font-bold text-white">
-              {event.placesCount != null
+          <CardStatItem icon={Users} value={totalPeopleCount} label="People" />
+          <CardStatItem
+            icon={CalendarGlyph}
+            value={calculateDaysCount(event.dateRange)}
+            label="Days"
+          />
+          <CardStatItem
+            icon={MapPin}
+            value={
+              event.placesCount != null
                 ? event.placesCount > 0
                   ? event.placesCount.toString()
                   : '—'
-                : calculateEventPlacesCount(event)}
-            </div>
-          </div>
+                : calculateEventPlacesCount(event)
+            }
+            label="Places"
+          />
         </div>
 
         {/* Organizer Display */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users size={18} className={`text-${accentColors.primary}`} />
+              <Users size={16} className="gold-gradient-icon" />
               <span className="text-white font-medium">Organizer</span>
             </div>
             <span className="text-gray-300 text-sm font-medium truncate max-w-[60%] text-right">

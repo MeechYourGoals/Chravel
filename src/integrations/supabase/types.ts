@@ -528,6 +528,30 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_card_order: {
+        Row: {
+          dashboard_type: string
+          id: string
+          ordered_ids: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          dashboard_type: string
+          id?: string
+          ordered_ids?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          dashboard_type?: string
+          id?: string
+          ordered_ids?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_agenda_items: {
         Row: {
           created_at: string | null
@@ -916,6 +940,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gmail_accounts: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          email: string
+          id: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       invite_links: {
         Row: {
@@ -2294,6 +2351,7 @@ export type Database = {
           event_category: string | null
           id: string
           include_in_itinerary: boolean | null
+          is_all_day: boolean | null
           location: string | null
           source_data: Json | null
           source_type: string | null
@@ -2311,6 +2369,7 @@ export type Database = {
           event_category?: string | null
           id?: string
           include_in_itinerary?: boolean | null
+          is_all_day?: boolean | null
           location?: string | null
           source_data?: Json | null
           source_type?: string | null
@@ -2328,6 +2387,7 @@ export type Database = {
           event_category?: string | null
           id?: string
           include_in_itinerary?: boolean | null
+          is_all_day?: boolean | null
           location?: string | null
           source_data?: Json | null
           source_type?: string | null

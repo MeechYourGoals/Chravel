@@ -96,7 +96,7 @@ export const AISplitHelper = ({
           {/* Loading State */}
           {isCalculating && (
             <div className="text-center py-8">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="animate-spin w-8 h-8 gold-gradient-spinner mx-auto mb-4"></div>
               <p className="text-gray-300">AI is analyzing your receipt...</p>
             </div>
           )}

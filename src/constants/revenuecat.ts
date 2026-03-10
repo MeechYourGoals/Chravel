@@ -46,54 +46,40 @@ export const REVENUECAT_ENTITLEMENTS = {
  * See: src/billing/config.ts for Apple product ID format (com.chravel.*.monthly/annual)
  */
 export const REVENUECAT_PRODUCTS = {
-  // Explorer tier - $9.99/month, $99/year (matches billing/config.ts)
+  // Explorer tier - $9.99/month, $99/year (subscription)
   explorerMonthly: 'com.chravel.explorer.monthly',
   explorerAnnual: 'com.chravel.explorer.annual',
 
-  // Frequent Chraveler tier - $19.99/month, $199/year (matches billing/config.ts)
+  // Frequent Chraveler tier - $19.99/month, $199/year (subscription)
   frequentChravelerMonthly: 'com.chravel.frequentchraveler.monthly',
   frequentChravelerAnnual: 'com.chravel.frequentchraveler.annual',
+
+  // Trip Passes (one-time, primary consumer offering)
+  explorerPass45: 'com.chravel.explorer.pass45',
+  frequentChravelerPass90: 'com.chravel.frequentchraveler.pass90',
 } as const;
-
-/**
- * Maps RevenueCat entitlement IDs to our internal subscription tiers
- */
-export const ENTITLEMENT_TO_TIER: Record<string, SubscriptionTier> = {
-  [REVENUECAT_ENTITLEMENTS.explorer]: 'explorer',
-  [REVENUECAT_ENTITLEMENTS.frequentChraveler]: 'frequent-chraveler',
-  [REVENUECAT_ENTITLEMENTS.proStarter]: 'pro-starter',
-  [REVENUECAT_ENTITLEMENTS.proGrowth]: 'pro-growth',
-  [REVENUECAT_ENTITLEMENTS.proEnterprise]: 'pro-enterprise',
-};
-
-/**
- * Maps our internal tiers to RevenueCat entitlement IDs
- */
-export const TIER_TO_ENTITLEMENT: Partial<Record<SubscriptionTier, string>> = {
-  explorer: REVENUECAT_ENTITLEMENTS.explorer,
-  'frequent-chraveler': REVENUECAT_ENTITLEMENTS.frequentChraveler,
-  'pro-starter': REVENUECAT_ENTITLEMENTS.proStarter,
-  'pro-growth': REVENUECAT_ENTITLEMENTS.proGrowth,
-  'pro-enterprise': REVENUECAT_ENTITLEMENTS.proEnterprise,
-};
 
 /**
  * Pricing display (for UI)
  *
  * IMPORTANT: These values MUST match src/billing/config.ts
- * - Explorer: $9.99/month, $99/year
- * - Frequent Chraveler: $19.99/month, $199/year
+ * Subscriptions: Explorer $9.99/month, $99/year | FC $19.99/month, $199/year
+ * Trip Passes (primary consumer offering): Explorer $39.99/45 days | FC $74.99/90 days
  */
 export const REVENUECAT_PRICING = {
   explorer: {
     monthly: 9.99,
-    annual: 99, // Matches billing/config.ts
+    annual: 99,
     currency: 'USD',
   },
   frequentChraveler: {
     monthly: 19.99,
-    annual: 199, // Matches billing/config.ts
+    annual: 199,
     currency: 'USD',
+  },
+  tripPasses: {
+    explorer: { price: 39.99, durationDays: 45, currency: 'USD' },
+    frequentChraveler: { price: 74.99, durationDays: 90, currency: 'USD' },
   },
 } as const;
 
@@ -125,6 +111,18 @@ export function isRevenueCatConfigured(platform: 'ios' | 'android' | 'web'): boo
 /**
  * Full config object for convenience
  */
+/**
+ * Maps RevenueCat entitlement IDs to Chravel subscription tiers.
+ * Used by revenuecatClient to derive the user's plan from active entitlements.
+ */
+export const ENTITLEMENT_TO_TIER: Record<string, SubscriptionTier> = {
+  [REVENUECAT_ENTITLEMENTS.explorer]: 'explorer',
+  [REVENUECAT_ENTITLEMENTS.frequentChraveler]: 'frequent-chraveler',
+  [REVENUECAT_ENTITLEMENTS.proStarter]: 'pro-starter',
+  [REVENUECAT_ENTITLEMENTS.proGrowth]: 'pro-growth',
+  [REVENUECAT_ENTITLEMENTS.proEnterprise]: 'pro-enterprise',
+};
+
 export const REVENUECAT_CONFIG = {
   enabled: REVENUECAT_ENABLED,
   entitlements: REVENUECAT_ENTITLEMENTS,

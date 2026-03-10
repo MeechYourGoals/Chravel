@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ImagePlus } from 'lucide-react';
+import { Search, ImagePlus, X } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -28,13 +28,14 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
-import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
+import { VoiceActiveBar } from '@/features/chat/components/VoiceActiveBar';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
-import { useConciergeTTS } from '@/hooks/useConciergeTTS';
+import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
+import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -49,15 +50,12 @@ const EMPTY_SESSION: ConciergeSession = {
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
 /**
- * DUPLEX_VOICE_ENABLED — Set to true to re-enable Gemini Live bidirectional
- * voice (Vertex AI). When false, the waveform button uses basic Web Speech API
- * dictation instead. All backend wiring (gemini-voice-session edge function,
- * useGeminiLive hook, VoiceLiveOverlay) is preserved — flip this to true and
- * fix the Vertex handshake to restore conversation mode.
- *
- * See docs/GEMINI_LIVE_ARCHITECTURE_REPORT.md for setup instructions.
+ * DUPLEX_VOICE_ENABLED — When true, the waveform button starts Gemini Live
+ * bidirectional voice (Vertex AI). When false, it uses basic Web Speech API
+ * dictation instead. Voice state is shown inline via VoiceActiveBar (compact
+ * bar at top of chat) and transcripts appear as normal chat bubbles.
  */
-const DUPLEX_VOICE_ENABLED = false;
+const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Map GeminiLiveState → VoiceState for VoiceButton visuals */
@@ -145,6 +143,7 @@ export interface ChatMessage {
     entityId?: string;
     entityName?: string;
     scope?: string;
+    status?: 'success' | 'failure' | 'duplicate' | 'skipped';
   }>;
   /** Reservation draft cards from emitReservationDraft tool */
   reservationDrafts?: ReservationDraft[];
@@ -289,7 +288,12 @@ export const AIConciergeChat = ({
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
-  const { usage, incrementUsageOnSuccess, isLimitedPlan, userPlan } = useConciergeUsage(tripId);
+  const {
+    usage: _usage,
+    incrementUsageOnSuccess,
+    isLimitedPlan,
+    userPlan,
+  } = useConciergeUsage(tripId);
   const { isOffline } = useOfflineStatus();
   const { user } = useAuth();
   const loadedPreferences = useAIConciergePreferences();
@@ -309,14 +313,14 @@ export const AIConciergeChat = ({
     onNavigateToPlaces: handleNavigateToPlaces,
   });
 
-  // ── Concierge TTS ──────────────────────────────────────────────────────
+  // ── Google TTS ──────────────────────────────────────────────────────
   const {
     playbackState: ttsPlaybackState,
     playingMessageId: ttsPlayingMessageId,
     errorMessage: ttsError,
     play: ttsPlayRaw,
     stop: ttsStop,
-  } = useConciergeTTS();
+  } = useConciergeReadAloud();
 
   // Hydrate from Zustand store on mount (preserves messages across tab switches)
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -330,8 +334,11 @@ export const AIConciergeChat = ({
       const msg = messagesRef.current.find(m => m.id === messageId);
       if (!msg || msg.type !== 'assistant' || !msg.content) return;
 
+      const cleanContent = sanitizeConciergeContent(msg.content);
+      if (!cleanContent) return;
+
       const speechText = buildSpeechText({
-        displayText: msg.content,
+        displayText: cleanContent,
         hotels: msg.functionCallHotels,
         places: msg.functionCallPlaces,
         flights: msg.functionCallFlights?.map(f => ({
@@ -360,47 +367,6 @@ export const AIConciergeChat = ({
       toast.error('Voice playback failed', { description: ttsError });
     }
   }, [ttsError, ttsPlaybackState]);
-
-  // ── Voice Responses toggle (auto-play TTS after each assistant response) ──
-  const [voiceResponsesEnabled, setVoiceResponsesEnabled] = useState(
-    () => localStorage.getItem('chravel_voice_responses') === 'true',
-  );
-  const userHasInteracted = useRef(false);
-
-  // Track user interaction for iOS autoplay compliance
-  useEffect(() => {
-    const markInteracted = () => {
-      userHasInteracted.current = true;
-    };
-    document.addEventListener('click', markInteracted, { once: true });
-    document.addEventListener('touchstart', markInteracted, { once: true });
-    return () => {
-      document.removeEventListener('click', markInteracted);
-      document.removeEventListener('touchstart', markInteracted);
-    };
-  }, []);
-
-  const handleVoiceResponsesToggle = useCallback(() => {
-    setVoiceResponsesEnabled(prev => {
-      const next = !prev;
-      localStorage.setItem('chravel_voice_responses', String(next));
-      return next;
-    });
-  }, []);
-
-  // Ref so the stream onDone callback can read the current toggle value
-  const voiceResponsesRef = useRef(voiceResponsesEnabled);
-  useEffect(() => {
-    voiceResponsesRef.current = voiceResponsesEnabled;
-  }, [voiceResponsesEnabled]);
-
-  /** Read the last assistant message aloud (mic short-tap). */
-  const handleReadAloud = useCallback(() => {
-    const lastAssistant = [...messagesRef.current].reverse().find(m => m.type === 'assistant');
-    if (lastAssistant?.id && lastAssistant.content) {
-      handleTTSPlay(lastAssistant.id);
-    }
-  }, [handleTTSPlay]);
 
   // True after the chat is hydrated from the server DB (not just cache/empty).
   // Used to show the "Picked up where you left off" chip.
@@ -450,11 +416,17 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
+  // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
+  // first.  If bidirectional audio fails, we fall back to Web Speech API
+  // dictation so the user can still speak — their words fill the text input.
+  //
+  // `duplexFailed` tracks whether Gemini Live errored during the current
+  // interaction so we know to activate dictation as a fallback.
+  const [duplexFailed, setDuplexFailed] = useState(false);
   // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
   // Speech API dictation. Transcribed text fills the input field so the user
   // can review/edit before sending. All Gemini Live hooks remain initialised
   // (hooks rules) but are not invoked.
-  const [liveOverlayOpen, setLiveOverlayOpen] = useState(false);
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -469,6 +441,9 @@ export const AIConciergeChat = ({
 
   const { voiceState: dictationState, toggleVoice: toggleDictation } =
     useWebSpeechVoice(handleDictationResult);
+
+  // Dictation active state — used for fallback mode detection
+  const isDictationActive = dictationState !== 'idle' && dictationState !== 'error';
 
   /**
    * Fix 2 — streaming voice response bubble.
@@ -598,18 +573,43 @@ export const AIConciergeChat = ({
     onError: handleLiveError,
   });
 
-  // Voice state for the VoiceButton — uses dictation state when duplex is off
-  const convoVoiceState: VoiceState = DUPLEX_VOICE_ENABLED
-    ? mapLiveStateToVoiceState(liveState)
-    : dictationState;
+  // Voice state for the VoiceButton — shows dictation state when in fallback mode
+  const convoVoiceState: VoiceState = (() => {
+    if (!DUPLEX_VOICE_ENABLED) return dictationState;
+    // If duplex failed and dictation is running, show dictation state
+    if (duplexFailed && isDictationActive) return dictationState;
+    // Otherwise show Gemini Live state
+    return mapLiveStateToVoiceState(liveState);
+  })();
 
-  // Close overlay when live session ends (only relevant when duplex enabled)
+  // Auto-fallback: when Gemini Live enters error state, activate dictation
   useEffect(() => {
-    if (DUPLEX_VOICE_ENABLED && liveState === 'idle' && liveOverlayOpen) {
-      const timer = setTimeout(() => setLiveOverlayOpen(false), 300);
-      return () => clearTimeout(timer);
+    if (!DUPLEX_VOICE_ENABLED) return;
+    if (liveState === 'error' && !duplexFailed) {
+      setDuplexFailed(true);
+      toast.info('Live voice unavailable — switching to dictation', {
+        description: 'Speak and your words will appear in the text field.',
+        duration: 4000,
+      });
+      // Small delay to let the Gemini Live audio resources release before
+      // starting Web Speech API (avoids mic contention on iOS).
+      setTimeout(() => {
+        toggleDictation();
+      }, 500);
     }
-  }, [liveState, liveOverlayOpen]);
+  }, [liveState, duplexFailed, toggleDictation]);
+
+  // Reset duplexFailed when Gemini Live goes back to idle (session ended cleanly)
+  useEffect(() => {
+    if (liveState === 'idle' && duplexFailed && !isDictationActive) {
+      setDuplexFailed(false);
+    }
+  }, [liveState, duplexFailed, isDictationActive]);
+
+  // Voice active state — either Gemini Live is running OR dictation fallback is active
+  const isVoiceActive =
+    (DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error') ||
+    (duplexFailed && isDictationActive);
 
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
@@ -619,7 +619,17 @@ export const AIConciergeChat = ({
       return;
     }
 
-    // Duplex path (preserved for when a specialist re-enables it)
+    // If in dictation fallback mode, toggle dictation off/on
+    if (duplexFailed) {
+      toggleDictation();
+      // If user taps to stop dictation, reset fallback state
+      if (isDictationActive) {
+        setDuplexFailed(false);
+      }
+      return;
+    }
+
+    // Duplex path — stop active session
     if (liveState !== 'idle' && liveState !== 'error') {
       await endLiveSession();
       return;
@@ -639,7 +649,7 @@ export const AIConciergeChat = ({
       }
     }
 
-    setLiveOverlayOpen(true);
+    // Try Gemini Live first — if it fails, the useEffect above will auto-fallback
     await startLiveSession();
   }, [
     toggleDictation,
@@ -649,12 +659,18 @@ export const AIConciergeChat = ({
     isLimitedPlan,
     incrementUsageOnSuccess,
     buildLimitReachedMessage,
+    duplexFailed,
+    isDictationActive,
   ]);
 
   const handleEndLiveSession = useCallback(() => {
     void endLiveSession();
-    setLiveOverlayOpen(false);
-  }, [endLiveSession]);
+    // Also stop dictation if it was running as a fallback
+    if (duplexFailed && isDictationActive) {
+      toggleDictation();
+    }
+    setDuplexFailed(false);
+  }, [endLiveSession, duplexFailed, isDictationActive, toggleDictation]);
 
   // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
   // While Gemini Live is in 'playing' state, update the transient bubble so the
@@ -874,7 +890,7 @@ export const AIConciergeChat = ({
         if (result.failed > 0) {
           toast.error(`${result.failed} event${result.failed !== 1 ? 's' : ''} failed to import`);
         }
-      } catch (_err) {
+      } catch {
         setSmartImportStates(prev => ({
           ...prev,
           [messageId]: { isImporting: false, result: { imported: 0, failed: events.length } },
@@ -1052,12 +1068,43 @@ export const AIConciergeChat = ({
         },
       };
 
-      // ========== STREAMING PATH ==========
+      // === STREAMING PATH ===
       if (!isDemoMode) {
         const streamingMessageId = _uniqueId('stream');
         let receivedAnyChunk = false;
         let accumulatedStreamContent = ''; // accumulates full text so we can cache after onDone
         const streamTimer = { id: undefined as ReturnType<typeof setTimeout> | undefined };
+
+        const triggerStreamTimeout = () => {
+          streamAbortRef.current?.();
+          streamAbortRef.current = null;
+          if (!isMounted.current) return;
+          setAiStatus('timeout');
+          setIsTyping(false);
+          const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
+          setMessages(prev => {
+            const exists = prev.some(m => m.id === streamingMessageId);
+            if (exists) {
+              return prev.map(m =>
+                m.id === streamingMessageId ? { ...m, content: timeoutContent } : m,
+              );
+            }
+            return [
+              ...prev,
+              {
+                id: streamingMessageId,
+                type: 'assistant' as const,
+                content: timeoutContent,
+                timestamp: new Date().toISOString(),
+              },
+            ];
+          });
+        };
+
+        const resetStreamWatchdog = () => {
+          if (streamTimer.id) clearTimeout(streamTimer.id);
+          streamTimer.id = setTimeout(triggerStreamTimeout, FAST_RESPONSE_TIMEOUT_MS);
+        };
 
         const updateStreamMsg = (updater: (msg: ChatMessage) => Partial<ChatMessage>) => {
           setMessages(prev => {
@@ -1074,18 +1121,22 @@ export const AIConciergeChat = ({
         const streamHandle = invokeConciergeStream(
           requestBody,
           {
+            onActivity: () => {
+              resetStreamWatchdog();
+            },
             onChunk: (text: string) => {
               if (!isMounted.current) return;
               accumulatedStreamContent += text; // always accumulate for caching
+              // Sanitize accumulated content so users never see leaked JSON mid-stream
+              const displayContent = sanitizeConciergeContent(accumulatedStreamContent);
               if (!receivedAnyChunk) {
                 receivedAnyChunk = true;
                 setIsTyping(false);
                 setMessages(prev => {
                   const idx = prev.findIndex(m => m.id === streamingMessageId);
                   if (idx !== -1) {
-                    // Message already created by onFunctionCall (place cards) — append text to it
                     const updated = [...prev];
-                    updated[idx] = { ...updated[idx], content: text };
+                    updated[idx] = { ...updated[idx], content: displayContent };
                     return updated;
                   }
                   return [
@@ -1093,14 +1144,14 @@ export const AIConciergeChat = ({
                     {
                       id: streamingMessageId,
                       type: 'assistant' as const,
-                      content: text,
+                      content: displayContent,
                       timestamp: new Date().toISOString(),
                     },
                   ];
                 });
                 return;
               }
-              updateStreamMsg(msg => ({ content: msg.content + text }));
+              updateStreamMsg(() => ({ content: displayContent }));
             },
             onFunctionCall: (name: string, result: Record<string, unknown>) => {
               if (!isMounted.current) return;
@@ -1252,6 +1303,32 @@ export const AIConciergeChat = ({
                 'addToAgenda',
               ]);
               if (writeActions.has(name) && result.actionType) {
+                // Extract entity name from nested result objects
+                const entityName =
+                  (result.entityName as string) ||
+                  ((result.poll as Record<string, unknown>)?.question as string) ||
+                  ((result.poll as Record<string, unknown>)?.title as string) ||
+                  ((result.task as Record<string, unknown>)?.title as string) ||
+                  ((result.task as Record<string, unknown>)?.name as string) ||
+                  ((result.event as Record<string, unknown>)?.title as string) ||
+                  ((result.event as Record<string, unknown>)?.name as string) ||
+                  ((result.link as Record<string, unknown>)?.name as string) ||
+                  ((result.link as Record<string, unknown>)?.title as string) ||
+                  ((result.agendaItem as Record<string, unknown>)?.title as string) ||
+                  ((result.place as Record<string, unknown>)?.name as string) ||
+                  (result.name as string) ||
+                  (result.title as string) ||
+                  undefined;
+
+                // Detect duplicate/skipped status from tool result
+                const status = result.duplicate
+                  ? ('duplicate' as const)
+                  : result.skipped
+                    ? ('skipped' as const)
+                    : result.success
+                      ? ('success' as const)
+                      : ('failure' as const);
+
                 const actionResult = {
                   actionType: result.actionType as string,
                   success: !!result.success,
@@ -1263,7 +1340,9 @@ export const AIConciergeChat = ({
                     ((result.link as Record<string, unknown>)?.id as string) ||
                     ((result.agendaItem as Record<string, unknown>)?.id as string) ||
                     undefined,
+                  entityName,
                   scope: result.scope as string | undefined,
+                  status,
                 };
                 setMessages(prev => {
                   const idx = prev.findIndex(m => m.id === streamingMessageId);
@@ -1454,6 +1533,9 @@ export const AIConciergeChat = ({
               });
             },
             onMetadata: (metadata: StreamMetadataEvent) => {
+              if (metadata.keepAlive) {
+                return;
+              }
               setAiStatus('connected');
               updateStreamMsg(() => ({
                 usage: metadata.usage,
@@ -1549,15 +1631,6 @@ export const AIConciergeChat = ({
                       });
                   }
                 }
-
-                // Auto-play TTS when voice responses toggle is on
-                if (
-                  voiceResponsesRef.current &&
-                  userHasInteracted.current &&
-                  accumulatedStreamContent
-                ) {
-                  handleTTSPlay(streamingMessageId);
-                }
               }
             },
           },
@@ -1567,37 +1640,12 @@ export const AIConciergeChat = ({
         streamAbortRef.current = streamHandle.abort;
         streamingStarted = true;
 
-        streamTimer.id = setTimeout(() => {
-          if (receivedAnyChunk) return;
-          streamHandle.abort();
-          streamAbortRef.current = null;
-          if (!isMounted.current) return;
-          setAiStatus('timeout');
-          setIsTyping(false);
-          const timeoutContent = `⚠️ **Request timed out**\n\n${generateFallbackResponse(currentInput, fallbackContext, basecampLocation)}`;
-          setMessages(prev => {
-            const exists = prev.some(m => m.id === streamingMessageId);
-            if (exists) {
-              return prev.map(m =>
-                m.id === streamingMessageId ? { ...m, content: timeoutContent } : m,
-              );
-            }
-            return [
-              ...prev,
-              {
-                id: streamingMessageId,
-                type: 'assistant' as const,
-                content: timeoutContent,
-                timestamp: new Date().toISOString(),
-              },
-            ];
-          });
-        }, FAST_RESPONSE_TIMEOUT_MS);
+        resetStreamWatchdog();
 
         return;
       }
 
-      // ========== NON-STREAMING FALLBACK (demo mode) ==========
+      // === NON-STREAMING FALLBACK (demo mode) ===
       const { data, error } = await invokeConciergeWithTimeout(requestBody, {
         demoMode: isDemoMode,
       });
@@ -1751,7 +1799,7 @@ export const AIConciergeChat = ({
   };
 
   return (
-    <div className="flex flex-col px-0 py-4 overflow-hidden flex-1 min-h-0 h-full max-h-[calc(100vh-240px)]">
+    <div className="flex flex-col overflow-hidden flex-1 min-h-0 h-full">
       <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
         {/* Header — search/mic aligned with input bar send button (gradient theme) */}
         <div className="border-b border-white/10 bg-black/30 p-3 flex-shrink-0">
@@ -1826,9 +1874,6 @@ export const AIConciergeChat = ({
         {/* Empty State - Compact for Mobile */}
         {messages.length === 0 && !isHistoryLoading && (
           <div className="text-center py-6 px-4 flex-shrink-0">
-            <h4 className="text-base font-semibold mb-1.5 text-white sm:text-lg sm:mb-2">
-              Your Travel Concierge
-            </h4>
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Try asking:</p>
               <div className="text-xs text-gray-400 space-y-0.5 leading-snug">
@@ -1841,19 +1886,48 @@ export const AIConciergeChat = ({
                 <p>
                   &bull; &ldquo;Create a poll: Saturday night plans with 4 options near us&rdquo;
                 </p>
-                <p>
-                  &bull; &ldquo;Show flights for LAX to JFK on May 22 and let me save one&rdquo;
-                </p>
-                <p>&bull; &ldquo;Summarize tasks due this week and assign owners&rdquo;</p>
-                <p>
-                  &bull; &ldquo;I have a hotel confirmation screenshot &mdash; import it to our
-                  trip&rdquo;
-                </p>
               </div>
               <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
-                I can search, show rich cards, and write directly to your trip
+                Chravel Agent can search, display info cards, and add things directly your trip
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Inline voice status bar — shown when voice session is active */}
+        {isVoiceActive && !duplexFailed && (
+          <VoiceActiveBar
+            state={liveState}
+            error={liveError}
+            circuitBreakerOpen={liveCircuitBreakerOpen}
+            onEnd={handleEndLiveSession}
+            onResetCircuitBreaker={resetLiveCircuitBreaker}
+            onReconnect={handleConvoToggle}
+            diagnostics={liveDiagnostics}
+          />
+        )}
+        {/* Dictation fallback bar — shown when Gemini Live failed and Web Speech is active */}
+        {duplexFailed && isDictationActive && (
+          <div
+            className="flex items-center gap-3 px-4 py-2.5 mx-3 mt-2 rounded-xl border bg-emerald-500/10 border-emerald-500/20 transition-colors duration-300"
+            role="status"
+            aria-label="Dictation active"
+          >
+            <span className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="relative flex items-center justify-center shrink-0">
+                <span className="size-2.5 rounded-full bg-emerald-500" />
+                <span className="absolute inset-0 rounded-full bg-emerald-500 opacity-40 animate-ping" />
+              </span>
+              <span className="text-xs text-white/70 truncate">Dictating — speak now</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleEndLiveSession}
+              className="size-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center hover:bg-red-500/20 hover:border-red-500/30 active:scale-95 transition-all shrink-0 touch-manipulation"
+              aria-label="Stop dictation"
+            >
+              <X size={12} className="text-white/70" />
+            </button>
           </div>
         )}
 
@@ -1938,9 +2012,6 @@ export const AIConciergeChat = ({
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
-            onReadAloud={handleReadAloud}
-            voiceResponsesEnabled={voiceResponsesEnabled}
-            onVoiceResponsesToggle={handleVoiceResponsesToggle}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {
@@ -1959,21 +2030,8 @@ export const AIConciergeChat = ({
         </div>
       </div>
 
-      {/* Full-screen immersive voice overlay — only when duplex is enabled */}
-      {DUPLEX_VOICE_ENABLED && liveOverlayOpen && (
-        <VoiceLiveOverlay
-          state={liveState}
-          userTranscript={liveUserTranscript}
-          assistantTranscript={liveAssistantTranscript}
-          conversationHistory={liveConversationHistory}
-          error={liveError}
-          circuitBreakerOpen={liveCircuitBreakerOpen}
-          onEnd={handleEndLiveSession}
-          onResetCircuitBreaker={resetLiveCircuitBreaker}
-          onReconnect={handleConvoToggle}
-          diagnostics={liveDiagnostics}
-        />
-      )}
+      {/* Inline voice bar — compact status indicator at top of chat */}
+      {/* (positioned absolutely so it overlays the top of chat scroll area) */}
     </div>
   );
 };

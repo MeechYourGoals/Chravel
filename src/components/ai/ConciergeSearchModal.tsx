@@ -154,9 +154,9 @@ export const ConciergeSearchModal = ({
       case 'payment':
         return 'Payments';
       case 'place':
-        return 'Places';
+        return 'Chat Links';
       case 'link':
-        return 'Links';
+        return 'Explore Links';
       case 'media':
         return 'Media';
       default:
@@ -211,7 +211,7 @@ export const ConciergeSearchModal = ({
         <div className="max-h-[60vh] overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent bg-neutral-900/95">
           {isLoading && (
             <div className="py-12 text-center text-neutral-500 text-sm animate-pulse flex flex-col items-center gap-2">
-              <div className="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
+              <div className="w-6 h-6 gold-gradient-spinner animate-spin"></div>
               <span>Searching trip...</span>
             </div>
           )}

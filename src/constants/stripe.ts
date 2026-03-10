@@ -31,13 +31,14 @@ export const CONSUMER_PLANS = {
   explorer: {
     name: 'Explorer',
     tier: 'explorer',
-    product_id: 'prod_Tc0SWNhLkoCDIi',
+    product_id: 'prod_U73VxEnvEHbBrx',
+    product_id_annual: 'prod_U73VrTc4sE8AIv', // Separate annual product in Stripe
     monthly: {
-      price_id: 'price_1SemRq3EeswiMlDC9yP0Dh5G',
+      price_id: 'price_1T8pOc47wCAQ57MmWsPX3Jku',
       amount: 999, // $9.99 in cents
     },
     annual: {
-      price_id: 'price_1SemRq3EeswiMlDCi0syvI3f',
+      price_id: 'price_1T8pOl47wCAQ57MmDT7uefS7', // Belongs to prod_U73VrTc4sE8AIv
       amount: 9900, // $99.00 in cents
     },
     features: {
@@ -49,13 +50,14 @@ export const CONSUMER_PLANS = {
   'frequent-chraveler': {
     name: 'Frequent Chraveler',
     tier: 'frequent-chraveler',
-    product_id: 'prod_Tc0WEzRDTCkfPM',
+    product_id: 'prod_U73VfiKf3VrJKf',
+    product_id_annual: 'prod_U73VqblRTSr2XZ', // Separate annual product in Stripe
     monthly: {
-      price_id: 'price_1SemV13EeswiMlDC2ykNdrif',
+      price_id: 'price_1T8pOd47wCAQ57MmIrACPNpc',
       amount: 1999, // $19.99 in cents
     },
     annual: {
-      price_id: 'price_1SemV13EeswiMlDC2P2126NY',
+      price_id: 'price_1T8pOl47wCAQ57MmrhqSZM2j', // Belongs to prod_U73VqblRTSr2XZ
       amount: 19900, // $199.00 in cents
     },
     features: {
@@ -76,26 +78,49 @@ export const PRO_PLANS = {
   starter: {
     name: 'Starter Pro',
     tier: 'pro-starter',
-    product_id: 'prod_Tc0YVR1N0fmtDG',
-    price_id: 'price_1SemXF3EeswiMlDCL1Unj0Er',
+    product_id: 'prod_U73Vlcl4lqgsb4',
+    price_id: 'price_1T8pOe47wCAQ57MmkShIK75i',
     amount: 4900, // $49/mo in cents
     memberLimit: 50,
   },
   growth: {
     name: 'Growth Pro',
     tier: 'pro-growth',
-    product_id: 'prod_Tc0afc0pIUt87D',
-    price_id: 'price_1SemYw3EeswiMlDCv27XvDMY',
+    product_id: 'prod_U73VPX6TlClQ7J',
+    price_id: 'price_1T8pOf47wCAQ57Mm5k8uVQrW',
     amount: 9900, // $99/mo in cents
     memberLimit: 100,
   },
   enterprise: {
     name: 'Enterprise',
     tier: 'pro-enterprise',
-    product_id: 'prod_Tc0cJshKNpvxV0',
-    price_id: 'price_1Semar3EeswiMlDCmEPBAvIt',
-    amount: 19900, // $199/mo in cents
+    product_id: 'prod_U73Vd6QW4pEY9x',
+    price_id: 'price_1T8pOg47wCAQ57MmcEPnjd3s',
+    amount: 0, // Custom Pricing - Contact Sales (billing@chravelapp.com)
     memberLimit: 250,
+  },
+} as const;
+
+// ============================================================
+// TRIP PASS PRODUCTS (One-Time Purchases)
+// ============================================================
+
+export const TRIP_PASS_PLANS = {
+  'pass-explorer-45': {
+    name: 'Explorer Trip Pass (45 days)',
+    tier: 'explorer',
+    product_id: 'prod_U73WaALe9yjrAR',
+    price_id: 'price_1T8pP047wCAQ57Mm6sfNTg2w',
+    amount: 3999, // $39.99
+    durationDays: 45,
+  },
+  'pass-frequent-90': {
+    name: 'Frequent Chraveler Trip Pass (90 days)',
+    tier: 'frequent-chraveler',
+    product_id: 'prod_U73W99ebeJvbLB',
+    price_id: 'price_1T8pP047wCAQ57Mm2DOch99F',
+    amount: 7499, // $74.99
+    durationDays: 90,
   },
 } as const;
 
@@ -132,9 +157,16 @@ export function getPriceId(
 // ============================================================
 
 export function getTierFromProductId(productId: string): string {
-  // Consumer plans
+  // Consumer plans (monthly + annual are separate products in Stripe)
   if (productId === CONSUMER_PLANS.explorer.product_id) return 'explorer';
+  if (productId === CONSUMER_PLANS.explorer.product_id_annual) return 'explorer';
   if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id) return 'frequent-chraveler';
+  if (productId === CONSUMER_PLANS['frequent-chraveler'].product_id_annual)
+    return 'frequent-chraveler';
+
+  // Trip Pass products
+  if (productId === TRIP_PASS_PLANS['pass-explorer-45'].product_id) return 'explorer';
+  if (productId === TRIP_PASS_PLANS['pass-frequent-90'].product_id) return 'frequent-chraveler';
 
   // Pro plans
   if (productId === PRO_PLANS.starter.product_id) return 'pro-starter';

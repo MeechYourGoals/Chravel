@@ -1,11 +1,23 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import {
+  checkRateLimit,
+  getClientIp,
+  readJsonBody,
+  redactSensitiveToken,
+} from '../_shared/security.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[JOIN-TRIP] ${step}${detailsStr}`);
 };
+
+const JOIN_TRIP_RATE_LIMIT_MAX_REQUESTS = 20;
+const JOIN_TRIP_RATE_LIMIT_WINDOW_SECONDS = 60;
+const MAX_INVITE_CODE_LENGTH = 128;
+const MAX_REQUEST_CONTENT_LENGTH_BYTES = 4 * 1024;
 
 /**
  * Error codes for join-trip failures.
@@ -79,7 +91,11 @@ serve(async req => {
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    if (!authHeader.startsWith('Bearer ')) {
+      return errorResponse('Authorization header is malformed.', 401, corsHeaders, 'AUTH_EXPIRED');
+    }
+
+    const token = authHeader.slice(7);
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
 
     if (userError || !userData.user) {
@@ -95,9 +111,32 @@ serve(async req => {
     const user = userData.user;
     logStep('User authenticated', { userId: user.id, email: user.email });
 
+    // Rate limit: max 10 join attempts per user per minute (prevents invite brute-forcing)
+    const rl = await applyRateLimit({
+      identifier: `join-trip:${user.id}`,
+      maxRequests: 10,
+      windowSeconds: 60,
+      corsHeaders,
+      supabaseClient: supabaseClient,
+    });
+    if (!rl.allowed) {
+      logStep('Rate limit exceeded', { userId: user.id });
+      return rl.response!;
+    }
+
     // Get invite code from request
-    const { inviteCode } = await req.json();
-    if (!inviteCode) {
+    const requestBody = await readJsonBody<{ inviteCode?: string }>(
+      req,
+      MAX_REQUEST_CONTENT_LENGTH_BYTES,
+    );
+
+    if (requestBody.error) {
+      return errorResponse(requestBody.error, 400, corsHeaders, 'INVALID_LINK');
+    }
+
+    const normalizedInviteCode =
+      typeof requestBody.data?.inviteCode === 'string' ? requestBody.data.inviteCode.trim() : '';
+    if (!normalizedInviteCode || normalizedInviteCode.length > MAX_INVITE_CODE_LENGTH) {
       logStep('ERROR: No invite code provided');
       return errorResponse(
         'This invite link appears to be malformed.',
@@ -107,13 +146,13 @@ serve(async req => {
       );
     }
 
-    logStep('Processing invite code', { inviteCode });
+    logStep('Processing invite code', { inviteCode: redactSensitiveToken(normalizedInviteCode) });
 
     // Fetch invite data from database
     const { data: invite, error: inviteError } = await supabaseClient
       .from('trip_invites')
       .select('*')
-      .eq('code', inviteCode)
+      .eq('code', normalizedInviteCode)
       .single();
 
     if (inviteError || !invite) {
@@ -225,11 +264,11 @@ serve(async req => {
 
     logStep('Trip found', { tripName: trip.name, tripType: trip.trip_type });
 
-    // Check if invite requires approval
-    // CRITICAL: Pro/Event trips ALWAYS require approval regardless of invite setting
-    // This ensures trip admins can vet all join requests for professional/event trips
-    const requiresApproval =
-      invite.require_approval || trip.trip_type === 'pro' || trip.trip_type === 'event';
+    // SECURITY: All trip types require approval for join requests.
+    // Consumer trips: any existing member can approve (trust-based group approval)
+    // Pro/Event trips: only creator or admins can approve (gated access)
+    // Direct join via invite link is never permitted — leaked/forwarded links only create requests.
+    const requiresApproval = true;
 
     logStep('Approval requirement check', {
       inviteRequiresApproval: invite.require_approval,
@@ -296,7 +335,7 @@ serve(async req => {
               requested_at: new Date().toISOString(),
               resolved_at: null,
               resolved_by: null,
-              invite_code: inviteCode,
+              invite_code: normalizedInviteCode,
               requester_name: requesterName,
               requester_email: requesterEmail,
             })
@@ -315,7 +354,36 @@ serve(async req => {
           // (notification logic will be handled below)
           logStep('Rejected request updated to pending', { requestId: existingRequest.id });
         }
-        // If status is 'approved', user should already be a member (handled earlier)
+        // If status is 'approved' but user is no longer an active member (e.g. they left),
+        // reset the request to pending so approvers can see it again.
+        if (existingRequest.status === 'approved') {
+          logStep('Resetting approved request to pending (user likely left and is rejoining)', {
+            requestId: existingRequest.id,
+          });
+          const { error: updateError } = await supabaseClient
+            .from('trip_join_requests')
+            .update({
+              status: 'pending',
+              requested_at: new Date().toISOString(),
+              resolved_at: null,
+              resolved_by: null,
+              invite_code: normalizedInviteCode,
+              requester_name: requesterName,
+              requester_email: requesterEmail,
+            })
+            .eq('id', existingRequest.id);
+
+          if (updateError) {
+            logStep('ERROR: Failed to reset approved request', { error: updateError.message });
+            return errorResponse(
+              'Failed to resubmit join request. Please try again.',
+              500,
+              corsHeaders,
+            );
+          }
+
+          logStep('Approved request reset to pending', { requestId: existingRequest.id });
+        }
       }
 
       // Create join request with requester info stored directly (only if no existing request)
@@ -327,7 +395,7 @@ serve(async req => {
           .insert({
             trip_id: invite.trip_id,
             user_id: user.id,
-            invite_code: inviteCode,
+            invite_code: normalizedInviteCode,
             status: 'pending',
             requester_name: requesterName,
             requester_email: requesterEmail,
@@ -433,53 +501,14 @@ serve(async req => {
       );
     }
 
-    // No approval required - upsert to support re-join (user may have status=left)
-    const { error: memberError } = await supabaseClient.from('trip_members').upsert(
-      {
-        trip_id: invite.trip_id,
-        user_id: user.id,
-        role: 'member',
-        status: 'active',
-        left_at: null,
-      },
-      { onConflict: 'trip_id,user_id' },
-    );
-
-    if (memberError) {
-      logStep('ERROR: Failed to add member', { error: memberError.message });
-      return errorResponse('Failed to join trip. Please try again.', 500, corsHeaders);
-    }
-
-    logStep('Member added successfully');
-
-    // Increment invite usage counter
-    const { error: updateError } = await supabaseClient
-      .from('trip_invites')
-      .update({
-        current_uses: invite.current_uses + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', invite.id);
-
-    if (updateError) {
-      logStep('WARNING: Failed to update invite usage counter', { error: updateError.message });
-      // Non-critical error, don't fail the request
-    }
-
-    logStep('Join successful', {
-      tripId: invite.trip_id,
-      userId: user.id,
-      newUsageCount: invite.current_uses + 1,
-    });
-
-    return successResponse(
-      {
-        trip_id: invite.trip_id,
-        trip_name: trip.name,
-        trip_type: trip.trip_type,
-        message: `Successfully joined ${trip.name}!`,
-      },
+    // NOTE: Direct join path removed — all joins go through the approval flow above.
+    // This unreachable branch is kept as a safety net that returns an error.
+    logStep('ERROR: Unexpected code path reached (requiresApproval should always be true)');
+    return errorResponse(
+      'An unexpected error occurred. Please try again.',
+      500,
       corsHeaders,
+      'UNKNOWN_ERROR',
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

@@ -5,10 +5,10 @@ import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
  * Prevents information disclosure of internal implementation details
  */
 export function sanitizeErrorForClient(error: unknown): string {
-  // Always log full error server-side for debugging
+  // Log error context server-side — omit stack traces to prevent info disclosure in logs
   console.error('[EDGE_FUNCTION_ERROR]', {
-    error,
-    stack: error instanceof Error ? error.stack : undefined,
+    type: error instanceof Error ? error.name : typeof error,
+    message: error instanceof Error ? error.message : String(error),
     timestamp: new Date().toISOString(),
   });
 
@@ -107,7 +107,6 @@ export function logError(
         ? {
             name: error.name,
             message: error.message,
-            stack: error.stack,
           }
         : String(error),
     metadata,

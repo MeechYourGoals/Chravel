@@ -1,13 +1,10 @@
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 
@@ -40,13 +37,13 @@ serve(async req => {
 
     switch (action) {
       case 'search_places':
-        return await searchPlaces(query, location, googleApiKey);
+        return await searchPlaces(query, location, googleApiKey, corsHeaders);
       case 'get_place_details':
-        return await getPlaceDetails(placeId, googleApiKey);
+        return await getPlaceDetails(placeId, googleApiKey, corsHeaders);
       case 'get_nearby_places':
-        return await getNearbyPlaces(location, googleApiKey);
+        return await getNearbyPlaces(location, googleApiKey, corsHeaders);
       case 'resolve_place_links':
-        return await resolvePlaceLinks(query, googleApiKey);
+        return await resolvePlaceLinks(query, googleApiKey, corsHeaders);
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
           status: 400,
@@ -63,7 +60,12 @@ serve(async req => {
   }
 });
 
-async function searchPlaces(query: string, location: string, apiKey: string) {
+async function searchPlaces(
+  query: string,
+  location: string,
+  apiKey: string,
+  corsHeaders: Record<string, string>,
+) {
   const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${location}&radius=50000&key=${apiKey}`;
 
   const response = await fetch(searchUrl);
@@ -83,7 +85,11 @@ async function searchPlaces(query: string, location: string, apiKey: string) {
   );
 }
 
-async function getPlaceDetails(placeId: string, apiKey: string) {
+async function getPlaceDetails(
+  placeId: string,
+  apiKey: string,
+  corsHeaders: Record<string, string>,
+) {
   const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,rating,formatted_phone_number,formatted_address,website,photos,reviews,opening_hours,price_level&key=${apiKey}`;
 
   const response = await fetch(detailsUrl);
@@ -103,7 +109,11 @@ async function getPlaceDetails(placeId: string, apiKey: string) {
   );
 }
 
-async function getNearbyPlaces(location: string, apiKey: string) {
+async function getNearbyPlaces(
+  location: string,
+  apiKey: string,
+  corsHeaders: Record<string, string>,
+) {
   const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location}&radius=5000&type=restaurant&key=${apiKey}`;
 
   const response = await fetch(nearbyUrl);
@@ -123,7 +133,11 @@ async function getNearbyPlaces(location: string, apiKey: string) {
   );
 }
 
-async function resolvePlaceLinks(placeName: string, apiKey: string) {
+async function resolvePlaceLinks(
+  placeName: string,
+  apiKey: string,
+  corsHeaders: Record<string, string>,
+) {
   const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(placeName)}&key=${apiKey}`;
 
   const response = await fetch(searchUrl);

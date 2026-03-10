@@ -33,7 +33,7 @@ export const MobileEventDetail = () => {
   const { trips: userTrips, loading: tripsLoading } = useTrips();
 
   // 🔄 CRITICAL FIX: Fetch real trip members from database for authenticated trips
-  const { tripMembers, loading: membersLoading } = useTripMembers(eventId);
+  const { tripMembers, loading: _membersLoading } = useTripMembers(eventId);
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
@@ -112,7 +112,7 @@ export const MobileEventDetail = () => {
 
   // PDF Export handler
   const handleExport = useCallback(
-    async (sections: ExportSection[]) => {
+    async (sections: ExportSection[], signal: AbortSignal) => {
       const orderedSections = orderExportSections(sections);
       const tripIdStr = eventId || '1';
       const isNumericId = !tripIdStr.includes('-');
@@ -191,6 +191,8 @@ export const MobileEventDetail = () => {
           );
         }
 
+        signal.throwIfAborted();
+
         const sanitizedTitle = (eventData?.title || 'Event').replace(/[^a-zA-Z0-9]/g, '_');
         const filename = `Event_${sanitizedTitle}_${Date.now()}.pdf`;
 
@@ -200,6 +202,7 @@ export const MobileEventDetail = () => {
           description: `PDF ready: ${filename}`,
         });
       } catch (error) {
+        if (signal.aborted) throw signal.reason;
         console.error('[MobileEventDetail Export] Error:', error);
         toast.error('Recap failed', {
           description:
@@ -280,7 +283,7 @@ export const MobileEventDetail = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin h-12 w-12 gold-gradient-spinner mx-auto mb-4"></div>
           <p className="text-gray-400">Initializing...</p>
         </div>
       </div>
@@ -311,7 +314,7 @@ export const MobileEventDetail = () => {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin h-12 w-12 gold-gradient-spinner mx-auto mb-4"></div>
           <p className="text-gray-400">Loading event...</p>
         </div>
       </div>
@@ -384,11 +387,11 @@ export const MobileEventDetail = () => {
 
   return (
     <MobileErrorBoundary>
-      <div className="flex flex-col min-h-screen bg-black">
-        {/* Mobile Header - Sticky with iOS safe area */}
+      <div className="flex flex-col h-[100dvh] bg-black overflow-hidden">
+        {/* Mobile Header - Fixed flex item (not sticky) for reliable iOS PWA visibility */}
         <div
           ref={headerRef}
-          className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
+          className="flex-shrink-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 mobile-safe-header"
         >
           <div className="px-4 py-2">
             <div className="flex items-center justify-between gap-2">

@@ -75,7 +75,8 @@ const consumerTiers: PricingTier[] = [
     price: '$9.99',
     annualPrice: '$99',
     originalPrice: '$119.88',
-    description: 'For people who travel regularly and want smarter planning',
+    description:
+      'For people who travel regularly and want smarter planning. Or grab a Trip Pass for $39.99 (45 days).',
     icon: <Globe size={24} />,
     features: [
       'Everything in Free',
@@ -99,7 +100,7 @@ const consumerTiers: PricingTier[] = [
     price: '$19.99',
     annualPrice: '$199',
     originalPrice: '$239.88',
-    description: 'For Frequent Flyers, Teams, and Tours',
+    description: 'For Frequent Flyers, Teams, and Tours. Or grab a Trip Pass for $74.99 (90 days).',
     icon: <Sparkles size={24} />,
     features: [
       'Everything in Explorer',
@@ -158,7 +159,7 @@ const proTiers: PricingTier[] = [
   {
     id: 'enterprise',
     name: SUBSCRIPTION_TIERS.enterprise.name,
-    price: `$${SUBSCRIPTION_TIERS.enterprise.price}`,
+    price: 'Custom Pricing',
     description: 'For professional leagues, major tours, Fortune 500',
     icon: <Shield size={24} />,
     features: SUBSCRIPTION_TIERS.enterprise.features.map(f =>
@@ -168,7 +169,7 @@ const proTiers: PricingTier[] = [
     category: 'pro',
     enterprise: true,
     ctaAction: () =>
-      (window.location.href = 'mailto:support@chravelapp.com?subject=Enterprise%20Inquiry'),
+      (window.location.href = 'mailto:billing@chravelapp.com?subject=Enterprise%20Inquiry'),
   },
 ];
 
@@ -176,7 +177,7 @@ const valuePropItems = [
   {
     icon: <Heart size={20} />,
     title: 'Trips can easily exceed $1,000',
-    description: 'Your memories are worth more than $9.99/month',
+    description: 'Your memories are worth more than a Trip Pass',
   },
   {
     icon: <Camera size={20} />,
@@ -338,7 +339,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
     <div className="w-full space-y-16">
       {/* Header with Value Prop - High contrast with background */}
       <div className="text-center space-y-6">
-        <div className="inline-block bg-[#C4912F] px-6 py-4 rounded-lg shadow-lg shadow-[#C4912F]/25 max-w-3xl mx-auto">
+        <div className="inline-block accent-fill-gold px-6 py-4 rounded-lg max-w-3xl mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-2">
             Start free. Upgrade when your trip gets serious.
           </h2>
@@ -392,7 +393,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`px-4 py-2 tablet:px-6 tablet:py-3 rounded-md text-sm sm:text-base tablet:text-lg font-medium transition-all flex items-center gap-1.5 tablet:gap-2 ${
                   activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    ? 'accent-fill-gold font-semibold shadow-sm'
                     : 'text-foreground hover:text-foreground'
                 }`}
               >
@@ -418,7 +419,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               className="relative w-12 h-6 bg-muted rounded-full transition-colors"
             >
               <div
-                className={`absolute top-1 w-4 h-4 bg-primary rounded-full transition-transform ${
+                className={`absolute top-1 w-4 h-4 bg-gold-primary rounded-full transition-transform shadow-ring-glow ${
                   billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-1'
                 }`}
               />
@@ -462,15 +463,15 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
             <Card
               className={`relative backdrop-blur-sm border transition-all hover:scale-105 hover:shadow-lg min-h-[480px] flex flex-col ${
                 tier.popular || tier.recommended
-                  ? 'bg-card/80 border-primary/50 shadow-lg ring-1 ring-primary/20'
+                  ? 'bg-card/80 border-gold-primary/50 shadow-lg ring-1 ring-gold-primary/20'
                   : tier.enterprise
-                    ? 'bg-card/80 border-accent/50'
+                    ? 'bg-card/80 border-gold-primary/30'
                     : 'bg-card/80 border-border/50'
               }`}
             >
               {(tier.popular || tier.recommended) && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground px-4 py-2 font-medium">
+                  <Badge className="accent-fill-gold px-4 py-2 font-semibold">
                     {tier.badge || 'Most Popular'}
                   </Badge>
                 </div>
@@ -554,7 +555,7 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
 
               <CardContent className="space-y-3 tablet:space-y-4 px-4 tablet:px-6 pb-4 tablet:pb-6 flex-1">
                 {tier.limitation && (
-                  <div className="bg-[#C4912F]/10 border border-[#C4912F]/20 rounded-lg p-2.5 tablet:p-3 text-sm text-[#C4912F] break-words font-medium">
+                  <div className="bg-gold-primary/10 border border-gold-primary/20 rounded-lg p-2.5 tablet:p-3 text-sm text-gold-primary break-words font-medium">
                     {tier.limitation}
                   </div>
                 )}
@@ -574,11 +575,11 @@ export const PricingSection = ({ onSignUp }: PricingSectionProps = {}) => {
               <CardFooter className="px-4 tablet:px-6 pb-4 tablet:pb-6 pt-0 mt-auto">
                 <Button
                   onClick={tier.ctaAction || (() => handlePlanSelect(tier.id))}
-                  className={`w-full h-10 tablet:h-12 font-medium text-sm sm:text-base ${
+                  className={`w-full h-10 tablet:h-12 font-semibold text-sm sm:text-base ${
                     tier.category === 'consumer'
-                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                      ? 'accent-fill-gold'
                       : tier.enterprise
-                        ? 'bg-accent hover:bg-accent/90 text-accent-foreground'
+                        ? 'accent-fill-gold'
                         : 'bg-secondary hover:bg-secondary/80'
                   }`}
                 >

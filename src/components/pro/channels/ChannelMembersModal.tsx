@@ -111,7 +111,7 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
 
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="animate-spin h-8 w-8 gold-gradient-spinner" />
           </div>
         ) : members.length === 0 ? (
           <div className="text-center py-8 text-gray-400">No members in this channel yet</div>

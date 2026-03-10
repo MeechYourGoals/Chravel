@@ -57,7 +57,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
     return (
       <Card className="p-6 bg-background/40 backdrop-blur-sm border-white/10">
         <div className="flex items-center gap-3">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+          <div className="animate-spin h-5 w-5 gold-gradient-spinner" />
           <p className="text-sm text-muted-foreground">Loading requests...</p>
         </div>
       </Card>
@@ -186,7 +186,7 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  <div className="animate-spin h-4 w-4 gold-gradient-spinner" />
                   Processing...
                 </div>
               ) : pendingAction?.type === 'approve' ? (

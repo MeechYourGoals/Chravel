@@ -1,12 +1,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { invokeEmbeddingModel } from '../_shared/gemini.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 interface IngestRequest {
   source: 'message' | 'poll' | 'broadcast' | 'file' | 'calendar' | 'link' | 'trip_batch';
@@ -39,7 +34,14 @@ serve(async req => {
     return createOptionsResponse(req);
   }
 
+  const headers = getCorsHeaders(req);
+
   try {
+    // Auth gate: require a valid user token
+    const { requireAuth } = await import('../_shared/requireAuth.ts');
+    const auth = await requireAuth(req, headers);
+    if (auth.response) return auth.response;
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -60,7 +62,7 @@ serve(async req => {
           JSON.stringify({ error: 'tripId is required for trip_batch ingestion' }),
           {
             status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
           },
         );
       }
@@ -92,14 +94,14 @@ serve(async req => {
           totals,
           results: batchResults,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
     }
 
     if (!source || !sourceId || !tripId) {
       return new Response(JSON.stringify({ error: 'Source, sourceId, and tripId are required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -168,7 +170,7 @@ serve(async req => {
     if (!textContent.trim()) {
       return new Response(JSON.stringify({ error: 'No content to ingest' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -198,7 +200,7 @@ serve(async req => {
       console.error('Error creating document:', docError);
       return new Response(JSON.stringify({ error: 'Failed to create document' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -221,7 +223,7 @@ serve(async req => {
       console.error('Error creating chunk:', chunkError);
       return new Response(JSON.stringify({ error: 'Failed to create chunk' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -231,13 +233,13 @@ serve(async req => {
         docId: doc.id,
         contentLength: textContent.length,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error in ai-ingest function:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

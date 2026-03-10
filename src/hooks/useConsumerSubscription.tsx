@@ -80,9 +80,6 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
           product_id === fcProduct.product_id_monthly ||
           product_id === fcProduct.product_id_annual
         ) {
-          userTier = 'frequent-chraveler';
-        } else if (product_id === STRIPE_PRODUCTS['consumer-plus'].product_id) {
-          userTier = 'explorer'; // Legacy Plus -> Explorer
         }
       }
 

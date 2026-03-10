@@ -207,7 +207,7 @@ export const LineupTab = ({
       {/* Header */}
       <div className={`${EVENT_PARITY_ROW_CLASS} items-center`}>
         <div className={`flex items-center gap-3 ${EVENT_PARITY_COL_START.admin} md:col-span-5`}>
-          <Users size={24} className="text-yellow-500" />
+          <Users size={24} className="gold-gradient-icon" />
           <div>
             <h2 className="text-xl font-semibold text-white">Line-up</h2>
             <p className="text-gray-400 text-sm hidden md:block">

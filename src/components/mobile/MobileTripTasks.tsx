@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { format } from 'date-fns';
 import { Plus, Check } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { TaskSkeleton } from './SkeletonLoader';
 import { hapticService } from '../../services/hapticService';
 import { TaskCreateModal } from '../todo/TaskCreateModal';
+import { TaskCreateForm } from '../todo/TaskCreateForm';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { useAuth } from '../../hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
@@ -58,6 +60,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
 
   const activeTasks = tasks.filter(t => !isTaskCompleted(t));
   const completedTasks = tasks.filter(t => isTaskCompleted(t));
+  const isEmptyState = tasks.length === 0 && !isLoading;
 
   return (
     <div className="flex flex-col flex-1 bg-black px-4 py-4 relative min-h-0">
@@ -75,28 +78,33 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
             {activeTasks.length} pending · {completedTasks.length} completed
           </p>
         </div>
-        <button
-          onClick={async () => {
-            await hapticService.medium();
-            setIsModalOpen(true);
-          }}
-          className="p-3 bg-blue-600 rounded-lg active:scale-95 transition-transform"
-        >
-          <Plus size={20} className="text-white" />
-        </button>
+        {!isEmptyState && (
+          <button
+            onClick={async () => {
+              await hapticService.medium();
+              setIsModalOpen(true);
+            }}
+            className="p-3 bg-blue-600 rounded-lg active:scale-95 transition-transform"
+          >
+            <Plus size={20} className="text-white" />
+          </button>
+        )}
       </div>
 
       {/* Active Tasks */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading ? (
           <TaskSkeleton />
+        ) : isEmptyState ? (
+          <TaskCreateForm
+            tripId={tripId}
+            onClose={() => {
+              /* no-op: form stays visible until first task is created */
+            }}
+            isInlineEmptyState
+          />
         ) : (
           <div className="space-y-3 mb-6">
-            {activeTasks.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p>No tasks yet. Tap + to add one!</p>
-              </div>
-            )}
             {activeTasks.map(task => (
               <SwipeableListItem
                 key={task.id}
@@ -107,9 +115,13 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                   <div className="flex items-start gap-3">
                     <button
                       onClick={() => handleToggleTask(task.id)}
-                      className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full border-2 border-gray-400 flex items-center justify-center active:scale-95 transition-transform"
+                      className="flex-shrink-0 flex items-center justify-center w-11 h-11 -ml-2 active:scale-95 transition-transform"
                     >
-                      {isTaskCompleted(task) && <Check size={14} className="text-white" />}
+                      <span
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isTaskCompleted(task) ? 'bg-green-500 border-green-500' : 'border-gray-400'}`}
+                      >
+                        {isTaskCompleted(task) && <Check size={14} className="text-white" />}
+                      </span>
                     </button>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-white font-medium truncate">{task.title}</h4>
@@ -121,7 +133,7 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                         )}
                         {task.due_at && (
                           <span className="text-xs text-orange-400 flex-shrink-0">
-                            {new Date(task.due_at).toLocaleDateString()}
+                            {format(new Date(task.due_at), 'MMM d, yyyy')}
                           </span>
                         )}
                       </div>
@@ -156,9 +168,11 @@ export const MobileTripTasks = ({ tripId }: MobileTripTasksProps) => {
                     <div className="flex items-start gap-3">
                       <button
                         onClick={() => handleToggleTask(task.id)}
-                        className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center active:scale-95 transition-transform"
+                        className="flex-shrink-0 flex items-center justify-center w-11 h-11 -ml-2 active:scale-95 transition-transform"
                       >
-                        <Check size={14} className="text-white" />
+                        <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                          <Check size={14} className="text-white" />
+                        </span>
                       </button>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-gray-300 line-through break-words">{task.title}</h4>

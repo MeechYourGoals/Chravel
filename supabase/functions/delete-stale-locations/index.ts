@@ -1,11 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { verifyCronAuth } from '../_shared/cronGuard.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
   const { createOptionsResponse, createErrorResponse, createSecureResponse } =
     await import('../_shared/securityHeaders.ts');
 
@@ -15,8 +17,9 @@ serve(async req => {
   }
 
   try {
-    // This function should only be called by cron/scheduled tasks
-    // In production, you might want to add authentication for this endpoint
+    // Verify cron/service caller authentication
+    const guard = verifyCronAuth(req, corsHeaders);
+    if (!guard.authorized) return guard.response!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -31,7 +34,7 @@ serve(async req => {
       console.error('Error deleting stale locations:', error);
       return new Response(JSON.stringify({ error: 'Failed to delete stale locations' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
@@ -44,13 +47,13 @@ serve(async req => {
         deletedCount,
         message: 'Stale locations cleaned up successfully',
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error in delete-stale-locations function:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

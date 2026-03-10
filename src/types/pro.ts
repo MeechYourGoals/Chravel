@@ -469,10 +469,11 @@ export const SUBSCRIPTION_TIERS = {
   },
   enterprise: {
     name: 'Enterprise',
-    price: 199,
+    price: 0, // Custom Pricing - Contact Sales (billing@chravelapp.com)
+    priceLabel: 'Custom Pricing',
     seatLimit: 250,
     features: [
-      'Up to 250 team members',
+      'Unlimited team members',
       'Custom integrations',
       'Dedicated success manager',
       '24/7 premium support',

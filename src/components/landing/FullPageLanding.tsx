@@ -31,12 +31,12 @@ const DESIGN_TOKENS = {
   pureBlack: '#000000',
   richBlack: '#0a0a0a',
   darkCharcoal: '#121212',
-  goldPrimary: '#C4912F',
-  goldLight: '#C4912F',
-  goldDark: '#C4912F',
-  goldGlow: 'rgba(196,145,47,0.25)',
-  goldSoftGlow: 'rgba(196,145,47,0.12)',
-  goldAccentGlow: 'rgba(196,145,47,0.15)',
+  goldPrimary: '#c49746',
+  goldLight: '#feeaa5',
+  goldDark: '#533517',
+  goldGlow: 'rgba(232,175,72,0.25)',
+  goldSoftGlow: 'rgba(232,175,72,0.12)',
+  goldAccentGlow: 'rgba(196,151,70,0.15)',
 };
 
 const GRADIENTS = {
@@ -88,7 +88,7 @@ interface FullPageLandingProps {
 // Loading fallback component
 const SectionLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+    <div className="animate-spin h-12 w-12 gold-gradient-spinner" />
   </div>
 );
 

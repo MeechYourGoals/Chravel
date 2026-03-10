@@ -46,10 +46,10 @@ export const TripVariantProvider = ({ variant, children }: TripVariantProviderPr
             badge: 'from-glass-blue to-glass-blue-light',
           }
         : {
-            primary: 'yellow-500',
-            secondary: 'yellow-600',
-            gradient: 'from-yellow-500 to-yellow-600',
-            badge: 'from-yellow-500 to-yellow-600',
+            primary: 'gold-primary',
+            secondary: 'gold-dark',
+            gradient: 'from-gold-primary to-gold-dark',
+            badge: 'from-gold-primary to-gold-dark',
           };
 
   return (

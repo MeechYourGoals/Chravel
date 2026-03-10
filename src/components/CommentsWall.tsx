@@ -37,7 +37,6 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
   const { variant } = useTripVariant();
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
-
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
   }, [isDemoMode, queryClient, tripId]);
@@ -99,7 +98,7 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
           <MessageCircle size={18} className="text-glass-enterprise-blue" />
           Group Polls
         </h3>
-        {effectivePermissions.canCreate && (
+        {effectivePermissions.canCreate && !showCreatePoll && (
           <ActionPill
             variant="manualOutline"
             leftIcon={<Plus />}
@@ -117,6 +116,7 @@ export const CommentsWall = ({ tripId, permissions }: CommentsWallProps) => {
         onShowCreatePollChange={setShowCreatePoll}
         hideCreateButton
         permissions={effectivePermissions}
+        autoShowCreateOnEmpty
       />
     </div>
   );

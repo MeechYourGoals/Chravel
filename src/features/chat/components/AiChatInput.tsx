@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Send, X, CalendarPlus, Bookmark, ListChecks, Volume2, VolumeX } from 'lucide-react';
+import { Send, X, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
 interface AiChatInputProps {
@@ -14,12 +13,16 @@ interface AiChatInputProps {
   disabled?: boolean;
   /** Conversation mode state (Gemini Live waveform button) */
   convoVoiceState?: VoiceState;
-  /** Toggle conversation mode on/off */
+  /** Tap: toggle dictation on/off */
   onConvoToggle?: () => void;
+  /** Long-press: activate Gemini Live bidirectional voice */
+  onConvoLongPress?: () => void;
   /** Whether voice features are available */
   isVoiceEligible?: boolean;
   /** Upgrade prompt for ineligible users */
   onVoiceUpgrade?: () => void;
+  /** Whether Gemini Live is currently active */
+  isLiveActive?: boolean;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -30,12 +33,6 @@ interface AiChatInputProps {
   showImageAttach?: boolean;
   /** Callback when a Smart Import quick action chip is tapped */
   onQuickAction?: (action: string) => void;
-  /** Read the last assistant message aloud (short tap on mic) */
-  onReadAloud?: () => void;
-  /** Whether "Voice responses" auto-play is enabled */
-  voiceResponsesEnabled?: boolean;
-  /** Toggle "Voice responses" auto-play on/off */
-  onVoiceResponsesToggle?: () => void;
 }
 
 export const AiChatInput = ({
@@ -47,16 +44,15 @@ export const AiChatInput = ({
   disabled = false,
   convoVoiceState = 'idle',
   onConvoToggle,
+  onConvoLongPress,
   isVoiceEligible = false,
   onVoiceUpgrade,
-  onImageAttach,
+  isLiveActive = false,
+  onImageAttach: _onImageAttach,
   attachedImages = [],
   onRemoveImage,
-  showImageAttach = false,
+  showImageAttach: _showImageAttach = false,
   onQuickAction,
-  onReadAloud,
-  voiceResponsesEnabled = false,
-  onVoiceResponsesToggle,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -148,34 +144,10 @@ export const AiChatInput = ({
             voiceState={convoVoiceState}
             isEligible={isVoiceEligible}
             onToggle={onConvoToggle}
+            onLongPress={onConvoLongPress}
             onUpgrade={onVoiceUpgrade}
-            onReadAloud={onReadAloud}
+            isLiveActive={isLiveActive}
           />
-        )}
-
-        {/* Voice responses auto-play toggle */}
-        {onVoiceResponsesToggle && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={onVoiceResponsesToggle}
-                  className={`size-8 rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation transition-all duration-200 ${
-                    voiceResponsesEnabled
-                      ? 'bg-blue-500/20 border border-blue-500/40 text-blue-400'
-                      : 'bg-white/5 border border-white/10 text-neutral-500 hover:text-neutral-400'
-                  }`}
-                  aria-label={voiceResponsesEnabled ? 'Auto-play voice on' : 'Auto-play voice off'}
-                >
-                  {voiceResponsesEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                {voiceResponsesEnabled ? 'Voice responses on' : 'Auto-play voice responses'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         )}
 
         {/* Input container */}

@@ -87,7 +87,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="w-10 h-10 gold-gradient-spinner animate-spin" />
           <p className="text-sm text-muted-foreground">Loading admin settings...</p>
         </div>
       </div>

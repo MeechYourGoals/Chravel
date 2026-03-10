@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
@@ -41,6 +42,7 @@ export const CalendarEventModal = ({
     category: prefilledData?.category || editEvent?.event_category || 'other',
     include_in_itinerary:
       prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true,
+    is_all_day: prefilledData?.is_all_day ?? editEvent?.is_all_day ?? false,
   });
 
   // Update form data when editEvent changes
@@ -54,6 +56,7 @@ export const CalendarEventModal = ({
         description: editEvent.description || '',
         category: editEvent.event_category || 'other',
         include_in_itinerary: editEvent.include_in_itinerary ?? true,
+        is_all_day: editEvent.is_all_day ?? false,
       });
     } else if (prefilledData) {
       setFormData({
@@ -64,28 +67,38 @@ export const CalendarEventModal = ({
         description: prefilledData.description || '',
         category: prefilledData.category || 'other',
         include_in_itinerary: prefilledData.include_in_itinerary ?? true,
+        is_all_day: prefilledData.is_all_day ?? false,
       });
     }
   }, [editEvent, prefilledData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.time) return;
+    if (!formData.title || (!formData.is_all_day && !formData.time)) return;
 
     setIsSubmitting(true);
     try {
-      // Combine date and time into ISO string for start_time
-      const [hours, minutes] = formData.time.split(':');
-      const startTime = new Date(formData.date);
-      startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-
+      let startTime: Date;
       let endTime: string | undefined;
-      if (formData.endTime) {
-        // endTime is already a time string like "HH:mm" - combine with date
-        const [endHours, endMins] = formData.endTime.split(':');
-        const endDateTime = new Date(formData.date);
-        endDateTime.setHours(parseInt(endHours, 10), parseInt(endMins, 10), 0, 0);
-        endTime = endDateTime.toISOString();
+
+      if (formData.is_all_day) {
+        startTime = new Date(formData.date);
+        startTime.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(formData.date);
+        endOfDay.setHours(23, 59, 59, 999);
+        endTime = endOfDay.toISOString();
+      } else {
+        // Combine date and time into ISO string for start_time
+        const [hours, minutes] = formData.time.split(':');
+        startTime = new Date(formData.date);
+        startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+
+        if (formData.endTime) {
+          const [endHours, endMins] = formData.endTime.split(':');
+          const endDateTime = new Date(formData.date);
+          endDateTime.setHours(parseInt(endHours, 10), parseInt(endMins, 10), 0, 0);
+          endTime = endDateTime.toISOString();
+        }
       }
 
       if (editEvent) {
@@ -98,6 +111,7 @@ export const CalendarEventModal = ({
           location: formData.location || undefined,
           event_category: formData.category || 'other',
           include_in_itinerary: formData.include_in_itinerary ?? true,
+          is_all_day: formData.is_all_day ?? false,
         });
 
         if (success) {
@@ -118,6 +132,7 @@ export const CalendarEventModal = ({
           location: formData.location || undefined,
           event_category: formData.category || 'other',
           include_in_itinerary: formData.include_in_itinerary ?? true,
+          is_all_day: formData.is_all_day ?? false,
           source_type: 'manual',
           source_data: {},
         });
@@ -160,6 +175,7 @@ export const CalendarEventModal = ({
       description: '',
       category: 'other',
       include_in_itinerary: true,
+      is_all_day: false,
     });
     onClose();
   };
@@ -181,6 +197,23 @@ export const CalendarEventModal = ({
               placeholder="Event name"
               required
             />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="all-day"
+              checked={formData.is_all_day ?? false}
+              onCheckedChange={(checked: boolean) =>
+                setFormData({
+                  ...formData,
+                  is_all_day: checked,
+                  time: checked ? '' : formData.time,
+                })
+              }
+            />
+            <Label htmlFor="all-day" className="text-sm font-normal cursor-pointer">
+              All day
+            </Label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -213,16 +246,18 @@ export const CalendarEventModal = ({
               </Popover>
             </div>
 
-            <div>
-              <Label htmlFor="time">Time *</Label>
-              <Input
-                id="time"
-                type="time"
-                value={formData.time}
-                onChange={e => setFormData({ ...formData, time: e.target.value })}
-                required
-              />
-            </div>
+            {!formData.is_all_day && (
+              <div>
+                <Label htmlFor="time">Time *</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={formData.time}
+                  onChange={e => setFormData({ ...formData, time: e.target.value })}
+                  required
+                />
+              </div>
+            )}
           </div>
 
           <div>

@@ -1,6 +1,6 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { LogIn, Users } from 'lucide-react';
 import { MessageInbox } from '../components/MessageInbox';
 import { TripDetailHeader } from '../components/trip/TripDetailHeader';
 import { TripDetailModals } from '../components/trip/TripDetailModals';
@@ -266,16 +266,49 @@ export const TripDetailDesktop = () => {
     );
   }
 
-  // 🔒 Handle other fetch errors - show retry option
+  // 🔒 Handle other fetch errors - distinguish permission errors from generic failures
   if (tripError) {
+    const isPermissionError =
+      tripError.message.includes('permission') ||
+      tripError.message.includes('403') ||
+      tripError.message.includes('not found');
+
+    // If user is logged in but got a permission/not-found error, they're likely not a member
+    if (isPermissionError && user && tripId) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="text-center max-w-md px-4">
+            <Users className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+            <h1 className="text-3xl font-bold text-white mb-4">Not a Member</h1>
+            <p className="text-gray-400 mb-6">
+              You're not a member of this trip yet. Ask the trip organizer for an invite link to
+              join.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => navigate(`/trip/${tripId}/preview`)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+              >
+                View Trip Preview
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-colors"
+              >
+                Back to My Trips
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md px-4">
           <h1 className="text-3xl font-bold text-white mb-4">Couldn't Load Trip</h1>
           <p className="text-gray-400 mb-6">
-            {tripError.message.includes('permission')
-              ? "You don't have access to this trip."
-              : 'There was a problem loading this trip. Please try again.'}
+            There was a problem loading this trip. Please try again.
           </p>
           <div className="flex gap-3 justify-center">
             <button
@@ -354,7 +387,7 @@ export const TripDetailDesktop = () => {
   }
 
   // Handle export functionality
-  const handleExport = async (sections: ExportSection[]) => {
+  const handleExport = async (sections: ExportSection[], signal: AbortSignal) => {
     const orderedSections = orderExportSections(sections);
     try {
       // Pre-open a window on iOS Safari to avoid popup blocking for blob URLs
@@ -499,12 +532,15 @@ export const TripDetailDesktop = () => {
         );
       }
 
+      signal.throwIfAborted();
+
       // Download or open the PDF with cross-platform handling
       const filename = `Trip_${tripWithUpdatedData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
       await openOrDownloadBlob(blob, filename, { preOpenedWindow, mimeType: 'application/pdf' });
 
       toast.success('PDF exported successfully!');
     } catch (error) {
+      if (signal.aborted) throw signal.reason;
       console.error('Export error details:', {
         error,
         errorMessage: error instanceof Error ? error.message : String(error),

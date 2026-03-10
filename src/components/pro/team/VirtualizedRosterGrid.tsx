@@ -121,7 +121,7 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
                               key={`${pill.name}-${index}`}
                               className={`${
                                 pill.isAdmin
-                                  ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30'
+                                  ? 'bg-red-600/30 text-red-300 border border-red-500/30'
                                   : getRoleColorClass(pill.name, category)
                               } px-1.5 py-0.5 rounded text-xs font-medium`}
                             >
