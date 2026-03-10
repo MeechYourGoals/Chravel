@@ -92,15 +92,8 @@ export const TripActionBar = ({
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {
-    notifications,
-    unreadCount,
-    _fetchNotifications,
-    _fetchUnreadCount,
-    markAsRead,
-    markAllAsRead,
-    clearAll,
-  } = useNotificationRealtime();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } =
+    useNotificationRealtime();
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!isDemoMode && user) {

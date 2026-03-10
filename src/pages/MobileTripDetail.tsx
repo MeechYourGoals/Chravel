@@ -36,10 +36,8 @@ export const MobileTripDetail = () => {
     tripMembers,
     tripCreatorId,
     isLoading: loading,
-    _isMembersLoading,
     isAuthLoading,
     tripError,
-    _membersError,
   } = useTripDetailData(tripId);
 
   // Persist activeTab in sessionStorage to survive orientation changes

@@ -1,0 +1,1 @@
+ALTER TABLE public.trip_personal_basecamps ADD COLUMN IF NOT EXISTS confirmation_number text;

@@ -941,7 +941,10 @@ export type Database = {
           created_at: string;
           email: string;
           id: string;
+          is_active: boolean;
+          last_sync_at: string | null;
           refresh_token: string | null;
+          scopes: string | null;
           token_expires_at: string | null;
           updated_at: string;
           user_id: string;
@@ -951,7 +954,10 @@ export type Database = {
           created_at?: string;
           email: string;
           id?: string;
+          is_active?: boolean;
+          last_sync_at?: string | null;
           refresh_token?: string | null;
+          scopes?: string | null;
           token_expires_at?: string | null;
           updated_at?: string;
           user_id: string;
@@ -961,12 +967,71 @@ export type Database = {
           created_at?: string;
           email?: string;
           id?: string;
+          is_active?: boolean;
+          last_sync_at?: string | null;
           refresh_token?: string | null;
+          scopes?: string | null;
           token_expires_at?: string | null;
           updated_at?: string;
           user_id?: string;
         };
         Relationships: [];
+      };
+      gmail_import_jobs: {
+        Row: {
+          account_id: string;
+          completed_at: string | null;
+          created_at: string;
+          error_message: string | null;
+          id: string;
+          max_results: number;
+          processed: number;
+          query_filter: string | null;
+          started_at: string | null;
+          status: string;
+          total: number | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          account_id: string;
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          max_results?: number;
+          processed?: number;
+          query_filter?: string | null;
+          started_at?: string | null;
+          status?: string;
+          total?: number | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          account_id?: string;
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          max_results?: number;
+          processed?: number;
+          query_filter?: string | null;
+          started_at?: string | null;
+          status?: string;
+          total?: number | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'gmail_import_jobs_account_id_fkey';
+            columns: ['account_id'];
+            isOneToOne: false;
+            referencedRelation: 'gmail_accounts';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       invite_links: {
         Row: {
@@ -2038,6 +2103,65 @@ export type Database = {
           },
         ];
       };
+      smart_import_candidates: {
+        Row: {
+          ai_suggestion: Json | null;
+          created_at: string;
+          date_sent: string | null;
+          from_email: string | null;
+          gmail_message_id: string;
+          id: string;
+          job_id: string | null;
+          raw_payload: Json | null;
+          snippet: string | null;
+          status: string;
+          subject: string | null;
+          trip_id: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          ai_suggestion?: Json | null;
+          created_at?: string;
+          date_sent?: string | null;
+          from_email?: string | null;
+          gmail_message_id: string;
+          id?: string;
+          job_id?: string | null;
+          raw_payload?: Json | null;
+          snippet?: string | null;
+          status?: string;
+          subject?: string | null;
+          trip_id?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          ai_suggestion?: Json | null;
+          created_at?: string;
+          date_sent?: string | null;
+          from_email?: string | null;
+          gmail_message_id?: string;
+          id?: string;
+          job_id?: string | null;
+          raw_payload?: Json | null;
+          snippet?: string | null;
+          status?: string;
+          subject?: string | null;
+          trip_id?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'smart_import_candidates_job_id_fkey';
+            columns: ['job_id'];
+            isOneToOne: false;
+            referencedRelation: 'gmail_import_jobs';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       task_assignments: {
         Row: {
           assigned_at: string;
@@ -2781,6 +2905,7 @@ export type Database = {
       trip_personal_basecamps: {
         Row: {
           address: string;
+          confirmation_number: string | null;
           created_at: string | null;
           id: string;
           latitude: number | null;
@@ -2792,6 +2917,7 @@ export type Database = {
         };
         Insert: {
           address: string;
+          confirmation_number?: string | null;
           created_at?: string | null;
           id?: string;
           latitude?: number | null;
@@ -2803,6 +2929,7 @@ export type Database = {
         };
         Update: {
           address?: string;
+          confirmation_number?: string | null;
           created_at?: string | null;
           id?: string;
           latitude?: number | null;

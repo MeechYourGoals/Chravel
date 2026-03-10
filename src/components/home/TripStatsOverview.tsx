@@ -47,7 +47,7 @@ export const TripStatsOverview = ({
         {value}
         {showPulse && value > 0 && (
           <span
-            className={`absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full animate-pulse ${colorClass.includes('blue') ? 'bg-blue-500' : 'bg-yellow-500'}`}
+            className={`absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full animate-pulse ${colorClass.includes('blue') ? 'bg-blue-500' : 'bg-gold-primary'}`}
           />
         )}
       </span>
@@ -73,7 +73,7 @@ export const TripStatsOverview = ({
             {renderStatButton('total', stats.total, 'Total', 'text-foreground')}
             {renderStatButton('upcoming', stats.upcoming, 'Upcoming', 'text-accent')}
             {renderStatButton('inProgress', stats.inProgress, 'Active', 'text-blue-500', true)}
-            {renderStatButton('requests', stats.requests, 'Requests', 'text-yellow-500', true)}
+            {renderStatButton('requests', stats.requests, 'Requests', 'text-gold-primary', true)}
           </div>
           <ChevronDown
             className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
@@ -96,7 +96,7 @@ export const TripStatsOverview = ({
         {renderStatButton('upcoming', stats.upcoming, 'Upcoming', 'text-accent')}
         {renderStatButton('completed', stats.completed, 'Completed', 'text-green-500')}
         {renderStatButton('inProgress', stats.inProgress, 'Active', 'text-blue-500', true)}
-        {renderStatButton('requests', stats.requests, 'Requests', 'text-yellow-500', true)}
+        {renderStatButton('requests', stats.requests, 'Requests', 'text-gold-primary', true)}
       </div>
     </div>
   );

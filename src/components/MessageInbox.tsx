@@ -47,9 +47,9 @@ export const MessageInbox = () => {
 
   const getTripBadgeColor = (message: any) => {
     if (message.tripId && message.tourId) {
-      return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      return 'bg-primary/15 text-primary border-primary/30';
     } else if (message.tripId) {
-      return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      return 'bg-primary/15 text-primary border-primary/30';
     } else if (message.tourId) {
       return 'bg-glass-orange/20 text-glass-orange border-glass-orange/30';
     }

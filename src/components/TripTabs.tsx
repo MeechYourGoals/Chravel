@@ -45,18 +45,6 @@ import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from './loading';
 import { TripPreferences as TripPreferencesType } from '../types/consumer';
 import type { NormalizedUrl } from '@/services/chatUrlExtractor';
 
-// Static tab order for adjacent prefetching (module-level constant)
-const TAB_ORDER = [
-  'chat',
-  'calendar',
-  'concierge',
-  'media',
-  'payments',
-  'places',
-  'polls',
-  'tasks',
-];
-
 interface TripTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -74,8 +62,8 @@ interface TripTabsProps {
 }
 
 export const TripTabs = ({
-  activeTab: _parentActiveTab,
-  onTabChange: _parentOnTabChange,
+  activeTab: parentActiveTab,
+  onTabChange: parentOnTabChange,
   tripId = '1',
   tripName,
   basecamp,
@@ -97,13 +85,25 @@ export const TripTabs = ({
     | undefined
   >(undefined);
 
-  const { _accentColors } = useTripVariant();
+  useTripVariant();
   const features = useFeatureToggle(tripData || {});
   const { isSuperAdmin } = useSuperAdmin();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
 
   // ⚡ PERFORMANCE: Track visited tabs to keep them mounted
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set([activeTab]));
+
+  // Tab order for adjacent prefetching
+  const tabOrder = [
+    'chat',
+    'calendar',
+    'concierge',
+    'media',
+    'payments',
+    'places',
+    'polls',
+    'tasks',
+  ];
 
   // ⚡ MOBILE/PWA OPTIMIZATION: Prefetch priority tabs on mount
   // Since mobile users can't hover, we prefetch commonly used tabs immediately
@@ -120,7 +120,7 @@ export const TripTabs = ({
     }
     // ⚡ MOBILE OPTIMIZATION: Prefetch adjacent tabs when user visits a tab
     if (tripId) {
-      prefetchAdjacentTabs(tripId, activeTab, TAB_ORDER);
+      prefetchAdjacentTabs(tripId, activeTab, tabOrder);
     }
   }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
 
@@ -134,10 +134,10 @@ export const TripTabs = ({
     setIsAddLinkModalOpen(true);
   }, []);
 
-  const handleCloseLinkModal = () => {
+  const handleCloseLinkModal = useCallback(() => {
     setIsAddLinkModalOpen(false);
     setLinkPrefill(undefined);
-  };
+  }, []);
 
   // 🆕 Updated tab order: Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks
   // Super admins always have all features enabled (no lock icons)

@@ -282,7 +282,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
                 value={proCategory}
                 onChange={e => setProCategory(e.target.value as ProCategoryEnum)}
                 disabled={loading}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
               >
                 {allCategories.map(cat => (
                   <option key={cat.id} value={cat.id} className="bg-gray-900 text-white">
@@ -306,7 +306,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               maxLength={100}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               placeholder="Enter trip name"
               disabled={loading}
             />
@@ -324,7 +324,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
                 value={formData.organizer_display_name}
                 onChange={e => setFormData({ ...formData, organizer_display_name: e.target.value })}
                 maxLength={200}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                 placeholder="e.g., Los Angeles Rams, Boys & Girls Club of Dallas"
                 disabled={loading}
               />
@@ -343,7 +343,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
               value={formData.destination}
               onChange={e => setFormData({ ...formData, destination: e.target.value })}
               maxLength={200}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
               placeholder="Enter destination"
               disabled={loading}
             />
@@ -361,7 +361,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
                   <button
                     disabled={loading}
                     className={cn(
-                      'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-left flex items-center justify-between',
+                      'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-left flex items-center justify-between',
                       !formData.start_date && 'text-gray-500',
                     )}
                   >
@@ -394,7 +394,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
                   <button
                     disabled={loading}
                     className={cn(
-                      'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-left flex items-center justify-between',
+                      'w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-left flex items-center justify-between',
                       !formData.end_date && 'text-gray-500',
                     )}
                   >
@@ -420,8 +420,8 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
           </div>
 
           {/* Info Message */}
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-            <p className="text-sm text-blue-300">
+          <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+            <p className="text-sm text-primary">
               {user
                 ? 'ℹ️ All trip members can see these changes immediately'
                 : 'ℹ️ Changes save instantly in demo mode and sync when you log in'}
@@ -441,7 +441,7 @@ export const EditTripModal = ({ isOpen, onClose, trip, onUpdate }: EditTripModal
           <button
             onClick={handleSave}
             disabled={loading}
-            className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 rounded-xl text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

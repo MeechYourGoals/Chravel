@@ -34,7 +34,6 @@ export const smartCropService = {
    * and target display aspect ratio (e.g., 3:1 for desktop banner)
    */
   calculateSmartCrop(imageWidth: number, imageHeight: number, targetAspect: number): CropSettings {
-    const _imageAspect = imageWidth / imageHeight;
     const orientation = this.detectOrientation(imageWidth, imageHeight);
 
     // Landscape photo into landscape banner: fit entire width
@@ -84,9 +83,9 @@ export const smartCropService = {
    * Calculate zoom bounds based on image vs target aspect
    */
   calculateZoomBounds(
-    _imageWidth: number,
-    _imageHeight: number,
-    _targetAspect: number,
+    imageWidth: number,
+    imageHeight: number,
+    targetAspect: number,
   ): { min: number; max: number; default: number } {
     // Min zoom: 1 (no additional zoom beyond fit)
     // Max zoom: 3x or until quality degrades

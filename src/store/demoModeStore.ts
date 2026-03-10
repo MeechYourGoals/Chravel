@@ -50,7 +50,7 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
 
       // No cached value
       set({ demoView: 'off', isDemoMode: false, isLoading: false });
-    } catch (_error) {
+    } catch {
       set({ demoView: 'off', isDemoMode: false, isLoading: false });
     }
   },
@@ -62,7 +62,7 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
         demoView: view,
         isDemoMode: view === 'app-preview',
       });
-    } catch (_error) {
+    } catch {
       // Silent fail - non-critical
     }
   },

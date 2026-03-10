@@ -34,11 +34,6 @@ import { safeReload } from '@/utils/safeReload';
 import { parseJwtPayload } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 
-// Trip recovery utilities only available in development
-if (import.meta.env.DEV) {
-  import('@/utils/tripRecovery');
-}
-
 // Lazy load pages for better performance
 // Enhanced retry mechanism with exponential backoff and better error handling
 const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {

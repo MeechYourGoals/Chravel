@@ -251,6 +251,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           address: location.address,
           latitude: undefined,
           longitude: undefined,
+          confirmation_number: location.confirmationNumber,
         });
       }
 
@@ -303,6 +304,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     name: pb.name,
     type: 'other',
     coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined,
+    confirmationNumber: pb.confirmation_number || undefined,
   });
 
   return (
@@ -460,6 +462,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           onBasecampSet={handlePersonalBasecampSet}
           onBasecampClear={handlePersonalBasecampDelete}
           currentBasecamp={personalBasecamp ? toBasecampLocation(personalBasecamp) : undefined}
+          isPersonal
         />
       )}
     </>

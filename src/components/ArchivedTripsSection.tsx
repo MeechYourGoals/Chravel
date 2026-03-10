@@ -83,7 +83,6 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
 
   // Free users can see archived trips but cannot restore them without upgrading
   const isFreeUser = tier === 'free';
-  const _canRestoreTrips = !isFreeUser;
 
   // Helper to force refresh of trips list
   const refreshTrips = useCallback(() => {
@@ -243,7 +242,7 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
         description: `"${tripName}" is now visible in your trips list.`,
       });
       loadTrips();
-    } catch (_error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to unhide trip',

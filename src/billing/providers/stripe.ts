@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BaseBillingProvider } from './base';
 import { BILLING_PRODUCTS, getProductByTier } from '../config';
 import { getEntitlements } from '../entitlements';
+import { openExternalUrl } from '@/platform/navigation';
 import type {
   BillingPlatform,
   Product,
@@ -99,8 +100,8 @@ export class StripeProvider extends BaseBillingProvider {
       }
 
       if (data?.url) {
-        // Open Stripe Checkout in new tab
-        window.open(data.url, '_blank');
+        // Open Stripe Checkout (native-safe: stays in WebView on iOS)
+        openExternalUrl(data.url);
 
         return {
           success: true,
@@ -147,7 +148,7 @@ export class StripeProvider extends BaseBillingProvider {
       }
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        openExternalUrl(data.url);
       }
     } catch (error) {
       this.logError('Error opening management portal', error);

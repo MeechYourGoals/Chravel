@@ -665,7 +665,7 @@ export const MediaSubTabs = ({
                       </div>
                     ) : (
                       <div className="flex-shrink-0">
-                        <FileText className="text-blue-400" size={20} />
+                        <FileText className="text-primary" size={20} />
                       </div>
                     )}
 
@@ -678,7 +678,7 @@ export const MediaSubTabs = ({
                           </Badge>
                         )}
                         {item.metadata?.isTicket && (
-                          <Badge variant="outline" className="text-blue-400 border-blue-400/50">
+                          <Badge variant="outline" className="text-primary border-primary/40">
                             Ticket
                           </Badge>
                         )}
@@ -712,7 +712,7 @@ export const MediaSubTabs = ({
 
                           {item.metadata.splitCount && item.metadata.perPersonAmount && (
                             <div className="flex items-center gap-1">
-                              <Users size={14} className="text-blue-400" />
+                              <Users size={14} className="text-primary" />
                               <span className="text-muted-foreground text-sm">
                                 ${item.metadata.perPersonAmount.toFixed(2)} each (
                                 {item.metadata.splitCount} people)

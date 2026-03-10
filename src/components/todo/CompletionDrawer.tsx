@@ -34,14 +34,14 @@ export const CompletionDrawer = ({ task, onClose }: CompletionDrawerProps) => {
           <div className="bg-white/5 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-gray-300">Progress</span>
-              <Badge className="bg-gradient-to-r from-blue-400 to-purple-400">
+              <Badge className="bg-gradient-to-r from-primary to-primary/80">
                 {completedUsers.length}/{task.task_status?.length || 0}
               </Badge>
             </div>
 
             <div className="w-full bg-gray-700 rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full transition-all duration-300"
                 style={{
                   width: `${(completedUsers.length / (task.task_status?.length || 1)) * 100}%`,
                 }}

@@ -18,14 +18,14 @@ export const GmailCallbackPage = () => {
       setError(`Google returned an error: ${errorParam}`);
       toast.error('Failed to connect Gmail');
       // Redirect back to settings after a delay
-      setTimeout(() => navigate('/settings'), 3000);
+      setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 3000);
       return;
     }
 
     if (!code || !state) {
       setError('Invalid callback parameters');
       toast.error('Invalid callback parameters');
-      setTimeout(() => navigate('/settings'), 3000);
+      setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 3000);
       return;
     }
 
@@ -33,11 +33,11 @@ export const GmailCallbackPage = () => {
       try {
         const { email } = await handleGmailCallback(code, state);
         toast.success(`Successfully connected ${email}`);
-        navigate('/settings'); // Might need to specify the integrations tab or ensure settings modal opens
-      } catch (err: unknown) {
+        navigate('/settings', { state: { section: 'integrations' } });
+      } catch (err: any) {
         setError(err.message || 'Failed to complete Gmail connection');
         toast.error('Failed to complete Gmail connection');
-        setTimeout(() => navigate('/settings'), 3000);
+        setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 3000);
       }
     };
 

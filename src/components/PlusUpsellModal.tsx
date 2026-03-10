@@ -45,7 +45,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
                 selectedTier === 'explorer'
                   ? 'bg-gradient-to-r from-glass-orange to-glass-yellow'
-                  : 'bg-gradient-to-r from-purple-500 to-purple-600'
+                  : 'bg-gradient-to-r from-primary to-primary/80'
               }`}
             >
               {selectedTier === 'explorer' && (
@@ -94,8 +94,8 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-2xl p-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
+          <div className="bg-gradient-to-br from-primary/10 to-primary/10 border border-primary/20 rounded-2xl p-6">
+            <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
               <Sparkles size={24} className="text-white" />
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Concierge</h3>
@@ -126,8 +126,8 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl p-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
+          <div className="bg-gradient-to-br from-primary/10 to-primary/10 border border-primary/20 rounded-2xl p-6">
+            <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
               <MessageCircle size={24} className="text-white" />
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Contextual Chat</h3>
@@ -137,8 +137,8 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl p-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center mb-4">
+          <div className="bg-gradient-to-br from-primary/10 to-primary/10 border border-primary/20 rounded-2xl p-6">
+            <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
               <Camera size={24} className="text-white" />
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Photo Sharing</h3>
@@ -181,7 +181,7 @@ export const PlusUpsellModal = ({ isOpen, onClose }: PlusUpsellModalProps) => {
                   <li>• Priority support</li>
                 </ul>
               ) : (
-                <ul className="space-y-2 text-sm text-purple-300">
+                <ul className="space-y-2 text-sm text-primary">
                   <li>• Everything in Explorer</li>
                   <li>• Unlimited AI queries</li>
                   <li>• Calendar sync & PDF export</li>

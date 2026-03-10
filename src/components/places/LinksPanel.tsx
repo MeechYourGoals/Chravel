@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import { MapPin, Navigation2, Calendar, Link } from 'lucide-react';
-import {
-  PlaceWithDistance,
-  BasecampLocation,
-  PlaceCategory,
-  PlaceCategoryEnum,
-} from '@/types/basecamp';
+import { PlaceWithDistance, BasecampLocation } from '@/types/basecamp';
 import { AddPlaceModal } from '../AddPlaceModal';
 import { AddToCalendarData } from '@/types/calendar';
-import { useAuth } from '@/hooks/useAuth';
-import { useSubscription } from '@/hooks/useSubscription';
 import { TripLinksDisplay } from './TripLinksDisplay';
 import { PersonalBasecamp } from '@/services/basecampService';
 
@@ -29,54 +21,14 @@ export const LinksPanel: React.FC<LinksPanelProps> = ({
   tripId,
   places,
   basecamp,
-  _personalBasecamp,
+  personalBasecamp,
   onPlaceAdded,
-  _onPlaceRemoved,
-  _onAddToLinks,
-  _linkedPlaceIds,
-  _onEventAdded,
+  onPlaceRemoved,
+  onAddToLinks,
+  linkedPlaceIds,
+  onEventAdded,
 }) => {
-  const { _user } = useAuth();
-  const { subscription } = useSubscription();
-  const _isProUser = subscription?.plan === 'pro';
-
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
-  const [visibleCategories, setVisibleCategories] = useState<Set<string>>(new Set(['all']));
-
-  const _availableCategories = PlaceCategoryEnum.filter(cat =>
-    places.some(p => p.category === cat),
-  );
-
-  const _categoryIcons: { [key in PlaceCategory]: React.ElementType } = {
-    Appetite: MapPin,
-    Activity: Calendar,
-    Accommodation: MapPin,
-    Attraction: Navigation2,
-    Other: Link,
-  };
-
-  const _toggleCategory = (category: PlaceCategory | 'all') => {
-    const newVisible = new Set(visibleCategories);
-    if (category === 'all') {
-      newVisible.clear();
-      newVisible.add('all');
-    } else {
-      newVisible.delete('all');
-      if (newVisible.has(category)) {
-        newVisible.delete(category);
-      } else {
-        newVisible.add(category);
-      }
-      if (newVisible.size === 0) {
-        newVisible.add('all');
-      }
-    }
-    setVisibleCategories(newVisible);
-  };
-
-  const _filteredPlaces = visibleCategories.has('all')
-    ? places
-    : places.filter(p => p.category && visibleCategories.has(p.category));
 
   return (
     <>

@@ -93,35 +93,52 @@ export async function register(): Promise<PushNotificationResult> {
     return { token: null, error: 'Not native platform' };
   }
 
+  // 15s timeout prevents the app from hanging if iOS never fires
+  // registration/registrationError (e.g., simulator, network issues).
+  const REGISTRATION_TIMEOUT_MS = 15_000;
+
   // Note: Promise executor must not be `async` (lint rule).
   return new Promise(resolve => {
     void (async () => {
+      let resolved = false;
       // Declare first so callbacks can access both handles.
       let registrationListener: { remove: () => Promise<void> } | null = null;
       let errorListener: { remove: () => Promise<void> } | null = null;
 
-      registrationListener = await PushNotifications.addListener(
-        'registration',
-        async (token: Token) => {
-          await registrationListener?.remove();
-          await errorListener?.remove();
-          resolve({ token: token.value });
-        },
-      );
-
-      errorListener = await PushNotifications.addListener('registrationError', async error => {
+      const cleanup = async () => {
         await registrationListener?.remove();
         await errorListener?.remove();
+      };
+
+      const safeResolve = (result: PushNotificationResult) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeoutId);
+        void cleanup();
+        resolve(result);
+      };
+
+      const timeoutId = setTimeout(() => {
+        console.warn('[NativePush] Registration timed out after 15s');
+        safeResolve({ token: null, error: 'Registration timed out' });
+      }, REGISTRATION_TIMEOUT_MS);
+
+      registrationListener = await PushNotifications.addListener('registration', (token: Token) => {
+        safeResolve({ token: token.value });
+      });
+
+      errorListener = await PushNotifications.addListener('registrationError', error => {
         console.error('[NativePush] Registration error:', error);
-        resolve({ token: null, error: error.error });
+        safeResolve({ token: null, error: error.error });
       });
 
       try {
         await PushNotifications.register();
       } catch (err) {
-        await registrationListener?.remove();
-        await errorListener?.remove();
-        resolve({ token: null, error: err instanceof Error ? err.message : 'Registration failed' });
+        safeResolve({
+          token: null,
+          error: err instanceof Error ? err.message : 'Registration failed',
+        });
       }
     })().catch(err => {
       resolve({ token: null, error: err instanceof Error ? err.message : 'Registration failed' });

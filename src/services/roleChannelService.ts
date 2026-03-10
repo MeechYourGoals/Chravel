@@ -1,5 +1,4 @@
 import { supabase } from '../integrations/supabase/client';
-
 // Re-export types for compatibility
 export type RoleChannel = {
   id: string;
@@ -107,7 +106,7 @@ class RoleChannelService {
   /**
    * Check if user can access a channel (based on their role)
    */
-  canUserAccessChannel(_channel: RoleChannel, _userRole: string): boolean {
+  canUserAccessChannel(channel: RoleChannel, userRole: string): boolean {
     // Ideally this check should happen on the server/RLS
     // For client-side, we might want to check if the user has the role
     // matching the channel name.
