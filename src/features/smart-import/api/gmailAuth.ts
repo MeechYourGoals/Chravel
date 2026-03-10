@@ -8,25 +8,33 @@ export type GmailAccount = {
 
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
   try {
+    // Query the safe view — token columns are not exposed to the frontend
     const { data, error } = await supabase
-      .from('gmail_accounts')
+      .from('gmail_accounts_safe')
       .select('id, email, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
-      if (error.message?.includes('schema cache') || error.code === '42P01') {
+      // Graceful degradation if migration hasn't been applied yet
+      if (
+        error.message?.includes('schema cache') ||
+        error.code === '42P01' ||
+        error.message?.includes('gmail_accounts')
+      ) {
         console.warn(
-          '[gmailAuth] gmail_accounts table not found - migration may not be applied yet',
+          '[gmailAuth] gmail_accounts_safe view not found — smart_import migration may not be applied yet',
         );
         return [];
       }
-      console.error('Error fetching Gmail accounts:', error);
       throw new Error(error.message);
     }
 
     return data || [];
   } catch (err) {
-    if (err instanceof Error && err.message?.includes('schema cache')) {
+    if (
+      err instanceof Error &&
+      (err.message?.includes('schema cache') || err.message?.includes('gmail_accounts'))
+    ) {
       return [];
     }
     throw err;
