@@ -143,8 +143,8 @@ export const getProLimits = (tier: ProTier) => {
 };
 
 export const getFeatureTierEmoji = (
-  featureId: string,
-  settingsType: 'consumer' | 'enterprise' | 'events',
+  _featureId: string,
+  _settingsType: 'consumer' | 'enterprise' | 'events',
 ): string => {
   return '';
 };

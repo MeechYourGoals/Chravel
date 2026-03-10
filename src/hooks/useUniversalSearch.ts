@@ -79,6 +79,7 @@ export const useUniversalSearch = (query: string, options: UseUniversalSearchOpt
       clearTimeout(timeoutId);
       activeRequestRef.current?.abort();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- JSON.stringify deps are correct but not statically analyzable
   }, [query, JSON.stringify(contentTypes), searchMode, JSON.stringify(tripIds), isDemoMode, toast]);
 
   return { results, isLoading };

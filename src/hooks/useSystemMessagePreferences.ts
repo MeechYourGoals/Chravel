@@ -30,6 +30,7 @@ export function useGlobalSystemMessagePreferences() {
     queryFn: async (): Promise<SystemMessagePreferences> => {
       if (!user?.id) return DEFAULT_PREFS;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- user_preferences table not in generated Supabase types
       const { data, error } = await (supabase as any)
         .from('user_preferences')
         .select('show_system_messages, system_message_categories')
@@ -61,6 +62,7 @@ export function useGlobalSystemMessagePreferences() {
         updateData.system_message_categories = updates.categories;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- user_preferences table not in generated Supabase types
       const { error } = await (supabase as any)
         .from('user_preferences')
         .upsert(updateData, { onConflict: 'user_id' });
@@ -100,6 +102,7 @@ export function useTripSystemMessagePreferences(tripId: string) {
     queryFn: async (): Promise<{ hasOverride: boolean; preferences: SystemMessagePreferences }> => {
       if (!user?.id || !tripId) return { hasOverride: false, preferences: DEFAULT_PREFS };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- trip_member_preferences table not in generated Supabase types
       const { data, error } = await (supabase as any)
         .from('trip_member_preferences')
         .select('show_system_messages, system_message_categories')
@@ -135,6 +138,7 @@ export function useTripSystemMessagePreferences(tripId: string) {
         updateData.system_message_categories = updates.categories;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- trip_member_preferences table not in generated Supabase types
       const { error } = await (supabase as any)
         .from('trip_member_preferences')
         .upsert(updateData, { onConflict: 'trip_id,user_id' });
@@ -161,6 +165,7 @@ export function useTripSystemMessagePreferences(tripId: string) {
     mutationFn: async () => {
       if (!user?.id || !tripId) throw new Error('Missing user or trip');
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- trip_member_preferences table not in generated Supabase types
       const { error } = await (supabase as any)
         .from('trip_member_preferences')
         .delete()
@@ -208,6 +213,7 @@ export function useEffectiveSystemMessagePreferences(tripId: string) {
       if (!user?.id || !tripId) return DEFAULT_PREFS;
 
       // 1. Check trip-specific preferences
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- trip_member_preferences table not in generated Supabase types
       const { data: tripPrefs } = await (supabase as any)
         .from('trip_member_preferences')
         .select('show_system_messages, system_message_categories')
@@ -226,6 +232,7 @@ export function useEffectiveSystemMessagePreferences(tripId: string) {
       }
 
       // 2. Check global preferences
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- user_preferences table not in generated Supabase types
       const { data: globalPrefs } = await (supabase as any)
         .from('user_preferences')
         .select('show_system_messages, system_message_categories')

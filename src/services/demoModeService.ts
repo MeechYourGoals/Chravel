@@ -17,7 +17,7 @@ interface MockMessage {
   // System message fields
   message_type?: 'text' | 'system';
   system_event_type?: string;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
 }
 
 export type { MockMessage };
@@ -518,7 +518,7 @@ class DemoModeService {
     return proMessages;
   }
 
-  private getTripSpecificMessages(tripType: string, currentUserId?: string): MockMessage[] {
+  private getTripSpecificMessages(tripType: string, _currentUserId?: string): MockMessage[] {
     switch (tripType) {
       case 'friends-trip':
         return [

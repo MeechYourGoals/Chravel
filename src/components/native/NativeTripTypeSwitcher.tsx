@@ -3,6 +3,7 @@ import { Map, Briefcase, Calendar, Compass, ChevronDown, Check, X } from 'lucide
 import { cn } from '@/lib/utils';
 import { hapticService } from '@/services/hapticService';
 
+/* eslint-disable react-refresh/only-export-components */
 type TripType = 'myTrips' | 'tripsPro' | 'events' | 'travelRecs';
 
 interface TripTypeOption {

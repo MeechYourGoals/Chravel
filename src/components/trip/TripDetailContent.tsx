@@ -1,6 +1,5 @@
 import React from 'react';
 import { TripTabs } from '../TripTabs';
-import { TripPreferences as TripPreferencesType } from '../../types/consumer';
 import { useDemoMode } from '../../hooks/useDemoMode';
 
 interface TripDetailContentProps {
@@ -15,7 +14,7 @@ interface TripDetailContentProps {
 export const TripDetailContent = ({
   activeTab,
   onTabChange,
-  onShowTripsPlusModal,
+  _onShowTripsPlusModal,
   tripId,
   tripName,
   basecamp,

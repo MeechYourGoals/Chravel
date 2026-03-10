@@ -116,7 +116,7 @@ export const uncMensLacrosse: ProTripData = {
         'Colin Hannigan',
       ];
       const playerIndex = (i - 6) % players.length;
-      const playerNumber = Math.floor((i - 6) / 12) + 1;
+      const _playerNumber = Math.floor((i - 6) / 12) + 1;
       const name = players[playerIndex] || `Player ${i - 5}`;
       return { id, name, avatar: getMockAvatar(name), role: 'Players' };
     } else {

@@ -12,7 +12,11 @@ export interface DownloadOptions {
 
 function isProbablyIOS(): boolean {
   // iPhone, iPad, iPod or iPadOS masquerading as Mac
-  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+  const ua =
+    navigator.userAgent ||
+    navigator.vendor ||
+    ((window as Record<string, unknown>).opera as string) ||
+    '';
   const iDevice = /iPad|iPhone|iPod/.test(ua);
   const iPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   return iDevice || iPadOS;
@@ -32,7 +36,7 @@ function isStandalonePWA(): boolean {
   // Detect if running as installed PWA (standalone mode)
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    (window.navigator as unknown as Record<string, unknown>).standalone === true
   );
 }
 
@@ -49,11 +53,10 @@ export async function openOrDownloadBlob(
   // Try Web Share API first - this provides the native iOS share sheet
   // (Message, Save to Files, Copy, AirDrop, etc.)
   try {
-    const anyNavigator = navigator as any;
     const file = new File([blob], filename, { type });
-    if (anyNavigator?.canShare && anyNavigator?.share && anyNavigator.canShare({ files: [file] })) {
+    if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
       // Add timeout to prevent indefinite hanging (especially in PWA mode)
-      const sharePromise = anyNavigator.share({ files: [file], title: filename });
+      const sharePromise = navigator.share({ files: [file], title: filename });
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Share timeout')), 15000),
       );

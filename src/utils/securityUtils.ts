@@ -158,6 +158,7 @@ export class SecureStorageHelper {
    * @returns Promise with session details or error
    */
   static async createVerificationSession(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type varies by version; typed externally
     supabaseClient: any,
     verificationMethod: 'password' | 'mfa' | 'biometric' = 'password',
     sessionDurationMinutes: number = 15,
@@ -196,6 +197,7 @@ export class SecureStorageHelper {
    * @returns Promise with operation result or error
    */
   static async withSecureStorageAccess<T>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client type varies by version; typed externally
     supabaseClient: any,
     operation: () => Promise<T>,
     onReauthRequired?: () => Promise<void>,
@@ -240,7 +242,7 @@ export class SecureStorageHelper {
         }
       }
 
-      return { success: false, error: err.message || 'Operation failed' };
+      return { success: false, error: err instanceof Error ? err.message : 'Operation failed' };
     }
   }
 }

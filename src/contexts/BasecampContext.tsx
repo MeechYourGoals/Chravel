@@ -17,6 +17,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { BasecampLocation } from '@/types/basecamp';
 
+/* eslint-disable react-refresh/only-export-components */
 interface BasecampContextType {
   basecamp: BasecampLocation | null;
   setBasecamp: (basecamp: BasecampLocation | null) => void;

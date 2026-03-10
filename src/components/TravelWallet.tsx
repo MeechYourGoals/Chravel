@@ -13,11 +13,7 @@ import {
 } from 'lucide-react';
 import { AirlineProgram, HotelProgram, RentalCarProgram } from '../types/pro';
 import { PaymentMethodsSettings } from './payments/PaymentMethodsSettings';
-import {
-  loyaltyProgramService,
-  LoyaltyProgram,
-  LoyaltyProgramType,
-} from '../services/loyaltyProgramService';
+import { loyaltyProgramService, LoyaltyProgramType } from '../services/loyaltyProgramService';
 import { useToast } from '../hooks/use-toast';
 
 interface TravelWalletProps {
@@ -29,7 +25,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
   const [activeTab, setActiveTab] = useState<'airlines' | 'hotels' | 'rentals'>('airlines');
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [_isSaving, setIsSaving] = useState(false);
 
   const [airlinePrograms, setAirlinePrograms] = useState<AirlineProgram[]>([]);
   const [hotelPrograms, setHotelPrograms] = useState<HotelProgram[]>([]);

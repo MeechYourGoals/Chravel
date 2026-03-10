@@ -23,7 +23,7 @@ export const TripViewToggle = ({
   requireAuth = false,
   onAuthRequired,
 }: TripViewToggleProps) => {
-  const isMobile = useIsMobile();
+  const _isMobile = useIsMobile();
 
   return (
     <div className={cn('w-full', className)}>

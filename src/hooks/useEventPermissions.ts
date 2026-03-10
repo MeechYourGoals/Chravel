@@ -180,6 +180,7 @@ export const useEventPermissions = (tripId: string) => {
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adding loadChannelPermissions creates circular dependency
   }, [user?.id, tripId]);
 
   // Load permissions for all channels user can access

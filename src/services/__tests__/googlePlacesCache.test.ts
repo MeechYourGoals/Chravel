@@ -60,7 +60,7 @@ describe('googlePlacesCache', () => {
   describe('getCachedPlace', () => {
     it('should return cached data when available', async () => {
       const mockData = { place_id: '123', name: 'Test Place' };
-      (supabase.rpc as any).mockResolvedValue({ data: mockData, error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: mockData, error: null });
 
       const result = await getCachedPlace('test-key');
 
@@ -71,7 +71,7 @@ describe('googlePlacesCache', () => {
     });
 
     it('should return null when cache miss', async () => {
-      (supabase.rpc as any).mockResolvedValue({ data: null, error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null });
 
       const result = await getCachedPlace('test-key');
 
@@ -79,7 +79,7 @@ describe('googlePlacesCache', () => {
     });
 
     it('should return null on error', async () => {
-      (supabase.rpc as any).mockResolvedValue({ data: null, error: { message: 'Error' } });
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'Error' } });
 
       const result = await getCachedPlace('test-key');
 
@@ -90,7 +90,7 @@ describe('googlePlacesCache', () => {
   describe('setCachedPlace', () => {
     it('should store cache entry', async () => {
       const mockData = { place_id: '123', name: 'Test Place' };
-      (supabase.rpc as any).mockResolvedValue({ error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue({ error: null });
 
       await setCachedPlace('test-key', 'text-search', 'coffee', mockData, '123', null);
 
@@ -106,7 +106,7 @@ describe('googlePlacesCache', () => {
     });
 
     it('should not throw on error', async () => {
-      (supabase.rpc as any).mockResolvedValue({ error: { message: 'Error' } });
+      vi.mocked(supabase.rpc).mockResolvedValue({ error: { message: 'Error' } });
 
       await expect(
         setCachedPlace('test-key', 'text-search', 'coffee', {}, undefined, null),
@@ -116,7 +116,7 @@ describe('googlePlacesCache', () => {
 
   describe('recordApiUsage', () => {
     it('should record API usage', async () => {
-      (supabase.rpc as any).mockResolvedValue({ error: null });
+      vi.mocked(supabase.rpc).mockResolvedValue({ error: null });
 
       await recordApiUsage('text-search', 'user-123');
 
@@ -128,7 +128,7 @@ describe('googlePlacesCache', () => {
     });
 
     it('should not throw on error', async () => {
-      (supabase.rpc as any).mockResolvedValue({ error: { message: 'Error' } });
+      vi.mocked(supabase.rpc).mockResolvedValue({ error: { message: 'Error' } });
 
       await expect(recordApiUsage('text-search')).resolves.not.toThrow();
     });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Mail, Check, AlertTriangle, Loader2, Sparkles } from 'lucide-react';
+import { Mail, Loader2, Sparkles } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -66,7 +66,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
 
       toast.success('Successfully scanned inbox');
       onImportComplete?.(data.candidates || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to import from Gmail', { description: error.message });
       onImportError?.(error);
     } finally {

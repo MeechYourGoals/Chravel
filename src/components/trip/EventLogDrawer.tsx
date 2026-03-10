@@ -30,6 +30,7 @@ export const EventLogDrawer: React.FC<EventLogDrawerProps> = ({ isOpen, onClose,
     if (isConsumer && isOpen) {
       fetchEvents();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchEvents depends on tripId already in deps
   }, [isConsumer, isOpen, tripId]);
 
   const fetchEvents = async () => {

@@ -44,7 +44,6 @@ import {
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
-import { toast } from 'sonner';
 
 interface TripChatProps {
   enableGroupChat?: boolean;

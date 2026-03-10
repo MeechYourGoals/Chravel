@@ -54,7 +54,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentIndex, images.length]);
+  }, [isOpen, goToNext, goToPrevious, onClose]);
 
   const goToPrevious = useCallback(() => {
     setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
@@ -81,7 +81,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch (_error) {
       // Fallback: open in new tab
       window.open(currentImage.url, '_blank');
     }

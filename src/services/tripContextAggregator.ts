@@ -295,7 +295,7 @@ export class TripContextAggregator {
 
   private static async fetchCollaborators(tripId: string) {
     try {
-      const { data, error } = (await supabase
+      const { data, error } = await supabase
         .from('trip_members')
         .select(
           `
@@ -303,11 +303,11 @@ export class TripContextAggregator {
           role
         `,
         )
-        .eq('trip_id', tripId)) as any;
+        .eq('trip_id', tripId);
 
       if (error) throw error;
 
-      const memberIds = (data || []).map((m: any) => m.user_id);
+      const memberIds = (data || []).map(m => m.user_id);
       if (!memberIds.length) return [];
 
       const { data: profiles, error: profilesError } = await supabase
@@ -319,7 +319,7 @@ export class TripContextAggregator {
 
       const profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
 
-      return (data || []).map((m: any) => {
+      return (data || []).map(m => {
         const profile = profilesMap.get(m.user_id);
         const name =
           profile?.resolved_display_name ||
@@ -344,18 +344,18 @@ export class TripContextAggregator {
 
   private static async fetchMessages(tripId: string) {
     try {
-      const { data, error } = (await supabase
+      const { data, error } = await supabase
         .from('trip_chat_messages')
         .select('id, content, author_name, created_at, message_type')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false })
-        .limit(50)) as any;
+        .limit(50);
 
       if (error) throw error;
 
       return (
         data
-          ?.map((m: any) => ({
+          ?.map(m => ({
             id: m.id,
             content: m.content,
             authorName: m.author_name,
@@ -407,12 +407,22 @@ export class TripContextAggregator {
       const { data, error } = (await supabase
         .from('trip_tasks')
         .select('id, content, assignee_id, due_date, is_complete, profiles:assignee_id(full_name)')
-        .eq('trip_id', tripId)) as any;
+        .eq('trip_id', tripId)) as {
+        data: Array<{
+          id: string;
+          content: string;
+          assignee_id: string | null;
+          due_date: string | null;
+          is_complete: boolean;
+          profiles: { full_name: string } | null;
+        }> | null;
+        error: { message: string; code: string } | null;
+      };
 
       if (error) throw error;
 
       return (
-        data?.map((t: any) => ({
+        data?.map(t => ({
           id: t.id,
           content: t.content,
           assignee: t.profiles?.full_name,
@@ -435,12 +445,23 @@ export class TripContextAggregator {
         .select(
           'id, description, amount, created_by, split_participants, is_settled, profiles:created_by(full_name)',
         )
-        .eq('trip_id', tripId)) as any;
+        .eq('trip_id', tripId)) as {
+        data: Array<{
+          id: string;
+          description: string;
+          amount: number;
+          created_by: string;
+          split_participants: unknown;
+          is_settled: boolean | null;
+          profiles: { full_name: string } | null;
+        }> | null;
+        error: { message: string; code: string } | null;
+      };
 
       if (error) throw error;
 
       return (
-        data?.map((p: any) => ({
+        data?.map(p => ({
           id: p.id,
           description: p.description,
           amount: p.amount,
@@ -459,15 +480,15 @@ export class TripContextAggregator {
 
   private static async fetchPolls(tripId: string) {
     try {
-      const { data, error } = (await supabase
+      const { data, error } = await supabase
         .from('trip_polls')
         .select('id, question, options, status')
-        .eq('trip_id', tripId)) as any;
+        .eq('trip_id', tripId);
 
       if (error) throw error;
 
       return (
-        data?.map((p: any) => ({
+        data?.map(p => ({
           id: p.id,
           question: p.question,
           options: p.options as Array<{ text: string; votes: number }>,
@@ -484,21 +505,30 @@ export class TripContextAggregator {
 
   private static async fetchPlaces(tripId: string) {
     try {
-      const tripResult = await (supabase as any)
+      const tripResult = await supabase
         .from('trips')
         .select('basecamp_name, basecamp_address, basecamp_latitude, basecamp_longitude')
         .eq('id', tripId)
         .single();
       const trip = tripResult.data;
 
-      const placesResult = await (supabase as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- trip_places table not in generated Database types
+      const placesResult = (await (supabase as any)
         .from('trip_places')
         .select('name, address, category, lat, lng')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)) as {
+        data: Array<{
+          name: string;
+          address: string;
+          category: string;
+          lat: number | null;
+          lng: number | null;
+        }> | null;
+      };
       const places = placesResult.data;
 
       // Get user's personal accommodation
-      let userAccommodation;
+      let _userAccommodation;
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -511,7 +541,7 @@ export class TripContextAggregator {
           .maybeSingle();
 
         if (accommodation) {
-          userAccommodation = {
+          _userAccommodation = {
             label: accommodation.accommodation_name,
             address: accommodation.address,
             lat: accommodation.latitude,
@@ -525,12 +555,12 @@ export class TripContextAggregator {
           ? {
               name: trip.basecamp_name,
               address: trip.basecamp_address,
-              lat: places?.find((p: any) => p.name === trip.basecamp_name)?.lat,
-              lng: places?.find((p: any) => p.name === trip.basecamp_name)?.lng,
+              lat: places?.find(p => p.name === trip.basecamp_name)?.lat,
+              lng: places?.find(p => p.name === trip.basecamp_name)?.lng,
             }
           : undefined,
         savedPlaces:
-          places?.map((p: any) => ({
+          places?.map(p => ({
             name: p.name,
             address: p.address,
             category: p.category,
@@ -555,12 +585,23 @@ export class TripContextAggregator {
         .select(
           'id, file_name, file_type, file_url, uploaded_by, created_at, profiles:uploaded_by(full_name)',
         )
-        .eq('trip_id', tripId)) as any;
+        .eq('trip_id', tripId)) as {
+        data: Array<{
+          id: string;
+          file_name: string;
+          file_type: string;
+          file_url: string;
+          uploaded_by: string;
+          created_at: string;
+          profiles: { full_name: string } | null;
+        }> | null;
+        error: { message: string; code: string } | null;
+      };
 
       if (error) throw error;
 
       return (
-        data?.map((f: any) => ({
+        data?.map(f => ({
           id: f.id,
           name: f.file_name,
           type: f.file_type,
@@ -582,12 +623,22 @@ export class TripContextAggregator {
       const { data, error } = (await supabase
         .from('trip_links')
         .select('id, url, title, category, added_by, profiles:added_by(full_name)')
-        .eq('trip_id', tripId)) as any;
+        .eq('trip_id', tripId)) as {
+        data: Array<{
+          id: string;
+          url: string;
+          title: string;
+          category: string | null;
+          added_by: string;
+          profiles: { full_name: string } | null;
+        }> | null;
+        error: { message: string; code: string } | null;
+      };
 
       if (error) throw error;
 
       return (
-        data?.map((l: any) => ({
+        data?.map(l => ({
           id: l.id,
           url: l.url,
           title: l.title,

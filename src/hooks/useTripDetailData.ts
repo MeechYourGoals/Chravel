@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { tripService, Trip } from '@/services/tripService';
+import { tripService } from '@/services/tripService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
@@ -203,7 +203,7 @@ export const useTripDetailData = (tripId: string | undefined): UseTripDetailData
   const trip = tripQuery.data ? convertSupabaseTripToMock(tripQuery.data) : null;
 
   // Show loading while auth is resolving or data is fetching
-  const isLoading = isAuthLoading || tripQuery.isLoading;
+  const _isLoading = isAuthLoading || tripQuery.isLoading;
 
   // Guarantee at least creator as a member (never show "0 Chravelers")
   let tripMembers = membersQuery.data?.members || [];

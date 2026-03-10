@@ -20,7 +20,7 @@ export const SearchOverlay = ({
   onClose,
   searchQuery,
   onSearchChange,
-  resultCount = 0,
+  _resultCount = 0,
   matchingTrips = [],
   onTripSelect,
 }: SearchOverlayProps) => {

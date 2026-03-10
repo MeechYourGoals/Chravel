@@ -6,7 +6,7 @@ export interface Message {
   userName: string;
   userAvatar?: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   attachments?: MessageAttachment[];
 }
 
@@ -21,7 +21,7 @@ export interface MessageAttachment {
 export interface SendMessageOptions {
   content: string;
   attachments?: MessageAttachment[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MessagingConfig {

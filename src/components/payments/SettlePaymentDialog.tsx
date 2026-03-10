@@ -26,7 +26,7 @@ export const SettlePaymentDialog = ({
   open,
   onOpenChange,
   balance,
-  tripId,
+  _tripId,
 }: SettlePaymentDialogProps) => {
   const { toast } = useToast();
   const [settling, setSettling] = useState(false);

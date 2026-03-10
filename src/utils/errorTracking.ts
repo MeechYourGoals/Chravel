@@ -24,7 +24,7 @@ class ErrorTrackingService {
   private breadcrumbs: Breadcrumb[] = [];
   private maxBreadcrumbs = 50;
 
-  init(config?: { dsn?: string; environment?: string }) {
+  init(_config?: { dsn?: string; environment?: string }) {
     // In production, initialize Sentry here
     // Sentry.init({ dsn: config?.dsn, environment: config?.environment });
     this.isInitialized = true;
@@ -82,8 +82,8 @@ class ErrorTrackingService {
 
   captureMessage(
     message: string,
-    level: 'info' | 'warning' | 'error' = 'info',
-    context?: ErrorContext,
+    _level: 'info' | 'warning' | 'error' = 'info',
+    _context?: ErrorContext,
   ) {
     if (!this.isInitialized) {
       console.warn('[ErrorTracking] Not initialized');
@@ -93,7 +93,7 @@ class ErrorTrackingService {
     // Sentry.captureMessage(message, { level, contexts: { custom: context } });
   }
 
-  setUser(userId: string, userData?: Record<string, unknown>) {
+  setUser(_userId: string, _userData?: Record<string, unknown>) {
     // In production, set Sentry user context
     // Sentry.setUser({ id: userId, ...userData });
   }

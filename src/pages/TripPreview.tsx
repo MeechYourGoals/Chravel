@@ -125,6 +125,7 @@ const TripPreview = () => {
     if (tripId) {
       fetchTripPreview();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchTripPreview depends on tripId already in deps
   }, [tripId]);
 
   // Check membership for logged-in users
@@ -248,7 +249,7 @@ const TripPreview = () => {
       try {
         await navigator.clipboard.writeText(shareUrl);
         toast.success('Link copied to clipboard!');
-      } catch (err) {
+      } catch (_err) {
         toast.error('Failed to copy link');
       }
     }

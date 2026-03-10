@@ -134,7 +134,7 @@ export const Broadcasts = () => {
   };
 
   const handleResponse = (broadcastId: string, response: 'coming' | 'wait' | 'cant') => {
-    const prevResponse = userResponses[broadcastId];
+    const _prevResponse = userResponses[broadcastId];
     setUserResponses(prev => ({ ...prev, [broadcastId]: response }));
   };
 

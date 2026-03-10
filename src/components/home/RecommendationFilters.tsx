@@ -1,6 +1,5 @@
 import React from 'react';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { Hotel, UtensilsCrossed, MapPin, Camera, Star, Car } from 'lucide-react';
 import { SearchBar } from '../SearchBar';
 

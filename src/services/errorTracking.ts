@@ -28,14 +28,14 @@ export interface ErrorContext {
   tripId?: string;
   organizationId?: string;
   context?: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 export interface BreadcrumbData {
   category: 'navigation' | 'user-action' | 'api-call' | 'state-change' | 'error';
   message: string;
   level: 'info' | 'warning' | 'error';
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 class ErrorTrackingService {
@@ -68,7 +68,7 @@ class ErrorTrackingService {
   /**
    * Set user context for error tracking
    */
-  setUser(userId: string, userData?: Record<string, any>) {
+  setUser(userId: string, _userData?: Record<string, unknown>) {
     this.userId = userId;
 
     // TODO: Set Sentry user context
@@ -115,8 +115,8 @@ class ErrorTrackingService {
    */
   captureMessage(
     message: string,
-    level: 'info' | 'warning' | 'error' = 'info',
-    context?: ErrorContext,
+    _level: 'info' | 'warning' | 'error' = 'info',
+    _context?: ErrorContext,
   ) {
     // TODO: Send to Sentry
     // Sentry.captureMessage(message, {
@@ -163,8 +163,8 @@ class ErrorTrackingService {
   /**
    * Wrap an async function with error tracking
    */
-  wrapAsync<T extends (...args: any[]) => Promise<any>>(fn: T, context: ErrorContext): T {
-    return (async (...args: any[]) => {
+  wrapAsync<T extends (...args: unknown[]) => Promise<unknown>>(fn: T, context: ErrorContext): T {
+    return (async (...args: unknown[]) => {
       try {
         this.addBreadcrumb({
           category: 'api-call',

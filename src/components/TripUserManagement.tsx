@@ -20,14 +20,14 @@ interface TripUserManagementProps {
 }
 
 export const TripUserManagement = ({
-  tripId,
+  _tripId,
   tripName,
   users,
   currentUserId,
   onUserRemoved,
   onLeaveTrip,
 }: TripUserManagementProps) => {
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [userToRemove, setUserToRemove] = useState<TripUser | null>(null);
   const [showUserActions, setShowUserActions] = useState<string | null>(null);

@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Badge } from '../ui/badge';
 import { useTripMembers } from '../../hooks/useTripMembers';
 
-interface TripMember {
+interface _TripMember {
   id: string;
   name: string;
   avatar?: string;
@@ -34,7 +34,10 @@ export const CollaboratorSelector = ({
   isSingleTask,
 }: CollaboratorSelectorProps) => {
   const { tripMembers: rawTripMembers, loading } = useTripMembers(tripId);
-  const tripMembers = Array.isArray(rawTripMembers) ? rawTripMembers : [];
+  const tripMembers = React.useMemo(
+    () => (Array.isArray(rawTripMembers) ? rawTripMembers : []),
+    [rawTripMembers],
+  );
   const [open, setOpen] = React.useState(false);
 
   // Auto-select all members for group tasks

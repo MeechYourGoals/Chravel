@@ -139,7 +139,7 @@ export const MediaGrid = ({
             fileName={item.filename}
             metadata={item.metadata}
             onDelete={onDeleteItem}
-            onView={media => handleViewMedia(item.id)}
+            onView={_media => handleViewMedia(item.id)}
           />
         ))}
       </div>

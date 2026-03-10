@@ -50,8 +50,8 @@ describe('paymentAdapter', () => {
     it('defaults non-array Json fields to empty array', () => {
       const row: PaymentRow = {
         ...baseRow,
-        split_participants: 'not-an-array' as any,
-        payment_methods: null as any,
+        split_participants: 'not-an-array' as unknown as PaymentRow['split_participants'],
+        payment_methods: null as unknown as PaymentRow['payment_methods'],
       };
       const result = toAppPayment(row);
       expect(result.splitParticipants).toEqual([]);

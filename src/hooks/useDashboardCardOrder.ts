@@ -39,6 +39,7 @@ async function fetchRemoteOrder(
   dashboardType: DashboardType,
 ): Promise<string[] | null> {
   const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .from('dashboard_card_order' as any)
     .select('ordered_ids')
     .eq('user_id', userId)
@@ -46,7 +47,7 @@ async function fetchRemoteOrder(
     .maybeSingle();
 
   if (error || !data) return null;
-  const ids = (data as any).ordered_ids;
+  const ids = (data as Record<string, unknown>).ordered_ids;
   return Array.isArray(ids) ? ids : null;
 }
 
@@ -113,13 +114,14 @@ export function useDashboardCardOrder(userId: string | undefined, dashboardType:
       if (upsertTimerRef.current) clearTimeout(upsertTimerRef.current);
       upsertTimerRef.current = setTimeout(async () => {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { error } = await supabase.from('dashboard_card_order' as any).upsert(
             {
               user_id: userId,
               dashboard_type: dashboardType,
               ordered_ids: orderedIds,
               updated_at: new Date().toISOString(),
-            } as any,
+            } as Record<string, unknown>,
             { onConflict: 'user_id,dashboard_type' },
           );
           if (error) {

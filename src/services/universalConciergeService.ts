@@ -2,7 +2,6 @@ import { supabase } from '../integrations/supabase/client';
 import { TripContext } from '../types/tripContext';
 import { MockKnowledgeService } from './mockKnowledgeService';
 import { demoModeService } from './demoModeService';
-import { EnhancedTripContextService } from './enhancedTripContextService';
 import { TripContextAggregator } from './tripContextAggregator';
 import { ContextCacheService } from './contextCacheService';
 import { invokeConcierge } from './conciergeGateway';

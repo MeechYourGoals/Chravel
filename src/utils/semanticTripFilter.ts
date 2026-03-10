@@ -12,7 +12,7 @@ interface TripSearchableFields {
   tags?: string[];
   categories?: string[];
   dateRange: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   // Pro trip category for category-aware search
   proTripCategory?: string;
 }

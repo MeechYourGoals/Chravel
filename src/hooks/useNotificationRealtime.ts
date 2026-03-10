@@ -145,6 +145,7 @@ export function useNotificationRealtime() {
     });
 
     return cleanup;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- user object is unstable; user?.id already in deps
   }, [user?.id, isDemoMode, fetchNotifications, fetchUnreadCount, addNotification]);
 
   const markAsRead = useCallback(

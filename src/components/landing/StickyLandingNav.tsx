@@ -28,7 +28,7 @@ interface StickyLandingNavProps {
   onSignUp: () => void;
 }
 
-export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ onSignUp }) => {
+export const StickyLandingNav: React.FC<StickyLandingNavProps> = ({ _onSignUp }) => {
   const [activeSection, setActiveSection] = useState('hero');
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);

@@ -29,7 +29,7 @@ const mockSession = {
 // Create mock Supabase client using vi.hoisted to ensure it's available during mock hoisting
 const { mockSupabaseClient } = vi.hoisted(() => {
   const createChainMock = () => {
-    const chainMock: any = {
+    const chainMock: Record<string, ReturnType<typeof vi.fn>> = {
       select: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
@@ -39,7 +39,9 @@ const { mockSupabaseClient } = vi.hoisted(() => {
       neq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      then: vi.fn((resolve: any) => resolve({ data: [], error: null })),
+      then: vi.fn((resolve: (value: { data: never[]; error: null }) => void) =>
+        resolve({ data: [], error: null }),
+      ),
     };
     // Make all chain methods return the chain mock for chaining
     Object.keys(chainMock).forEach(key => {

@@ -1,5 +1,5 @@
 import { CalendarEvent } from '@/types/calendar';
-import { calendarService, TripEvent } from './calendarService';
+import { calendarService } from './calendarService';
 import { brandEventTitleForIcs } from '@/utils/icsBranding';
 
 /**

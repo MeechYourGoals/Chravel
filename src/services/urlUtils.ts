@@ -120,7 +120,7 @@ export function truncateUrl(url: string, maxLength: number = 60): string {
     }
 
     const remainingLength = maxLength - domain.length - 6; // 6 for ".../" and "..."
-    const pathStart = path.substring(0, Math.floor(remainingLength / 2));
+    const _pathStart = path.substring(0, Math.floor(remainingLength / 2));
     const pathEnd = path.substring(path.length - Math.floor(remainingLength / 2));
 
     return `${domain}/...${pathEnd}`;

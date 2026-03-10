@@ -29,7 +29,7 @@ export interface QueuedSyncOperation {
   operationType: SyncOperationType;
   tripId: string;
   entityId?: string; // For updates/deletes
-  data: any; // Entity data
+  data: Record<string, unknown>; // Entity data
   timestamp: number;
   retryCount: number;
   status: 'pending' | 'syncing' | 'failed';
@@ -40,7 +40,7 @@ export interface CachedEntity {
   id: string;
   tripId: string;
   entityType: SyncEntityType;
-  data: any;
+  data: Record<string, unknown>;
   cachedAt: number;
   version?: number;
 }
@@ -71,12 +71,12 @@ class OfflineSyncService {
     entityType: SyncEntityType,
     operationType: SyncOperationType,
     tripId: string,
-    data: any,
+    data: Record<string, unknown>,
     entityId?: string,
     version?: number,
   ): Promise<string> {
     // Guardrail: never allow basecamp writes via offline queue.
-    if (entityType === ('basecamp' as any)) {
+    if ((entityType as string) === 'basecamp') {
       throw new Error('Basecamp updates are not supported offline.');
     }
 
@@ -202,7 +202,7 @@ class OfflineSyncService {
     entityType: SyncEntityType,
     entityId: string,
     tripId: string,
-    data: any,
+    data: Record<string, unknown>,
     version?: number,
   ): Promise<void> {
     const db = await getDB();
@@ -312,15 +312,15 @@ class OfflineSyncService {
    * Returns count of successful and failed operations
    */
   async processSyncQueue(handlers: {
-    onChatMessageCreate?: (tripId: string, data: any) => Promise<any>;
-    onChatMessageUpdate?: (entityId: string, data: any) => Promise<any>;
-    onTaskCreate?: (tripId: string, data: any) => Promise<any>;
-    onTaskUpdate?: (entityId: string, data: any) => Promise<any>;
-    onTaskToggle?: (entityId: string, data: any) => Promise<any>;
-    onPollVote?: (pollId: string, data: any) => Promise<any>;
-    onCalendarEventCreate?: (tripId: string, data: any) => Promise<any>;
-    onCalendarEventUpdate?: (entityId: string, data: any) => Promise<any>;
-    onCalendarEventDelete?: (entityId: string) => Promise<any>;
+    onChatMessageCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onChatMessageUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onTaskCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onTaskUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onTaskToggle?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onPollVote?: (pollId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onCalendarEventCreate?: (tripId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onCalendarEventUpdate?: (entityId: string, data: Record<string, unknown>) => Promise<unknown>;
+    onCalendarEventDelete?: (entityId: string) => Promise<unknown>;
   }): Promise<{ processed: number; failed: number }> {
     if (!navigator.onLine) {
       return { processed: 0, failed: 0 };

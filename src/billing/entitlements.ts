@@ -23,7 +23,7 @@ import type {
  * Checks Supabase profile for subscription data, then maps to entitlements.
  * In the future, this will also check Apple/Google receipts for native purchases.
  */
-export async function getEntitlements(userId: string): Promise<UserEntitlements> {
+export async function getEntitlements(_userId: string): Promise<UserEntitlements> {
   try {
     // Get user email for super admin check
     const {

@@ -14,7 +14,7 @@ interface RecommendationCardProps {
 
 export const RecommendationCard = ({ recommendation, onSaveToTrip }: RecommendationCardProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const isMobile = useIsMobile();
+  const _isMobile = useIsMobile();
 
   const nextImage = () => {
     setCurrentImageIndex(prev => (prev === recommendation.images.length - 1 ? 0 : prev + 1));

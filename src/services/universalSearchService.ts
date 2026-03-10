@@ -40,7 +40,7 @@ export interface UniversalSearchResult {
   matchScore: number;
   deepLink: string;
   thumbnailUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp?: string;
 }
 
@@ -96,17 +96,17 @@ async function searchTrips(
     return [];
   }
 
-  return (data || []).map((trip: any) => ({
+  return (data || []).map(trip => ({
     id: trip.id,
     contentType: 'trips' as const,
     tripId: trip.id,
     tripName: trip.name,
+    snippet: trip.destination ?? '',
     title: trip.name,
-    snippet: trip.destination,
     matchScore: 0.9,
     deepLink: `/trip/${trip.id}`,
-    thumbnailUrl: trip.header_image_url,
-    timestamp: trip.start_date,
+    thumbnailUrl: (trip as Record<string, unknown>).header_image_url as string | undefined,
+    timestamp: trip.start_date ?? undefined,
   }));
 }
 
@@ -145,7 +145,7 @@ async function searchMessagesAcrossTrips(
   const safeQuery = escapeSqlLike(query);
 
   const { data, error } = await supabase
-    .from('trip_chat_messages' as any)
+    .from('trip_chat_messages')
     .select('id, content, created_at, trip_id, author_name')
     .ilike('content', `%${safeQuery}%`)
     .order('created_at', { ascending: false })
@@ -156,7 +156,7 @@ async function searchMessagesAcrossTrips(
     return [];
   }
 
-  return (data || []).map((msg: any) => ({
+  return (data || []).map(msg => ({
     id: msg.id,
     contentType: 'messages' as const,
     tripId: msg.trip_id,
@@ -202,7 +202,7 @@ async function searchConciergeMessages(
     return [];
   }
 
-  return (data || []).map((msg: any) => {
+  return (data || []).map(msg => {
     // Determine if query or response matched (or both)
     const queryMatch = msg.query_text?.toLowerCase().includes(query.toLowerCase());
     const text = queryMatch ? msg.query_text : msg.response_text;
@@ -211,13 +211,13 @@ async function searchConciergeMessages(
     return {
       id: msg.id,
       contentType: 'concierge' as const,
-      tripId: msg.trip_id,
+      tripId: msg.trip_id ?? '',
       tripName: '', // Usually scoped to one trip anyway
       title: 'Concierge Conversation',
       snippet: prefix + (text?.slice(0, 150) || ''),
       matchScore: 0.88,
       deepLink: `/trip/${msg.trip_id}#concierge-message-${msg.id}`,
-      timestamp: msg.created_at,
+      timestamp: msg.created_at ?? undefined,
     };
   });
 }
@@ -277,18 +277,21 @@ async function searchCalendarEvents(
     return [];
   }
 
-  return (data || []).map((event: any) => ({
-    id: event.id,
-    contentType: 'calendar' as const,
-    tripId: event.trip_id,
-    tripName: event.trips?.name || 'Unknown Trip',
-    title: event.title,
-    snippet: `${event.event_category ? event.event_category + ' - ' : ''}${event.location || 'No location'} - ${new Date(event.start_time).toLocaleString()}`,
-    matchScore: 0.88,
-    deepLink: `/trip/${event.trip_id}#calendar-event-${event.id}`,
-    metadata: { location: event.location, startTime: event.start_time },
-    timestamp: event.start_time,
-  }));
+  return (data || []).map(event => {
+    const tripName = (event.trips as { name: string } | null)?.name || 'Unknown Trip';
+    return {
+      id: event.id,
+      contentType: 'calendar' as const,
+      tripId: event.trip_id,
+      tripName,
+      title: event.title,
+      snippet: `${event.event_category ? event.event_category + ' - ' : ''}${event.location || 'No location'} - ${new Date(event.start_time).toLocaleString()}`,
+      matchScore: 0.88,
+      deepLink: `/trip/${event.trip_id}#calendar-event-${event.id}`,
+      metadata: { location: event.location, startTime: event.start_time },
+      timestamp: event.start_time,
+    };
+  });
 }
 
 /**
@@ -344,18 +347,24 @@ async function searchTasks(
     return [];
   }
 
-  return (data || []).map((task: any) => ({
-    id: task.id,
-    contentType: 'task' as const,
-    tripId: task.trip_id,
-    tripName: task.trips?.name || 'Unknown Trip',
-    title: task.title,
-    snippet: task.description || 'No description',
-    matchScore: 0.86,
-    deepLink: `/trip/${task.trip_id}#task-${task.id}`,
-    metadata: { priority: task.priority, status: task.status },
-    timestamp: task.created_at,
-  }));
+  return (data || []).map(task => {
+    const tripName = (task.trips as { name: string } | null)?.name || 'Unknown Trip';
+    return {
+      id: task.id,
+      contentType: 'task' as const,
+      tripId: task.trip_id,
+      tripName,
+      title: task.title,
+      snippet: task.description || 'No description',
+      matchScore: 0.86,
+      deepLink: `/trip/${task.trip_id}#task-${task.id}`,
+      metadata: {
+        priority: (task as Record<string, unknown>).priority,
+        status: (task as Record<string, unknown>).status,
+      },
+      timestamp: task.created_at,
+    };
+  });
 }
 
 /**
@@ -409,18 +418,21 @@ async function searchPolls(
     return [];
   }
 
-  return (data || []).map((poll: any) => ({
-    id: poll.id,
-    contentType: 'poll' as const,
-    tripId: poll.trip_id,
-    tripName: poll.trips?.name || 'Unknown Trip',
-    title: poll.question,
-    snippet: `${poll.total_votes || 0} votes`,
-    matchScore: 0.84,
-    deepLink: `/trip/${poll.trip_id}#poll-${poll.id}`,
-    metadata: { totalVotes: poll.total_votes },
-    timestamp: poll.created_at,
-  }));
+  return (data || []).map(poll => {
+    const tripName = (poll.trips as { name: string } | null)?.name || 'Unknown Trip';
+    return {
+      id: poll.id,
+      contentType: 'poll' as const,
+      tripId: poll.trip_id,
+      tripName,
+      title: poll.question,
+      snippet: `${poll.total_votes || 0} votes`,
+      matchScore: 0.84,
+      deepLink: `/trip/${poll.trip_id}#poll-${poll.id}`,
+      metadata: { totalVotes: poll.total_votes },
+      timestamp: poll.created_at,
+    };
+  });
 }
 
 /**
@@ -455,7 +467,7 @@ async function searchPayments(
     return [];
   }
 
-  return (data || []).map((payment: any) => ({
+  return (data || []).map(payment => ({
     id: payment.id,
     contentType: 'payment' as const,
     tripId: payment.trip_id,
@@ -500,7 +512,7 @@ async function searchPlaces(
     return [];
   }
 
-  return (data || []).map((place: any) => ({
+  return (data || []).map(place => ({
     id: place.id,
     contentType: 'place' as const,
     tripId: place.trip_id,
@@ -509,7 +521,7 @@ async function searchPlaces(
     snippet: place.og_description || '',
     matchScore: 0.84,
     deepLink: `/trip/${place.trip_id}#place-${place.id}`,
-    timestamp: place.created_at,
+    timestamp: place.created_at ?? undefined,
   }));
 }
 
@@ -544,7 +556,7 @@ async function searchLinks(
     return [];
   }
 
-  return (data || []).map((link: any) => ({
+  return (data || []).map(link => ({
     id: link.id,
     contentType: 'link' as const,
     tripId: link.trip_id,
@@ -611,18 +623,21 @@ async function searchMedia(
     return [];
   }
 
-  return (data || []).map((media: any) => ({
-    id: media.id,
-    contentType: 'media' as const,
-    tripId: media.trip_id,
-    tripName: media.trips?.name || 'Unknown Trip',
-    title: media.name,
-    snippet: media.file_type,
-    matchScore: 0.82,
-    deepLink: `/trip/${media.trip_id}#media-${media.id}`,
-    metadata: { type: media.file_type },
-    timestamp: media.created_at,
-  }));
+  return (data || []).map(media => {
+    const tripName = (media.trips as { name: string } | null)?.name || 'Unknown Trip';
+    return {
+      id: media.id,
+      contentType: 'media' as const,
+      tripId: media.trip_id,
+      tripName,
+      title: media.name,
+      snippet: media.file_type,
+      matchScore: 0.82,
+      deepLink: `/trip/${media.trip_id}#media-${media.id}`,
+      metadata: { type: media.file_type },
+      timestamp: media.created_at,
+    };
+  });
 }
 
 /**

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ export const MentionPicker: React.FC<MentionPickerProps> = ({
   members,
   searchQuery,
   onSelect,
-  onClose,
+  _onClose,
   selectedIndex,
   onSelectedIndexChange,
 }) => {

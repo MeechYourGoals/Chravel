@@ -127,12 +127,13 @@ export function adaptTripsDataToTripSchema(tripsDataArray: TripsDataTrip[]): Tri
 /**
  * Type guard to check if data matches tripsData schema
  */
-export function isTripsDataFormat(data: any): data is TripsDataTrip {
+export function isTripsDataFormat(data: unknown): data is TripsDataTrip {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
   return (
-    typeof data === 'object' &&
-    typeof data.id === 'number' &&
-    typeof data.title === 'string' &&
-    typeof data.location === 'string' &&
-    Array.isArray(data.participants)
+    typeof obj.id === 'number' &&
+    typeof obj.title === 'string' &&
+    typeof obj.location === 'string' &&
+    Array.isArray(obj.participants)
   );
 }

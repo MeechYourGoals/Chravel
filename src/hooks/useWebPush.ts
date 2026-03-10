@@ -293,7 +293,7 @@ export function useWebPush(): UseWebPushReturn {
 
       setState(prev => ({ ...prev, isLoading: false, isSubscribed: false }));
       return true;
-    } catch (err) {
+    } catch (_err) {
       setState(prev => ({ ...prev, isLoading: false, error: 'Unsubscribe failed' }));
       return false;
     }

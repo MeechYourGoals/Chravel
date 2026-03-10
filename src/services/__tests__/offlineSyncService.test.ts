@@ -197,7 +197,12 @@ describe('offlineSyncService - Data Loss Prevention', () => {
 
   it('should reject basecamp operations (guardrail)', async () => {
     await expect(
-      offlineSyncService.queueOperation('basecamp' as any, 'update', 'trip-123', { address: 'X' }),
+      offlineSyncService.queueOperation(
+        'basecamp' as unknown as Parameters<typeof offlineSyncService.queueOperation>[0],
+        'update',
+        'trip-123',
+        { address: 'X' },
+      ),
     ).rejects.toThrow('Basecamp');
   });
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Link, Download, Play, Maximize2, AudioLines } from 'lucide-react';
+import { FileText, Link, Download, Maximize2, AudioLines } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from './types';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ interface MessageRendererProps {
 
 export const MessageRenderer: React.FC<MessageRendererProps> = ({
   message,
-  showMapWidgets = false,
+  _showMapWidgets = false,
   ttsPlaybackState,
   ttsPlayingMessageId,
   onTTSPlay,

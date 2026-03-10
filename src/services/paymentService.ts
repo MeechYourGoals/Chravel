@@ -381,7 +381,7 @@ export const paymentService = {
     updates: { amount?: number; description?: string },
   ): Promise<boolean> {
     try {
-      const updateData: Record<string, any> = {};
+      const updateData: Record<string, unknown> = {};
       if (updates.amount !== undefined) updateData.amount = updates.amount;
       if (updates.description !== undefined) updateData.description = updates.description;
       updateData.updated_at = new Date().toISOString();

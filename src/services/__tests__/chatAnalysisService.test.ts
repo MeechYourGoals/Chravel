@@ -10,24 +10,27 @@ import {
   getAutomaticParticipantSuggestions,
   analyzeChatMessagesForPayment,
   recordPaymentSplitPattern,
-  PaymentParticipantSuggestion,
-  PaymentParsingResult,
 } from '../chatAnalysisService';
 import { supabase } from '@/integrations/supabase/client';
 
+interface SupabaseResponse {
+  data: unknown;
+  error: unknown;
+}
+
 // Helper to create chainable Supabase mock
-const createChainMock = (resolvedValue: { data: any; error: any }) => {
-  const chain: any = {
+const createChainMock = (resolvedValue: SupabaseResponse) => {
+  const chain: Record<string, unknown> = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
     single: vi.fn().mockResolvedValue(resolvedValue),
-    then: vi.fn((resolve: any) => Promise.resolve(resolve(resolvedValue))),
+    then: vi.fn((resolve: (value: unknown) => unknown) => Promise.resolve(resolve(resolvedValue))),
   };
   // Make chain awaitable as a Promise
-  chain[Symbol.toStringTag] = 'Promise';
-  chain.then = (resolve: any) => Promise.resolve(resolve(resolvedValue));
+  (chain as Record<string | symbol, unknown>)[Symbol.toStringTag] = 'Promise';
+  chain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(resolve(resolvedValue));
   chain.catch = () => chain;
   chain.finally = () => chain;
   return chain;
@@ -63,7 +66,7 @@ describe('chatAnalysisService', () => {
       const message = 'Bob owes me $50';
 
       // Mock trip members
-      (supabase.from as any).mockReturnValueOnce(
+      vi.mocked(supabase.from).mockReturnValueOnce(
         createChainMock({
           data: [{ user_id: 'user-1' }, { user_id: 'user-2' }, { user_id: 'user-3' }],
           error: null,
@@ -71,7 +74,7 @@ describe('chatAnalysisService', () => {
       );
 
       // Mock profiles (profiles_public view)
-      (supabase.from as any).mockReturnValueOnce(
+      vi.mocked(supabase.from).mockReturnValueOnce(
         createChainMock({
           data: mockProfiles,
           error: null,
@@ -79,7 +82,7 @@ describe('chatAnalysisService', () => {
       );
 
       // Mock AI parsing (fallback to pattern matching)
-      (supabase.functions.invoke as any).mockRejectedValueOnce(new Error('AI unavailable'));
+      vi.mocked(supabase.functions.invoke).mockRejectedValueOnce(new Error('AI unavailable'));
 
       const result = await detectPaymentParticipantsFromMessage(message, mockTripId, mockUserId);
 
@@ -92,7 +95,7 @@ describe('chatAnalysisService', () => {
       const message = 'Dinner split between me, Bob, and Charlie';
 
       // Mock trip members
-      (supabase.from as any).mockReturnValueOnce(
+      vi.mocked(supabase.from).mockReturnValueOnce(
         createChainMock({
           data: mockProfiles.map(p => ({ user_id: p.user_id })),
           error: null,
@@ -100,14 +103,14 @@ describe('chatAnalysisService', () => {
       );
 
       // Mock profiles
-      (supabase.from as any).mockReturnValueOnce(
+      vi.mocked(supabase.from).mockReturnValueOnce(
         createChainMock({
           data: mockProfiles,
           error: null,
         }),
       );
 
-      (supabase.functions.invoke as any).mockRejectedValueOnce(new Error('AI unavailable'));
+      vi.mocked(supabase.functions.invoke).mockRejectedValueOnce(new Error('AI unavailable'));
 
       const result = await detectPaymentParticipantsFromMessage(message, mockTripId, mockUserId);
 
@@ -118,7 +121,7 @@ describe('chatAnalysisService', () => {
     it('should extract amount and currency', async () => {
       const message = 'I paid €100 for the hotel';
 
-      (supabase.from as any).mockReturnValue({
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -130,7 +133,7 @@ describe('chatAnalysisService', () => {
         }),
       });
 
-      (supabase.functions.invoke as any).mockRejectedValueOnce(new Error('AI unavailable'));
+      vi.mocked(supabase.functions.invoke).mockRejectedValueOnce(new Error('AI unavailable'));
 
       const result = await detectPaymentParticipantsFromMessage(message, mockTripId, mockUserId);
 
@@ -142,7 +145,7 @@ describe('chatAnalysisService', () => {
       const message = 'Split dinner with Bob and Charlie';
 
       // Mock AI response
-      (supabase.functions.invoke as any).mockResolvedValueOnce({
+      vi.mocked(supabase.functions.invoke).mockResolvedValueOnce({
         data: {
           response: JSON.stringify({
             participants: ['Bob', 'Charlie'],
@@ -152,7 +155,7 @@ describe('chatAnalysisService', () => {
         error: null,
       });
 
-      (supabase.from as any).mockReturnValue({
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -173,7 +176,7 @@ describe('chatAnalysisService', () => {
   describe('getAutomaticParticipantSuggestions', () => {
     it('should return historical suggestions when available', async () => {
       // Mock trip members
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         then: vi.fn(callback => {
@@ -185,7 +188,7 @@ describe('chatAnalysisService', () => {
       });
 
       // Mock profiles
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
         then: vi.fn(callback => {
@@ -197,7 +200,7 @@ describe('chatAnalysisService', () => {
       });
 
       // Mock historical payments (no payment_split_patterns table)
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         or: vi.fn().mockReturnThis(),
@@ -241,10 +244,10 @@ describe('chatAnalysisService', () => {
       });
       messagesChain.order = vi.fn().mockReturnValue(messagesChain);
       messagesChain.limit = vi.fn().mockReturnValue(messagesChain);
-      (supabase.from as any).mockReturnValueOnce(messagesChain);
+      vi.mocked(supabase.from).mockReturnValueOnce(messagesChain);
 
       // Mock trip members
-      (supabase.from as any).mockReturnValueOnce(
+      vi.mocked(supabase.from).mockReturnValueOnce(
         createChainMock({
           data: mockProfiles.map(p => ({ user_id: p.user_id })),
           error: null,
@@ -252,14 +255,14 @@ describe('chatAnalysisService', () => {
       );
 
       // Mock profiles
-      (supabase.from as any).mockReturnValueOnce(
+      vi.mocked(supabase.from).mockReturnValueOnce(
         createChainMock({
           data: mockProfiles,
           error: null,
         }),
       );
 
-      (supabase.functions.invoke as any).mockRejectedValueOnce(new Error('AI unavailable'));
+      vi.mocked(supabase.functions.invoke).mockRejectedValueOnce(new Error('AI unavailable'));
 
       const result = await analyzeChatMessagesForPayment(mockTripId, mockUserId);
 
@@ -278,7 +281,7 @@ describe('chatAnalysisService', () => {
         },
       ];
 
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
@@ -302,7 +305,7 @@ describe('chatAnalysisService', () => {
       const participantIds = ['user-2', 'user-3'];
 
       // Mock table existence check
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         then: vi.fn(callback => {
@@ -314,7 +317,7 @@ describe('chatAnalysisService', () => {
       });
 
       // Mock pattern lookup (no existing pattern)
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockReturnThis(),
@@ -327,7 +330,7 @@ describe('chatAnalysisService', () => {
       });
 
       // Mock insert
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         insert: vi.fn().mockReturnThis(),
         then: vi.fn(callback => {
           callback({
@@ -347,7 +350,7 @@ describe('chatAnalysisService', () => {
       const participantIds = ['user-2'];
 
       // Mock table doesn't exist
-      (supabase.from as any).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         then: vi.fn(callback => {

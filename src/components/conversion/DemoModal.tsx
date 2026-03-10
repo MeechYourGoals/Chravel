@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Users, MapPin, MessageSquare } from 'lucide-react';
+import { X, Calendar, Users, MessageSquare } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';

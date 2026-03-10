@@ -181,6 +181,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
           return { success: true, message: 'Role assigned' };
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated Supabase types
         const { data, error } = await supabase.rpc('assign_trip_role' as any, {
           _trip_id: tripId,
           _user_id: userId,
@@ -231,6 +232,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
           return { success: true, message: 'Role removed' };
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated Supabase types
         const { data, error } = await supabase.rpc('remove_user_from_role' as any, {
           _trip_id: tripId,
           _user_id: userId,
@@ -286,6 +288,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
           return { success: true, message: 'Left the channel' };
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated Supabase types
         const { data, error } = await supabase.rpc('leave_trip_role' as any, {
           _trip_id: tripId,
           _role_id: roleId,

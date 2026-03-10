@@ -7,16 +7,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Link2,
-  ExternalLink,
-  Edit,
-  Trash2,
-  Plus,
-  Globe,
-  Calendar,
-  GripVertical,
-} from 'lucide-react';
+import { Link2, Edit, Trash2, Plus, Globe, GripVertical } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';

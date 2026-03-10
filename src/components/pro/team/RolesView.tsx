@@ -63,7 +63,7 @@ export const RolesView = ({
   isLoadingRoster = false,
   tripId,
   tripCreatorId,
-  trip,
+  _trip,
   availableRoles = [],
 }: RolesViewProps) => {
   const { isDemoMode } = useDemoMode();
@@ -117,10 +117,13 @@ export const RolesView = ({
   } = getCategoryConfig(category);
 
   // Use dynamic roles if available, otherwise fallback to existing behavior
-  const roles =
-    availableRoles.length > 0
-      ? ['all', ...availableRoles.map(r => r.roleName)]
-      : ['all', ...extractUniqueRoles(roster)];
+  const roles = useMemo(
+    () =>
+      availableRoles.length > 0
+        ? ['all', ...availableRoles.map(r => r.roleName)]
+        : ['all', ...extractUniqueRoles(roster)],
+    [availableRoles, roster],
+  );
 
   const existingRoles = extractUniqueRoles(roster);
 

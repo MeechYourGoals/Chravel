@@ -11,7 +11,7 @@ import { formatLocalDate } from '@/utils/dateHelpers';
  * Accepts: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601 datetime strings
  * Returns date-only format (YYYY-MM-DD) expected by Postgres date columns
  */
-function normalizeDateInput(dateStr?: string): string | undefined {
+function _normalizeDateInput(dateStr?: string): string | undefined {
   if (!dateStr) return undefined;
 
   // If already YYYY-MM-DD format, return as-is

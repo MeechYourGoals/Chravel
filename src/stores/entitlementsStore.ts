@@ -73,7 +73,7 @@ const getSuperAdminEntitlements = (): Set<EntitlementId> => {
   return allEntitlements;
 };
 
-export const useEntitlementsStore = create<EntitlementsState>((set, get) => ({
+export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
   ...DEFAULT_STATE,
 
   refreshEntitlements: async (userId: string, userEmail?: string) => {

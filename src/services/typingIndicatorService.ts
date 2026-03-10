@@ -47,11 +47,11 @@ export class TypingIndicatorService {
         const typingUsers = this.extractTypingUsers(state || {});
         onTypingUpdate(typingUsers);
       })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      .on('presence', { event: 'join' }, ({ _key, _newPresences }) => {
         const typingUsers = this.extractTypingUsers(this.channel?.presenceState() || {});
         onTypingUpdate(typingUsers);
       })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+      .on('presence', { event: 'leave' }, ({ _key, _leftPresences }) => {
         const typingUsers = this.extractTypingUsers(this.channel?.presenceState() || {});
         onTypingUpdate(typingUsers);
       })
