@@ -66,7 +66,7 @@ export const EditScheduledMessageModal = ({
       <DialogContent className="sm:max-w-[500px] bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
               <Clock size={16} className="text-white" />
             </div>
             Edit Scheduled Message
@@ -81,7 +81,7 @@ export const EditScheduledMessageModal = ({
               value={content}
               onChange={e => setContent(e.target.value)}
               rows={4}
-              className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none backdrop-blur-sm"
+              className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-primary resize-none backdrop-blur-sm"
               placeholder="Enter your message..."
             />
           </div>
@@ -99,7 +99,7 @@ export const EditScheduledMessageModal = ({
                 value={sendAt}
                 onChange={e => setSendAt(e.target.value)}
                 min={new Date().toISOString().slice(0, 16)}
-                className="w-full bg-white/5 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 backdrop-blur-sm"
+                className="w-full bg-white/5 border border-white/20 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-primary backdrop-blur-sm"
               />
             </div>
           </div>
@@ -137,7 +137,7 @@ export const EditScheduledMessageModal = ({
             <Button
               onClick={handleSave}
               disabled={!content.trim() || saving}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white"
             >
               {saving ? (
                 <>

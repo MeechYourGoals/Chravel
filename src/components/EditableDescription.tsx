@@ -87,7 +87,7 @@ export const EditableDescription = ({
           value={editValue}
           onChange={e => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 text-lg leading-relaxed resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+          className="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 text-lg leading-relaxed resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50"
           placeholder="Add a description for this trip..."
           autoFocus
           disabled={isSaving}

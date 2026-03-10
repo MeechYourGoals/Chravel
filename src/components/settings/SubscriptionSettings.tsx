@@ -72,7 +72,7 @@ export function SubscriptionSettings({ className }: { className?: string }) {
       'pro-enterprise': {
         name: 'Enterprise',
         price: 'Custom',
-        color: 'bg-gradient-to-r from-purple-500 to-pink-500',
+        color: 'bg-gradient-to-r from-primary to-primary/80',
         features: ['Everything unlimited', 'Approvals', 'QuickBooks', 'Audit'],
       },
     };
@@ -256,11 +256,11 @@ export function SubscriptionSettings({ className }: { className?: string }) {
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                <Card className="border-blue-500/50">
+                <Card className="border-primary/50">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold">Explorer</h3>
-                      <Badge className="bg-blue-500">$9.99/mo</Badge>
+                      <Badge className="bg-primary">$9.99/mo</Badge>
                     </div>
                     <Button
                       className="w-full"
@@ -271,14 +271,14 @@ export function SubscriptionSettings({ className }: { className?: string }) {
                     </Button>
                   </CardContent>
                 </Card>
-                <Card className="border-purple-500/50">
+                <Card className="border-primary/50">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold">Frequent Chraveler</h3>
-                      <Badge className="bg-purple-500">$19.99/mo</Badge>
+                      <Badge className="bg-primary">$19.99/mo</Badge>
                     </div>
                     <Button
-                      className="w-full bg-purple-500 hover:bg-purple-600"
+                      className="w-full bg-primary hover:bg-primary/90"
                       onClick={() => handleWebUpgrade('frequent-chraveler')}
                       disabled={isPurchasing}
                     >

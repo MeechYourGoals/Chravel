@@ -66,7 +66,7 @@ export const MessageFilters = ({
           onClick={() => onFilterChange('all')}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
             activeFilter === 'all'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-primary text-primary-foreground'
               : 'border border-gray-600 text-gray-400 active:text-white active:border-gray-500'
           }`}
         >
@@ -103,9 +103,9 @@ export const MessageFilters = ({
             disabled={!hasChannels}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
               activeFilter === 'channels'
-                ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white'
+                ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
                 : hasChannels
-                  ? 'border border-purple-600 text-purple-400 active:text-white active:bg-purple-600/10'
+                  ? 'border border-primary/60 text-primary active:text-white active:bg-primary/10'
                   : 'border border-gray-600 text-gray-600 cursor-not-allowed'
             }`}
             title={
@@ -122,8 +122,8 @@ export const MessageFilters = ({
               <button
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-all ${
                   activeFilter === 'channels'
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white'
-                    : 'border border-purple-600 text-purple-400 active:text-white active:bg-purple-600/10'
+                    ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
+                    : 'border border-primary/60 text-primary active:text-white active:bg-primary/10'
                 }`}
               >
                 <Hash size={14} />
@@ -138,7 +138,7 @@ export const MessageFilters = ({
               </DropdownMenuItem>
               {availableChannels.map(channel => (
                 <DropdownMenuItem key={channel.id} onClick={() => handleChannelSelect(channel)}>
-                  <Lock className="w-4 h-4 mr-2 text-purple-400" />#{channel.channelSlug} (
+                  <Lock className="w-4 h-4 mr-2 text-primary" />#{channel.channelSlug} (
                   {channel.memberCount || 0})
                 </DropdownMenuItem>
               ))}
@@ -156,7 +156,7 @@ export const MessageFilters = ({
         onClick={() => onFilterChange('all')}
         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
           activeFilter === 'all'
-            ? 'bg-blue-600 text-white'
+            ? 'bg-primary text-primary-foreground'
             : 'border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500'
         }`}
       >
@@ -193,9 +193,9 @@ export const MessageFilters = ({
           disabled={!hasChannels}
           className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
             activeFilter === 'channels'
-              ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white'
+              ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
               : hasChannels
-                ? 'border border-purple-600 text-purple-400 hover:text-white hover:bg-purple-600/10'
+                ? 'border border-primary/60 text-primary hover:text-white hover:bg-primary/10'
                 : 'border border-gray-600 text-gray-600 cursor-not-allowed'
           }`}
           title={!hasChannels ? 'No role channels available. Contact your admin to be added.' : ''}
@@ -210,8 +210,8 @@ export const MessageFilters = ({
             <button
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 activeFilter === 'channels'
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white'
-                  : 'border border-purple-600 text-purple-400 hover:text-white hover:bg-purple-600/10'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
+                  : 'border border-primary/60 text-primary hover:text-white hover:bg-primary/10'
               }`}
             >
               <Hash size={16} />
@@ -226,7 +226,7 @@ export const MessageFilters = ({
             </DropdownMenuItem>
             {availableChannels.map(channel => (
               <DropdownMenuItem key={channel.id} onClick={() => handleChannelSelect(channel)}>
-                <Lock className="w-4 h-4 mr-2 text-purple-400" />#{channel.channelSlug} (
+                <Lock className="w-4 h-4 mr-2 text-primary" />#{channel.channelSlug} (
                 {channel.memberCount || 0})
               </DropdownMenuItem>
             ))}

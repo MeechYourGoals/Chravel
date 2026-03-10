@@ -123,7 +123,7 @@ export const ChannelMembersModal: React.FC<ChannelMembersModalProps> = ({
                 className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-medium">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-medium">
                     {member.user?.avatar_url ? (
                       <img
                         src={member.user.avatar_url}

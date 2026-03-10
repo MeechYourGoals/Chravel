@@ -127,7 +127,7 @@ export const MemberContactCard: React.FC<MemberContactCardProps> = ({
             {isValidAvatarUrl(member.avatar) ? (
               <AvatarImage src={member.avatar} alt={member.name} />
             ) : null}
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl font-semibold">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white text-xl font-semibold">
               {getInitials(member.name)}
             </AvatarFallback>
           </Avatar>

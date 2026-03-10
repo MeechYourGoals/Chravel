@@ -57,7 +57,7 @@ export const AISplitHelper = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center">
               <Sparkles size={16} className="text-white" />
             </div>
             <h3 className="text-lg font-semibold text-white">AI Split Helper</h3>
@@ -86,7 +86,7 @@ export const AISplitHelper = ({
               </p>
               <button
                 onClick={handleCalculate}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl transition-colors hover:from-blue-600 hover:to-purple-600"
+                className="bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-3 rounded-xl transition-colors hover:from-primary/90 hover:to-primary/70"
               >
                 Analyze Receipt
               </button>
@@ -104,11 +104,11 @@ export const AISplitHelper = ({
           {/* AI Suggestion */}
           {suggestion && splitCount && (
             <div className="space-y-4">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+              <div className="bg-primary/10 border border-primary/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                  <Sparkles size={16} className="text-blue-400 mt-1 flex-shrink-0" />
+                  <Sparkles size={16} className="text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <p className="text-blue-300 text-sm mb-2">{suggestion}</p>
+                    <p className="text-primary/80 text-sm mb-2">{suggestion}</p>
                     <div className="text-white font-semibold">
                       Recommended split: {splitCount} people
                     </div>

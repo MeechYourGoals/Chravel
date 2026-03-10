@@ -22,7 +22,7 @@ export const ComingSoonBadge = ({
     default:
       'bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-purple-300 border border-purple-500/30',
     premium:
-      'bg-gradient-to-r from-amber-600/20 to-orange-600/20 text-amber-300 border border-amber-500/30',
+      'bg-gradient-to-r from-gold-primary/20 to-gold-glow/20 text-gold-primary border border-gold-primary/30',
     minimal: 'bg-gray-700/50 text-gray-400 border border-gray-600/30',
   };
 

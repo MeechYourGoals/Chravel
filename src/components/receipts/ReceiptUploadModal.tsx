@@ -269,7 +269,7 @@ export const ReceiptUploadModal = ({
                     <button
                       type="button"
                       onClick={() => setShowAISplit(true)}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-3 rounded-xl transition-colors hover:from-blue-600 hover:to-purple-600 whitespace-nowrap"
+                      className="bg-gradient-to-r from-primary to-primary/80 text-white px-4 py-3 rounded-xl transition-colors hover:from-primary/90 hover:to-primary/70 whitespace-nowrap"
                     >
                       AI Help
                     </button>

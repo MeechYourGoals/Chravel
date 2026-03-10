@@ -211,7 +211,7 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({
         <select
           value={selectedTimezone}
           onChange={e => setSelectedTimezone(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white"
         >
           {filteredTimezones.map(tz => (
             <option key={tz.value} value={tz.value}>

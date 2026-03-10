@@ -305,7 +305,7 @@ export const CollaboratorsModal: React.FC<CollaboratorsModalProps> = ({
                               loading="lazy"
                             />
                           ) : (
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white grid place-items-center text-sm font-semibold border border-white/20">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 text-white grid place-items-center text-sm font-semibold border border-white/20">
                               {getInitials(displayName)}
                             </div>
                           )}

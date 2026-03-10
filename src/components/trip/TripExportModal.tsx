@@ -152,7 +152,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
         >
           {/* Upgrade prompt when free export is used */}
           {showUpgradePrompt ? (
-            <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-lg p-4 mb-3">
+            <div className="bg-gradient-to-r from-primary/10 to-primary/15 border border-primary/30 rounded-lg p-4 mb-3">
               <div className="flex items-center gap-2 mb-2">
                 <Crown size={18} className="text-yellow-400" />
                 <h3 className="text-sm font-semibold text-white">Upgrade for Unlimited Exports</h3>
@@ -165,14 +165,14 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                 <button
                   onClick={() => upgradeToTier('explorer', 'monthly')}
                   disabled={isUpgrading}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
+                  className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
                 >
                   {isUpgrading ? 'Processing...' : 'Explorer from $9.99/mo'}
                 </button>
                 <button
                   onClick={() => upgradeToTier('frequent-chraveler', 'monthly')}
                   disabled={isUpgrading}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
+                  className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white px-3 py-2.5 text-sm rounded-lg transition-all disabled:opacity-50 min-h-[44px]"
                 >
                   {isUpgrading ? 'Processing...' : 'Frequent Chraveler from $19.99/mo'}
                 </button>
@@ -239,7 +239,7 @@ export const TripExportModal: React.FC<TripExportModalProps> = ({
                       type="checkbox"
                       checked={selectedSections.includes(section.id)}
                       onChange={() => toggleSection(section.id)}
-                      className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 flex-shrink-0"
+                      className="w-4 h-4 rounded border-gray-600 text-primary focus:ring-primary focus:ring-offset-gray-900 flex-shrink-0"
                     />
                     <span className="text-[11px] font-medium truncate text-white">
                       {section.label}

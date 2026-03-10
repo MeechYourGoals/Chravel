@@ -136,7 +136,7 @@ export const InvitationManager = ({
           <div className="text-xs text-gray-400">Pending</div>
         </div>
         <div className="bg-white/5 rounded-lg p-3 text-center">
-          <div className="text-lg font-semibold text-blue-400">
+          <div className="text-lg font-semibold text-primary">
             {selectedMemberDetails.filter(m => m.status === 'active').length}
           </div>
           <div className="text-xs text-gray-400">Active</div>

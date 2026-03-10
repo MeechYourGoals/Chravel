@@ -106,7 +106,7 @@ export const BudgetTracker = ({
           <h3 className="text-2xl font-bold text-white">Budget Overview</h3>
           <button
             onClick={() => setShowAddExpense(!showAddExpense)}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-xl flex items-center gap-2 transition-colors"
+            className="bg-gold-primary hover:bg-gold-primary/90 text-black px-4 py-2 rounded-xl flex items-center gap-2 transition-colors"
           >
             <Plus size={20} />
             Add Expense
@@ -193,7 +193,7 @@ export const BudgetTracker = ({
           onClick={() => setSelectedCategory('all')}
           className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium transition-all ${
             selectedCategory === 'all'
-              ? 'bg-yellow-500 text-black'
+              ? 'bg-gold-primary text-black'
               : 'bg-gray-800 text-white hover:bg-gray-700'
           }`}
         >
@@ -205,7 +205,7 @@ export const BudgetTracker = ({
             onClick={() => setSelectedCategory(cat.category)}
             className={`flex-shrink-0 px-4 py-2 rounded-xl font-medium transition-all capitalize ${
               selectedCategory === cat.category
-                ? 'bg-yellow-500 text-black'
+                ? 'bg-gold-primary text-black'
                 : 'bg-gray-800 text-white hover:bg-gray-700'
             }`}
           >

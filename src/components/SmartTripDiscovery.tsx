@@ -128,14 +128,14 @@ export const SmartTripDiscovery = ({
   const getSimilarityColor = (similarity: number): string => {
     if (similarity >= 0.8) return 'bg-green-500/20 text-green-400 border-green-500/30';
     if (similarity >= 0.6) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    return 'bg-primary/15 text-primary border-primary/30';
   };
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="w-5 h-5 text-blue-400" />
+          <Sparkles className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-white">Smart Trip Discovery</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -156,7 +156,7 @@ export const SmartTripDiscovery = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-blue-400" />
+          <Sparkles className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-white">Smart Trip Discovery</h3>
         </div>
         <div className="flex gap-2">

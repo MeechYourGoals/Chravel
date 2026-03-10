@@ -37,7 +37,7 @@ export const AchievementShowcase = ({
 
       <CardContent className={showTitle ? 'pt-0' : 'p-6'}>
         {/* Organizer Level Progress */}
-        <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg">
+        <div className="mb-4 p-3 bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/15 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-foreground">{organizerLevel.title}</span>
             <span className="text-xs text-muted-foreground">Level {organizerLevel.level}</span>
@@ -45,7 +45,7 @@ export const AchievementShowcase = ({
 
           <div className="w-full bg-muted rounded-full h-2">
             <div
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-700"
+              className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full transition-all duration-700"
               style={{ width: `${organizerLevel.nextLevelProgress}%` }}
             />
           </div>

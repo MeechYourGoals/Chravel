@@ -197,7 +197,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
       case 'error':
         return <AlertCircle size={16} className="text-red-400" />;
       default:
-        return <Sparkles size={16} className="text-blue-400" />;
+        return <Sparkles size={16} className="text-primary" />;
     }
   };
 
@@ -217,7 +217,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+        <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white">
           <Sparkles size={16} className="mr-2" />
           Concierge
         </Button>
@@ -226,7 +226,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
         <SheetHeader>
           <SheetTitle className="text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles size={20} className="text-blue-400" />
+              <Sparkles size={20} className="text-primary" />
               Concierge for {tripContext.title}
             </div>
             <div className="flex items-center gap-1 text-xs">
@@ -238,7 +238,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
             <span>Context: {contextLimit}</span>
             <div className="flex items-center gap-2">
               {knowledgeStats && (
-                <span className="text-xs bg-blue-500/20 px-2 py-1 rounded flex items-center gap-1">
+                <span className="text-xs bg-primary/15 px-2 py-1 rounded flex items-center gap-1">
                   <Database size={12} />
                   {knowledgeStats.totalDocuments} sources
                 </span>
@@ -296,7 +296,7 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
                   <div
                     className={`max-w-[80%] px-4 py-3 rounded-2xl ${
                       message.type === 'user'
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                        ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
                         : `${message.isFromFallback ? 'bg-yellow-900/20 border border-yellow-500/30' : 'bg-gray-800 border border-gray-700'} text-gray-300`
                     }`}
                   >
@@ -329,13 +329,13 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
               <div className="flex justify-start">
                 <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
                     <div
-                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-primary rounded-full animate-bounce"
                       style={{ animationDelay: '0.1s' }}
                     ></div>
                     <div
-                      className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-primary rounded-full animate-bounce"
                       style={{ animationDelay: '0.2s' }}
                     ></div>
                   </div>
@@ -351,12 +351,12 @@ export const UniversalTripAI = ({ tripContext }: UniversalTripAIProps) => {
               onKeyPress={handleKeyPress}
               placeholder="Ask about your trip..."
               rows={2}
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none"
+              className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary resize-none"
             />
             <Button
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isTyping}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send size={16} />
             </Button>

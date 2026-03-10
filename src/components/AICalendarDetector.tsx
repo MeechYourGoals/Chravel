@@ -133,7 +133,7 @@ export const AICalendarDetector = ({
 
   if (isLoading) {
     return (
-      <Card className="bg-blue-500/10 border-blue-500/30">
+      <Card className="bg-primary/10 border-primary/30">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <div className="animate-spin w-5 h-5 gold-gradient-spinner"></div>

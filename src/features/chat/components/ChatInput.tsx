@@ -555,7 +555,7 @@ export const ChatInput = ({
               'flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all',
               isBroadcastMode
                 ? 'bg-white/5 border border-orange-500/50 focus-visible:ring-orange-500/40 backdrop-blur-sm text-white placeholder-red-800/80'
-                : 'bg-white/5 border border-white/10 focus-visible:ring-blue-500/40 backdrop-blur-sm text-white placeholder-neutral-400',
+                : 'bg-white/5 border border-white/10 focus-visible:ring-primary/40 backdrop-blur-sm text-white placeholder-neutral-400',
             )}
           />
 
@@ -572,7 +572,7 @@ export const ChatInput = ({
               'size-10 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center',
               isBroadcastMode
                 ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:opacity-90'
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90',
+                : 'bg-gradient-to-r from-primary to-primary/80 hover:opacity-90',
             )}
           >
             {isFetchingPreview ? (

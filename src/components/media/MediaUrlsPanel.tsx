@@ -413,7 +413,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
                 if (e.key === 'Enter') handleAddLink();
               }}
               placeholder="https://example.com"
-              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               autoFocus
             />
             <Button
@@ -601,7 +601,7 @@ function LinkCard({
                 size="sm"
                 onClick={onPromote}
                 disabled={isPromoting}
-                className="text-xs h-8 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                className="text-xs h-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               >
                 <Plus className="w-3 h-3 mr-1" />
                 {isPromoting ? 'Adding...' : 'Save to Explore'}
