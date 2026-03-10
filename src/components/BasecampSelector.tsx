@@ -26,7 +26,9 @@ export const BasecampSelector = ({
   const [type, setType] = useState<'hotel' | 'short-term' | 'other'>(
     currentBasecamp?.type || 'hotel',
   );
-  const [confirmationNumber, setConfirmationNumber] = useState(currentBasecamp?.confirmationNumber || '');
+  const [confirmationNumber, setConfirmationNumber] = useState(
+    currentBasecamp?.confirmationNumber || '',
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {

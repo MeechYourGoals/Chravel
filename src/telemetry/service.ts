@@ -87,29 +87,8 @@ class TelemetryService {
       this.providers.push(consoleProvider);
     }
 
-    // Add PostHog provider if configured
-    if (this.config.posthog?.apiKey) {
-      try {
-        const { PostHogProvider } = await import('./providers/posthog');
-        const posthogProvider = new PostHogProvider();
-        await posthogProvider.init(this.config);
-        this.providers.push(posthogProvider);
-      } catch (error) {
-        console.warn('[Telemetry] PostHog provider failed to load:', error);
-      }
-    }
-
-    // Add Sentry provider if configured
-    if (this.config.sentry?.dsn) {
-      try {
-        const { SentryProvider } = await import('./providers/sentry');
-        const sentryProvider = new SentryProvider();
-        await sentryProvider.init(this.config);
-        this.providers.push(sentryProvider);
-      } catch (error) {
-        console.warn('[Telemetry] Sentry provider failed to load:', error);
-      }
-    }
+    // PostHog and Sentry providers removed — no active integrations.
+    // Re-add dynamic imports here when provider packages are installed.
 
     this.initialized = true;
 
