@@ -25,7 +25,7 @@ interface TripTasksTabProps {
   tripId: string;
 }
 
-export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
+export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<TripTask | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -216,4 +216,4 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
       )}
     </div>
   );
-};
+});
