@@ -1,4 +1,5 @@
 import { supabase } from '../integrations/supabase/client';
+import type { Database } from '../integrations/supabase/types';
 import {
   TripRole,
   UserRoleAssignment,
@@ -14,6 +15,45 @@ interface AdminPermissions {
   can_manage_roles: boolean;
   can_manage_channels: boolean;
   can_designate_admins: boolean;
+}
+
+/** Shape of joined trip_roles data from Supabase relation queries */
+interface TripRoleRow {
+  id: string;
+  trip_id: string;
+  role_name: string;
+  description: string | null;
+  created_by: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/** Shape of joined trip_roles data when only role_name is selected */
+interface TripRoleNameRow {
+  role_name: string;
+}
+
+/** Shape of channel data with optional joined trip_roles */
+interface ChannelRowWithRole {
+  id: string;
+  trip_id: string;
+  channel_name: string;
+  channel_slug: string;
+  description: string | null;
+  required_role_id: string | null;
+  is_private: boolean | null;
+  is_archived: boolean | null;
+  member_count?: number;
+  created_by: string;
+  created_at: string | null;
+  updated_at: string | null;
+  trip_roles?: TripRoleNameRow | TripRoleNameRow[] | null;
+}
+
+/** Shape of profile data joined from channel_messages */
+interface ProfileJoinRow {
+  display_name: string | null;
+  avatar_url: string | null;
 }
 
 class ChannelService {
@@ -70,7 +110,7 @@ class ChannelService {
 
       if (!data?.trip_roles) return null;
 
-      const r = data.trip_roles as any;
+      const r = data.trip_roles as unknown as TripRoleRow;
       return {
         id: r.id,
         tripId: r.trip_id,
@@ -208,7 +248,7 @@ class ChannelService {
       return (data || [])
         .filter(d => d.trip_roles)
         .map(d => {
-          const r = d.trip_roles as any;
+          const r = d.trip_roles as unknown as TripRoleRow;
           return {
             id: r.id,
             tripId: r.trip_id,
@@ -235,7 +275,7 @@ class ChannelService {
         tripId: d.trip_id,
         userId: d.user_id,
         roleId: d.role_id,
-        roleName: (d.trip_roles as any)?.role_name,
+        roleName: (d.trip_roles as unknown as TripRoleNameRow | null)?.role_name,
         assignedBy: d.assigned_by,
         assignedAt: d.assigned_at,
       }));
@@ -395,7 +435,9 @@ class ChannelService {
           .eq('is_archived', false)
           .order('created_at');
 
-        const channels = (allChannels || []).map(c => this.mapChannelData(c));
+        const channels = (allChannels || []).map(c =>
+          this.mapChannelData(c as unknown as ChannelRowWithRole),
+        );
 
         // Compute member counts for admin-returned channels
         // Count from channel_members (explicit membership) first, then fall back to role-based count
@@ -473,7 +515,7 @@ class ChannelService {
 
       (junctionChannels || []).forEach(d => {
         if (!uniqueChannels.has(d.id)) {
-          uniqueChannels.set(d.id, this.mapChannelData(d));
+          uniqueChannels.set(d.id, this.mapChannelData(d as unknown as ChannelRowWithRole));
         }
       });
 
@@ -492,7 +534,7 @@ class ChannelService {
 
       (legacyChannels || []).forEach(d => {
         if (!uniqueChannels.has(d.id)) {
-          uniqueChannels.set(d.id, this.mapChannelData(d));
+          uniqueChannels.set(d.id, this.mapChannelData(d as unknown as ChannelRowWithRole));
         }
       });
 
@@ -558,7 +600,13 @@ class ChannelService {
     }
   }
 
-  private mapChannelData(d: any): TripChannel {
+  private mapChannelData(d: ChannelRowWithRole): TripChannel {
+    const roles = d.trip_roles;
+    const roleName = roles
+      ? Array.isArray(roles)
+        ? roles[0]?.role_name
+        : roles.role_name
+      : undefined;
     return {
       id: d.id,
       tripId: d.trip_id,
@@ -566,7 +614,7 @@ class ChannelService {
       channelSlug: d.channel_slug,
       description: d.description,
       requiredRoleId: d.required_role_id,
-      requiredRoleName: (d.trip_roles as any)?.role_name,
+      requiredRoleName: roleName,
       isPrivate: d.is_private,
       isArchived: d.is_archived,
       memberCount: d.member_count || 0,
@@ -616,7 +664,7 @@ class ChannelService {
 
     const { data, error } = await supabase
       .from('channel_messages')
-      .insert(insertData as any)
+      .insert(insertData as unknown as Database['public']['Tables']['channel_messages']['Insert'])
       .select()
       .single();
 
@@ -657,7 +705,7 @@ class ChannelService {
         .limit(limit);
 
       return (data || []).map(d => {
-        const profile = d.profiles as any;
+        const profile = d.profiles as unknown as ProfileJoinRow | null;
         return {
           id: d.id,
           channelId: d.channel_id,
@@ -666,7 +714,7 @@ class ChannelService {
           senderAvatar: profile?.avatar_url,
           content: d.content,
           messageType: d.message_type as 'text' | 'file' | 'system',
-          metadata: (d.metadata || {}) as Record<string, any>,
+          metadata: (d.metadata || {}) as Record<string, unknown>,
           createdAt: d.created_at,
         };
       });
@@ -706,7 +754,7 @@ class ChannelService {
         channelSlug: d.channel_slug,
         description: d.description,
         requiredRoleId: d.required_role_id,
-        requiredRoleName: (d.trip_roles as any)?.role_name,
+        requiredRoleName: (d.trip_roles as unknown as TripRoleNameRow | null)?.role_name,
         isPrivate: d.is_private,
         isArchived: d.is_archived,
         createdBy: d.created_by,

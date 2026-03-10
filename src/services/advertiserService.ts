@@ -336,7 +336,7 @@ export class AdvertiserService {
   static async trackEvent(
     campaignId: string,
     eventType: CampaignAnalytics['event_type'],
-    eventData?: Record<string, any>,
+    eventData?: Record<string, unknown>,
   ): Promise<void> {
     try {
       const {

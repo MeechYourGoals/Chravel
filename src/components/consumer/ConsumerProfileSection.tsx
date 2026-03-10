@@ -156,7 +156,7 @@ export const ConsumerProfileSection = () => {
         title: 'Photo uploaded',
         description: 'Your profile photo has been updated.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading photo:', error);
       const errMsg = error?.message || error?.statusCode || '';
       let description = 'Failed to upload profile photo. Please try again.';

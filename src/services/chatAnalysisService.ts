@@ -473,8 +473,9 @@ async function getHistoricalPaymentSuggestions(
     // Try to use payment_split_patterns table first (ML-based patterns)
     try {
       // Table not in generated types yet - temporary until types regenerated
-      const { data: patterns, error: patternError } = await supabase
-        .from('payment_split_patterns' as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+      const { data: patterns, error: patternError } = await (supabase as any)
+        .from('payment_split_patterns')
         .select('participant_id, frequency, last_split_at')
         .eq('trip_id', tripId)
         .eq('user_id', userId)
@@ -484,7 +485,12 @@ async function getHistoricalPaymentSuggestions(
       if (!patternError && patterns && patterns.length > 0) {
         const suggestions: PaymentParticipantSuggestion[] = [];
 
-        (patterns as any[]).forEach((pattern: any) => {
+        const typedPatterns = patterns as Array<{
+          participant_id: string;
+          frequency: number;
+          last_split_at: string | null;
+        }>;
+        typedPatterns.forEach(pattern => {
           const profile = availableProfiles.find(p => p.user_id === pattern.participant_id);
           if (profile) {
             // Calculate confidence based on frequency and recency
@@ -684,7 +690,16 @@ export async function analyzeChatMessagesForPayment(
     ];
 
     // Find messages with payment context
-    const paymentMessages = (messages as any[]).filter((msg: any) => {
+    // The query selects columns that may differ between DB versions; cast to a flexible shape
+    const typedMessages = messages as Array<{
+      id: string;
+      message_content?: string;
+      content?: string;
+      sender_id?: string;
+      author_id?: string;
+      created_at: string;
+    }>;
+    const paymentMessages = typedMessages.filter(msg => {
       const content = (msg.content || msg.message_content || '').toLowerCase();
       return paymentKeywords.some(keyword => content.includes(keyword));
     });

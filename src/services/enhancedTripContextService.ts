@@ -10,7 +10,13 @@ import {
   ChatMessage,
   TripReceipt,
 } from '../types/tripContext';
+import { CalendarEvent } from '../types/calendar';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
+
+type TripPreferences = NonNullable<TripContext['preferences']>;
+type ItineraryDay = TripContext['itinerary'][number];
+type UpcomingEvent = TripContext['upcomingEvents'][number];
 
 export class EnhancedTripContextService {
   static async getEnhancedTripContext(
@@ -21,11 +27,11 @@ export class EnhancedTripContextService {
     try {
       let baseContext: TripContext;
 
-      // 🔐 AUTHENTICATED MODE: Fetch from database
+      // AUTHENTICATED MODE: Fetch from database
       if (!isDemoMode) {
         baseContext = await this.getAuthenticatedTripContext(tripId);
       }
-      // 🔐 DEMO MODE: Use mock data
+      // DEMO MODE: Use mock data
       else {
         if (isProTrip) {
           baseContext = await this.getProTripContext(tripId);
@@ -45,7 +51,7 @@ export class EnhancedTripContextService {
   }
 
   private static async getAuthenticatedTripContext(tripId: string): Promise<TripContext> {
-    // 🔐 AUTHENTICATED MODE: Query real trip from Supabase
+    // AUTHENTICATED MODE: Query real trip from Supabase
     const { data: trip, error } = await supabase
       .from('trips')
       .select('*')
@@ -152,7 +158,7 @@ export class EnhancedTripContextService {
         id: index.toString(),
         title: `Day ${index + 1}`,
         date: day.date,
-        events: day.events as any, // Mock data - type assertion for simplified event structure
+        events: day.events as unknown as CalendarEvent[],
       })),
       accommodation: `${proTrip.location} Accommodation`,
       currentDate: today,
@@ -186,20 +192,19 @@ export class EnhancedTripContextService {
     const receipts = await this.getTripReceipts(context.tripId);
     const preferences = await this.getTripPreferences(context.tripId);
 
-    // 🆕 Enhanced contextual data for AI Concierge
+    // Enhanced contextual data for AI Concierge
     const tasks = await this.getTripTasks(context.tripId);
     const _payments = await this.getTripPayments(context.tripId);
     const _calendar = await this.getTripCalendar(context.tripId);
 
-    // 🆕 Geocode basecamp if it doesn't have coordinates
+    // Geocode basecamp if it doesn't have coordinates
     if (context.basecamp && typeof context.basecamp === 'object') {
-      const basecamp = context.basecamp as any;
-      if (basecamp.address && !basecamp.lat && !basecamp.lng) {
+      const basecamp = context.basecamp;
+      if (basecamp.address && !basecamp.coordinates) {
         try {
           const coords = await this.geocodeAddress(basecamp.address);
           if (coords) {
-            basecamp.lat = coords.lat;
-            basecamp.lng = coords.lng;
+            basecamp.coordinates = coords;
           }
         } catch (error) {
           if (import.meta.env.DEV) console.warn('Failed to geocode basecamp:', error);
@@ -226,12 +231,12 @@ export class EnhancedTripContextService {
       groupDynamics,
       visitedPlaces,
       weatherContext,
-      // 🆕 Enhanced context for AI Concierge
+      // Enhanced context for AI Concierge
       tasks,
     };
   }
 
-  // 🆕 Geocoding helper method
+  // Geocoding helper method
   private static async geocodeAddress(
     address: string,
   ): Promise<{ lat: number; lng: number } | null> {
@@ -261,8 +266,7 @@ export class EnhancedTripContextService {
 
   private static async getTripFiles(tripId: string): Promise<TripFile[]> {
     try {
-      // Use untyped supabase to avoid TS errors until types are regenerated
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_files')
         .select(
           `
@@ -284,13 +288,13 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((file: any) => ({
+      return (data || []).map(file => ({
         id: file.id,
         name: file.name,
         type: file.file_type,
-        content: file.content_text,
+        content: file.content_text ?? undefined,
         extractedEvents: file.extracted_events || 0,
-        aiSummary: file.ai_summary,
+        aiSummary: file.ai_summary ?? undefined,
         uploadedBy: 'Unknown',
         uploadedAt: file.created_at,
       }));
@@ -305,7 +309,7 @@ export class EnhancedTripContextService {
       {
         id: 'photo-1',
         url: '/src/assets/vacation-beach-group.jpg',
-        caption: 'Beach day with the crew! 🏖️',
+        caption: 'Beach day with the crew!',
         location: 'Santa Monica Beach',
         timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         uploadedBy: 'Marcus',
@@ -325,7 +329,7 @@ export class EnhancedTripContextService {
 
   private static async getTripLinks(tripId: string): Promise<TripLink[]> {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_links')
         .select(
           `
@@ -347,11 +351,11 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((link: any) => ({
+      return (data || []).map(link => ({
         id: link.id,
         url: link.url,
         title: link.title,
-        description: link.description,
+        description: link.description ?? undefined,
         category: link.category,
         votes: link.votes || 0,
         addedBy: 'Unknown',
@@ -365,7 +369,7 @@ export class EnhancedTripContextService {
 
   private static async getTripPolls(tripId: string): Promise<TripPoll[]> {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_polls')
         .select(
           `
@@ -386,10 +390,10 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((poll: any) => ({
+      return (data || []).map(poll => ({
         id: poll.id,
         question: poll.question,
-        options: Array.isArray(poll.options) ? poll.options : [],
+        options: Array.isArray(poll.options) ? (poll.options as TripPoll['options']) : [],
         totalVotes: poll.total_votes || 0,
         createdBy: 'Unknown',
         createdAt: poll.created_at,
@@ -403,7 +407,7 @@ export class EnhancedTripContextService {
 
   private static async getChatHistory(tripId: string): Promise<ChatMessage[]> {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_chat_messages')
         .select(
           `
@@ -423,7 +427,7 @@ export class EnhancedTripContextService {
         return [];
       }
 
-      return (data || []).map((message: any) => ({
+      return (data || []).map(message => ({
         id: message.id,
         content: message.content,
         author: message.author_name,
@@ -461,9 +465,21 @@ export class EnhancedTripContextService {
     ];
   }
 
-  private static async getTripPreferences(tripId: string): Promise<any> {
+  private static async getTripPreferences(tripId: string): Promise<TripPreferences> {
+    const defaultPreferences: TripPreferences = {
+      dietary: [],
+      vibe: [],
+      accessibility: [],
+      business: [],
+      entertainment: [],
+      lifestyle: [],
+      budgetMin: 0,
+      budgetMax: 1000,
+      timePreference: 'flexible',
+    };
+
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_preferences')
         .select('*')
         .eq('trip_id', tripId)
@@ -471,17 +487,7 @@ export class EnhancedTripContextService {
 
       if (error || !data) {
         if (import.meta.env.DEV) console.warn('Failed to fetch trip preferences:', error);
-        return {
-          dietary: [],
-          vibe: [],
-          accessibility: [],
-          business: [],
-          entertainment: [],
-          lifestyle: [],
-          budgetMin: 0,
-          budgetMax: 1000,
-          timePreference: 'flexible',
-        };
+        return defaultPreferences;
       }
 
       return {
@@ -493,21 +499,11 @@ export class EnhancedTripContextService {
         lifestyle: data.lifestyle || [],
         budgetMin: data.budget_min || 0,
         budgetMax: data.budget_max || 1000,
-        timePreference: data.time_preference || 'flexible',
+        timePreference: (data.time_preference as TripPreferences['timePreference']) || 'flexible',
       };
     } catch (error) {
       if (import.meta.env.DEV) console.warn('Error fetching trip preferences:', error);
-      return {
-        dietary: [],
-        vibe: [],
-        accessibility: [],
-        business: [],
-        entertainment: [],
-        lifestyle: [],
-        budgetMin: 0,
-        budgetMax: 1000,
-        timePreference: 'flexible',
-      };
+      return defaultPreferences;
     }
   }
 
@@ -555,12 +551,12 @@ export class EnhancedTripContextService {
     return { mostActiveParticipants, recentDecisions, consensusLevel };
   }
 
-  private static extractVisitedPlaces(itinerary: any[], photos: TripPhoto[]): string[] {
+  private static extractVisitedPlaces(itinerary: ItineraryDay[], photos: TripPhoto[]): string[] {
     const places = new Set<string>();
 
     // From itinerary
     itinerary.forEach(day => {
-      day.events?.forEach((event: any) => {
+      day.events?.forEach((event: CalendarEvent) => {
         if (event.location) places.add(event.location);
       });
     });
@@ -576,26 +572,29 @@ export class EnhancedTripContextService {
   private static async getWeatherContext(_location: string) {
     // Mock weather data
     return {
-      current: 'Sunny, 72°F',
-      forecast: ['Sunny, 75°F', 'Partly cloudy, 70°F', 'Sunny, 78°F'],
+      current: 'Sunny, 72F',
+      forecast: ['Sunny, 75F', 'Partly cloudy, 70F', 'Sunny, 78F'],
     };
   }
 
-  private static getUpcomingEvents(itinerary: any[], currentDate: string): any[] {
+  private static getUpcomingEvents(
+    itinerary: Array<{ date: string; events?: unknown[] }>,
+    currentDate: string,
+  ): UpcomingEvent[] {
     return itinerary
       .filter(day => day.date >= currentDate)
       .flatMap(
         day =>
-          day.events?.map((event: any) => ({
-            ...event,
+          (day.events || []).map((event: unknown) => ({
+            ...(event as Record<string, unknown>),
             date: day.date,
-          })) || [],
+          })) as UpcomingEvent[],
       )
       .slice(0, 5);
   }
 
-  // 🆕 Enhanced data fetching methods for AI Concierge
-  private static async getTripTasks(tripId: string): Promise<any[]> {
+  // Enhanced data fetching methods for AI Concierge
+  private static async getTripTasks(tripId: string): Promise<Tables<'trip_tasks'>[]> {
     try {
       const { data, error } = await supabase
         .from('trip_tasks')
@@ -611,7 +610,7 @@ export class EnhancedTripContextService {
     }
   }
 
-  private static async getTripPayments(_tripId: string): Promise<any[]> {
+  private static async getTripPayments(_tripId: string): Promise<Record<string, unknown>[]> {
     try {
       // Note: trip_payments table doesn't exist in current schema
       // Using mock data for now - this should be replaced with actual payment data
@@ -623,13 +622,13 @@ export class EnhancedTripContextService {
     }
   }
 
-  private static async getTripCalendar(tripId: string): Promise<any[]> {
+  private static async getTripCalendar(tripId: string): Promise<Tables<'trip_events'>[]> {
     try {
       const { data, error } = await supabase
         .from('trip_events')
         .select('*')
         .eq('trip_id', tripId)
-        .order('start_date', { ascending: true });
+        .order('start_time', { ascending: true });
 
       if (error) throw error;
       return data || [];

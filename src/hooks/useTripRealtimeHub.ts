@@ -9,10 +9,11 @@
 
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type RealtimeChannel from '@supabase/realtime-js/dist/module/RealtimeChannel';
 
 type TableName = string;
 type EventType = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
-type RealtimeCallback = (payload: any) => void;
+type RealtimeCallback = (payload: Record<string, unknown>) => void;
 
 interface Subscription {
   table: TableName;
@@ -25,9 +26,9 @@ const activeHubs = new Map<string, TripRealtimeHub>();
 
 class TripRealtimeHub {
   private tripId: string;
-  private dataChannel: any = null;
-  private chatChannel: any = null;
-  private presenceChannel: any = null;
+  private dataChannel: RealtimeChannel | null = null;
+  private chatChannel: RealtimeChannel | null = null;
+  private presenceChannel: RealtimeChannel | null = null;
   private subscribers = new Map<string, Subscription[]>();
   private refCount = 0;
   private isConnected = false;
@@ -59,7 +60,7 @@ class TripRealtimeHub {
       this.dataChannel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table, filter: `trip_id=eq.${this.tripId}` },
-        (payload: any) => this.dispatch(table, payload),
+        (payload: Record<string, unknown>) => this.dispatch(table, payload),
       );
     }
 
@@ -67,7 +68,7 @@ class TripRealtimeHub {
     this.dataChannel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'task_status' },
-      (payload: any) => this.dispatch('task_status', payload),
+      (payload: Record<string, unknown>) => this.dispatch('task_status', payload),
     );
 
     this.dataChannel.subscribe((status: string) => {
@@ -84,7 +85,7 @@ class TripRealtimeHub {
       this.chatChannel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table, ...(filter ? { filter } : {}) },
-        (payload: any) => this.dispatch(table, payload),
+        (payload: Record<string, unknown>) => this.dispatch(table, payload),
       );
     }
     this.chatChannel.subscribe();
@@ -93,14 +94,16 @@ class TripRealtimeHub {
     this.presenceChannel = supabase.channel(`hub_presence:${this.tripId}`);
     this.presenceChannel
       .on('presence', { event: 'sync' }, () => this.dispatch('presence_sync', {}))
-      .on('presence', { event: 'join' }, (payload: any) => this.dispatch('presence_join', payload))
-      .on('presence', { event: 'leave' }, (payload: any) =>
+      .on('presence', { event: 'join' }, (payload: Record<string, unknown>) =>
+        this.dispatch('presence_join', payload),
+      )
+      .on('presence', { event: 'leave' }, (payload: Record<string, unknown>) =>
         this.dispatch('presence_leave', payload),
       )
       .subscribe();
   }
 
-  private dispatch(table: string, payload: any) {
+  private dispatch(table: string, payload: Record<string, unknown>) {
     const subs = this.subscribers.get(table) || [];
     for (const sub of subs) {
       try {

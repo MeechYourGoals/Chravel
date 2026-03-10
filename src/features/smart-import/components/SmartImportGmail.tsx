@@ -64,7 +64,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
 
       toast.success('Successfully scanned inbox');
       onImportComplete?.(data.candidates || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to import from Gmail', { description: error.message });
       onImportError?.(error);
     } finally {

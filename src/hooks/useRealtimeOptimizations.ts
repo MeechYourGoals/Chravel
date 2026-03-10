@@ -1,6 +1,17 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { connectionMonitor } from '@/utils/concurrencyUtils';
+
+interface RealtimePayload {
+  commit_timestamp: string;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+  schema: string;
+  table: string;
+  errors: string[] | null;
+}
 
 interface RealtimeOptions {
   maxReconnectAttempts?: number;
@@ -12,8 +23,8 @@ interface RealtimeOptions {
 // Enhanced realtime hook with connection management and batching
 export const useRealtimeOptimizations = (
   tableName: string,
-  filter: Record<string, any>,
-  onUpdate: (payload: any) => void,
+  filter: Record<string, string>,
+  onUpdate: (payload: RealtimePayload) => void,
   options: RealtimeOptions = {},
 ) => {
   const {
@@ -23,10 +34,10 @@ export const useRealtimeOptimizations = (
     batchDelay = 100,
   } = options;
 
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const batchTimeoutRef = useRef<NodeJS.Timeout>();
-  const pendingUpdatesRef = useRef<any[]>([]);
+  const pendingUpdatesRef = useRef<RealtimePayload[]>([]);
   const isConnectedRef = useRef(false);
 
   const processBatch = useCallback(() => {
@@ -40,7 +51,7 @@ export const useRealtimeOptimizations = (
   }, [onUpdate]);
 
   const handleUpdate = useCallback(
-    (payload: any) => {
+    (payload: RealtimePayload) => {
       if (batchUpdates) {
         pendingUpdatesRef.current.push(payload);
 
@@ -148,14 +159,14 @@ export const useRealtimeOptimizations = (
 // Message ordering utility for real-time updates
 export class MessageOrderingQueue {
   private expectedSequence: number = 0;
-  private buffer: Map<number, any> = new Map();
-  private onOrderedMessage: (message: any) => void;
+  private buffer: Map<number, unknown> = new Map();
+  private onOrderedMessage: (message: unknown) => void;
 
-  constructor(onOrderedMessage: (message: any) => void) {
+  constructor(onOrderedMessage: (message: unknown) => void) {
     this.onOrderedMessage = onOrderedMessage;
   }
 
-  addMessage(message: any, sequence: number) {
+  addMessage(message: unknown, sequence: number) {
     if (sequence === this.expectedSequence) {
       // Process this message and any buffered ones that follow
       this.onOrderedMessage(message);
@@ -183,7 +194,7 @@ export class MessageOrderingQueue {
 
 // Real-time presence tracker
 export const usePresenceTracking = (tripId: string, userId: string) => {
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!tripId || !userId) return;

@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gameScheduleService } from '@/services/gameScheduleService';
+import { GameSchedule, gameScheduleService } from '@/services/gameScheduleService';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+
+type GameScheduleInput = Omit<
+  GameSchedule,
+  'id' | 'created_at' | 'updated_at' | 'organization_id' | 'created_by'
+>;
 
 export const useGameSchedule = (organizationId?: string) => {
   const { user } = useAuth();
@@ -14,7 +19,7 @@ export const useGameSchedule = (organizationId?: string) => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (game: any) =>
+    mutationFn: (game: GameScheduleInput) =>
       gameScheduleService.create({
         ...game,
         organization_id: organizationId!,
@@ -24,19 +29,19 @@ export const useGameSchedule = (organizationId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['game-schedules'] });
       toast.success('Game added successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to add game: ${error.message}`);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<GameSchedule> }) =>
       gameScheduleService.update(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['game-schedules'] });
       toast.success('Game updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to update game: ${error.message}`);
     },
   });
@@ -47,13 +52,13 @@ export const useGameSchedule = (organizationId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['game-schedules'] });
       toast.success('Game deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to delete game: ${error.message}`);
     },
   });
 
   const bulkCreateMutation = useMutation({
-    mutationFn: (games: any[]) =>
+    mutationFn: (games: GameScheduleInput[]) =>
       gameScheduleService.bulkCreate(
         games.map(g => ({
           ...g,
@@ -65,7 +70,7 @@ export const useGameSchedule = (organizationId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['game-schedules'] });
       toast.success('Games imported successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to import games: ${error.message}`);
     },
   });

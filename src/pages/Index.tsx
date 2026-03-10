@@ -28,8 +28,10 @@ import { useDemoModeStore } from '../store/demoModeStore';
 import { useTrips } from '../hooks/useTrips';
 import { useMyPendingTrips } from '../hooks/useMyPendingTrips';
 import { proTripMockData } from '../data/proTripMockData';
-import { Trip } from '../data/tripsData';
+import { Trip, TripParticipant } from '../data/tripsData';
 import { eventsMockData } from '../data/eventsMockData';
+import type { ProTripData } from '../types/pro';
+import type { EventData } from '../types/events';
 import { tripsData } from '../data/tripsData';
 import { demoModeService } from '../services/demoModeService';
 import { mockMyPendingRequests } from '../mockData/pendingRequestsMock';
@@ -235,8 +237,8 @@ const Index = () => {
       userTripsRaw.filter(t => (t.trip_type === 'consumer' || !t.trip_type) && !t.is_archived),
     );
     // Separate pending trips from active trips
-    const active = converted.filter(t => (t as any).membership_status !== 'pending');
-    const pending = converted.filter(t => (t as any).membership_status === 'pending');
+    const active = converted.filter(t => (t as Trip).membership_status !== 'pending');
+    const pending = converted.filter(t => (t as Trip).membership_status === 'pending');
     return {
       activeTrips: active,
       pendingTrips: pending,
@@ -268,7 +270,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToProTrip(trip);
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, unknown>,
         );
         const filteredPro = filterProTrips(proCount, searchQuery, activeFilter as DateFacet | '');
         return Object.keys(filteredPro).length;
@@ -287,7 +289,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToEvent(trip);
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, unknown>,
         );
         const filteredEvents = filterEvents(
           eventCount,
@@ -314,7 +316,7 @@ const Index = () => {
           acc[trip.id] = convertSupabaseTripToProTrip(trip);
           return acc;
         },
-        {} as Record<string, any>,
+        {} as Record<string, unknown>,
       );
 
       const eventCount = eventsFromDB.reduce(
@@ -322,7 +324,7 @@ const Index = () => {
           acc[trip.id] = convertSupabaseTripToEvent(trip);
           return acc;
         },
-        {} as Record<string, any>,
+        {} as Record<string, unknown>,
       );
 
       const filteredPro = filterProTrips(proCount, searchQuery, activeFilter as DateFacet | '');
@@ -394,7 +396,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToProTrip(trip);
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, unknown>,
         );
       }
     }
@@ -420,7 +422,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToEvent(trip);
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, unknown>,
         );
       }
     }
@@ -464,7 +466,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToProTrip(trip);
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, unknown>,
         );
       }
 
@@ -474,7 +476,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToEvent(trip);
             return acc;
           },
-          {} as Record<string, any>,
+          {} as Record<string, unknown>,
         );
       }
     }

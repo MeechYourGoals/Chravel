@@ -1,4 +1,20 @@
 import { supabase } from '../integrations/supabase/client';
+import type { Database } from '../integrations/supabase/types';
+
+/** Raw DB row shape for notification_preferences (may include columns not yet in generated types) */
+interface NotificationPreferencesRow {
+  user_id: string;
+  push_enabled: boolean | null;
+  email_enabled: boolean | null;
+  sms_enabled: boolean | null;
+  trip_updates: boolean | null;
+  chat_messages: boolean | null;
+  calendar_reminders: boolean | null;
+  payment_alerts: boolean | null;
+  quiet_hours_enabled: boolean | null;
+  quiet_start: string | null;
+  quiet_end: string | null;
+}
 
 export interface NotificationPreference {
   userId: string;
@@ -29,7 +45,7 @@ export interface NotificationPayload {
   body: string;
   icon?: string;
   badge?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   actions?: Array<{
     action: string;
     title: string;
@@ -90,7 +106,7 @@ export class ProductionNotificationService {
     }
 
     try {
-      const subscription = await (this.serviceWorker as any).pushManager.subscribe({
+      const subscription = await this.serviceWorker.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(this.fcmVapidKey),
       });
@@ -138,7 +154,7 @@ export class ProductionNotificationService {
 
   async getNotificationPreferences(userId: string): Promise<NotificationPreference | null> {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -171,18 +187,19 @@ export class ProductionNotificationService {
         } as NotificationPreference;
       }
 
+      const row = data as NotificationPreferencesRow;
       return {
-        userId: (data as any).user_id,
-        pushEnabled: (data as any).push_enabled,
-        emailEnabled: (data as any).email_enabled,
-        smsEnabled: (data as any).sms_enabled,
-        tripUpdates: (data as any).trip_updates,
-        chatMessages: (data as any).chat_messages,
-        calendarReminders: (data as any).calendar_reminders,
-        paymentAlerts: (data as any).payment_alerts,
-        quietHoursEnabled: (data as any).quiet_hours_enabled,
-        quietStart: (data as any).quiet_start,
-        quietEnd: (data as any).quiet_end,
+        userId: row.user_id,
+        pushEnabled: row.push_enabled ?? false,
+        emailEnabled: row.email_enabled ?? false,
+        smsEnabled: row.sms_enabled ?? false,
+        tripUpdates: row.trip_updates ?? false,
+        chatMessages: row.chat_messages ?? false,
+        calendarReminders: row.calendar_reminders ?? false,
+        paymentAlerts: row.payment_alerts ?? false,
+        quietHoursEnabled: row.quiet_hours_enabled ?? false,
+        quietStart: row.quiet_start ?? '22:00',
+        quietEnd: row.quiet_end ?? '08:00',
       };
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error getting notification preferences:', error);
@@ -195,19 +212,22 @@ export class ProductionNotificationService {
     preferences: Partial<NotificationPreference>,
   ): Promise<boolean> {
     try {
-      const { error } = await (supabase as any).from('notification_preferences').upsert({
+      const upsertData: Partial<NotificationPreferencesRow> = {
         user_id: userId,
-        push_enabled: preferences.pushEnabled,
-        email_enabled: preferences.emailEnabled,
-        sms_enabled: preferences.smsEnabled,
-        trip_updates: preferences.tripUpdates,
-        chat_messages: preferences.chatMessages,
-        calendar_reminders: preferences.calendarReminders,
-        payment_alerts: preferences.paymentAlerts,
-        quiet_hours_enabled: preferences.quietHoursEnabled,
-        quiet_start: preferences.quietStart,
-        quiet_end: preferences.quietEnd,
-      });
+        push_enabled: preferences.pushEnabled ?? null,
+        email_enabled: preferences.emailEnabled ?? null,
+        sms_enabled: preferences.smsEnabled ?? null,
+        trip_updates: preferences.tripUpdates ?? null,
+        chat_messages: preferences.chatMessages ?? null,
+        calendar_reminders: preferences.calendarReminders ?? null,
+        payment_alerts: preferences.paymentAlerts ?? null,
+        quiet_hours_enabled: preferences.quietHoursEnabled ?? null,
+        quiet_start: preferences.quietStart ?? null,
+        quiet_end: preferences.quietEnd ?? null,
+      };
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert(upsertData as Database['public']['Tables']['notification_preferences']['Insert']);
 
       if (error) {
         if (import.meta.env.DEV) console.error('Error updating notification preferences:', error);
@@ -326,7 +346,7 @@ export class ProductionNotificationService {
   async unsubscribe(userId: string): Promise<void> {
     try {
       if (this.serviceWorker) {
-        const subscription = await (this.serviceWorker as any).pushManager.getSubscription();
+        const subscription = await this.serviceWorker.pushManager.getSubscription();
         if (subscription) {
           await subscription.unsubscribe();
 

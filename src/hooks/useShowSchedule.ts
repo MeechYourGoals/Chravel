@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { showScheduleService } from '@/services/showScheduleService';
+import { ShowSchedule, showScheduleService } from '@/services/showScheduleService';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+
+type ShowScheduleInput = Omit<
+  ShowSchedule,
+  'id' | 'created_at' | 'updated_at' | 'organization_id' | 'created_by'
+>;
 
 export const useShowSchedule = (organizationId?: string) => {
   const { user } = useAuth();
@@ -14,7 +19,7 @@ export const useShowSchedule = (organizationId?: string) => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (show: any) =>
+    mutationFn: (show: ShowScheduleInput) =>
       showScheduleService.create({
         ...show,
         organization_id: organizationId!,
@@ -24,19 +29,19 @@ export const useShowSchedule = (organizationId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['show-schedules'] });
       toast.success('Show added successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to add show: ${error.message}`);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<ShowSchedule> }) =>
       showScheduleService.update(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['show-schedules'] });
       toast.success('Show updated successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to update show: ${error.message}`);
     },
   });
@@ -47,13 +52,13 @@ export const useShowSchedule = (organizationId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['show-schedules'] });
       toast.success('Show deleted successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to delete show: ${error.message}`);
     },
   });
 
   const bulkCreateMutation = useMutation({
-    mutationFn: (shows: any[]) =>
+    mutationFn: (shows: ShowScheduleInput[]) =>
       showScheduleService.bulkCreate(
         shows.map(s => ({
           ...s,
@@ -65,7 +70,7 @@ export const useShowSchedule = (organizationId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['show-schedules'] });
       toast.success('Shows imported successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to import shows: ${error.message}`);
     },
   });

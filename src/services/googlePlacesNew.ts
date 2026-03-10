@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck - Temporary until cache type constraints resolved
 /// <reference types="@types/google.maps" />
 
 /**
@@ -23,6 +21,7 @@ import type {
   ConvertedPrediction,
   SearchByTextRequest,
   AutocompleteRequest,
+  AutocompleteSuggestionData,
 } from '@/types/places';
 import {
   generateCacheKey,
@@ -38,6 +37,26 @@ import {
 } from './openStreetMapFallback';
 import { toast } from 'sonner';
 
+/**
+ * Shape of a Place object returned by the new Google Places API
+ * (searchByText, searchNearby, Place.fetchFields).
+ * The official @types/google.maps does not yet include these.
+ */
+interface NewApiPlace {
+  id: string;
+  displayName?: { text: string };
+  formattedAddress?: string;
+  location?: google.maps.LatLng;
+  viewport?: google.maps.LatLngBounds;
+  rating?: number;
+  websiteURI?: string;
+  googleMapsURI?: string;
+  types?: string[];
+  userRatingCount?: number;
+  priceLevel?: string;
+  photos?: Array<{ getURI?: (opts: { maxWidth: number }) => string; uri?: string }>;
+}
+
 let mapsApi: typeof google.maps | null = null;
 let loaderPromise: Promise<typeof google.maps> | null = null;
 
@@ -50,7 +69,7 @@ export type SearchOrigin = { lat: number; lng: number } | null;
 class ApiQuotaMonitor {
   private dailyRequests: Map<string, number> = new Map();
   private hourlyRequests: Map<string, number> = new Map();
-  private cachedResults: Map<string, { data: any; timestamp: number }> = new Map();
+  private cachedResults: Map<string, { data: unknown; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 3600000; // 1 hour cache
   private readonly DAILY_LIMIT = 10000; // Conservative daily limit
   private readonly HOURLY_LIMIT = 1000; // Conservative hourly limit
@@ -99,7 +118,7 @@ class ApiQuotaMonitor {
   /**
    * Cache a result with TTL
    */
-  cacheResult(key: string, data: any): void {
+  cacheResult(key: string, data: unknown): void {
     this.cachedResults.set(key, {
       data,
       timestamp: Date.now(),
@@ -116,7 +135,7 @@ class ApiQuotaMonitor {
   /**
    * Get cached result if available and not expired
    */
-  getCachedResult(key: string): any | null {
+  getCachedResult(key: string): unknown | null {
     const cached = this.cachedResults.get(key);
     if (!cached) return null;
 
@@ -175,8 +194,8 @@ export async function retryWithBackoff<T>(
 
       // Don't retry on quota exhaustion - use cache instead
       if (
-        (error as any)?.message?.includes('quota') ||
-        (error as any)?.message?.includes('OVER_QUERY_LIMIT')
+        error instanceof Error &&
+        (error.message?.includes('quota') || error.message?.includes('OVER_QUERY_LIMIT'))
       ) {
         throw error;
       }
@@ -279,7 +298,7 @@ export async function loadMaps(): Promise<typeof google.maps> {
  * Returns up to maxPhotos URIs with specified size
  */
 export function extractPhotoUris(
-  photos: any[],
+  photos: Array<{ getURI?: (opts: { maxWidth: number }) => string; uri?: string }>,
   maxPhotos: number = 3,
   maxWidthPx: number = 800,
 ): string[] {
@@ -287,7 +306,7 @@ export function extractPhotoUris(
 
   return photos
     .slice(0, maxPhotos)
-    .map((photo: any) => {
+    .map(photo => {
       // New API: photos have getURI() method
       if (typeof photo.getURI === 'function') {
         return photo.getURI({ maxWidth: maxWidthPx });
@@ -486,7 +505,7 @@ export async function searchNearby(
 
   const { Place } = (await google.maps.importLibrary('places')) as google.maps.PlacesLibrary;
 
-  const request: any = {
+  const request: Record<string, unknown> = {
     locationRestriction: {
       circle: {
         center: { latitude: location.lat, longitude: location.lng },
@@ -520,7 +539,7 @@ export async function searchNearby(
     // Record API usage
     await recordApiUsage('nearby-search');
 
-    // @ts-ignore - New API method
+    // @ts-expect-error - New API method not yet in @types/google.maps
     const { places } = await Place.searchNearby(request);
 
     if (!places || places.length === 0) {
@@ -528,7 +547,7 @@ export async function searchNearby(
     }
 
     // Convert and sort by rating (with photos)
-    const converted = places.map((place: any) =>
+    const converted = (places as NewApiPlace[]).map(place =>
       convertPlaceToLegacy({
         id: place.id,
         displayName: place.displayName?.text,
@@ -639,7 +658,7 @@ export async function searchByText(
     // Record API usage
     await recordApiUsage('text-search');
 
-    // @ts-ignore - New API method not in @types yet
+    // @ts-expect-error - New API method not yet in @types/google.maps
     const { places } = await Place.searchByText(request);
 
     if (!places || places.length === 0) {
@@ -647,7 +666,7 @@ export async function searchByText(
     }
 
     // Convert to legacy format with photos
-    const results = places.map((place: any) =>
+    const results = (places as NewApiPlace[]).map(place =>
       convertPlaceToLegacy({
         id: place.id,
         displayName: place.displayName?.text,
@@ -712,7 +731,7 @@ export async function autocomplete(
   const clientCacheKey = apiQuotaMonitor.generateCacheKey(`autocomplete:${input}`, origin);
   const clientCached = apiQuotaMonitor.getCachedResult(clientCacheKey);
   if (clientCached) {
-    return clientCached;
+    return clientCached as ConvertedPrediction[];
   }
 
   // Check quota before making request
@@ -721,7 +740,7 @@ export async function autocomplete(
     // Return cached results if available (even if expired)
     const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
     if (expiredCache) {
-      return expiredCache;
+      return expiredCache as ConvertedPrediction[];
     }
     // Note: OSM doesn't support autocomplete, so we return empty array
     return [];
@@ -755,7 +774,7 @@ export async function autocomplete(
 
     // Retry with exponential backoff
     const { suggestions } = await retryWithBackoff(async () => {
-      // @ts-ignore - New API method
+      // @ts-expect-error - New API method not yet in @types/google.maps
       return await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
     });
 
@@ -764,15 +783,15 @@ export async function autocomplete(
     }
 
     // Convert to legacy prediction format
-    const results = suggestions
-      .filter((s: any) => s.placePrediction) // Only place predictions
-      .map((s: any) => ({
-        place_id: s.placePrediction.placeId,
-        description: s.placePrediction.text.text,
-        structured_formatting: s.placePrediction.structuredFormat
+    const results = (suggestions as AutocompleteSuggestionData[])
+      .filter(s => s.placePrediction) // Only place predictions
+      .map(s => ({
+        place_id: s.placePrediction!.placeId,
+        description: s.placePrediction!.text.text,
+        structured_formatting: s.placePrediction!.structuredFormat
           ? {
-              main_text: s.placePrediction.structuredFormat.mainText.text,
-              secondary_text: s.placePrediction.structuredFormat.secondaryText?.text,
+              main_text: s.placePrediction!.structuredFormat.mainText.text,
+              secondary_text: s.placePrediction!.structuredFormat.secondaryText?.text,
             }
           : undefined,
       }));
@@ -789,12 +808,12 @@ export async function autocomplete(
 
     // If quota error, try to return cached results
     if (
-      (error as any)?.message?.includes('quota') ||
-      (error as any)?.message?.includes('OVER_QUERY_LIMIT')
+      error instanceof Error &&
+      (error.message?.includes('quota') || error.message?.includes('OVER_QUERY_LIMIT'))
     ) {
       const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
       if (expiredCache) {
-        return expiredCache;
+        return expiredCache as ConvertedPrediction[];
       }
     }
 
@@ -827,7 +846,7 @@ export async function fetchPlaceDetails(
     // Record API usage
     await recordApiUsage('place-details');
 
-    // @ts-ignore - New API
+    // @ts-expect-error - New API constructor not yet in @types/google.maps
     const place = new Place({
       id: placeId,
       requestedLanguage: 'en',
@@ -849,16 +868,17 @@ export async function fetchPlaceDetails(
       ],
     });
 
+    const placeData = place as unknown as NewApiPlace;
     const result = convertPlaceToLegacy({
-      id: place.id,
-      displayName: (place as any).displayName?.text || 'Unknown',
-      formattedAddress: (place as any).formattedAddress,
-      location: (place as any).location,
-      viewport: (place as any).viewport,
-      rating: (place as any).rating,
-      websiteURI: (place as any).websiteURI,
-      googleMapsURI: (place as any).googleMapsURI,
-      types: (place as any).types,
+      id: placeData.id,
+      displayName: placeData.displayName?.text || 'Unknown',
+      formattedAddress: placeData.formattedAddress,
+      location: placeData.location,
+      viewport: placeData.viewport,
+      rating: placeData.rating,
+      websiteURI: placeData.websiteURI,
+      googleMapsURI: placeData.googleMapsURI,
+      types: placeData.types,
     });
 
     // Cache in Supabase (30-day TTL)
@@ -914,7 +934,7 @@ export async function resolveQuery(
   const clientCacheKey = apiQuotaMonitor.generateCacheKey(`resolve:${query}`, origin);
   const clientCached = apiQuotaMonitor.getCachedResult(clientCacheKey);
   if (clientCached) {
-    return clientCached;
+    return clientCached as ConvertedPlace;
   }
 
   // Check quota before making requests
@@ -923,7 +943,7 @@ export async function resolveQuery(
     // Return cached results if available (even if expired)
     const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
     if (expiredCache) {
-      return expiredCache;
+      return expiredCache as ConvertedPlace;
     }
     // Try OSM fallback
     return await resolveQueryOSM(query, origin);
@@ -1010,12 +1030,12 @@ export async function resolveQuery(
 
     // If quota error, try to return cached results
     if (
-      (error as any)?.message?.includes('quota') ||
-      (error as any)?.message?.includes('OVER_QUERY_LIMIT')
+      error instanceof Error &&
+      (error.message?.includes('quota') || error.message?.includes('OVER_QUERY_LIMIT'))
     ) {
       const expiredCache = apiQuotaMonitor.getCachedResult(clientCacheKey);
       if (expiredCache) {
-        return expiredCache;
+        return expiredCache as ConvertedPlace;
       }
     }
 

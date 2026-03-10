@@ -117,7 +117,9 @@ export const useTripMembers = (tripId?: string) => {
 
       // SAFETY CHECK: Ensure creator is always a member (collaborators, payments, tasks)
       if (tripData?.created_by && !isDemoMode) {
-        const creatorInList = dbMembers?.some((m: any) => m.user_id === tripData.created_by);
+        const creatorInList = dbMembers?.some(
+          (m: { user_id: string }) => m.user_id === tripData.created_by,
+        );
         if (!creatorInList) {
           console.warn(
             `[useTripMembers] Creator ${tripData.created_by} missing from trip ${tripId}. Auto-fixing...`,
@@ -139,7 +141,7 @@ export const useTripMembers = (tripId?: string) => {
           let creatorProfileData = creatorProfile;
           if (!creatorProfileData && user && user.id === tripData.created_by) {
             // Use auth user metadata as fallback when profiles_public query returns null
-            const meta = (user as any).user_metadata || {};
+            const meta = user.user_metadata || {};
             const authName =
               meta.display_name || meta.full_name || meta.name || user.email?.split('@')[0] || null;
             creatorProfileData = {
@@ -165,7 +167,7 @@ export const useTripMembers = (tripId?: string) => {
             },
             id: 'temp-fix-' + Date.now(),
           };
-          dbMembers = [...(dbMembers || []), tempMember] as any;
+          dbMembers = [...(dbMembers || []), tempMember];
         }
       }
 
@@ -228,7 +230,11 @@ export const useTripMembers = (tripId?: string) => {
 
       try {
         // Use secured RPC that validates auth.uid() server-side
-        const { data, error } = await (supabase.rpc as any)('remove_trip_member_safe', {
+        const rpcCall = supabase.rpc as unknown as (
+          fn: string,
+          params: Record<string, string>,
+        ) => Promise<{ data: unknown; error: unknown }>;
+        const { data, error } = await rpcCall('remove_trip_member_safe', {
           p_trip_id: tripId,
           p_user_id_to_remove: userId,
         });
@@ -240,7 +246,8 @@ export const useTripMembers = (tripId?: string) => {
         }
 
         // RPC returns { success, message } rows
-        const result = Array.isArray(data) ? data[0] : data;
+        const rawResult = Array.isArray(data) ? data[0] : data;
+        const result = rawResult as { success?: boolean; message?: string } | null;
         if (result && !result.success) {
           toast.error(result.message || 'Failed to remove member');
           return false;
@@ -274,7 +281,11 @@ export const useTripMembers = (tripId?: string) => {
       }
 
       try {
-        const { data, error } = await supabase.rpc('leave_trip' as any, { _trip_id: tripId });
+        const leaveTripRpc = supabase.rpc as unknown as (
+          fn: string,
+          params: Record<string, string>,
+        ) => Promise<{ data: unknown; error: unknown }>;
+        const { data, error } = await leaveTripRpc('leave_trip', { _trip_id: tripId });
 
         if (error) {
           console.error('Error leaving trip:', error);
@@ -345,18 +356,24 @@ export const useTripMembers = (tripId?: string) => {
   useEffect(() => {
     if (!tripId) return;
 
+    let unsubFn: (() => void) | undefined;
+
     const timer = setTimeout(() => {
-      const hub = (window as any).__tripRealtimeHubs?.get(tripId);
+      const realtimeHubs = (window as Record<string, unknown>).__tripRealtimeHubs as
+        | Map<
+            string,
+            { subscribe: (table: string, event: string, callback: () => void) => () => void }
+          >
+        | undefined;
+      const hub = realtimeHubs?.get(tripId);
       if (hub) {
-        const unsub = hub.subscribe('trip_members', '*', () => loadTripMembers(tripId));
-        // Store unsub for cleanup
-        (timer as any).__unsub = unsub;
+        unsubFn = hub.subscribe('trip_members', '*', () => loadTripMembers(tripId));
       }
     }, 1000);
 
     return () => {
       clearTimeout(timer);
-      if ((timer as any).__unsub) (timer as any).__unsub();
+      if (unsubFn) unsubFn();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadTripMembers deps covered by existing deps
   }, [tripId]);

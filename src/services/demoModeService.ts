@@ -17,7 +17,7 @@ interface MockMessage {
   // System message fields
   message_type?: 'text' | 'system';
   system_event_type?: string;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
 }
 
 export type { MockMessage };

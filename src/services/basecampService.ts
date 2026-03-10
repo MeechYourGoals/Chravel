@@ -398,7 +398,7 @@ class BasecampService {
         p_latitude: latitude,
         p_longitude: longitude,
         p_user_id: userId,
-      })) as { data: any; error: any };
+      })) as { data: unknown; error: { message: string; code?: string; details?: string } | null };
 
       if (error) {
         console.error(this.LOG_PREFIX, 'tryRpcBasecampUpdate: RPC error', {
@@ -600,7 +600,7 @@ class BasecampService {
         return null;
       }
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_personal_basecamps')
         .select('*')
         .eq('trip_id', tripId)
@@ -701,7 +701,7 @@ class BasecampService {
         isUpdate,
       });
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('trip_personal_basecamps')
         .upsert(
           {
@@ -749,6 +749,7 @@ class BasecampService {
       // Parameter names must match the log_basecamp_change function definition
       if (!options?.skipHistory) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC param names in DB differ from generated types (p_previous_* vs p_old_*)
           await (supabase as any).rpc('log_basecamp_change', {
             p_trip_id: payload.trip_id,
             p_user_id: user.id,
@@ -794,7 +795,7 @@ class BasecampService {
   ): Promise<boolean> {
     try {
       // Get basecamp before deletion for history
-      const { data: basecamp, error: fetchError } = await (supabase as any)
+      const { data: basecamp, error: fetchError } = await supabase
         .from('trip_personal_basecamps')
         .select('*')
         .eq('id', basecampId)
@@ -813,7 +814,7 @@ class BasecampService {
         throw new Error('User not authenticated');
       }
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('trip_personal_basecamps')
         .delete()
         .eq('id', basecampId);
@@ -827,6 +828,7 @@ class BasecampService {
       // Parameter names must match the log_basecamp_change function definition
       if (!options?.skipHistory && basecamp) {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC param names in DB differ from generated types (p_previous_* vs p_old_*)
           await (supabase as any).rpc('log_basecamp_change', {
             p_trip_id: basecamp.trip_id,
             p_user_id: user.id,
@@ -864,8 +866,9 @@ class BasecampService {
   ): Promise<BasecampChangeHistory[]> {
     try {
       // Table not in generated types yet - temporary until types regenerated
-      let query = supabase
-        .from('basecamp_change_history' as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+      let query = (supabase as any)
+        .from('basecamp_change_history')
         .select('*')
         .eq('trip_id', tripId)
         .order('created_at', { ascending: false });
@@ -886,7 +889,7 @@ class BasecampService {
         return [];
       }
 
-      return (data || []) as any as BasecampChangeHistory[];
+      return (data || []) as unknown as BasecampChangeHistory[];
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error getting basecamp history:', error);
       return [];

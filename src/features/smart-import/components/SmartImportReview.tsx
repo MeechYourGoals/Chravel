@@ -53,7 +53,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     try {
       const accepted = candidates.filter(c => selectedIds.has(c.id));
       await onAccept(accepted);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to save imported items', { description: error.message });
     } finally {
       setIsSubmitting(false);
