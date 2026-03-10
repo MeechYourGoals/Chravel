@@ -37,12 +37,13 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
 
+// Phase A: Mode 0 — all features OFF by default for boring handshake baseline
 const VOICE_TOOLS_ENABLED =
-  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'false').toLowerCase() === 'true';
 const VOICE_AFFECTIVE_DIALOG =
-  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
 const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 const DEFAULT_VOICE = 'Charon';
@@ -667,94 +668,11 @@ Never speak URLs or markdown. The chat handles the visual output automatically.
 You MUST speak only in English. Every single word must be in English.
 Ignore all background noise.`;
 
-// ── OAuth2 token minting ──
-
-interface ServiceAccountKey {
-  client_email: string;
-  private_key: string;
-  token_uri: string;
-}
-
-function base64UrlEncode(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) binary += String.fromCharCode(data[i]);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function createVertexAccessToken(saKey: ServiceAccountKey): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const payload = {
-    iss: saKey.client_email,
-    sub: saKey.client_email,
-    aud: saKey.token_uri || 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
-    scope: 'https://www.googleapis.com/auth/cloud-platform',
-  };
-
-  const enc = new TextEncoder();
-  const headerB64 = base64UrlEncode(enc.encode(JSON.stringify(header)));
-  const payloadB64 = base64UrlEncode(enc.encode(JSON.stringify(payload)));
-  const signingInput = `${headerB64}.${payloadB64}`;
-
-  const pemBody = saKey.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-    .replace(/-----END PRIVATE KEY-----/g, '')
-    .replace(/\s/g, '');
-  const keyBuffer = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    keyBuffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    cryptoKey,
-    enc.encode(signingInput),
-  );
-
-  const signatureB64 = base64UrlEncode(new Uint8Array(signature));
-  const jwt = `${signingInput}.${signatureB64}`;
-
-  const tokenUri = saKey.token_uri || 'https://oauth2.googleapis.com/token';
-  const tokenResp = await fetch(tokenUri, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-    signal: AbortSignal.timeout(15_000),
-  });
-
-  if (!tokenResp.ok) {
-    const body = await tokenResp.text();
-    throw new Error(
-      `OAuth2 token exchange failed (${tokenResp.status}): ${body.substring(0, 400)}`,
-    );
-  }
-
-  const tokenData = await tokenResp.json();
-  if (!tokenData.access_token) throw new Error('OAuth2 response missing access_token');
-  return tokenData.access_token;
-}
-
-function parseServiceAccountKey(base64Key: string): ServiceAccountKey {
-  try {
-    const json = atob(base64Key);
-    const parsed = JSON.parse(json);
-    if (!parsed.client_email || !parsed.private_key) {
-      throw new Error('Missing client_email or private_key');
-    }
-    return parsed;
-  } catch (e) {
-    throw new Error(
-      `Invalid VERTEX_SERVICE_ACCOUNT_KEY: ${e instanceof Error ? e.message : 'parse failed'}`,
-    );
-  }
-}
+// ── OAuth2 token minting — import from shared module ──
+import {
+  createVertexAccessToken,
+  parseServiceAccountKey,
+} from '../_shared/vertexAuth.ts';
 
 /** Filter close codes that are invalid for ws.close() */
 function safeCloseCode(code: number): number {
@@ -939,47 +857,44 @@ serve(async (req: Request) => {
         const accessToken = await createVertexAccessToken(saKey);
         log('token_minted');
 
-        // Build setup message
+        // Build setup message — camelCase matching confirmed-working gist
+        // Phase A: Mode 0 boring handshake — no tools, no affective, no proactive
         const setupConfig: Record<string, unknown> = {
           model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
-          generation_config: {
-            response_modalities: ['AUDIO'],
-            speech_config: {
-              voice_config: {
-                prebuilt_voice_config: { voice_name: voice },
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: voice },
               },
             },
           },
-          system_instruction: {
+          systemInstruction: {
             parts: [{ text: systemInstruction }],
           },
-          realtime_input_config: {
-            automatic_activity_detection: {
-              disabled: false,
-              start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-              end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
-            },
+          realtimeInputConfig: {
+            activityHandling: 'START_OF_ACTIVITY_INTERRUPTS',
           },
-          input_audio_transcription: {},
-          output_audio_transcription: {},
-          // Context window compression for long sessions (from gist)
-          context_window_compression: { sliding_window: {} },
-          // Session resumption — always enabled for architecture support
-          session_resumption: resumptionToken ? { handle: resumptionToken } : {},
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+          contextWindowCompression: { slidingWindow: {} },
+          sessionResumption: resumptionToken ? { handle: resumptionToken } : {},
         };
 
+        // Mode 2+: tools (OFF by default in Phase A)
         if (VOICE_TOOLS_ENABLED) {
           setupConfig.tools = [
-            { function_declarations: VOICE_FUNCTION_DECLARATIONS },
-            { google_search: {} },
+            { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
           ];
         }
 
+        // Mode 4+: affective dialog (OFF by default in Phase A)
         if (VOICE_AFFECTIVE_DIALOG) {
-          (setupConfig.generation_config as Record<string, unknown>).enable_affective_dialog = true;
+          (setupConfig.generationConfig as Record<string, unknown>).enableAffectiveDialog = true;
         }
+        // Mode 5+: proactive audio (OFF by default in Phase A)
         if (VOICE_PROACTIVE_AUDIO) {
-          setupConfig.proactivity = { proactive_audio: true };
+          setupConfig.proactivity = { proactiveAudio: true };
         }
 
         const setupMessage = JSON.stringify({ setup: setupConfig });
@@ -998,11 +913,20 @@ serve(async (req: Request) => {
         const upstreamUrlWithAuth = `${upstreamUrl}?access_token=${encodeURIComponent(accessToken)}`;
         upstreamWs = new WebSocket(upstreamUrlWithAuth);
 
+        let setupCompleteReceived = false;
+        let firstUpstreamMessageLogged = false;
+
         upstreamWs.onopen = () => {
           log('upstream_opened');
           // Send setup message as first message
           upstreamWs!.send(setupMessage);
-          log('setup_sent');
+          log('setup_sent', {
+            modelPath: setupConfig.model,
+            voice,
+            toolsEnabled: VOICE_TOOLS_ENABLED,
+            affective: VOICE_AFFECTIVE_DIALOG,
+            proactive: VOICE_PROACTIVE_AUDIO,
+          });
           upstreamReady = true;
 
           // Flush any buffered client messages
@@ -1011,17 +935,16 @@ serve(async (req: Request) => {
             upstreamWs!.send(msg);
           }
 
-          // Start keepalive pings (30s per gist)
+          // Start keepalive pings (30s per gist) — camelCase
           keepaliveInterval = setInterval(() => {
             if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
-              // Send empty realtime_input to keep connection alive
               upstreamWs.send(
                 JSON.stringify({
-                  realtime_input: {
-                    media_chunks: [
+                  realtimeInput: {
+                    mediaChunks: [
                       {
-                        mime_type: 'audio/pcm;rate=16000',
-                        data: '', // Empty audio = silence keepalive
+                        mimeType: 'audio/pcm;rate=16000',
+                        data: '',
                       },
                     ],
                   },
@@ -1032,6 +955,34 @@ serve(async (req: Request) => {
         };
 
         upstreamWs.onmessage = (upstreamEvent: MessageEvent) => {
+          // Protocol observability: log first upstream message verbatim
+          if (!firstUpstreamMessageLogged) {
+            firstUpstreamMessageLogged = true;
+            const data = typeof upstreamEvent.data === 'string' ? upstreamEvent.data : '';
+            try {
+              const parsed = JSON.parse(data);
+              const hasSetupComplete = !!(parsed.setupComplete || parsed.setup_complete);
+              if (hasSetupComplete) {
+                setupCompleteReceived = true;
+                log('setup_complete_received');
+              }
+              // Log structure keys (not full payload to avoid PII leaks)
+              log('first_upstream_message', { keys: Object.keys(parsed), hasSetupComplete });
+            } catch {
+              log('first_upstream_message', { raw_length: data.length, parse_failed: true });
+            }
+          } else {
+            // Check subsequent messages for setupComplete too
+            const data = typeof upstreamEvent.data === 'string' ? upstreamEvent.data : '';
+            try {
+              const parsed = JSON.parse(data);
+              if (!setupCompleteReceived && (parsed.setupComplete || parsed.setup_complete)) {
+                setupCompleteReceived = true;
+                log('setup_complete_received');
+              }
+            } catch { /* binary frame, ignore */ }
+          }
+
           // Relay upstream messages to client
           if (clientWs.readyState === WebSocket.OPEN) {
             const data = typeof upstreamEvent.data === 'string' ? upstreamEvent.data : '';
@@ -1044,9 +995,13 @@ serve(async (req: Request) => {
         };
 
         upstreamWs.onclose = (ev: CloseEvent) => {
-          log('upstream_closed', { code: ev.code, reason: ev.reason, wasClean: ev.wasClean });
+          log('upstream_closed', {
+            code: ev.code,
+            reason: ev.reason,
+            wasClean: ev.wasClean,
+            setupCompleteReceived,
+          });
           upstreamReady = false;
-          // Relay close to client
           closeAll(safeCloseCode(ev.code), ev.reason || 'Upstream closed');
         };
 

@@ -18,16 +18,15 @@ const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
 // The old preview model (gemini-live-2.5-flash-preview-native-audio-09-2025) is deprecated.
 const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
 
-// Feature flag: include tool declarations in setup message.
-// Set to 'true' after verifying minimal handshake works without tools.
+// Phase A: Mode 0 — all features OFF by default for boring handshake baseline
 const VOICE_TOOLS_ENABLED =
-  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'false').toLowerCase() === 'true';
 
-// Feature flags for preview capabilities — default ON for richer voice experience
+// Preview features — OFF by default for isolation, not because invalid on GA model
 const VOICE_AFFECTIVE_DIALOG =
-  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
 const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -791,65 +790,56 @@ serve(async req => {
       totalMs: Date.now() - t0,
     });
 
-    // Vertex Live API WebSocket URL
-    const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1.LlmBidiService/BidiGenerateContent`;
+    // Use v1beta1 for Live API (matches proxy and gist)
+    const websocketUrl = `wss://${VERTEX_LOCATION}-aiplatform.googleapis.com/ws/google.cloud.aiplatform.v1beta1.LlmBidiService/BidiGenerateContent`;
 
-    // Build the BidiGenerateContentSetup message.
-    // Vertex AI Live uses snake_case on the wire.
-    //
-    // CRITICAL STRUCTURE: realtime_input_config, input_audio_transcription, and
-    // output_audio_transcription are TOP-LEVEL fields in setup — NOT nested inside
-    // generation_config. This was the primary cause of setupComplete never arriving.
+    // Build setup message — camelCase matching confirmed-working gist
+    // Phase A: Mode 0 boring handshake — no tools, no affective, no proactive
     const setupConfig: Record<string, unknown> = {
       model: `projects/${VERTEX_PROJECT_ID}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_LIVE_MODEL}`,
-      generation_config: {
-        response_modalities: ['AUDIO'],
-        speech_config: {
-          voice_config: {
-            prebuilt_voice_config: {
-              voice_name: voice,
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: voice,
             },
           },
         },
       },
-      system_instruction: {
+      systemInstruction: {
         parts: [{ text: systemInstruction }],
       },
-      // Top-level setup fields (NOT inside generation_config)
-      realtime_input_config: {
-        automatic_activity_detection: {
-          disabled: false,
-          start_of_speech_sensitivity: 'START_OF_SPEECH_SENSITIVITY_LOW',
-          end_of_speech_sensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
-        },
+      realtimeInputConfig: {
+        activityHandling: 'START_OF_ACTIVITY_INTERRUPTS',
       },
-      input_audio_transcription: {},
-      output_audio_transcription: {},
+      inputAudioTranscription: {},
+      outputAudioTranscription: {},
+      contextWindowCompression: { slidingWindow: {} },
     };
 
-    // Include tools only when VOICE_TOOLS_ENABLED is true.
-    // This allows verifying the minimal handshake works before adding tool complexity.
+    // Session resumption
+    if (resumptionToken) {
+      setupConfig.sessionResumption = { handle: resumptionToken };
+      console.log(`${tag} Including session resumption token`);
+    } else {
+      setupConfig.sessionResumption = {};
+    }
+
+    // Mode 2+: tools (OFF by default in Phase A)
     if (VOICE_TOOLS_ENABLED) {
       setupConfig.tools = [
-        { function_declarations: VOICE_FUNCTION_DECLARATIONS },
-        // Google Search grounding — gives voice the same real-time web access as text mode.
-        // Gemini decides when to use it (e.g. "what's the weather in Paris?" or "is that museum open?").
-        { google_search: {} },
+        { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
       ];
     }
 
-    // Session resumption — include token if reconnecting to resume prior conversation
-    if (resumptionToken) {
-      setupConfig.session_resumption = { handle: resumptionToken };
-      console.log(`${tag} Including session resumption token`);
-    }
-
-    // Preview features — gated behind env flags, never part of baseline GA handshake
+    // Mode 4+: affective dialog (OFF by default in Phase A)
     if (VOICE_AFFECTIVE_DIALOG) {
-      (setupConfig.generation_config as Record<string, unknown>).enable_affective_dialog = true;
+      (setupConfig.generationConfig as Record<string, unknown>).enableAffectiveDialog = true;
     }
+    // Mode 5+: proactive audio (OFF by default in Phase A)
     if (VOICE_PROACTIVE_AUDIO) {
-      setupConfig.proactivity = { proactive_audio: true };
+      setupConfig.proactivity = { proactiveAudio: true };
     }
 
     const setupMessage = { setup: setupConfig };
