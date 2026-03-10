@@ -10,6 +10,7 @@ interface BasecampSelectorProps {
   onBasecampSet: (basecamp: BasecampLocation) => Promise<void> | void;
   onBasecampClear?: () => Promise<void> | void;
   currentBasecamp?: BasecampLocation;
+  isPersonal?: boolean;
 }
 
 export const BasecampSelector = ({
