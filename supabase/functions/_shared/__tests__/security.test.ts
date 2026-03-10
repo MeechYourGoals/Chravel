@@ -6,19 +6,27 @@ vi.mock('https://deno.land/x/jose@v5.2.0/index.ts', () => {
   return {
     SignJWT: class {
       constructor(private payload: any) {}
-      setProtectedHeader() { return this; }
-      setIssuedAt() { return this; }
-      setExpirationTime() { return this; }
-      async sign() { return 'mock.jwt.token.' + JSON.stringify(this.payload); }
+      setProtectedHeader() {
+        return this;
+      }
+      setIssuedAt() {
+        return this;
+      }
+      setExpirationTime() {
+        return this;
+      }
+      async sign() {
+        return 'mock.jwt.token.' + JSON.stringify(this.payload);
+      }
     },
     jwtVerify: async (token: string) => {
       if (token === 'expired') throw new Error('expired');
       const payloadStr = token.split('.').pop();
       if (!payloadStr) throw new Error('invalid format');
       return {
-        payload: JSON.parse(payloadStr)
+        payload: JSON.parse(payloadStr),
       };
-    }
+    },
   };
 });
 
@@ -35,7 +43,7 @@ describe('Capability Tokens', () => {
     const payload = {
       user_id: 'user_1',
       trip_id: 'trip_1',
-      allowed_tools: ['*']
+      allowed_tools: ['*'],
     };
     const token = await generateCapabilityToken(payload);
     const verified = await verifyCapabilityToken(token);
@@ -61,18 +69,18 @@ describe('Tool Router Security Air-Lock', () => {
     const token = await generateCapabilityToken({
       user_id: 'user_1',
       trip_id: 'trip_1', // Authorized trip
-      allowed_tools: ['*']
+      allowed_tools: ['*'],
     });
 
     vi.mocked(functionExecutor.executeFunctionCall).mockResolvedValue({
       success: true,
-      task: { id: 't1', creator_id: 'user_1', trip_id: 'trip_1' }
+      task: { id: 't1', creator_id: 'user_1', trip_id: 'trip_1' },
     });
 
     // LLM maliciously attempts cross-trip access
     const maliciousArgs = {
       title: 'Hack',
-      trip_id: 'trip_999'
+      trip_id: 'trip_999',
     };
 
     const result = await executeToolSecurely(mockSupabase, token, 'createTask', maliciousArgs);
@@ -84,7 +92,7 @@ describe('Tool Router Security Air-Lock', () => {
       expect.objectContaining({ trip_id: 'trip_1', title: 'Hack' }), // Args were overridden
       'trip_1',
       'user_1',
-      undefined
+      undefined,
     );
 
     // Assert that sensitive fields were redacted from output
@@ -97,15 +105,15 @@ describe('Tool Router Security Air-Lock', () => {
     const token = await generateCapabilityToken({
       user_id: 'user_1',
       trip_id: 'trip_1',
-      allowed_tools: ['*']
+      allowed_tools: ['*'],
     });
 
     vi.mocked(functionExecutor.executeFunctionCall).mockResolvedValue({
       success: true,
       users: [
         { id: 'u1', display_name: 'Alice', email: 'alice@hacker.com', phone: '123' },
-        { id: 'u2', first_name: 'Bob', email: 'bob@hacker.com' }
-      ]
+        { id: 'u2', first_name: 'Bob', email: 'bob@hacker.com' },
+      ],
     });
 
     const result = await executeToolSecurely(mockSupabase, token, 'getUsers', {});
