@@ -39,7 +39,9 @@ if (totals.warnings > baseline) {
   console.error(
     `\n❌ ESLint warning budget exceeded: ${totals.warnings} warnings (baseline ${baseline}).`,
   );
-  console.error('Reduce warnings or explicitly ratchet the baseline in CI when intentionally accepted.');
+  console.error(
+    'Reduce warnings or explicitly ratchet the baseline in CI when intentionally accepted.',
+  );
   fs.unlinkSync(reportPath);
   process.exit(1);
 }
