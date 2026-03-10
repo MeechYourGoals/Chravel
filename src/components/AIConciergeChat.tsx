@@ -569,43 +569,12 @@ export const AIConciergeChat = ({
     onError: handleLiveError,
   });
 
-  // Voice state for the VoiceButton — shows dictation state when in fallback mode
-  const convoVoiceState: VoiceState = (() => {
-    if (!DUPLEX_VOICE_ENABLED) return dictationState;
-    // If duplex failed and dictation is running, show dictation state
-    if (duplexFailed && isDictationActive) return dictationState;
-    // Otherwise show Gemini Live state
-    return mapLiveStateToVoiceState(liveState);
-  })();
+  // Voice state for VoiceButton — dictation only (Live is separate button now)
+  const convoVoiceState: VoiceState = dictationState;
 
-  // Auto-fallback: when Gemini Live enters error state, activate dictation
-  useEffect(() => {
-    if (!DUPLEX_VOICE_ENABLED) return;
-    if (liveState === 'error' && !duplexFailed) {
-      setDuplexFailed(true);
-      toast.info('Live voice unavailable — switching to dictation', {
-        description: 'Speak and your words will appear in the text field.',
-        duration: 4000,
-      });
-      // Small delay to let the Gemini Live audio resources release before
-      // starting Web Speech API (avoids mic contention on iOS).
-      setTimeout(() => {
-        toggleDictation();
-      }, 500);
-    }
-  }, [liveState, duplexFailed, toggleDictation]);
-
-  // Reset duplexFailed when Gemini Live goes back to idle (session ended cleanly)
-  useEffect(() => {
-    if (liveState === 'idle' && duplexFailed && !isDictationActive) {
-      setDuplexFailed(false);
-    }
-  }, [liveState, duplexFailed, isDictationActive]);
-
-  // Voice active state — either Gemini Live is running OR dictation fallback is active
-  const isVoiceActive =
-    (DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error') ||
-    (duplexFailed && isDictationActive);
+  // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
+  const isLiveSessionActive =
+    DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   // Voice toggle — dictation (Web Speech) or duplex (Gemini Live)
   const handleConvoToggle = useCallback(async () => {
