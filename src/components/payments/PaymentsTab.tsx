@@ -21,7 +21,7 @@ interface PaymentsTabProps {
   tripId: string;
 }
 
-export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
+export const PaymentsTab = React.memo(({ tripId }: PaymentsTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isLoading: demoLoading } = useDemoMode();
@@ -249,4 +249,4 @@ export const PaymentsTab = ({ tripId }: PaymentsTabProps) => {
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
-};
+});

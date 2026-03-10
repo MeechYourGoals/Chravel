@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Mail, Check, AlertTriangle, Loader2, Sparkles } from 'lucide-react';
 import {
@@ -25,6 +26,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
   onImportComplete,
   onImportError,
 }) => {
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState<GmailAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -89,7 +91,11 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
           Connect your Gmail in Settings to magically find flights, hotels, and event tickets for
           this trip.
         </p>
-        <Button variant="outline" size="sm" onClick={() => (window.location.href = '/settings')}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/settings', { state: { section: 'integrations' } })}
+        >
           Go to Settings
         </Button>
       </div>
