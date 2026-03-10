@@ -18,14 +18,14 @@ export const GmailCallbackPage = () => {
       setError(`Google returned an error: ${errorParam}`);
       toast.error('Failed to connect Gmail');
       // Redirect back to settings after a delay
-      setTimeout(() => navigate('/settings'), 3000);
+      setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 3000);
       return;
     }
 
     if (!code || !state) {
       setError('Invalid callback parameters');
       toast.error('Invalid callback parameters');
-      setTimeout(() => navigate('/settings'), 3000);
+      setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 3000);
       return;
     }
 
