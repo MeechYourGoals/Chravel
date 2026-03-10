@@ -623,18 +623,21 @@ async function searchMedia(
     return [];
   }
 
-  return (data || []).map((media: any) => ({
-    id: media.id,
-    contentType: 'media' as const,
-    tripId: media.trip_id,
-    tripName: media.trips?.name || 'Unknown Trip',
-    title: media.name,
-    snippet: media.file_type,
-    matchScore: 0.82,
-    deepLink: `/trip/${media.trip_id}#media-${media.id}`,
-    metadata: { type: media.file_type },
-    timestamp: media.created_at,
-  }));
+  return (data || []).map(media => {
+    const tripName = (media.trips as { name: string } | null)?.name || 'Unknown Trip';
+    return {
+      id: media.id,
+      contentType: 'media' as const,
+      tripId: media.trip_id,
+      tripName,
+      title: media.name,
+      snippet: media.file_type,
+      matchScore: 0.82,
+      deepLink: `/trip/${media.trip_id}#media-${media.id}`,
+      metadata: { type: media.file_type },
+      timestamp: media.created_at,
+    };
+  });
 }
 
 /**

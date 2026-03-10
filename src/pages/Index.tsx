@@ -396,7 +396,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToProTrip(trip);
             return acc;
           },
-          {} as Record<string, unknown>,
+          {} as Record<string, ProTripData>,
         );
       }
     }
@@ -422,7 +422,7 @@ const Index = () => {
             acc[trip.id] = convertSupabaseTripToEvent(trip);
             return acc;
           },
-          {} as Record<string, unknown>,
+          {} as Record<string, EventData>,
         );
       }
     }
