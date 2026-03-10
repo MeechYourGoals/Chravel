@@ -47,7 +47,7 @@ export async function processOfflineQueue(handlers: OfflineSyncHandlers): Promis
       // Handler succeeded -> remove.
       await removeOperation(op.id);
       processed++;
-    } catch (err) {
+    } catch (_err) {
       const updated = await updateOperationStatus({
         operationId: op.id,
         status: 'pending',

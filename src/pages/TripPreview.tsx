@@ -248,7 +248,7 @@ const TripPreview = () => {
       try {
         await navigator.clipboard.writeText(shareUrl);
         toast.success('Link copied to clipboard!');
-      } catch (err) {
+      } catch (_err) {
         toast.error('Failed to copy link');
       }
     }

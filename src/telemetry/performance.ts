@@ -225,7 +225,7 @@ export function observeLongTasks(): void {
     });
 
     observer.observe({ entryTypes: ['longtask'] });
-  } catch (error) {
+  } catch (_error) {
     // longtask observer not supported
   }
 }
@@ -269,7 +269,7 @@ export function reportWebVitals(): void {
         }
       }
     }).observe({ type: 'largest-contentful-paint', buffered: true });
-  } catch (e) {
+  } catch (_e) {
     // LCP not supported
   }
 
@@ -295,7 +295,7 @@ export function reportWebVitals(): void {
         }
       }
     }).observe({ type: 'first-input', buffered: true });
-  } catch (e) {
+  } catch (_e) {
     // FID not supported
   }
 
@@ -320,7 +320,7 @@ export function reportWebVitals(): void {
         console.log('[Performance] Web Vital:', metric);
       }
     }).observe({ type: 'layout-shift', buffered: true });
-  } catch (e) {
+  } catch (_e) {
     // CLS not supported
   }
 }

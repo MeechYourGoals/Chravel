@@ -199,7 +199,7 @@ export function useGoogleTTS(options: UseGoogleTTSOptions = {}): UseGoogleTTSRet
         try {
           const errBody = await response.json();
           errMsg = errBody.error || errMsg;
-        } catch (err) {
+        } catch (_err) {
           // Fall back to default error message if JSON parsing fails
         }
         throw new Error(errMsg);

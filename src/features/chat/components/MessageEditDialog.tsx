@@ -51,7 +51,7 @@ export const MessageEditDialog: React.FC<MessageEditDialogProps> = ({
         description: 'Message updated',
       });
       onClose();
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to update message',

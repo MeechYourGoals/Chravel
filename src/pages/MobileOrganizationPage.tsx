@@ -42,7 +42,7 @@ export const MobileOrganizationPage = () => {
         title: 'Role updated',
         description: 'Team member role has been updated successfully',
       });
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to update member role',
@@ -60,7 +60,7 @@ export const MobileOrganizationPage = () => {
         title: 'Member removed',
         description: 'Team member has been removed from the organization',
       });
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to remove member',

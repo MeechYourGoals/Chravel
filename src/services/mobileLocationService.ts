@@ -230,7 +230,7 @@ export class MobileLocationService {
         const battery = await navigatorAny.getBattery();
         return Math.round(battery.level * 100);
       }
-    } catch (error) {
+    } catch (_error) {
       // Battery API not available - silent fail
     }
     return undefined;

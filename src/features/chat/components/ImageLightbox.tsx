@@ -81,7 +81,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch (_error) {
       // Fallback: open in new tab
       window.open(currentImage.url, '_blank');
     }

@@ -106,7 +106,7 @@ export const ProTripCard = ({
       });
       setShowArchiveDialog(false);
       onArchiveSuccess?.();
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Failed to archive trip',
         description: 'There was an error archiving your trip.',
@@ -123,7 +123,7 @@ export const ProTripCard = ({
         description: `"${trip.title}" is now hidden.`,
       });
       onHideSuccess?.();
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Failed to hide trip',
         description: 'There was an error hiding your trip.',
@@ -151,7 +151,7 @@ export const ProTripCard = ({
       });
       setShowDeleteDialog(false);
       onDeleteSuccess?.();
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Failed to remove trip',
         description: 'There was an error removing the trip.',

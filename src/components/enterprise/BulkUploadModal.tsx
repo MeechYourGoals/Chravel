@@ -98,7 +98,7 @@ export const BulkUploadModal = ({
         } else {
           setUploadedData(data);
         }
-      } catch (error) {
+      } catch (_error) {
         setErrors(['Failed to parse file. Please check the format.']);
       } finally {
         setIsProcessing(false);

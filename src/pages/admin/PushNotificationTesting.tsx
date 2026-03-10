@@ -167,7 +167,7 @@ const SubscriptionsViewer: React.FC = () => {
         .limit(50);
       if (error) throw error;
       setSubscriptions(data || []);
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to load subscriptions');
     } finally {
       setIsLoading(false);

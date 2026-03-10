@@ -72,7 +72,7 @@ export const useTripPoster = () => {
             url: window.location.href,
           });
         }
-      } catch (err) {
+      } catch (_err) {
         // If native sharing fails, fall back to download
         downloadPoster(tripTitle);
       }

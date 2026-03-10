@@ -44,7 +44,7 @@ class PerformanceService {
         this.observer.observe({ type: 'largest-contentful-paint', buffered: true });
         this.observer.observe({ type: 'first-input', buffered: true });
         this.observer.observe({ type: 'layout-shift', buffered: true });
-      } catch (e) {
+      } catch (_e) {
         console.warn('Performance observer not supported for some metrics');
       }
     }

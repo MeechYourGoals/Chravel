@@ -243,7 +243,7 @@ export const ArchivedTripsSection = ({ onTripStateChange }: ArchivedTripsSection
         description: `"${tripName}" is now visible in your trips list.`,
       });
       loadTrips();
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to unhide trip',

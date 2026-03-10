@@ -96,7 +96,7 @@ export const TravelBookingModal: React.FC<TravelBookingModalProps> = ({
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Search Failed',
         description: 'Unable to search flights. Please try again.',
@@ -129,7 +129,7 @@ export const TravelBookingModal: React.FC<TravelBookingModalProps> = ({
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Search Failed',
         description: 'Unable to search hotels. Please try again.',
@@ -162,7 +162,7 @@ export const TravelBookingModal: React.FC<TravelBookingModalProps> = ({
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Search Failed',
         description: 'Unable to search restaurants. Please try again.',
@@ -195,7 +195,7 @@ export const TravelBookingModal: React.FC<TravelBookingModalProps> = ({
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Search Failed',
         description: 'Unable to search transportation. Please try again.',

@@ -44,7 +44,7 @@ export const SetBasecampSquare = ({
       setIsCopying(true);
       toast({ title: 'Address copied to clipboard!' });
       setTimeout(() => setIsCopying(false), 2000);
-    } catch (error) {
+    } catch (_error) {
       toast({ title: 'Failed to copy address', variant: 'destructive' });
     }
   };
@@ -55,7 +55,7 @@ export const SetBasecampSquare = ({
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Trip Basecamp', text });
-      } catch (error) {
+      } catch (_error) {
         // User cancelled
       }
     } else {
