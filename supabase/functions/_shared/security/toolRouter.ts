@@ -6,14 +6,16 @@ export async function executeToolSecurely(
   capabilityToken: string,
   toolName: string,
   args: Record<string, any>,
-  locationContext?: any
+  locationContext?: any,
 ) {
   // 1. Verify capability token signature + TTL
   const cap = await verifyCapabilityToken(capabilityToken);
 
   // 2. Verify tool is allowed
   if (cap.allowed_tools[0] !== '*' && !cap.allowed_tools.includes(toolName)) {
-    throw new Error(`Permission denied: Tool '${toolName}' is not allowed by this capability token.`);
+    throw new Error(
+      `Permission denied: Tool '${toolName}' is not allowed by this capability token.`,
+    );
   }
 
   // 3. Enforce argument constraints (trip_id immutability, IDs belong to trip, etc.)
@@ -21,7 +23,9 @@ export async function executeToolSecurely(
   const enforcedArgs = { ...args };
 
   if (enforcedArgs.trip_id && enforcedArgs.trip_id !== cap.trip_id) {
-    console.warn(`[Security] LLM attempted to use trip_id ${enforcedArgs.trip_id}, forcing capability trip_id ${cap.trip_id}`);
+    console.warn(
+      `[Security] LLM attempted to use trip_id ${enforcedArgs.trip_id}, forcing capability trip_id ${cap.trip_id}`,
+    );
   }
   enforcedArgs.trip_id = cap.trip_id; // Explicitly override
 
@@ -32,7 +36,7 @@ export async function executeToolSecurely(
     enforcedArgs,
     cap.trip_id,
     cap.user_id,
-    locationContext
+    locationContext,
   );
 
   // 5. Return sanitized output
@@ -74,7 +78,7 @@ function sanitizeToolOutput(toolName: string, result: any): any {
     sanitized.users = sanitized.users.map((u: any) => ({
       id: u.id,
       display_name: u.display_name || u.first_name,
-      role: u.role
+      role: u.role,
       // omitted: email, phone_number, etc.
     }));
   }
