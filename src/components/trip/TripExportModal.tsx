@@ -19,7 +19,7 @@ const TRIP_SECTIONS: Array<{ id: ExportSection; label: string }> = [
   { id: 'calendar', label: 'Calendar' },
   { id: 'payments', label: 'Payments' },
   { id: 'polls', label: 'Polls' },
-  { id: 'places', label: 'Places' },
+  { id: 'places', label: 'Places & Explore Links' },
   { id: 'attachments', label: 'Attachments' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'broadcasts', label: 'Broadcasts' },

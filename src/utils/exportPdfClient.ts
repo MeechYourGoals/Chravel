@@ -329,7 +329,7 @@ export async function generateClientPDF(
     calendar: 'Calendar Events',
     lineup: 'Lineup',
     payments: 'Payments',
-    places: 'Places & Links',
+    places: 'Places & Explore Links',
     polls: 'Polls',
     roster: 'Trip Members',
     tasks: 'Tasks',
@@ -632,7 +632,7 @@ export async function generateClientPDF(
           }
         }
       } else {
-        renderEmptyState('No places saved');
+        renderEmptyState('No places or explore links saved');
       }
     }
 

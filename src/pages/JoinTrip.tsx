@@ -84,6 +84,9 @@ const JoinTrip = () => {
   const [inviteData, setInviteData] = useState<InvitePreviewData | null>(null);
   const [error, setError] = useState<InviteError | null>(null);
   const [joinSuccess, setJoinSuccess] = useState(false);
+  const [joinSuccessType, setJoinSuccessType] = useState<'request' | 'already_member' | 'joined'>(
+    'request',
+  );
   const autoJoinAttemptedRef = useRef(false);
 
   // Debug logging on mount
@@ -349,6 +352,7 @@ const JoinTrip = () => {
           data.message ||
             "Join request submitted! You'll see the trip on your home page once approved.",
         );
+        setJoinSuccessType('request');
         setJoinSuccess(true);
         setJoining(false);
         // Redirect to home page after 2 seconds to show pending trip card
@@ -360,8 +364,10 @@ const JoinTrip = () => {
 
       if (data.already_member) {
         toast.info(data.message || "You're already a member!");
+        setJoinSuccessType('already_member');
       } else {
         toast.success(data.message || 'Successfully joined the trip!');
+        setJoinSuccessType('joined');
       }
 
       setJoinSuccess(true);
@@ -429,7 +435,7 @@ const JoinTrip = () => {
       spec.severity === 'error'
         ? 'text-red-400'
         : spec.severity === 'warning'
-          ? 'text-yellow-400'
+          ? 'text-gold-primary'
           : 'text-blue-400';
 
     switch (spec.icon) {
@@ -589,7 +595,7 @@ const JoinTrip = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8 shadow-xl">
-          <WifiOff className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+          <WifiOff className="h-12 w-12 text-gold-primary mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h1>
           <p className="text-muted-foreground mb-6">
             We couldn't load the invite details. Please try again.
@@ -638,8 +644,8 @@ const JoinTrip = () => {
 
           {/* Account mismatch context */}
           {error.code === 'ACCOUNT_MISMATCH' && error.metadata?.invitedEmail && (
-            <div className="mb-6 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-              <p className="text-sm text-yellow-400">
+            <div className="mb-6 p-3 bg-gold-primary/10 border border-gold-primary/20 rounded-xl">
+              <p className="text-sm text-gold-primary">
                 Invite sent to: <span className="font-medium">{error.metadata.invitedEmail}</span>
               </p>
               {error.metadata.currentEmail && (
@@ -684,18 +690,28 @@ const JoinTrip = () => {
   }
 
   if (joinSuccess) {
+    const tripName = inviteData?.trip.name || 'the trip';
+    const successContent = {
+      request: {
+        title: 'Request Submitted!',
+        message: `Your request to join ${tripName} has been sent. A trip member will review it soon.`,
+      },
+      already_member: {
+        title: 'Already a Member!',
+        message: `You're already a member of ${tripName}. Taking you there now.`,
+      },
+      joined: {
+        title: `You've joined ${tripName}!`,
+        message: 'Taking you to the trip now.',
+      },
+    }[joinSuccessType];
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md bg-card/50 backdrop-blur-md border border-border rounded-3xl p-8">
           <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-4">
-            {inviteData?.invite.require_approval ? 'Request Submitted!' : 'Welcome!'}
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            {inviteData?.invite.require_approval
-              ? 'Your join request has been submitted. The organizer will review it soon.'
-              : `You've successfully joined ${inviteData?.trip.name}!`}
-          </p>
+          <h1 className="text-2xl font-bold text-foreground mb-4">{successContent.title}</h1>
+          <p className="text-muted-foreground mb-6">{successContent.message}</p>
           <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
         </div>
@@ -782,6 +798,9 @@ const JoinTrip = () => {
           {/* Actions */}
           {!user ? (
             <div className="space-y-4">
+              <p className="text-muted-foreground text-center text-sm">
+                Please log in to request access to this trip
+              </p>
               <div className="space-y-3">
                 <button
                   onClick={handleSignupRedirect}
@@ -810,10 +829,10 @@ const JoinTrip = () => {
                 {joining ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Joining...
+                    Requesting...
                   </>
                 ) : (
-                  'Join Trip'
+                  'Request to Join'
                 )}
               </button>
 
@@ -826,15 +845,14 @@ const JoinTrip = () => {
             </div>
           )}
 
-          {inviteData?.invite.require_approval && !joining && user && (
-            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+          {!joining && user && (
+            <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="h-5 w-5 text-yellow-400" />
-                <p className="font-medium text-yellow-400">Approval Required</p>
+                <Users className="h-5 w-5 text-blue-400" />
+                <p className="font-medium text-blue-400">Member Approval</p>
               </div>
-              <p className="text-yellow-400/80 text-sm">
-                This trip requires approval from the organizer. Your request will be reviewed once
-                submitted.
+              <p className="text-blue-400/80 text-sm">
+                A current trip member will review your request. You'll be notified once approved.
               </p>
             </div>
           )}
