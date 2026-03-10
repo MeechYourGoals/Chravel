@@ -12,7 +12,7 @@ export const PlusUpgrade = () => {
       {/* Blurred Preview Content */}
       <div className="p-6 filter blur-sm opacity-60">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
             <Sparkles size={20} className="text-white" />
           </div>
           <div>

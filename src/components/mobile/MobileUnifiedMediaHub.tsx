@@ -629,7 +629,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           <button
             onClick={openCapture}
             disabled={isUploading}
-            className="native-button flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl font-medium shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+            className="native-button flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-white px-4 py-3 rounded-xl font-medium shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isUploading ? (
               <Loader2 size={20} className="animate-spin" />
@@ -954,7 +954,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                   onChange={e => setNewLinkUrl(e.target.value)}
                   type="url"
                   placeholder="https://..."
-                  className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
               <div>
@@ -964,7 +964,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                   onChange={e => setNewLinkTitle(e.target.value)}
                   type="text"
                   placeholder="e.g., Late night tacos"
-                  className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
               <div>
@@ -974,7 +974,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                   onChange={e => setNewLinkDescription(e.target.value)}
                   rows={3}
                   placeholder="Add context for the group…"
-                  className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+                  className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
                 />
               </div>
 
@@ -987,7 +987,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
                 </button>
                 <button
                   onClick={handleAddLink}
-                  className="native-button bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl font-medium shadow-lg"
+                  className="native-button bg-gradient-to-r from-primary to-primary/80 text-white px-4 py-3 rounded-xl font-medium shadow-lg"
                 >
                   Save
                 </button>

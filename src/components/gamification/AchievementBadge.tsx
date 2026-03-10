@@ -35,9 +35,9 @@ const rarityConfig = {
     glow: 'shadow-purple-400/20',
   },
   legendary: {
-    gradient: 'from-yellow-400 to-orange-500',
-    border: 'border-yellow-400/30',
-    glow: 'shadow-yellow-400/20',
+    gradient: 'from-gold-light to-gold-primary',
+    border: 'border-gold-primary/30',
+    glow: 'shadow-ring-glow',
   },
 };
 

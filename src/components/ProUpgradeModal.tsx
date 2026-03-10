@@ -41,17 +41,17 @@ export const ProUpgradeModal = ({ isOpen, onClose }: ProUpgradeModalProps) => {
   };
 
   const tierIcons = {
-    starter: <Zap size={isMobile ? 20 : 24} className="text-blue-400" />,
+    starter: <Zap size={isMobile ? 20 : 24} className="text-primary" />,
     growing: <TrendingUp size={isMobile ? 20 : 24} className="text-green-400" />,
-    enterprise: <Building size={isMobile ? 20 : 24} className="text-purple-400" />,
+    enterprise: <Building size={isMobile ? 20 : 24} className="text-primary" />,
     'enterprise-plus': <Star size={isMobile ? 20 : 24} className="text-yellow-400" />,
   };
 
   const tierColors = {
-    starter: 'from-blue-500/20 to-blue-600/20 border-blue-500/30',
+    starter: 'from-primary/20 to-primary/10 border-primary/30',
     growing: 'from-green-500/20 to-green-600/20 border-green-500/30',
-    enterprise: 'from-purple-500/20 to-purple-600/20 border-purple-500/30',
-    'enterprise-plus': 'from-yellow-500/20 to-yellow-600/20 border-yellow-500/30',
+    enterprise: 'from-primary/20 to-primary/10 border-primary/30',
+    'enterprise-plus': 'from-primary/20 to-primary/10 border-primary/30',
   };
 
   return (

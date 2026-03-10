@@ -56,7 +56,7 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
                 />
               ) : (
                 <div
-                  className="h-6 w-6 rounded-full border-2 border-gray-800 bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold"
+                  className="h-6 w-6 rounded-full border-2 border-gray-800 bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center text-white text-xs font-semibold"
                   title={user.displayName}
                 >
                   {user.displayName[0].toUpperCase()}

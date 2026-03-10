@@ -44,7 +44,7 @@ export function buildEmailHtml(content: EmailContent): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <span style="font-size:20px;font-weight:700;color:#f59e0b;">ChravelApp</span>
+                    <span style="font-size:20px;font-weight:700;color:#c49746;">ChravelApp</span>
                   </td>
                   <td align="right">
                     <span style="font-size:12px;color:#888;">${escapeHtml(timestamp)}</span>
@@ -65,7 +65,7 @@ export function buildEmailHtml(content: EmailContent): string {
               <!-- CTA Button -->
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="background-color:#f59e0b;border-radius:8px;">
+                  <td style="background-color:#c49746;border-radius:8px;">
                     <a href="${escapeHtml(content.ctaUrl)}" target="_blank" style="display:inline-block;padding:14px 28px;color:#000000;font-size:16px;font-weight:600;text-decoration:none;">
                       ${escapeHtml(content.ctaLabel)}
                     </a>
@@ -80,7 +80,7 @@ export function buildEmailHtml(content: EmailContent): string {
               <p style="margin:0;font-size:12px;color:#666;line-height:1.5;">
                 ${escapeHtml(content.footerText)}
                 <br />
-                <a href="${escapeHtml(SETTINGS_URL)}" style="color:#f59e0b;text-decoration:underline;">Manage notification settings</a>
+                <a href="${escapeHtml(SETTINGS_URL)}" style="color:#c49746;text-decoration:underline;">Manage notification settings</a>
               </p>
             </td>
           </tr>

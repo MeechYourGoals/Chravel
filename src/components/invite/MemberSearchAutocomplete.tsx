@@ -144,7 +144,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
           onChange={e => setSearchQuery(e.target.value)}
           onFocus={() => searchQuery.length >= 2 && setIsOpen(true)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
         />
         {loading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -169,7 +169,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
                   className="h-10 w-10 rounded-full object-cover"
                 />
               ) : (
-                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center text-white font-semibold">
                   {(user.display_name || user.email || '?')[0].toUpperCase()}
                 </div>
               )}
@@ -181,7 +181,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
                   <p className="text-gray-500 text-sm truncate">Email hidden</p>
                 )}
               </div>
-              <UserPlus className="h-5 w-5 text-blue-400" />
+              <UserPlus className="h-5 w-5 text-primary" />
             </button>
           ))}
         </div>
@@ -193,7 +193,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
           {selectedUsers.map(user => (
             <div
               key={user.id}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg"
+              className="flex items-center gap-2 px-3 py-1.5 bg-primary/15 border border-primary/30 rounded-lg"
             >
               {user.avatar_url ? (
                 <img
@@ -202,7 +202,7 @@ export const MemberSearchAutocomplete: React.FC<MemberSearchAutocompleteProps> =
                   className="h-6 w-6 rounded-full object-cover"
                 />
               ) : (
-                <div className="h-6 w-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
+                <div className="h-6 w-6 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center text-white text-xs font-semibold">
                   {(user.display_name || user.email || '?')[0].toUpperCase()}
                 </div>
               )}

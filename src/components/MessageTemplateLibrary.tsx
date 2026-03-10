@@ -95,7 +95,7 @@ export const MessageTemplateLibrary = ({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+        <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
           <FileText size={16} className="text-white" />
         </div>
         <div>
@@ -116,7 +116,7 @@ export const MessageTemplateLibrary = ({
             placeholder="Search templates..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/20 rounded-xl pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+            className="w-full bg-white/5 border border-white/20 rounded-xl pl-10 pr-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-primary"
           />
         </div>
 
@@ -127,7 +127,7 @@ export const MessageTemplateLibrary = ({
               onClick={() => setSelectedCategory(category)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize ${
                 selectedCategory === category
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-primary text-white'
                   : 'bg-white/10 text-gray-300 hover:bg-white/20'
               }`}
             >
@@ -149,7 +149,7 @@ export const MessageTemplateLibrary = ({
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-medium text-white group-hover:text-purple-300 transition-colors">
+                    <h4 className="font-medium text-white group-hover:text-primary transition-colors">
                       {template.name}
                     </h4>
                     <span
@@ -166,7 +166,7 @@ export const MessageTemplateLibrary = ({
                       {template.placeholders.map(placeholder => (
                         <span
                           key={placeholder}
-                          className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs"
+                          className="px-2 py-0.5 bg-primary/15 text-primary rounded text-xs"
                         >
                           {placeholder}
                         </span>
@@ -176,7 +176,7 @@ export const MessageTemplateLibrary = ({
                 </div>
                 <ChevronRight
                   size={16}
-                  className="text-gray-500 group-hover:text-purple-400 transition-colors"
+                  className="text-gray-500 group-hover:text-primary transition-colors"
                 />
               </div>
             </div>
@@ -204,7 +204,7 @@ export const MessageTemplateLibrary = ({
             })
           }
           variant="outline"
-          className="w-full border-purple-500/50 text-purple-300 hover:bg-purple-500/10"
+          className="w-full border-primary/50 text-primary hover:bg-primary/10"
         >
           <Sparkles size={16} className="mr-2" />
           Generate Custom Template with AI

@@ -21,7 +21,7 @@ export const CategoryTags = ({ category, tags, className = '' }: CategoryTagsPro
           key={index}
           className={`px-3 py-1 rounded-full text-xs font-medium ${
             index === 0
-              ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+              ? 'bg-gold-primary/15 text-gold-primary border border-gold-primary/30'
               : 'bg-gray-700/50 text-gray-300 border border-gray-600/30'
           }`}
         >

@@ -43,7 +43,7 @@ const PLANS: PricingPlan[] = [
     savings: 'Save 17%',
     packageId: '$rc_monthly',
     icon: <Sparkles size={24} />,
-    gradient: 'from-blue-500 to-cyan-400',
+    gradient: 'from-primary to-primary/80',
     features: [
       { text: 'Unlimited saved trips', included: true },
       { text: '10 AI queries per trip', included: true },
@@ -66,7 +66,7 @@ const PLANS: PricingPlan[] = [
     popular: true,
     packageId: '$rc_annual',
     icon: <Crown size={24} />,
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'from-primary to-primary/80',
     features: [
       { text: 'Everything in Explorer', included: true },
       { text: 'Unlimited AI queries (24/7)', included: true },
@@ -204,7 +204,7 @@ export const NativeSubscriptionPaywall = ({
   return (
     <div className="fixed inset-0 z-50 bg-black">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-purple-900/30 via-black to-black" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/15 via-black to-black" />
 
       {/* Content */}
       <div
@@ -225,7 +225,7 @@ export const NativeSubscriptionPaywall = ({
 
         {/* Header */}
         <div className="px-6 pt-12 pb-6 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30">
             <Crown size={32} className="text-white" />
           </div>
           <h1 className="text-[28px] font-bold text-white mb-2">Unlock Chravel Pro</h1>
@@ -274,7 +274,7 @@ export const NativeSubscriptionPaywall = ({
             >
               {/* Popular badge */}
               {plan.popular && (
-                <div className="absolute top-0 right-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[11px] font-bold px-3 py-1 rounded-b-lg">
+                <div className="absolute top-0 right-4 bg-gradient-to-r from-primary to-primary/80 text-white text-[11px] font-bold px-3 py-1 rounded-b-lg">
                   MOST POPULAR
                 </div>
               )}
@@ -364,8 +364,8 @@ export const NativeSubscriptionPaywall = ({
             disabled={isPurchasing || isRestoring}
             className={cn(
               'w-full h-[54px] rounded-2xl font-semibold text-[17px]',
-              'bg-gradient-to-r from-purple-500 to-pink-500 text-white',
-              'shadow-lg shadow-purple-500/30',
+              'bg-gradient-to-r from-primary to-primary/80 text-white',
+              'shadow-lg shadow-primary/30',
               'active:scale-[0.98] transition-transform',
               'disabled:opacity-50',
             )}

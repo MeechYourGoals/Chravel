@@ -145,7 +145,7 @@ export const ConsumerAIConciergeSection = () => {
             {preferences.vibe.map(item => (
               <span
                 key={item}
-                className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-sm"
+                className="bg-primary/15 text-primary px-3 py-1 rounded-full text-sm"
               >
                 {item}
               </span>
@@ -153,7 +153,7 @@ export const ConsumerAIConciergeSection = () => {
             {preferences.accessibility.map(item => (
               <span
                 key={item}
-                className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm"
+                className="bg-primary/15 text-primary px-3 py-1 rounded-full text-sm"
               >
                 {item}
               </span>
@@ -172,19 +172,19 @@ export const ConsumerAIConciergeSection = () => {
               const hasMax = preferences.budgetMax > 0;
               if (hasMin && hasMax) {
                 return (
-                  <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
+                  <span className="bg-primary/15 text-primary px-3 py-1 rounded-full text-sm">
                     Budget: ${preferences.budgetMin}–${preferences.budgetMax} {unitLabel}
                   </span>
                 );
               } else if (hasMax) {
                 return (
-                  <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
+                  <span className="bg-primary/15 text-primary px-3 py-1 rounded-full text-sm">
                     Budget: up to ${preferences.budgetMax} {unitLabel}
                   </span>
                 );
               } else if (hasMin) {
                 return (
-                  <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
+                  <span className="bg-primary/15 text-primary px-3 py-1 rounded-full text-sm">
                     Budget: from ${preferences.budgetMin} {unitLabel}
                   </span>
                 );

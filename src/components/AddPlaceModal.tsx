@@ -214,7 +214,7 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Helper Text */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm text-blue-300">
+          <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm text-primary">
             Enter a place name (e.g., "Starbucks Chicago IL") or URL to save it to your trip links.
           </div>
 
@@ -239,7 +239,7 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
                 onChange={e => setSmartInput(e.target.value)}
                 placeholder="Target Chicago IL, https://target.com, or business name..."
                 required
-                className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-primary"
               />
               {placeLoading && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -296,7 +296,7 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
               onChange={e => setPlaceName(e.target.value)}
               placeholder="Give this place a name..."
               required
-              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -307,10 +307,10 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
               id="ai-sorting"
               checked={useAiSorting}
               onChange={e => setUseAiSorting(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-primary bg-slate-800 border-slate-600 rounded focus:ring-primary"
             />
             <label htmlFor="ai-sorting" className="flex items-center gap-2 text-sm text-slate-300">
-              <Sparkles size={16} className="text-blue-400" />
+              <Sparkles size={16} className="text-primary" />
               Auto-categorize based on place type
             </label>
           </div>

@@ -208,7 +208,7 @@ export const AiMessageModal = ({
       <DialogContent className="sm:max-w-[500px] bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
               <Sparkles size={16} className="text-white" />
             </div>
             Ask AI to Write a Message
@@ -299,7 +299,7 @@ export const AiMessageModal = ({
                       ? 'e.g., Make it more urgent, add team spirit elements...'
                       : 'e.g., Politely remind team that checkout is at 10am and we need bags in lobby by 9:30am...'
                   }
-                  className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none backdrop-blur-sm"
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-primary resize-none backdrop-blur-sm"
                 />
               </div>
 
@@ -309,7 +309,7 @@ export const AiMessageModal = ({
                 <select
                   value={tone}
                   onChange={e => setTone(e.target.value as any)}
-                  className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500 backdrop-blur-sm"
+                  className="w-full bg-white/5 border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-primary backdrop-blur-sm"
                 >
                   {toneOptions.map(option => (
                     <option key={option.value} value={option.value} className="bg-gray-900">
@@ -323,7 +323,7 @@ export const AiMessageModal = ({
               <Button
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || isGenerating}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white"
               >
                 {isGenerating ? (
                   <>
@@ -409,7 +409,7 @@ export const AiMessageModal = ({
                         value={scheduleDate}
                         onChange={e => setScheduleDate(e.target.value)}
                         min={new Date().toISOString().slice(0, 16)}
-                        className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm"
+                        className="w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary text-sm"
                       />
                     </div>
                   </div>

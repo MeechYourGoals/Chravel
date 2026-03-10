@@ -114,7 +114,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               onClick={() => setSelectedPlan('frequent-chraveler')}
               className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-2 text-sm ${
                 selectedPlan === 'frequent-chraveler'
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
@@ -125,7 +125,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               onClick={() => setSelectedPlan('travel-pro')}
               className={`px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
                 selectedPlan === 'travel-pro'
-                  ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 text-black'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
@@ -136,7 +136,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
               onClick={() => setSelectedPlan('events')}
               className={`px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
                 selectedPlan === 'events'
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white'
+                  ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
                   : 'text-gray-300 hover:text-white'
               }`}
             >
@@ -155,7 +155,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
                   selectedPlan === 'explorer'
                     ? 'bg-gradient-to-r from-glass-orange to-glass-yellow'
-                    : 'bg-gradient-to-r from-purple-500 to-purple-600'
+                    : 'bg-gradient-to-r from-primary to-primary/80'
                 }`}
               >
                 {selectedPlan === 'explorer' && <Globe size={32} className="text-white" />}
@@ -300,7 +300,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         ) : selectedPlan === 'travel-pro' ? (
           <div>
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building size={32} className="text-black" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">Chravel Pro</h3>
@@ -309,8 +309,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
 
             {/* Pro Features - Full descriptions restored */}
             <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <Users size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Advanced Team Collaboration</h4>
@@ -320,8 +320,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <Wallet size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Enterprise Budget Management</h4>
@@ -331,8 +331,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <BarChart3 size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">
@@ -344,8 +344,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <Phone size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">24/7 Priority Support</h4>
@@ -355,8 +355,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <Shield size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">
@@ -368,8 +368,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <Globe size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Multi-Organization Management</h4>
@@ -379,8 +379,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <Calendar size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">
@@ -392,8 +392,8 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
                   <Star size={24} className="text-yellow-400" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">
@@ -407,7 +407,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
             </div>
 
             <div className="text-center">
-              <div className="bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 backdrop-blur-sm border border-yellow-500/30 rounded-2xl p-6 mb-6">
+              <div className="bg-gradient-to-r from-primary/15 to-primary/20 backdrop-blur-sm border border-primary/30 rounded-2xl p-6 mb-6">
                 <div className="text-4xl font-bold text-white mb-2">Start Trial</div>
                 <p className="text-gray-300 mb-2">
                   Custom pricing available for large scale events, contact sales for more
@@ -418,7 +418,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
         ) : (
           <div>
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CalendarPlus size={32} className="text-white" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">Chravel Events</h3>
@@ -432,9 +432,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
 
             {/* Events Features Grid */}
             <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <CalendarPlus size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <CalendarPlus size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">All-in-One Event Planning</h4>
                 <p className="text-gray-300 text-sm">
@@ -443,9 +443,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <Mail size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <Mail size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Automated Invitations & RSVP</h4>
                 <p className="text-gray-300 text-sm">
@@ -454,9 +454,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <UserCheck size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <UserCheck size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Custom Roles & Permissions</h4>
                 <p className="text-gray-300 text-sm">
@@ -465,9 +465,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <Clock size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <Clock size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">
                   Integrated Scheduling & Timeline
@@ -478,9 +478,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <FileText size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <FileText size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Real-time Collaboration</h4>
                 <p className="text-gray-300 text-sm">
@@ -489,9 +489,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <DollarSign size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <DollarSign size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Budgeting & Payments</h4>
                 <p className="text-gray-300 text-sm">
@@ -500,9 +500,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <BarChart3 size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <BarChart3 size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Analytics & Insights</h4>
                 <p className="text-gray-300 text-sm">
@@ -511,9 +511,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <Ticket size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <Ticket size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">
                   Professional Invitations & Ticketing
@@ -524,12 +524,12 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 relative">
-                <div className="absolute top-3 right-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-black text-xs px-2 py-1 rounded-full font-bold">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6 relative">
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-primary to-primary/80 text-black text-xs px-2 py-1 rounded-full font-bold">
                   PREMIUM
                 </div>
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <Megaphone size={24} className="text-indigo-400" />
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <Megaphone size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Advanced Communication</h4>
                 <p className="text-gray-300 text-sm">
@@ -538,12 +538,12 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6 relative">
-                <div className="absolute top-3 right-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs px-2 py-1 rounded-full font-bold">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6 relative">
+                <div className="absolute top-3 right-3 bg-gradient-to-r from-primary to-primary/80 text-white text-xs px-2 py-1 rounded-full font-bold">
                   PRO
                 </div>
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <Paintbrush size={24} className="text-indigo-400" />
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <Paintbrush size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">White-label & Branding</h4>
                 <p className="text-gray-300 text-sm">
@@ -552,9 +552,9 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </p>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
-                  <Shield size={24} className="text-indigo-400" />
+              <div className="bg-gradient-to-br from-primary/10 to-primary/15 border border-primary/20 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/80 rounded-xl flex items-center justify-center mb-4">
+                  <Shield size={24} className="text-primary" />
                 </div>
                 <h4 className="text-lg font-bold text-white mb-2">Security & Compliance</h4>
                 <p className="text-gray-300 text-sm">
@@ -577,7 +577,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </ul>
               </div>
 
-              <div className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-primary/15 to-primary/20 border border-primary/30 rounded-xl p-4">
                 <h5 className="font-bold text-white mb-2">Events Plus</h5>
                 <div className="text-2xl font-bold text-white mb-2">$29/mo</div>
                 <p className="text-gray-300 text-sm mb-3">Per organizer</p>
@@ -589,7 +589,7 @@ export const UpgradeModal = ({ isOpen, onClose }: UpgradeModalProps) => {
                 </ul>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-primary/15 to-primary/20 border border-primary/30 rounded-xl p-4">
                 <h5 className="font-bold text-white mb-2">Events Pro</h5>
                 <div className="text-2xl font-bold text-white mb-2">$199/mo</div>
                 <p className="text-gray-300 text-sm mb-3">Per organization</p>

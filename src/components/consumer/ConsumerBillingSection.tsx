@@ -154,7 +154,7 @@ export const ConsumerBillingSection = () => {
         className={`rounded-xl p-4 ${
           isSubscribed
             ? 'bg-gradient-to-r from-glass-orange/10 to-glass-yellow/10 border border-glass-orange/20'
-            : 'bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-500/20'
+            : 'bg-gradient-to-r from-primary/10 to-primary/15 border border-primary/20'
         }`}
       >
         <div className="flex items-center justify-between mb-3">
@@ -164,7 +164,7 @@ export const ConsumerBillingSection = () => {
                 {tier}
                 {isSubscribed && <Crown size={20} className="text-glass-orange" />}
               </h4>
-              <p className={isSubscribed ? 'text-glass-orange' : 'text-blue-400'}>
+              <p className={isSubscribed ? 'text-glass-orange' : 'text-primary'}>
                 {isSubscribed ? 'Premium Features Active' : 'Free Forever'}
               </p>
             </div>
@@ -186,7 +186,7 @@ export const ConsumerBillingSection = () => {
               <li key={index} className="flex items-start gap-2">
                 <div
                   className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${
-                    isSubscribed ? 'bg-glass-orange' : 'bg-blue-400'
+                    isSubscribed ? 'bg-glass-orange' : 'bg-primary'
                   }`}
                 ></div>
                 {feature}

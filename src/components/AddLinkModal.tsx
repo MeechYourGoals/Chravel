@@ -266,8 +266,8 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
 
           {/* Prefill indicator */}
           {prefill?.url && (
-            <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-              <p className="text-sm text-purple-200">📌 Promoting URL from Media to Trip Links</p>
+            <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+              <p className="text-sm text-primary">📌 Promoting URL from Media to Trip Links</p>
             </div>
           )}
 
@@ -287,7 +287,7 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
                     onChange={e => setPlaceName(e.target.value)}
                     placeholder="e.g., Gotham Hotel New York"
                     required={inputMode === 'place'}
-                    className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-primary"
                   />
                 </div>
                 <Button
@@ -318,7 +318,7 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
                   placeholder="https://..."
                   required={inputMode === 'url' || !!prefill?.url}
                   disabled={!!prefill?.url}
-                  className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-primary disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -380,7 +380,7 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
               onChange={e => handleTitleChange(e.target.value)}
               placeholder="Give this link a title..."
               required
-              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-primary"
             />
           </div>
 
@@ -411,7 +411,7 @@ export const AddLinkModal = ({ isOpen, onClose, prefill }: AddLinkModalProps) =>
               onChange={e => setDescription(e.target.value)}
               placeholder="Add some context or notes..."
               rows={3}
-              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 resize-none"
+              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-primary resize-none"
             />
           </div>
 

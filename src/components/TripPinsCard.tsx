@@ -108,7 +108,7 @@ export const TripPinsCard = ({
                       <h4 className="text-white font-semibold text-sm">{place.name}</h4>
                       <Badge
                         variant="secondary"
-                        className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30"
+                        className="text-xs bg-primary/15 text-primary border-primary/30"
                       >
                         Linked
                       </Badge>

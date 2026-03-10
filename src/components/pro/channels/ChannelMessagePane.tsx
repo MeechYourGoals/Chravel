@@ -126,7 +126,7 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
             messages={messages as any}
             renderMessage={(message: any) => (
               <div key={message.id} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                   {message.author_name?.charAt(0).toUpperCase() || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -159,13 +159,13 @@ export const ChannelMessagePane: React.FC<ChannelMessagePaneProps> = ({
               onChange={e => setMessageInput(e.target.value)}
               onKeyPress={handleKeyPress}
               disabled={sending}
-              className="flex-1 !rounded-full bg-white/5 border border-white/10 text-white placeholder-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500/40 backdrop-blur-sm"
+              className="flex-1 !rounded-full bg-white/5 border border-white/10 text-white placeholder-neutral-400 focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm"
             />
             <Button
               onClick={handleSendMessage}
               disabled={!messageInput.trim() || sending}
               size="sm"
-              className="!rounded-full size-10 p-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90"
+              className="!rounded-full size-10 p-0 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90"
             >
               <Send size={16} />
             </Button>

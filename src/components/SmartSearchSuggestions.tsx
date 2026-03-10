@@ -252,7 +252,7 @@ export const SmartSearchSuggestions = ({
       case 'trending':
         return <TrendingUp className="w-3 h-3 text-green-400" />;
       case 'recent':
-        return <Clock className="w-3 h-3 text-yellow-400" />;
+        return <Clock className="w-3 h-3 text-gold-primary" />;
       default:
         return <Lightbulb className="w-3 h-3 text-gray-400" />;
     }
@@ -270,7 +270,7 @@ export const SmartSearchSuggestions = ({
 
   const getConfidenceColor = (confidence: number): string => {
     if (confidence >= 0.8) return 'bg-green-500/20 text-green-400 border-green-500/30';
-    if (confidence >= 0.6) return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    if (confidence >= 0.6) return 'bg-primary/15 text-primary border-primary/30';
     return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
   };
 
@@ -282,7 +282,7 @@ export const SmartSearchSuggestions = ({
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Lightbulb className="w-4 h-4 text-yellow-400" />
+        <Lightbulb className="w-4 h-4 text-gold-primary" />
         <span className="text-sm font-medium text-gray-300">Smart Suggestions</span>
         {isLoading && <div className="w-3 h-3 gold-gradient-spinner animate-spin"></div>}
       </div>
