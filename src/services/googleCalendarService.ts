@@ -53,6 +53,7 @@ export class GoogleCalendarService {
 
   async getStoredConnection(userId: string): Promise<CalendarConnection | null> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- calendar_connections table not in generated types yet
       const { data, error } = await (supabase as any)
         .from('calendar_connections')
         .select('*')
@@ -67,7 +68,7 @@ export class GoogleCalendarService {
     }
   }
 
-  async syncEventToCalendar(eventData: CalendarEvent, userId: string): Promise<any> {
+  async syncEventToCalendar(eventData: CalendarEvent, userId: string): Promise<unknown> {
     try {
       const connection = await this.getStoredConnection(userId);
       if (!connection) {
@@ -115,7 +116,7 @@ export class GoogleCalendarService {
     }
   }
 
-  async getUserCalendars(userId: string): Promise<any[]> {
+  async getUserCalendars(userId: string): Promise<unknown[]> {
     try {
       const connection = await this.getStoredConnection(userId);
       if (!connection) {
@@ -139,6 +140,7 @@ export class GoogleCalendarService {
 
   async disconnectCalendar(userId: string): Promise<void> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- calendar_connections table not in generated types yet
       const { error } = await (supabase as any)
         .from('calendar_connections')
         .delete()
@@ -154,6 +156,7 @@ export class GoogleCalendarService {
 
   async toggleSync(userId: string, enabled: boolean): Promise<void> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- calendar_connections table not in generated types yet
       const { error } = await (supabase as any)
         .from('calendar_connections')
         .update({ sync_enabled: enabled })

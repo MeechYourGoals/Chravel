@@ -4,7 +4,7 @@ export interface ErrorContext {
   operation: string;
   userId?: string;
   tripId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class AppError extends Error {
@@ -12,7 +12,7 @@ export class AppError extends Error {
     message: string,
     public code: string,
     public context?: ErrorContext,
-    public originalError?: any,
+    public originalError?: unknown,
   ) {
     super(message);
     this.name = 'AppError';
@@ -23,7 +23,7 @@ export const errorHandlingService = {
   /**
    * Handle errors with user-friendly toast notifications
    */
-  handleError(error: any, context?: ErrorContext): void {
+  handleError(error: unknown, context?: ErrorContext): void {
     console.error('[Error]', { error, context });
 
     const errorMessage = this.getErrorMessage(error);
@@ -46,26 +46,28 @@ export const errorHandlingService = {
   /**
    * Extract user-friendly error message
    */
-  getErrorMessage(error: any): string {
+  getErrorMessage(error: unknown): string {
     if (error instanceof AppError) {
       return error.message;
     }
 
-    if (error?.message) {
+    const errObj = error as Record<string, unknown> | null | undefined;
+    if (typeof errObj?.message === 'string') {
+      const message = errObj.message;
       // Handle common Supabase errors
-      if (error.message.includes('JWT')) {
+      if (message.includes('JWT')) {
         return 'Your session has expired. Please sign in again.';
       }
-      if (error.message.includes('network')) {
+      if (message.includes('network')) {
         return 'Network error. Please check your connection.';
       }
-      if (error.message.includes('timeout')) {
+      if (message.includes('timeout')) {
         return 'Request timed out. Please try again.';
       }
-      if (error.message.includes('permission')) {
+      if (message.includes('permission')) {
         return "You don't have permission to perform this action.";
       }
-      return error.message;
+      return message;
     }
 
     return 'An unexpected error occurred. Please try again.';
@@ -74,12 +76,13 @@ export const errorHandlingService = {
   /**
    * Get error code for categorization
    */
-  getErrorCode(error: any): string {
+  getErrorCode(error: unknown): string {
     if (error instanceof AppError) {
       return error.code;
     }
-    if (error?.code) {
-      return error.code;
+    const errObj = error as Record<string, unknown> | null | undefined;
+    if (typeof errObj?.code === 'string') {
+      return errObj.code;
     }
     return 'UNKNOWN_ERROR';
   },
@@ -104,7 +107,7 @@ export const errorHandlingService = {
   /**
    * Log error to external service (placeholder)
    */
-  logToExternalService(error: any, context?: ErrorContext): void {
+  logToExternalService(error: unknown, context?: ErrorContext): void {
     // In production, send to Sentry, LogRocket, etc.
     console.log('[External Log]', { error, context });
   },
@@ -116,7 +119,7 @@ export const errorHandlingService = {
     message: string,
     code: string,
     context?: ErrorContext,
-    originalError?: any,
+    originalError?: unknown,
   ): AppError {
     return new AppError(message, code, context, originalError);
   },

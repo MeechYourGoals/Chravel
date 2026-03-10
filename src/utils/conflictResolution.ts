@@ -11,7 +11,7 @@ export interface VersionedEntity {
   id: string;
   version?: number | null;
   updated_at?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

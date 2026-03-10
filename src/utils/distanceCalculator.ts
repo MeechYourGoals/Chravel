@@ -6,7 +6,7 @@ import {
 import { GoogleMapsService } from '../services/googleMapsService';
 
 export class DistanceCalculator {
-  private static cache = new Map<string, any>();
+  private static cache = new Map<string, number | null>();
 
   static async calculateDistance(
     basecamp: BasecampLocation,

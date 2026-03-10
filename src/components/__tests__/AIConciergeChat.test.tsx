@@ -161,7 +161,11 @@ describe('AIConciergeChat', () => {
         },
       ];
 
-      conciergeCacheService.cacheMessage('test-trip', 'test query', cachedMessages[1] as any);
+      conciergeCacheService.cacheMessage(
+        'test-trip',
+        'test query',
+        cachedMessages[1] as unknown as Parameters<typeof conciergeCacheService.cacheMessage>[2],
+      );
 
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
 
@@ -280,9 +284,14 @@ describe('AIConciergeChat', () => {
 });
 
 // Helper function (mirrors the one in component)
+interface TripContextFallback {
+  itinerary?: Array<{ title?: string; name?: string; startTime?: string; location?: string }>;
+  calendar?: Array<{ title?: string; name?: string; startTime?: string; location?: string }>;
+}
+
 function generateFallbackResponse(
   query: string,
-  tripContext: any,
+  tripContext: TripContextFallback,
   basecampLocation?: { name: string; address: string },
 ): string {
   const lowerQuery = query.toLowerCase();
@@ -299,12 +308,14 @@ function generateFallbackResponse(
       const events = tripContext.itinerary || tripContext.calendar || [];
       const upcoming = events.slice(0, 3);
       let response = `📅 **Upcoming Events**\n\n`;
-      upcoming.forEach((event: any) => {
-        response += `• ${event.title || event.name}`;
-        if (event.startTime) response += ` - ${event.startTime}`;
-        if (event.location) response += ` at ${event.location}`;
-        response += `\n`;
-      });
+      upcoming.forEach(
+        (event: { title?: string; name?: string; startTime?: string; location?: string }) => {
+          response += `• ${event.title || event.name}`;
+          if (event.startTime) response += ` - ${event.startTime}`;
+          if (event.location) response += ` at ${event.location}`;
+          response += `\n`;
+        },
+      );
       return response;
     }
     return `📅 Check the Calendar tab for your trip schedule.`;

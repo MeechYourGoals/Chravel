@@ -47,17 +47,25 @@ const createWrapper = () => {
   );
 };
 
+type GetUserResult = Awaited<ReturnType<typeof supabase.auth.getUser>>;
+type RpcResult = Awaited<ReturnType<typeof supabase.rpc>>;
+
+interface SupabaseResponse {
+  data: unknown;
+  error: unknown;
+}
+
 type SupabaseChainOverrides = Partial<{
   // Response returned when the query builder is awaited (`await query`)
-  then: { data: any; error: any };
+  then: SupabaseResponse;
   // Optional response used when `.limit()` is called before awaiting
-  limitResponse: { data: any; error: any };
-  single: any;
-  maybeSingle: any;
+  limitResponse: SupabaseResponse;
+  single: SupabaseResponse;
+  maybeSingle: SupabaseResponse;
 }>;
 
 function makeSupabaseChain(overrides: SupabaseChainOverrides = {}) {
-  const chain: any = {};
+  const chain: Record<string, unknown> = {};
   let response = overrides.then ?? { data: [], error: null };
   chain.select = vi.fn(() => chain);
   chain.eq = vi.fn(() => chain);
@@ -75,12 +83,15 @@ function makeSupabaseChain(overrides: SupabaseChainOverrides = {}) {
   chain.single = vi.fn(async () => overrides.single ?? { data: null, error: null });
   chain.maybeSingle = vi.fn(async () => overrides.maybeSingle ?? { data: null, error: null });
   // Make the chain awaitable (Supabase query builders are Promise-like).
-  chain.then = (onFulfilled: any, onRejected: any) =>
-    Promise.resolve(response).then(onFulfilled, onRejected);
+  chain.then = (onFulfilled: unknown, onRejected: unknown) =>
+    Promise.resolve(response).then(
+      onFulfilled as (value: unknown) => unknown,
+      onRejected as (reason: unknown) => unknown,
+    );
   return chain;
 }
 
-let tableMocks: Record<string, any> = {};
+let tableMocks: Record<string, Record<string, unknown>> = {};
 
 describe('useTripTasks', () => {
   beforeEach(() => {
@@ -94,14 +105,14 @@ describe('useTripTasks', () => {
     vi.mocked(getCachedEntities).mockResolvedValue([]);
 
     // Default realtime mocks used by useTripTasks effect
-    (supabase as any).channel = vi.fn().mockReturnValue({
+    (supabase as unknown as Record<string, unknown>).channel = vi.fn().mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnValue({}),
     });
-    (supabase as any).removeChannel = vi.fn();
+    (supabase as unknown as Record<string, unknown>).removeChannel = vi.fn();
 
     tableMocks = {};
-    vi.mocked(supabase.from).mockImplementation((tableName: any) => {
+    vi.mocked(supabase.from).mockImplementation((tableName: string) => {
       return tableMocks[String(tableName)] ?? makeSupabaseChain();
     });
   });
@@ -159,12 +170,12 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: null,
         error: null,
-      } as any);
+      } as unknown as RpcResult);
 
       tableMocks.trip_tasks = makeSupabaseChain({
         single: { data: mockNewTask, error: null },
@@ -198,7 +209,7 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
       tableMocks.trip_tasks = makeSupabaseChain({
         single: {
@@ -245,7 +256,7 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
       tableMocks.trip_tasks = makeSupabaseChain({
         maybeSingle: { data: { version: 1 }, error: null },
@@ -255,7 +266,7 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: { success: true, new_version: 2, is_completed: true },
         error: null,
-      } as any);
+      } as unknown as RpcResult);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper(),
@@ -281,7 +292,7 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
       const tripTasksChain = makeSupabaseChain({
         limitResponse: { data: [], error: null },
@@ -297,11 +308,11 @@ describe('useTripTasks', () => {
         .mockResolvedValueOnce({
           data: null,
           error: { message: 'Task has been modified by another user', code: 'P0001' },
-        } as any)
+        } as unknown as RpcResult)
         .mockResolvedValueOnce({
           data: { success: true, new_version: 3, is_completed: true },
           error: null,
-        } as any);
+        } as unknown as RpcResult);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper(),
@@ -334,7 +345,7 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
       tableMocks.trip_tasks = makeSupabaseChain({
         maybeSingle: { data: { version: 1 }, error: null },
@@ -345,7 +356,7 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: null,
         error: { message: 'Task has been modified by another user', code: 'P0001' },
-      } as any);
+      } as unknown as RpcResult);
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper(),
@@ -377,7 +388,9 @@ describe('useTripTasks', () => {
         value: false,
       });
 
-      vi.mocked(offlineSyncService.queueOperation).mockResolvedValue('queue-id-1' as any);
+      vi.mocked(offlineSyncService.queueOperation).mockResolvedValue(
+        'queue-id-1' as unknown as Awaited<ReturnType<typeof offlineSyncService.queueOperation>>,
+      );
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper(),
@@ -411,9 +424,11 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
-      vi.mocked(offlineSyncService.queueOperation).mockResolvedValue('queue-id-2' as any);
+      vi.mocked(offlineSyncService.queueOperation).mockResolvedValue(
+        'queue-id-2' as unknown as Awaited<ReturnType<typeof offlineSyncService.queueOperation>>,
+      );
 
       const { result } = renderHook(() => useTripTasks('trip-1'), {
         wrapper: createWrapper(),
@@ -445,9 +460,12 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any);
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: null,
+      } as unknown as RpcResult);
 
       tableMocks.trip_tasks = makeSupabaseChain({
         single: { data: null, error: { code: 'PGRST116', message: 'Access denied' } },
@@ -481,7 +499,7 @@ describe('useTripTasks', () => {
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'test-user-id' } },
         error: null,
-      } as any);
+      } as unknown as GetUserResult);
 
       tableMocks.trip_tasks = makeSupabaseChain({
         maybeSingle: { data: null, error: { message: 'fetch failed', code: 'NETWORK_ERROR' } },

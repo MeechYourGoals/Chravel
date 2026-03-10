@@ -66,7 +66,7 @@ export interface CampaignAnalytics {
   campaign_id: string;
   user_id?: string;
   event_type: 'impression' | 'click' | 'conversion';
-  event_data?: Record<string, any>;
+  event_data?: Record<string, unknown>;
   created_at: string;
 }
 

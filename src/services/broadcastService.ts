@@ -13,7 +13,7 @@ export interface Broadcast {
   scheduled_for?: string;
   is_sent: boolean;
   attachment_urls?: string[];
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 
 export interface BroadcastReaction {
@@ -30,7 +30,7 @@ export interface CreateBroadcastData {
   priority?: 'urgent' | 'reminder' | 'fyi';
   scheduled_for?: string;
   attachment_urls?: string[];
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export const broadcastService = {
@@ -41,7 +41,7 @@ export const broadcastService = {
       } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const insertData: any = {
+      const insertData: Record<string, unknown> = {
         ...broadcastData,
         created_by: user.id,
         priority: broadcastData.priority || 'fyi',
@@ -280,7 +280,7 @@ export const broadcastService = {
         .select('user_id')
         .eq('trip_id', tripId)
         .eq('status', 'active')
-        .neq('user_id', user.id)) as { data: { user_id: string }[] | null; error: any }; // Don't notify the sender
+        .neq('user_id', user.id)) as { data: { user_id: string }[] | null; error: unknown }; // Don't notify the sender
 
       if (membersError) {
         throw membersError;
@@ -294,6 +294,7 @@ export const broadcastService = {
       const userIds = members.map(m => m.user_id);
       // Table not in generated types yet - temporary until types regenerated
       const { data: tokens, error: tokensError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Table not in generated types yet
         .from('push_tokens' as any)
         .select('token, platform')
         .in('user_id', userIds);
@@ -314,7 +315,9 @@ export const broadcastService = {
         body: {
           action: 'send_push',
           userId: user.id,
-          tokens: (tokens as any[]).map((t: any) => t.token),
+          tokens: (tokens as Array<Record<string, unknown>>).map(
+            (t: Record<string, unknown>) => t.token,
+          ),
           title: broadcast.priority === 'urgent' ? '🚨 Urgent Broadcast' : '📢 Broadcast',
           body: broadcast.message.substring(0, 100),
           data: {

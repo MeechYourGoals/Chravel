@@ -58,7 +58,7 @@ const featureMatrix: Record<FeatureName, FeatureAvailability> = {
 export const isFeatureAvailable = (
   feature: FeatureName,
   isDemoMode: boolean,
-  user: any,
+  user: unknown,
 ): boolean => {
   const availability = featureMatrix[feature];
 
@@ -94,7 +94,7 @@ export const getComingSoonMessage = (feature: FeatureName): string | null => {
  * Check if any features are gated in the current mode
  * Useful for showing banners or tooltips
  */
-export const hasGatedFeatures = (isDemoMode: boolean, user: any): boolean => {
+export const hasGatedFeatures = (isDemoMode: boolean, user: unknown): boolean => {
   const gatedFeatures: FeatureName[] = ['events-module', 'pro-trips', 'chravel-recs'];
 
   return gatedFeatures.some(feature => !isFeatureAvailable(feature, isDemoMode, user));

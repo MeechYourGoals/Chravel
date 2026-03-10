@@ -6,7 +6,7 @@
 
 interface AnalyticsEvent {
   name: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   userId?: string;
   timestamp?: Date;
 }
@@ -21,14 +21,14 @@ class AnalyticsService {
     this.isInitialized = true;
   }
 
-  identify(userId: string, _traits?: Record<string, any>) {
+  identify(userId: string, _traits?: Record<string, unknown>) {
     this.userId = userId;
 
     // In production, send to Segment
     // analytics.identify(userId, traits);
   }
 
-  track(eventName: string, properties?: Record<string, any>) {
+  track(eventName: string, properties?: Record<string, unknown>) {
     if (!this.isInitialized) {
       console.warn('[Analytics] Not initialized');
     }
@@ -47,7 +47,7 @@ class AnalyticsService {
     // analytics.track(eventName, event.properties);
   }
 
-  page(_name: string, _properties?: Record<string, any>) {
+  page(_name: string, _properties?: Record<string, unknown>) {
     if (!this.isInitialized) {
       console.warn('[Analytics] Not initialized');
     }

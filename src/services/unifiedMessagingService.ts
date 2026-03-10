@@ -22,7 +22,7 @@ export interface Message {
   }>;
   media_type?: string | null;
   media_url?: string | null;
-  link_preview?: any;
+  link_preview?: Record<string, unknown>;
   privacy_mode?: string;
   privacy_encrypted?: boolean;
   message_type?: 'text' | 'broadcast' | 'payment' | 'system';
@@ -327,28 +327,28 @@ class UnifiedMessagingService {
     this.messageCallbacks.clear();
   }
 
-  private transformMessage(data: any): Message {
+  private transformMessage(data: Record<string, unknown>): Message {
     return {
-      id: data.id,
-      trip_id: data.trip_id,
-      content: data.content,
-      author_name: data.author_name,
-      user_id: data.user_id,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-      reply_to_id: data.reply_to_id,
-      thread_id: data.thread_id,
-      is_edited: data.is_edited,
-      edited_at: data.edited_at,
-      is_deleted: data.is_deleted,
-      deleted_at: data.deleted_at,
-      attachments: data.attachments || [],
-      media_type: data.media_type,
-      media_url: data.media_url,
-      link_preview: data.link_preview,
-      privacy_mode: data.privacy_mode,
-      privacy_encrypted: data.privacy_encrypted,
-      message_type: data.message_type,
+      id: data.id as string,
+      trip_id: data.trip_id as string,
+      content: data.content as string,
+      author_name: data.author_name as string,
+      user_id: data.user_id as string | undefined,
+      created_at: data.created_at as string,
+      updated_at: data.updated_at as string,
+      reply_to_id: data.reply_to_id as string | undefined,
+      thread_id: data.thread_id as string | undefined,
+      is_edited: data.is_edited as boolean | undefined,
+      edited_at: data.edited_at as string | undefined,
+      is_deleted: data.is_deleted as boolean | undefined,
+      deleted_at: data.deleted_at as string | undefined,
+      attachments: (data.attachments || []) as Message['attachments'],
+      media_type: data.media_type as string | null | undefined,
+      media_url: data.media_url as string | null | undefined,
+      link_preview: data.link_preview as Record<string, unknown> | undefined,
+      privacy_mode: data.privacy_mode as string | undefined,
+      privacy_encrypted: data.privacy_encrypted as boolean | undefined,
+      message_type: data.message_type as Message['message_type'],
     };
   }
 
@@ -361,6 +361,7 @@ class UnifiedMessagingService {
     tourId?: string,
   ): Promise<ScheduledMessage[]> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- scheduled_messages table not in generated types yet
       const { data, error } = await (supabase as any)
         .from('scheduled_messages')
         .select('*')
@@ -384,6 +385,7 @@ class UnifiedMessagingService {
     updates: Partial<ScheduledMessage>,
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- scheduled_messages table not in generated types yet
       const { error } = await (supabase as any)
         .from('scheduled_messages')
         .update(updates)
@@ -405,6 +407,7 @@ class UnifiedMessagingService {
    */
   async cancelScheduledMessage(messageId: string): Promise<{ success: boolean; error?: string }> {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- scheduled_messages table not in generated types yet
       const { error } = await (supabase as any)
         .from('scheduled_messages')
         .delete()

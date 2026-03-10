@@ -9,6 +9,7 @@ import { useRef, useCallback, useEffect } from 'react';
  * Debounce hook for expensive operations
  * Delays execution until after wait time has elapsed since last call
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic utility requires broad function constraint
 export function useDebounce<T extends (...args: any[]) => any>(callback: T, delay: number): T {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const callbackRef = useRef(callback);
@@ -36,6 +37,7 @@ export function useDebounce<T extends (...args: any[]) => any>(callback: T, dela
  * Throttle hook for rate-limiting frequent operations
  * Ensures callback executes at most once per wait period
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic utility requires broad function constraint
 export function useThrottle<T extends (...args: any[]) => any>(callback: T, delay: number): T {
   const lastRunRef = useRef(0);
   const timeoutRef = useRef<NodeJS.Timeout>();

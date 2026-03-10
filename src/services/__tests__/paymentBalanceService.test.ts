@@ -8,9 +8,14 @@ import { paymentBalanceService } from '../paymentBalanceService';
 import * as currencyService from '../currencyService';
 import { supabase } from '../../integrations/supabase/client';
 
+interface SupabaseResponse {
+  data: unknown;
+  error: unknown;
+}
+
 // Helper to create chainable Supabase mock
-const createChainableMock = (resolvedValue: { data: any; error: any }) => {
-  const chain: any = {
+const createChainableMock = (resolvedValue: SupabaseResponse) => {
+  const chain: Record<string, unknown> = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     neq: vi.fn().mockReturnThis(),
@@ -18,7 +23,7 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
     or: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
     single: vi.fn().mockResolvedValue(resolvedValue),
-    then: vi.fn((resolve: any, _reject: any) => {
+    then: vi.fn((resolve: (value: unknown) => void, _reject: unknown) => {
       // If resolvedValue contains error, we might want to consider it a "success" response from Supabase client
       // (Supabase client doesn't throw on error usually, unless .throwOnError() is used, which is not here)
       // So we resolve with the value.
@@ -26,11 +31,11 @@ const createChainableMock = (resolvedValue: { data: any; error: any }) => {
     }),
   };
   // Make all chain methods return the chain explicitly
-  chain.select.mockReturnValue(chain);
-  chain.eq.mockReturnValue(chain);
-  chain.neq.mockReturnValue(chain);
-  chain.in.mockReturnValue(chain);
-  chain.or.mockReturnValue(chain);
+  (chain.select as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.eq as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.neq as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.in as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+  (chain.or as ReturnType<typeof vi.fn>).mockReturnValue(chain);
   return chain;
 };
 
@@ -52,7 +57,7 @@ vi.mock('../currencyService', () => ({
 
 describe('paymentBalanceService', () => {
   // Helper to create mock implementation for supabase.from()
-  const createFromMock = (tableMocks: Record<string, any>) => {
+  const createFromMock = (tableMocks: Record<string, Record<string, unknown>>) => {
     return (table: string) => {
       if (tableMocks[table]) {
         return tableMocks[table];
@@ -66,13 +71,13 @@ describe('paymentBalanceService', () => {
     vi.clearAllMocks();
 
     // Default mock: authenticated user with trip membership
-    (supabase.auth.getUser as any).mockResolvedValue({
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: { id: 'user-1' } },
       error: null,
     });
 
     // Default mock: user is a trip member
-    (supabase.from as any).mockImplementation(
+    vi.mocked(supabase.from).mockImplementation(
       createFromMock({
         trip_members: createChainableMock({ data: { id: 'membership-1' }, error: null }),
       }),
@@ -81,7 +86,7 @@ describe('paymentBalanceService', () => {
 
   describe('getBalanceSummary', () => {
     it('should return empty summary when no payments exist', async () => {
-      (supabase.from as any).mockImplementation(
+      vi.mocked(supabase.from).mockImplementation(
         createFromMock({
           trip_members: createChainableMock({ data: { id: 'membership-1' }, error: null }),
           trip_payment_messages: createChainableMock({ data: [], error: null }),
@@ -138,9 +143,9 @@ describe('paymentBalanceService', () => {
         },
       ];
 
-      const mockPaymentMethods: any[] = [];
+      const mockPaymentMethods: unknown[] = [];
 
-      (supabase.from as any).mockImplementation(
+      vi.mocked(supabase.from).mockImplementation(
         createFromMock({
           trip_members: createChainableMock({ data: { id: 'membership-1' }, error: null }),
           trip_payment_messages: createChainableMock({ data: mockPayments, error: null }),
@@ -203,9 +208,9 @@ describe('paymentBalanceService', () => {
         },
       ];
 
-      const mockPaymentMethods: any[] = [];
+      const mockPaymentMethods: unknown[] = [];
 
-      (supabase.from as any).mockImplementation(
+      vi.mocked(supabase.from).mockImplementation(
         createFromMock({
           trip_members: createChainableMock({ data: { id: 'membership-1' }, error: null }),
           trip_payment_messages: createChainableMock({ data: mockPayments, error: null }),
@@ -283,9 +288,9 @@ describe('paymentBalanceService', () => {
         },
       ];
 
-      const mockPaymentMethods: any[] = [];
+      const mockPaymentMethods: unknown[] = [];
 
-      (supabase.from as any).mockImplementation(
+      vi.mocked(supabase.from).mockImplementation(
         createFromMock({
           trip_members: createChainableMock({ data: { id: 'membership-1' }, error: null }),
           trip_payment_messages: createChainableMock({ data: mockPayments, error: null }),
@@ -368,7 +373,7 @@ describe('paymentBalanceService', () => {
         },
       ];
 
-      (supabase.from as any).mockImplementation(
+      vi.mocked(supabase.from).mockImplementation(
         createFromMock({
           trip_members: createChainableMock({ data: { id: 'membership-1' }, error: null }),
           trip_payment_messages: createChainableMock({ data: mockPayments, error: null }),
@@ -394,13 +399,13 @@ describe('paymentBalanceService', () => {
 
     it('should throw error when user is not authenticated', async () => {
       // Mock auth to return error
-      (supabase.auth.getUser as any).mockResolvedValue({
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: null },
         error: { message: 'Not authenticated' },
       });
 
       // We don't expect DB calls, but safeguard mocks
-      (supabase.from as any).mockImplementation(createFromMock({}));
+      vi.mocked(supabase.from).mockImplementation(createFromMock({}));
 
       await expect(paymentBalanceService.getBalanceSummary('trip-1', 'user-1')).rejects.toThrow(
         'Unauthorized: Authentication required',
@@ -408,13 +413,13 @@ describe('paymentBalanceService', () => {
     });
 
     it('should throw error when user is not a trip member', async () => {
-      (supabase.auth.getUser as any).mockResolvedValue({
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
         data: { user: { id: 'user-1' } },
         error: null,
       });
 
       // Updated to handle .or() being called
-      (supabase.from as any).mockImplementation((table: string) => {
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'trip_members') {
           return createChainableMock({ data: null, error: null });
         }
@@ -436,7 +441,7 @@ describe('paymentBalanceService', () => {
         }),
       });
 
-      (supabase.from as any).mockImplementation((table: string) => {
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'trip_members') {
           // Simulate DB error on trip_members query
           const chain = createChainableMock({ data: null, error: { message: 'DB Error' } });

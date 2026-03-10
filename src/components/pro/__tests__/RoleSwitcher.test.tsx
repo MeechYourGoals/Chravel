@@ -19,7 +19,7 @@ describe('RoleSwitcher', () => {
     mockedUseAuth.mockReturnValue({
       user: { isPro: true, proRole: 'admin' },
       switchRole,
-    } as any);
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<RoleSwitcher category="sports" />);
 
@@ -33,7 +33,7 @@ describe('RoleSwitcher', () => {
     mockedUseAuth.mockReturnValue({
       user: { isPro: true, proRole: 'player' },
       switchRole,
-    } as any);
+    } as unknown as ReturnType<typeof useAuth>);
 
     render(<RoleSwitcher category="sports" />);
 

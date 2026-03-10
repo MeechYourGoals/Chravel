@@ -7,8 +7,8 @@ type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 type LogContext = {
   component?: string;
   action?: string;
-  data?: any;
-  error?: any;
+  data?: unknown;
+  error?: unknown;
   timestamp?: string;
 };
 
@@ -78,7 +78,7 @@ class MapLogger {
   /**
    * Log API call start
    */
-  apiStart(endpoint: string, params: any, component: string) {
+  apiStart(endpoint: string, params: unknown, component: string) {
     this.debug(`API call started: ${endpoint}`, {
       component,
       action: 'api_start',
@@ -89,7 +89,7 @@ class MapLogger {
   /**
    * Log API call success
    */
-  apiSuccess(endpoint: string, result: any, component: string) {
+  apiSuccess(endpoint: string, result: unknown, component: string) {
     this.info(`API call succeeded: ${endpoint}`, {
       component,
       action: 'api_success',
@@ -100,15 +100,16 @@ class MapLogger {
   /**
    * Log API call failure
    */
-  apiError(endpoint: string, error: any, component: string) {
+  apiError(endpoint: string, error: unknown, component: string) {
+    const errObj = error as Record<string, unknown> | null | undefined;
     this.error(`API call failed: ${endpoint}`, {
       component,
       action: 'api_error',
       error: {
-        message: error?.message,
-        code: error?.code,
-        status: error?.status,
-        stack: error?.stack,
+        message: errObj?.message,
+        code: errObj?.code,
+        status: errObj?.status,
+        stack: errObj?.stack,
       },
     });
   }
@@ -116,7 +117,7 @@ class MapLogger {
   /**
    * Log map state changes
    */
-  mapState(state: string, data: any, component: string) {
+  mapState(state: string, data: unknown, component: string) {
     this.debug(`Map state: ${state}`, {
       component,
       action: 'state_change',

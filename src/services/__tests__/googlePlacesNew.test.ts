@@ -21,16 +21,16 @@ const mockGoogleMaps = {
 // Mock window.google
 global.window = {
   ...global.window,
-  google: mockGoogleMaps as any,
+  google: mockGoogleMaps as unknown,
 };
 
 describe('Google Places New API Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset quota monitor
-    (apiQuotaMonitor as any).dailyRequests.clear();
-    (apiQuotaMonitor as any).hourlyRequests.clear();
-    (apiQuotaMonitor as any).cachedResults.clear();
+    (apiQuotaMonitor as unknown as Record<string, Map<string, unknown>>).dailyRequests.clear();
+    (apiQuotaMonitor as unknown as Record<string, Map<string, unknown>>).hourlyRequests.clear();
+    (apiQuotaMonitor as unknown as Record<string, Map<string, unknown>>).cachedResults.clear();
   });
 
   describe('API Quota Monitor', () => {
@@ -65,7 +65,9 @@ describe('Google Places New API Service', () => {
       apiQuotaMonitor.cacheResult(cacheKey, testData);
 
       // Manually expire cache by setting old timestamp
-      const cached = (apiQuotaMonitor as any).cachedResults.get(cacheKey);
+      const cached = (
+        apiQuotaMonitor as unknown as Record<string, Map<string, { timestamp: number }>>
+      ).cachedResults.get(cacheKey);
       cached.timestamp = Date.now() - 3600001; // 1 hour + 1ms ago
 
       const result = apiQuotaMonitor.getCachedResult(cacheKey);

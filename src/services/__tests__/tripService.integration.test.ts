@@ -45,7 +45,7 @@ describe('Trip Service - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // This would be the actual service call
       // const result = await tripService.createTrip(tripData);
@@ -80,7 +80,7 @@ describe('Trip Service - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Verify mock setup
       expect(mockSupabase.from).toBeDefined();
@@ -110,7 +110,7 @@ describe('Trip Service - Integration Tests', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Verify mock setup
       expect(mockSupabase.from).toBeDefined();

@@ -50,7 +50,7 @@ export interface TripRole {
   permissionLevel?: PermissionLevel;
   featurePermissions?: FeaturePermissions;
   memberCount?: number;
-  channels?: any[];
+  channels?: TripChannel[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -93,7 +93,7 @@ export interface ChannelMessage {
   senderAvatar?: string;
   content: string;
   messageType: 'text' | 'file' | 'system';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   editedAt?: string;
   deletedAt?: string;
@@ -133,7 +133,7 @@ export interface SendMessageRequest {
   channelId: string;
   content: string;
   messageType?: 'text' | 'file' | 'system' | 'regular' | 'broadcast';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   broadcastCategory?: 'chill' | 'logistics' | 'urgent';
 }
 

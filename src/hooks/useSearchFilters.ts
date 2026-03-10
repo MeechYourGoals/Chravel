@@ -68,7 +68,7 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
   }, []);
 
   const applyFilters = useCallback(
-    <T extends Record<string, any>>(items: T[]): T[] => {
+    <T extends Record<string, unknown>>(items: T[]): T[] => {
       let filtered = items;
 
       // Apply query search
@@ -121,7 +121,7 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
   );
 
   const sortResults = useCallback(
-    <T extends Record<string, any>>(items: T[]): T[] => {
+    <T extends Record<string, unknown>>(items: T[]): T[] => {
       const sorted = [...items];
 
       switch (sortBy) {
@@ -162,7 +162,7 @@ export const useSearchFilters = (initialQuery = '', initialFilters: SearchFilter
   );
 
   const getFilteredAndSorted = useCallback(
-    <T extends Record<string, any>>(items: T[]): T[] => {
+    <T extends Record<string, unknown>>(items: T[]): T[] => {
       const filtered = applyFilters(items);
       const sorted = sortResults(filtered);
 

@@ -10,7 +10,10 @@
 export async function registerBackgroundSync(
   entityType: 'chat_message' | 'task' | 'calendar_event' | 'all',
 ): Promise<void> {
-  if (!('serviceWorker' in navigator) || !('sync' in (self as any).registration)) {
+  if (
+    !('serviceWorker' in navigator) ||
+    !('sync' in (self as unknown as { registration?: { sync?: unknown } }).registration)
+  ) {
     console.warn('[Sync] Background sync not supported');
     return;
   }
@@ -19,7 +22,9 @@ export async function registerBackgroundSync(
     const registration = await navigator.serviceWorker.ready;
     const syncTag = `chravel-sync-${entityType}`;
 
-    await (registration as any).sync.register(syncTag);
+    await (
+      registration as unknown as { sync: { register: (tag: string) => Promise<void> } }
+    ).sync.register(syncTag);
   } catch (error) {
     console.error('[Sync] Failed to register background sync:', error);
   }
@@ -54,5 +59,8 @@ export async function triggerSync(
  * Check if background sync is supported
  */
 export function isBackgroundSyncSupported(): boolean {
-  return 'serviceWorker' in navigator && 'sync' in (self as any).registration;
+  return (
+    'serviceWorker' in navigator &&
+    'sync' in (self as unknown as { registration?: { sync?: unknown } }).registration
+  );
 }

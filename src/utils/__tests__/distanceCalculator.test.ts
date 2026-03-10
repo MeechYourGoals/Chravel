@@ -33,7 +33,7 @@ describe('DistanceCalculator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Clear cache
-    (DistanceCalculator as any).cache.clear();
+    (DistanceCalculator as unknown as { cache: Map<string, unknown> }).cache.clear();
   });
 
   describe('Straight Line Distance', () => {

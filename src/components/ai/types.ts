@@ -1,5 +1,5 @@
 export interface AiFeatureConfig {
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   route: string;

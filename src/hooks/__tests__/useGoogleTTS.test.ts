@@ -42,8 +42,9 @@ describe('useGoogleTTS', () => {
   });
 
   it('handles missing auth token', async () => {
-    (supabase.auth.getSession as any).mockResolvedValueOnce({
+    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
       data: { session: null },
+      error: null,
     });
 
     const { result } = renderHook(() => useGoogleTTS());

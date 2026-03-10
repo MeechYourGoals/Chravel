@@ -2,6 +2,36 @@ import { supabase } from '../integrations/supabase/client';
 import { ProParticipant } from '../types/pro';
 import { ProTripCategory } from '../types/proCategories';
 
+/** Row shape returned from the role_templates table (untyped in generated DB types) */
+interface RoleTemplateRow {
+  id: string;
+  name: string;
+  description: string;
+  category: ProTripCategory;
+  roles: { role: string; count: number; credentialLevel?: string }[];
+  created_by: string;
+  organization_id?: string;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Helper to convert a DB row into the client-facing RoleTemplate shape */
+function toRoleTemplate(d: RoleTemplateRow): RoleTemplate {
+  return {
+    id: d.id,
+    name: d.name,
+    description: d.description,
+    category: d.category,
+    roles: d.roles,
+    createdBy: d.created_by,
+    organizationId: d.organization_id,
+    isPublic: d.is_public,
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
+  };
+}
+
 export interface RoleTemplate {
   id: string;
   name: string;
@@ -55,8 +85,10 @@ class RoleTemplateService {
         credentialLevel: data.credentialLevel,
       }));
 
-      const { data, error } = await (supabase as any)
-        .from('role_templates')
+      // Table not in generated DB types — cast to access untyped table
+      const { data, error } = await (
+        supabase.from as (table: string) => ReturnType<typeof supabase.from>
+      )('role_templates')
         .insert({
           name: request.name,
           description: request.description,
@@ -65,25 +97,15 @@ class RoleTemplateService {
           created_by: user.id,
           organization_id: request.organizationId,
           is_public: request.isPublic || false,
-        })
+        } as Record<string, unknown>)
         .select()
         .single();
 
       if (error) throw error;
 
-      return {
-        id: (data as any).id,
-        name: (data as any).name,
-        description: (data as any).description,
-        category: (data as any).category,
-        roles: (data as any).roles,
-        createdBy: (data as any).created_by,
-        organizationId: (data as any).organization_id,
-        isPublic: (data as any).is_public,
-        createdAt: (data as any).created_at,
-        updatedAt: (data as any).updated_at,
-      };
-    } catch (error) {
+      const row = data as unknown as RoleTemplateRow;
+      return toRoleTemplate(row);
+    } catch (error: unknown) {
       console.error('Failed to save template:', error);
       return null;
     }
@@ -94,27 +116,18 @@ class RoleTemplateService {
    */
   async loadTemplate(templateId: string): Promise<RoleTemplate | null> {
     try {
-      const { data, error } = await (supabase as any)
-        .from('role_templates')
+      const { data, error } = await (
+        supabase.from as (table: string) => ReturnType<typeof supabase.from>
+      )('role_templates')
         .select('*')
         .eq('id', templateId)
         .single();
 
       if (error) throw error;
 
-      return {
-        id: (data as any).id,
-        name: (data as any).name,
-        description: (data as any).description,
-        category: (data as any).category,
-        roles: (data as any).roles,
-        createdBy: (data as any).created_by,
-        organizationId: (data as any).organization_id,
-        isPublic: (data as any).is_public,
-        createdAt: (data as any).created_at,
-        updatedAt: (data as any).updated_at,
-      };
-    } catch (error) {
+      const row = data as unknown as RoleTemplateRow;
+      return toRoleTemplate(row);
+    } catch (error: unknown) {
       console.error('Failed to load template:', error);
       return null;
     }
@@ -130,27 +143,18 @@ class RoleTemplateService {
       } = await supabase.auth.getUser();
       if (!user) return [];
 
-      const { data, error } = await (supabase as any)
-        .from('role_templates')
+      const { data, error } = await (
+        supabase.from as (table: string) => ReturnType<typeof supabase.from>
+      )('role_templates')
         .select('*')
         .or(`created_by.eq.${user.id},is_public.eq.true`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        description: d.description,
-        category: d.category,
-        roles: d.roles,
-        createdBy: d.created_by,
-        organizationId: d.organization_id,
-        isPublic: d.is_public,
-        createdAt: d.created_at,
-        updatedAt: d.updated_at,
-      }));
-    } catch (error) {
+      const rows = (data ?? []) as unknown as RoleTemplateRow[];
+      return rows.map(toRoleTemplate);
+    } catch (error: unknown) {
       console.error('Failed to get user templates:', error);
       return [];
     }
@@ -166,8 +170,9 @@ class RoleTemplateService {
       } = await supabase.auth.getUser();
       if (!user) return [];
 
-      const { data, error } = await (supabase as any)
-        .from('role_templates')
+      const { data, error } = await (
+        supabase.from as (table: string) => ReturnType<typeof supabase.from>
+      )('role_templates')
         .select('*')
         .eq('category', category)
         .or(`created_by.eq.${user.id},is_public.eq.true`)
@@ -175,19 +180,9 @@ class RoleTemplateService {
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        description: d.description,
-        category: d.category,
-        roles: d.roles,
-        createdBy: d.created_by,
-        organizationId: d.organization_id,
-        isPublic: d.is_public,
-        createdAt: d.created_at,
-        updatedAt: d.updated_at,
-      }));
-    } catch (error) {
+      const rows = (data ?? []) as unknown as RoleTemplateRow[];
+      return rows.map(toRoleTemplate);
+    } catch (error: unknown) {
       console.error('Failed to get templates by category:', error);
       return [];
     }
@@ -198,14 +193,15 @@ class RoleTemplateService {
    */
   async deleteTemplate(templateId: string): Promise<boolean> {
     try {
-      const { error } = await (supabase as any)
-        .from('role_templates')
+      const { error } = await (
+        supabase.from as (table: string) => ReturnType<typeof supabase.from>
+      )('role_templates')
         .delete()
         .eq('id', templateId);
 
       if (error) throw error;
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to delete template:', error);
       return false;
     }
@@ -219,18 +215,19 @@ class RoleTemplateService {
     updates: Partial<Pick<RoleTemplate, 'name' | 'description' | 'isPublic'>>,
   ): Promise<boolean> {
     try {
-      const { error } = await (supabase as any)
-        .from('role_templates')
+      const { error } = await (
+        supabase.from as (table: string) => ReturnType<typeof supabase.from>
+      )('role_templates')
         .update({
           name: updates.name,
           description: updates.description,
           is_public: updates.isPublic,
-        })
+        } as Record<string, unknown>)
         .eq('id', templateId);
 
       if (error) throw error;
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to update template:', error);
       return false;
     }

@@ -10,7 +10,7 @@ interface RetryConfig {
 }
 
 interface RetryableMutationResult<T> {
-  execute: (...args: any[]) => Promise<T>;
+  execute: (...args: unknown[]) => Promise<T>;
   isLoading: boolean;
   error: Error | null;
   retryCount: number;
@@ -37,7 +37,7 @@ interface RetryableMutationResult<T> {
  * ```
  */
 export function useRetryableMutation<T>(
-  mutationFn: (...args: any[]) => Promise<T>,
+  mutationFn: (...args: unknown[]) => Promise<T>,
   config: RetryConfig = {},
 ): RetryableMutationResult<T> {
   const { maxRetries = 3, retryDelay = 1000, backoffMultiplier = 2, onRetry } = config;
@@ -50,7 +50,7 @@ export function useRetryableMutation<T>(
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const execute = useCallback(
-    async (...args: any[]): Promise<T> => {
+    async (...args: unknown[]): Promise<T> => {
       setIsLoading(true);
       setError(null);
 

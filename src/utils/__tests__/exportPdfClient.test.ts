@@ -54,8 +54,8 @@ vi.mock('jspdf', () => {
 });
 
 vi.mock('jspdf-autotable', () => ({
-  default: (doc: any, options: any) => {
-    doc.lastAutoTable = { finalY: (options?.startY || 0) + 20 };
+  default: (doc: Record<string, unknown>, options: Record<string, unknown>) => {
+    doc.lastAutoTable = { finalY: ((options?.startY as number) || 0) + 20 };
   },
 }));
 
@@ -66,7 +66,7 @@ import jsPDF from 'jspdf';
 
 describe('PDF Export Client Helpers', () => {
   afterEach(() => {
-    (jsPDF as any).instances = [];
+    (jsPDF as unknown as Record<string, unknown[]>).instances = [];
     vi.unstubAllGlobals();
   });
 
@@ -153,7 +153,9 @@ describe('PDF Export Client Helpers', () => {
         ['attachments'],
       );
 
-      const instances = (jsPDF as any).instances as any[];
+      const instances = (jsPDF as unknown as Record<string, unknown[]>).instances as Array<{
+        _texts: string[];
+      }>;
       const latest = instances[instances.length - 1];
       expect(latest._texts).toContain('Attachments');
     });

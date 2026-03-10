@@ -16,6 +16,7 @@ export const convertProTripToTour = (proTripData: ProTripData): Tour => {
       email:
         p.email ||
         `${p.name.toLowerCase().replace(' ', '.')}@${proTripData.category.toLowerCase().replace(/[^a-z]/g, '')}.com`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic role string mapped to union type
       role: p.role.toLowerCase().replace(/[^a-z]/g, '-') as any,
       permissions: index === 0 ? 'admin' : index === 1 ? 'admin' : 'editor',
       isActive: true,
@@ -42,7 +43,9 @@ export const convertProTripToTour = (proTripData: ProTripData): Tour => {
         name: p.name,
         email: p.email || '',
         avatar: p.avatar,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic role string mapped to union type
         role: p.role.toLowerCase().replace(/[^a-z]/g, '-') as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- literal string assigned to union type
         permissions: 'viewer' as any,
         isActive: true,
       })),
