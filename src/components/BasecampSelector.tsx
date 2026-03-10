@@ -19,6 +19,7 @@ export const BasecampSelector = ({
   onBasecampSet,
   onBasecampClear,
   currentBasecamp,
+  isPersonal = false,
 }: BasecampSelectorProps) => {
   const [address, setAddress] = useState(currentBasecamp?.address || '');
   const [name, setName] = useState(currentBasecamp?.name || '');
