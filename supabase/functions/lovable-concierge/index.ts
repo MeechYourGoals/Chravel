@@ -1758,6 +1758,32 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         },
       },
       {
+        name: 'searchTripArtifacts',
+        description:
+          'Search uploaded trip artifacts — screenshots, PDFs, images, documents, receipts, tickets, itineraries, and other files. Use when user asks "find the boarding pass", "show me the hotel confirmation", "where is the PDF with the schedule?", "find the receipt", or any question about uploaded files and documents.',
+        parameters: {
+          type: 'object',
+          properties: {
+            idempotency_key: { type: 'string' },
+            query: {
+              type: 'string',
+              description: 'Semantic search query describing what artifact to find',
+            },
+            artifact_types: {
+              type: 'array',
+              items: { type: 'string' },
+              description:
+                'Filter by artifact type: flight, hotel, restaurant_reservation, event_ticket, itinerary, schedule, place_recommendation, payment_proof, roster, credential, generic_document, generic_image',
+            },
+            limit: {
+              type: 'number',
+              description: 'Max results to return (default 5)',
+            },
+          },
+          required: ['query'],
+        },
+      },
+      {
         name: 'detectCalendarConflicts',
         description:
           'Check if a proposed time slot conflicts with existing calendar events. Use before adding an event when the time might overlap, or when user asks "am I free at 7pm?" or "do we have anything at that time?".',
