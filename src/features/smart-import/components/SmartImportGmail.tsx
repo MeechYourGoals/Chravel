@@ -26,6 +26,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
   onImportComplete,
   onImportError,
 }) => {
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState<GmailAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [loading, setLoading] = useState(true);
