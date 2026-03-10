@@ -556,7 +556,7 @@ async function searchLinks(
     return [];
   }
 
-  return (data || []).map((link: any) => ({
+  return (data || []).map(link => ({
     id: link.id,
     contentType: 'link' as const,
     tripId: link.trip_id,

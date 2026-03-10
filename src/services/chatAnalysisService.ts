@@ -792,7 +792,8 @@ export async function recordPaymentSplitPattern(
       } else {
         // Insert new pattern
         // Table not in generated types yet - temporary until types regenerated
-        await supabase.from('payment_split_patterns' as any).insert({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated Supabase types
+        await (supabase as any).from('payment_split_patterns').insert({
           trip_id: tripId,
           user_id: userId,
           participant_id: participantId,
