@@ -418,11 +418,7 @@ export const AIConciergeChat = ({
   // ─── Voice ─────────────────────────────────────────────────────────────────
   // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
   // first.  If bidirectional audio fails, we fall back to Web Speech API
-  // dictation so the user can still speak — their words fill the text input.
-  //
-  // `duplexFailed` tracks whether Gemini Live errored during the current
-  // interaction so we know to activate dictation as a fallback.
-  const [duplexFailed, setDuplexFailed] = useState(false);
+   // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
   // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
   // Speech API dictation. Transcribed text fills the input field so the user
   // can review/edit before sending. All Gemini Live hooks remain initialised
