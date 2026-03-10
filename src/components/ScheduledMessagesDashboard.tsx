@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, Users, AlertCircle, Trash2, Edit3, Play, Pause } from 'lucide-react';
+import { Clock, Calendar, Users, Trash2, Edit3 } from 'lucide-react';
 import { unifiedMessagingService } from '../services/unifiedMessagingService';
 import { ScheduledMessage } from '../types/messaging';
 import { Button } from './ui/button';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, Sparkles, Send, MessageCircle } from 'lucide-react';
+import { Crown, Sparkles, Send } from 'lucide-react';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { useTripVariant } from '@/contexts/TripVariantContext';
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Users, Shield, Bell, Volume, Eye } from 'lucide-react';
+import { MessageSquare, Users, Shield, Bell, Eye } from 'lucide-react';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';

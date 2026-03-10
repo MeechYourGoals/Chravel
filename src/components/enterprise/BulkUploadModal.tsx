@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { X, Upload, Download, FileText, AlertCircle, Check } from 'lucide-react';
+import { X, Upload, Download, AlertCircle, Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { BulkUploadData, RosterMember, TripCategory } from '../../types/enterprise';

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../ui/dialo
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
-import { Shield, Plus, Trash2, Users, UserPlus, X, MessageSquare, Settings } from 'lucide-react';
+import { Shield, Plus, Trash2, Users, UserPlus, X, MessageSquare } from 'lucide-react';
 import { TripRole, UserRoleAssignment, TripChannel } from '../../../types/roleChannels';
 import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';

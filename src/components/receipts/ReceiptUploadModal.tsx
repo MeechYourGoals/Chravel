@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, DollarSign, Users } from 'lucide-react';
-import { Receipt, ReceiptUpload, PaymentMethod } from '../../types/receipts';
+import { Receipt, PaymentMethod } from '../../types/receipts';
 import { PaymentMethodIcon } from './PaymentMethodIcon';
 import { getPaymentMethodDisplayName } from '../../utils/paymentDeeplinks';
 import { useAuth } from '../../hooks/useAuth';

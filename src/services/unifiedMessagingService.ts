@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { ScheduledMessage as UIScheduledMessage } from '@/types/messaging';
 import { retryWithBackoff } from '@/utils/retry';
 export interface Message {
   id: string;

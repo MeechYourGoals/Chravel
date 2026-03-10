@@ -21,7 +21,7 @@ import { useDemoMode } from '../hooks/useDemoMode';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
-import { ProCategoryEnum, PRO_CATEGORIES_ORDERED, getCategoryLabel } from '../types/proCategories';
+import { ProCategoryEnum, PRO_CATEGORIES_ORDERED } from '../types/proCategories';
 import { getAllProTripColors } from '../utils/proTripColors';
 
 interface CreateTripModalProps {

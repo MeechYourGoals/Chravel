@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import imageCompression from 'browser-image-compression';
 import { getUploadContentType } from '@/utils/mime';
 

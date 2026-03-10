@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, Building } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 
 interface SubscriptionSectionProps {

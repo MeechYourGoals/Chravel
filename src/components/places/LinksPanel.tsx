@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Trash2, Navigation2, Calendar, Eye, EyeOff, Link } from 'lucide-react';
+import { MapPin, Navigation2, Calendar, Link } from 'lucide-react';
 import {
   PlaceWithDistance,
   BasecampLocation,
@@ -7,10 +7,7 @@ import {
   PlaceCategoryEnum,
 } from '@/types/basecamp';
 import { AddPlaceModal } from '../AddPlaceModal';
-import { AddToCalendarButton } from '../AddToCalendarButton';
 import { AddToCalendarData } from '@/types/calendar';
-import { Badge } from '../ui/badge';
-import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { TripLinksDisplay } from './TripLinksDisplay';

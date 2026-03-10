@@ -8,7 +8,7 @@
  * @module services/__tests__/chatUrlExtractor.test
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { extractUrlsFromTripChat } from '../chatUrlExtractor';
 import { normalizeUrl } from '../urlUtils';
 import { categorizeUrl } from '../ogMetadataService';

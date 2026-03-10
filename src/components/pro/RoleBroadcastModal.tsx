@@ -8,7 +8,6 @@ import { Megaphone, Send, AlertTriangle, Users, CheckCircle2, X } from 'lucide-r
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { roleBroadcastService } from '../../services/roleBroadcastService';
-import { getRoleColorClass } from '../../utils/roleUtils';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '../../utils/avatarUtils';
 

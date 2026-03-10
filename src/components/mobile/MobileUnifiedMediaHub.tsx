@@ -8,7 +8,6 @@ import {
   Trash2,
   Upload,
   Video,
-  X,
 } from 'lucide-react';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
@@ -23,7 +22,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
-import { TripMediaRenderer } from '@/components/media/TripMediaRenderer';
 import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {

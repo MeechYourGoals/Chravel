@@ -11,7 +11,6 @@ import {
 import {
   BarChart3,
   TrendingUp,
-  TrendingDown,
   Eye,
   MousePointer,
   Bookmark,

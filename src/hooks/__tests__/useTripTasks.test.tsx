@@ -3,7 +3,6 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useTripTasks } from '../useTripTasks';
 import { supabase } from '../../integrations/supabase/client';
-import { taskStorageService } from '../../services/taskStorageService';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { getCachedEntities } from '@/offline/cache';
 

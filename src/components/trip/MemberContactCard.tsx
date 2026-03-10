@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Phone, MessageCircle, X, Loader2, PhoneOff } from 'lucide-react';
 import { getInitials, isValidAvatarUrl } from '@/utils/avatarUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
 
 export interface MemberContactCardMember {
   id: string;

@@ -13,11 +13,7 @@ import {
 } from 'lucide-react';
 import { AirlineProgram, HotelProgram, RentalCarProgram } from '../types/pro';
 import { PaymentMethodsSettings } from './payments/PaymentMethodsSettings';
-import {
-  loyaltyProgramService,
-  LoyaltyProgram,
-  LoyaltyProgramType,
-} from '../services/loyaltyProgramService';
+import { loyaltyProgramService, LoyaltyProgramType } from '../services/loyaltyProgramService';
 import { useToast } from '../hooks/use-toast';
 
 interface TravelWalletProps {

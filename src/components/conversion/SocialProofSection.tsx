@@ -1,7 +1,6 @@
 import React from 'react';
-import { Star, Users, MapPin, Clock, TrendingUp } from 'lucide-react';
+import { Star, MapPin, Clock, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
 
 interface Testimonial {
   name: string;

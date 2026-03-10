@@ -7,7 +7,7 @@
  * This trades slightly higher memory usage for instant tab switching UX.
  */
 
-import React, { useState, useCallback, lazy, Suspense, memo } from 'react';
+import React, { useState, useCallback, Suspense, memo } from 'react';
 
 // Tab skeleton for loading states
 const TabSkeleton = memo(() => (

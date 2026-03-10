@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { secureStorageService } from '@/services/secureStorageService';
 
 export type DemoView = 'off' | 'marketing' | 'app-preview';
 

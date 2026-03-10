@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { MessageSquare, Settings, Shield, Hash } from 'lucide-react';
+import { MessageSquare, Shield, Hash } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { TripChannel } from '../../types/roleChannels';
 import { channelService } from '../../services/channelService';

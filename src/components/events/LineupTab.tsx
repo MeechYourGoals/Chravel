@@ -36,11 +36,7 @@ import { hasPaidAccess } from '@/utils/paidAccess';
 import type { Speaker, EventAgendaItem } from '../../types/events';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
-import {
-  EVENT_PARITY_COL_START,
-  EVENT_PARITY_HEADER_SPAN_CLASS,
-  EVENT_PARITY_ROW_CLASS,
-} from '@/lib/tabParity';
+import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { ActionPill } from '../ui/ActionPill';
 
 interface LineupPermissions {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from './ui/button';
-import { Plane, Users, Calendar, MapPin, Sparkles } from 'lucide-react';
+import { Users, Calendar, MapPin, Sparkles } from 'lucide-react';
 
 interface UnauthenticatedLandingProps {
   onSignIn: () => void;

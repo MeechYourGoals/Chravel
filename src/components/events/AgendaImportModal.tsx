@@ -18,7 +18,6 @@ import {
   Calendar,
   MapPin,
   Clock,
-  AlertTriangle,
   CheckCircle2,
   Image,
   Type,

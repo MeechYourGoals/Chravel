@@ -1,13 +1,9 @@
-import React, { useState, lazy, Suspense, useCallback, memo, useEffect } from 'react';
+import React, { useState, lazy, Suspense, useCallback, useEffect } from 'react';
 import {
   MessageCircle,
-  Users,
   Calendar,
   Camera,
-  Radio,
-  Link,
   BarChart3,
-  FileText,
   ClipboardList,
   Lock,
   MapPin,

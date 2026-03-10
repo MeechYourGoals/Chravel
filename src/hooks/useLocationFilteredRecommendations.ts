@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { getRecommendationsByType, Recommendation } from '../data/recommendations';
+import { getRecommendationsByType } from '../data/recommendations';
 
 export const useLocationFilteredRecommendations = (
   activeFilter: string = 'all',

@@ -2,7 +2,6 @@ import { supabase } from '../integrations/supabase/client';
 import {
   Advertiser,
   Campaign,
-  CampaignTargeting,
   CampaignAnalytics,
   CampaignFormData,
   CampaignWithTargeting,

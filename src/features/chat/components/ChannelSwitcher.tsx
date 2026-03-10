@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Hash, Lock, Users, MessageSquare } from 'lucide-react';
+import { Hash, Lock, Users } from 'lucide-react';
 import { RoleChannel } from '@/services/roleChannelService';
 
 interface ChannelSwitcherProps {

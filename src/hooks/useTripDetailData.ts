@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { tripService, Trip } from '@/services/tripService';
+import { tripService } from '@/services/tripService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';

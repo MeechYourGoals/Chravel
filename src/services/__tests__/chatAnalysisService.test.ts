@@ -10,8 +10,6 @@ import {
   getAutomaticParticipantSuggestions,
   analyzeChatMessagesForPayment,
   recordPaymentSplitPattern,
-  PaymentParticipantSuggestion,
-  PaymentParsingResult,
 } from '../chatAnalysisService';
 import { supabase } from '@/integrations/supabase/client';
 

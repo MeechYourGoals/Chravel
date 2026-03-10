@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { retryWithBackoff, isRetryableError, retryIfRetryable, RetryOptions } from '../retry';
+import { retryWithBackoff, isRetryableError, retryIfRetryable } from '../retry';
 
 describe('retry utility', () => {
   beforeEach(() => {

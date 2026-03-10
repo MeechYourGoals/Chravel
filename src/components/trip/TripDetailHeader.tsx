@@ -1,10 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Settings, UserPlus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useAuth } from '../../hooks/useAuth';
-import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 
 interface TripDetailHeaderProps {
   tripContext: any;

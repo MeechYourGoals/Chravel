@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 
 export interface Achievement {

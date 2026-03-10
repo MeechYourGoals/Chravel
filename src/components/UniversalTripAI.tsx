@@ -11,7 +11,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
-import { TripPreferences } from '../types/consumer';
 import { UniversalConciergeService } from '../services/universalConciergeService';
 import { KnowledgeGraphService } from '../services/knowledgeGraphService';
 import { DemoDataSeeder } from './DemoDataSeeder';

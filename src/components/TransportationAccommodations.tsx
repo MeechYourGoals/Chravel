@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Hotel, Plane, Train, Car, MapPin, Calendar, Eye, EyeOff, Plus, Clock } from 'lucide-react';
 import { TourTrip, TeamMember } from '../types/pro';
-import { useAuth } from '../hooks/useAuth';
 import { useTripVariant } from '../contexts/TripVariantContext';
 
 interface TransportationAccommodationsProps {

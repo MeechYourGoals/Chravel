@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Crown, Building, Plus, AlertCircle } from 'lucide-react';
+import { Crown, Plus, AlertCircle } from 'lucide-react';
 import { SUBSCRIPTION_TIERS } from '../../types/pro';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 

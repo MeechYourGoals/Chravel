@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Home, Users, Calendar, MapPin } from 'lucide-react';
+import { X, Home, Users, Calendar } from 'lucide-react';
 import { RoomAssignment, ProParticipant } from '../../types/pro';
 
 interface RoomAssignmentsModalProps {

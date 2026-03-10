@@ -1,6 +1,5 @@
 import React, { useState, RefObject } from 'react';
 import { LogIn } from 'lucide-react';
-import { AuthModal } from '../AuthModal';
 import { cn } from '@/lib/utils';
 
 interface MobileAuthHeaderProps {

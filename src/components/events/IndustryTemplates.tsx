@@ -1,6 +1,5 @@
 import React from 'react';
 import { Building, Briefcase, GraduationCap, Heart, Cpu, Music } from 'lucide-react';
-import { Button } from '../ui/button';
 import { IndustryTemplate } from '@/types';
 
 interface IndustryTemplatesProps {

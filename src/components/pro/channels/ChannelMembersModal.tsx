@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, UserMinus, Shield } from 'lucide-react';
+import { X, UserPlus, UserMinus } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { ChannelWithStats } from '../../../types/channels';
 import { supabase } from '@/integrations/supabase/client';

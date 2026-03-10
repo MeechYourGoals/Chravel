@@ -1,4 +1,4 @@
-import { Trip, getTripById, generateTripMockData } from '../data/tripsData';
+import { getTripById, generateTripMockData } from '../data/tripsData';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripData } from '../types/pro';
 import {

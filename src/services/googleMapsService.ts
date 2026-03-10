@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getGoogleMapsApiKey } from '@/config/maps';
 
 export class GoogleMapsService {
   private static async callProxy(endpoint: string, data: any) {

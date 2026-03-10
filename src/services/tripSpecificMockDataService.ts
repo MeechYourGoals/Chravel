@@ -1,5 +1,3 @@
-import { getStorageItem } from '@/platform/storage';
-
 interface TripSpecificMediaItem {
   id: string;
   media_url: string;

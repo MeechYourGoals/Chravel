@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Plus, Edit3, Calendar, Trash2 } from 'lucide-react';
+import { MapPin, Plus, Edit3, Trash2 } from 'lucide-react';
 import { AddPlaceModal } from './AddPlaceModal';
 import { AddToCalendarButton } from './AddToCalendarButton';
 import { BasecampLocation, PlaceWithDistance } from '../types/basecamp';

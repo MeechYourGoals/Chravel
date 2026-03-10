@@ -3,7 +3,6 @@ import { ChevronDown } from 'lucide-react';
 import {
   ProCategoryEnum,
   PRO_CATEGORIES_ORDERED,
-  getCategoryConfig,
   getCategoryLabel,
 } from '../../types/proCategories';
 

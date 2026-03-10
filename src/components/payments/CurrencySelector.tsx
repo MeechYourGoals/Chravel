@@ -22,12 +22,7 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import {
-  CURRENCIES,
-  POPULAR_CURRENCIES,
-  CURRENCY_REGIONS,
-  getCurrency,
-} from '@/constants/currencies';
+import { POPULAR_CURRENCIES, CURRENCY_REGIONS, getCurrency } from '@/constants/currencies';
 import { cn } from '@/lib/utils';
 
 export interface CurrencySelectorProps {

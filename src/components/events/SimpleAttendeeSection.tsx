@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, User, Share, Link } from 'lucide-react';
+import { Users, User, Link } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useInviteLink } from '../../hooks/useInviteLink';
 import { InviteLinkSection } from '../invite/InviteLinkSection';

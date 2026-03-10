@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
 import {
   X,
-  Crown,
   Building,
   Sparkles,
-  MessageCircle,
-  Settings,
-  Zap,
   Users,
   Shield,
-  TrendingUp,
   Star,
   BarChart3,
   Calendar,
@@ -21,17 +16,14 @@ import {
   Clock,
   FileText,
   DollarSign,
-  TrendingDown,
   Mail,
   Ticket,
   Megaphone,
   Paintbrush,
-  Camera,
 } from 'lucide-react';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { TRIPS_PLUS_PRICE, TRIPS_PLUS_ANNUAL_PRICE } from '../types/consumer';
 import { supabase } from '@/integrations/supabase/client';
-import { SUBSCRIPTION_TIER_MAP } from '@/constants/stripe';
 import { toast } from 'sonner';
 
 interface UpgradeModalProps {

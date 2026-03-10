@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 /**
  * Smart grounding optimization hook
  * Detects location-related queries to minimize API costs

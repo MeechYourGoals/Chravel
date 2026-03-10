@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PersonalAccommodationService,
   personalAccommodationService,
-  PersonalAccommodation,
   CreateAccommodationRequest as ServiceCreateRequest,
   UpdateAccommodationRequest,
 } from '@/services/personalAccommodationService';

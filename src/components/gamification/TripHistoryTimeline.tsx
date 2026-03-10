@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { AchievementBadge } from './AchievementBadge';
 import { Badge } from '../ui/badge';
 import { MapPin, Calendar, Users } from 'lucide-react';
 

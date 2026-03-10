@@ -23,7 +23,6 @@ import type {
   ConvertedPrediction,
   SearchByTextRequest,
   AutocompleteRequest,
-  PLACE_FIELDS,
 } from '@/types/places';
 import {
   generateCacheKey,

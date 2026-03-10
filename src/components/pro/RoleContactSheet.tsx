@@ -4,7 +4,6 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Users, MessageCircle, Phone, Mail, Send, AlertTriangle, X } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
-import { getRoleColorClass } from '../../utils/roleUtils';
 import { ProTripCategory } from '../../types/proCategories';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { getInitials } from '../../utils/avatarUtils';

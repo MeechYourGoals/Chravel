@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { CONSUMER_TRIP_CATEGORIES, PRO_TRIP_CATEGORIES, TripCategory } from '@/types/consumer';
+import { CONSUMER_TRIP_CATEGORIES, PRO_TRIP_CATEGORIES } from '@/types/consumer';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

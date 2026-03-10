@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Settings,
   Search,
   Bell,
   MessageCircle,

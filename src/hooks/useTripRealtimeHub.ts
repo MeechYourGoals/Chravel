@@ -7,9 +7,8 @@
  * 3. trip_presence:{tripId} - Presence channel for typing/online status
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 
 type TableName = string;
 type EventType = 'INSERT' | 'UPDATE' | 'DELETE' | '*';

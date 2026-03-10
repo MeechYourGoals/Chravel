@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Crown, Settings } from 'lucide-react';
+import { Sparkles, Settings } from 'lucide-react';
 import { TripPreferences } from '../TripPreferences';
 import { TripPreferences as TripPreferencesType } from '../../types/consumer';
 import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
