@@ -1,6 +1,5 @@
 import React from 'react';
-import { Calendar, Phone, DollarSign } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { Phone } from 'lucide-react';
 import { Button } from '../ui/button';
 
 interface PersistentCTABarProps {

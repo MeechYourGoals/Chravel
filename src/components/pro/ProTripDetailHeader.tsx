@@ -1,8 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings, MessageCircle, UserPlus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
-import { useAuth } from '../../hooks/useAuth';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 
 interface ProTripDetailHeaderProps {
@@ -23,7 +22,6 @@ export const ProTripDetailHeader = ({
   onShowAuth,
 }: ProTripDetailHeaderProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { accentColors } = useTripVariant();
 
   return (

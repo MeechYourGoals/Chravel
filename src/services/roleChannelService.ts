@@ -1,6 +1,4 @@
 import { supabase } from '../integrations/supabase/client';
-import { TripChannel, ChannelMessage } from '@/types/roleChannels';
-
 // Re-export types for compatibility
 export type RoleChannel = {
   id: string;

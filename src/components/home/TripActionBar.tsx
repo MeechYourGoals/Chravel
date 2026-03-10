@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Settings,
   Search,
   Bell,
   MessageCircle,
@@ -93,15 +92,8 @@ export const TripActionBar = ({
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {
-    notifications,
-    unreadCount,
-    fetchNotifications,
-    fetchUnreadCount,
-    markAsRead,
-    markAllAsRead,
-    clearAll,
-  } = useNotificationRealtime();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } =
+    useNotificationRealtime();
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!isDemoMode && user) {

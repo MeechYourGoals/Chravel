@@ -80,6 +80,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
           product_id === fcProduct.product_id_monthly ||
           product_id === fcProduct.product_id_annual
         ) {
+          userTier = 'frequent-chraveler';
         }
       }
 

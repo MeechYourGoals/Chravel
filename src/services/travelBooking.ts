@@ -1,5 +1,3 @@
-import { useToast } from '../hooks/use-toast';
-
 export interface FlightSearchParams {
   origin: string;
   destination: string;

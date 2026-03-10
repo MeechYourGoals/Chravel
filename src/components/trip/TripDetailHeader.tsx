@@ -1,10 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Settings, UserPlus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 import { useTripVariant } from '../../contexts/TripVariantContext';
-import { useAuth } from '../../hooks/useAuth';
-import { useConsumerSubscription } from '../../hooks/useConsumerSubscription';
 
 interface TripDetailHeaderProps {
   tripContext: any;
@@ -24,8 +22,7 @@ export const TripDetailHeader = ({
   onShowAuth,
 }: TripDetailHeaderProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { variant, accentColors } = useTripVariant();
+  const { accentColors } = useTripVariant();
 
   return (
     <div className="flex items-center justify-between mb-4">

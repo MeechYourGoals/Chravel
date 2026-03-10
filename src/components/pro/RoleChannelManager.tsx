@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { MessageSquare, Settings, Shield, Hash } from 'lucide-react';
+import { MessageSquare, Shield, Hash } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { TripChannel } from '../../types/roleChannels';
 import { channelService } from '../../services/channelService';
-import { useToast } from '../../hooks/use-toast';
 import { ChannelSelector } from './channels/ChannelSelector';
 import { ChannelChatView } from './channels/ChannelChatView';
 import { AdminRoleManager } from './channels/AdminRoleManager';
@@ -34,8 +33,6 @@ export const RoleChannelManager = ({
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [loading, setLoading] = useState(true);
   const [demoMode, setDemoMode] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
     if (isOpen) {
       // Auto-enable demo mode for specific trips
@@ -93,13 +90,6 @@ export const RoleChannelManager = ({
     }
 
     setLoading(false);
-  };
-
-  const enterDemoMode = () => {
-    const { channels: demoChannels } = getDemoChannelsForTrip(tripId);
-    setChannels(demoChannels);
-    setDemoMode(true);
-    setSelectedChannel(null);
   };
 
   const exitDemoMode = () => {

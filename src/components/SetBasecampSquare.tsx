@@ -15,11 +15,7 @@ export const SetBasecampSquare = ({
   basecamp: propBasecamp,
   onBasecampSet: propOnBasecampSet,
 }: SetBasecampSquareProps) => {
-  const {
-    basecamp: contextBasecamp,
-    setBasecamp: setContextBasecamp,
-    isBasecampSet,
-  } = useBasecamp();
+  const { basecamp: contextBasecamp, setBasecamp: setContextBasecamp } = useBasecamp();
   const { toast } = useToast();
 
   // Use context basecamp if available, otherwise fall back to props

@@ -136,7 +136,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       await createRole(newRoleName);
       setShowCreateDialog(false);
       setNewRoleName('');
-    } catch (_error) {
+    } catch {
       // Error handled in hook
     }
   };
@@ -155,7 +155,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       toast.success(`Role "${roleToDelete.roleName}" and its channel have been deleted`);
       setShowDeleteConfirm(false);
       setRoleToDelete(null);
-    } catch (_error) {
+    } catch {
       // Error shown by hook
     }
   };
@@ -174,7 +174,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       toast.success(`${userName || 'User'} has been removed from this role`);
       await refetchRoles();
       await refetchAssignments();
-    } catch (_error) {
+    } catch {
       // Error shown by hook
     } finally {
       setRemovingUserId(null);
@@ -189,7 +189,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       toast.success(`${userName || 'User'} has been added to this role`);
       await refetchRoles();
       await refetchAssignments();
-    } catch (_error) {
+    } catch {
       // Error shown by hook
     } finally {
       setAddingUserId(null);
@@ -212,7 +212,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
         await promoteToAdmin(userId);
         toast.success(`${userName || 'User'} is now an admin`);
       }
-    } catch (_error) {
+    } catch {
       toast.error('Failed to update admin status');
     }
   };

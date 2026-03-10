@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { TripCoverPhotoUpload } from './TripCoverPhotoUpload';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { getAllProTripColors, getProTripColorByName } from '@/utils/proTripColors';
+import { getAllProTripColors } from '@/utils/proTripColors';
 
 interface EditTripModalProps {
   isOpen: boolean;

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Star, Users, MapPin, Clock, TrendingUp } from 'lucide-react';
+import { Star, MapPin, Clock, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
 
 interface Testimonial {
   name: string;
@@ -20,7 +19,7 @@ interface Metric {
   trend?: string;
 }
 
-const testimonials: Testimonial[] = [
+const _testimonials: Testimonial[] = [
   {
     name: 'Paul George Elite AAU Team',
     role: 'AAU Travel Coach',

@@ -23,7 +23,6 @@ import type {
   ConvertedPrediction,
   SearchByTextRequest,
   AutocompleteRequest,
-  PLACE_FIELDS,
 } from '@/types/places';
 import {
   generateCacheKey,
@@ -952,7 +951,7 @@ export async function resolveQuery(
     }
 
     // 2) Try searchByText with type detection
-    const detectedType = detectPlaceType(query);
+    detectPlaceType(query);
 
     const places = await retryWithBackoff(async () => searchByText(query, origin, 1));
 
