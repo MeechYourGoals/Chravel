@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Send, X, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
+import { Send, X, CalendarPlus, Bookmark, ListChecks, Sparkles } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -11,18 +11,14 @@ interface AiChatInputProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
   isTyping: boolean;
   disabled?: boolean;
-  /** Conversation mode state (Gemini Live waveform button) */
+  /** Dictation state for waveform button */
   convoVoiceState?: VoiceState;
   /** Tap: toggle dictation on/off */
   onConvoToggle?: () => void;
-  /** Long-press: activate Gemini Live bidirectional voice */
-  onConvoLongPress?: () => void;
   /** Whether voice features are available */
   isVoiceEligible?: boolean;
   /** Upgrade prompt for ineligible users */
   onVoiceUpgrade?: () => void;
-  /** Whether Gemini Live is currently active */
-  isLiveActive?: boolean;
   /** Multimodal: callback when user selects images */
   onImageAttach?: (files: File[]) => void;
   /** Multimodal: currently attached image previews */
@@ -33,6 +29,12 @@ interface AiChatInputProps {
   showImageAttach?: boolean;
   /** Callback when a Smart Import quick action chip is tapped */
   onQuickAction?: (action: string) => void;
+  /** Callback to toggle Gemini Live mode */
+  onLiveToggle?: () => void;
+  /** Whether Gemini Live is currently active */
+  isLiveActive?: boolean;
+  /** Whether user is eligible for Gemini Live */
+  isLiveEligible?: boolean;
 }
 
 export const AiChatInput = ({
@@ -44,15 +46,16 @@ export const AiChatInput = ({
   disabled = false,
   convoVoiceState = 'idle',
   onConvoToggle,
-  onConvoLongPress,
   isVoiceEligible = false,
   onVoiceUpgrade,
-  isLiveActive = false,
   onImageAttach: _onImageAttach,
   attachedImages = [],
   onRemoveImage,
   showImageAttach: _showImageAttach = false,
   onQuickAction,
+  onLiveToggle,
+  isLiveActive = false,
+  isLiveEligible = false,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -78,7 +81,7 @@ export const AiChatInput = ({
     void onSendMessage();
   };
 
-  // Derived conversation active state
+  // Derived conversation active state (dictation only now)
   const isConvoActive =
     isVoiceEligible && convoVoiceState !== 'idle' && convoVoiceState !== 'error';
 
@@ -138,15 +141,13 @@ export const AiChatInput = ({
       )}
 
       <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
-        {/* Waveform / Conversation button (primary voice CTA) */}
+        {/* Waveform / Dictation button */}
         {onConvoToggle && (
           <VoiceButton
             voiceState={convoVoiceState}
             isEligible={isVoiceEligible}
             onToggle={onConvoToggle}
-            onLongPress={onConvoLongPress}
             onUpgrade={onVoiceUpgrade}
-            isLiveActive={isLiveActive}
           />
         )}
 
@@ -159,10 +160,27 @@ export const AiChatInput = ({
             placeholder={getPlaceholder()}
             rows={2}
             disabled={disabled}
-            className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+            className={`w-full bg-white/5 border rounded-2xl px-4 py-3 ${isLiveEligible ? 'pr-20' : ''} text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
               isConvoActive ? 'border-primary/30 bg-primary/5' : 'border-white/10'
             }`}
           />
+
+          {/* Gemini Live button — inside the input */}
+          {isLiveEligible && onLiveToggle && (
+            <button
+              type="button"
+              onClick={onLiveToggle}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 h-7 px-2 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation ${
+                isLiveActive
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-500/20'
+                  : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70'
+              }`}
+              aria-label={isLiveActive ? 'Stop live voice' : 'Start live voice'}
+            >
+              <Sparkles size={14} />
+              <span className="text-[10px] font-medium">Live</span>
+            </button>
+          )}
         </div>
 
         {/* Send button */}
