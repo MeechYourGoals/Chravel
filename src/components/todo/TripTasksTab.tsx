@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { TripTask } from '../../types/tasks';
 import { Plus } from 'lucide-react';
 import { TaskList } from './TaskList';
@@ -96,25 +96,28 @@ export const TripTasksTab = ({ tripId }: TripTasksTabProps) => {
   // Apply filters
   const filteredTasks = applyFilters(displayTasks);
 
-  const openTasks =
-    filteredTasks?.filter(task => {
-      if (task.is_poll) {
-        const completionRate = task.task_status?.filter(s => s.completed).length || 0;
-        const totalRequired = task.task_status?.length || 1;
-        return completionRate < totalRequired;
-      }
-      return !task.task_status?.[0]?.completed;
-    }) || [];
+  const { openTasks, completedTasks } = useMemo(() => {
+    const open: typeof filteredTasks = [];
+    const completed: typeof filteredTasks = [];
 
-  const completedTasks =
-    filteredTasks?.filter(task => {
+    (filteredTasks ?? []).forEach(task => {
       if (task.is_poll) {
         const completionRate = task.task_status?.filter(s => s.completed).length || 0;
         const totalRequired = task.task_status?.length || 1;
-        return completionRate >= totalRequired;
+        if (completionRate >= totalRequired) {
+          completed.push(task);
+        } else {
+          open.push(task);
+        }
+      } else if (task.task_status?.[0]?.completed) {
+        completed.push(task);
+      } else {
+        open.push(task);
       }
-      return task.task_status?.[0]?.completed;
-    }) || [];
+    });
+
+    return { openTasks: open, completedTasks: completed };
+  }, [filteredTasks]);
 
   if (isLoading) {
     return (

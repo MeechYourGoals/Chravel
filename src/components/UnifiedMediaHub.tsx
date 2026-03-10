@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Camera } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMediaManagement } from '@/hooks/useMediaManagement';
@@ -103,39 +103,45 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
     };
   }, [tripId, isDemoMode, fetchUrlsCount]);
 
-  const filterMediaByType = (type: string) => {
-    let filtered = filteredMediaItems;
+  // Memoize search-filtered base to avoid recomputing per type
+  const searchFilteredItems = useMemo(() => {
+    if (searchQuery && searchResults.length > 0) {
+      const resultIds = new Set(searchResults.map(r => r.id));
+      return filteredMediaItems.filter(item => resultIds.has(item.id));
+    } else if (searchQuery) {
+      return filterMediaByAITags(filteredMediaItems, searchQuery);
+    }
+    return filteredMediaItems;
+  }, [filteredMediaItems, searchQuery, searchResults]);
 
-    // Apply type filter
-    if (type === 'photos') {
-      filtered = filtered.filter(item => item.media_type === 'image');
-    } else if (type === 'videos') {
-      filtered = filtered.filter(item => item.media_type === 'video');
-    } else if (type === 'files') {
-      // Match MediaSubTabs file filtering logic
-      filtered = filtered.filter(
+  // Memoize per-type filtered results (avoids 5+ filter passes per render)
+  const filteredByType = useMemo(
+    () => ({
+      all: searchFilteredItems,
+      photos: searchFilteredItems.filter(item => item.media_type === 'image'),
+      videos: searchFilteredItems.filter(item => item.media_type === 'video'),
+      files: searchFilteredItems.filter(
         item =>
           item.media_type === 'document' ||
           (item.media_type === 'image' &&
             (item.metadata?.isSchedule || item.metadata?.isReceipt || item.metadata?.isTicket)),
-      );
-    }
-    // 'all' type doesn't filter by media type
+      ),
+    }),
+    [searchFilteredItems],
+  );
 
-    // Apply search filter if active
-    if (searchQuery && searchResults.length > 0) {
-      const resultIds = new Set(searchResults.map(r => r.id));
-      filtered = filtered.filter(item => resultIds.has(item.id));
-    } else if (searchQuery) {
-      // Fallback to AI tag filtering if search results empty
-      filtered = filterMediaByAITags(filtered, searchQuery);
-    }
-
-    return filtered;
-  };
+  // Memoize badge counts from unfiltered items (not affected by search)
+  const typeCounts = useMemo(
+    () => ({
+      photos: filteredMediaItems.filter(item => item.media_type === 'image').length,
+      videos: filteredMediaItems.filter(item => item.media_type === 'video').length,
+      files: filteredMediaItems.filter(item => item.media_type === 'document').length,
+    }),
+    [filteredMediaItems],
+  );
 
   const renderAllItems = () => {
-    const filteredItems = filterMediaByType('all');
+    const filteredItems = filteredByType.all;
 
     if (filteredMediaItems.length === 0) {
       return (
@@ -213,26 +219,20 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
           </TabsTrigger>
           <TabsTrigger value="photos" className="text-xs">
             Photos
-            {filteredMediaItems.filter(item => item.media_type === 'image').length > 0 && (
-              <span className="ml-1 text-[10px] opacity-70">
-                ({filteredMediaItems.filter(item => item.media_type === 'image').length})
-              </span>
+            {typeCounts.photos > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">({typeCounts.photos})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="videos" className="text-xs">
             Videos
-            {filteredMediaItems.filter(item => item.media_type === 'video').length > 0 && (
-              <span className="ml-1 text-[10px] opacity-70">
-                ({filteredMediaItems.filter(item => item.media_type === 'video').length})
-              </span>
+            {typeCounts.videos > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">({typeCounts.videos})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="files" className="text-xs">
             Files
-            {filteredMediaItems.filter(item => item.media_type === 'document').length > 0 && (
-              <span className="ml-1 text-[10px] opacity-70">
-                ({filteredMediaItems.filter(item => item.media_type === 'document').length})
-              </span>
+            {typeCounts.files > 0 && (
+              <span className="ml-1 text-[10px] opacity-70">({typeCounts.files})</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="urls" className="text-xs">
@@ -247,7 +247,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
         <TabsContent value="photos" className="mt-6">
           <MediaSubTabs
-            items={filterMediaByType('photos')}
+            items={filteredByType.photos}
             type="photos"
             searchQuery={searchQuery}
             tripId={tripId}
@@ -258,7 +258,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
         <TabsContent value="videos" className="mt-6">
           <MediaSubTabs
-            items={filterMediaByType('videos')}
+            items={filteredByType.videos}
             type="videos"
             searchQuery={searchQuery}
             tripId={tripId}
@@ -269,7 +269,7 @@ export const UnifiedMediaHub = ({ tripId, onPromoteToTripLink }: UnifiedMediaHub
 
         <TabsContent value="files" className="mt-6">
           <MediaSubTabs
-            items={filterMediaByType('files')}
+            items={filteredByType.files}
             type="files"
             searchQuery={searchQuery}
             tripId={tripId}
