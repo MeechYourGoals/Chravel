@@ -1,4 +1,4 @@
-import { Trip, getTripById, generateTripMockData } from '../data/tripsData';
+import { getTripById, generateTripMockData } from '../data/tripsData';
 import { proTripMockData } from '../data/proTripMockData';
 import { ProTripData } from '../types/pro';
 import {
@@ -188,8 +188,8 @@ export class EnhancedTripContextService {
 
     // 🆕 Enhanced contextual data for AI Concierge
     const tasks = await this.getTripTasks(context.tripId);
-    const payments = await this.getTripPayments(context.tripId);
-    const calendar = await this.getTripCalendar(context.tripId);
+    await this.getTripPayments(context.tripId);
+    await this.getTripCalendar(context.tripId);
 
     // 🆕 Geocode basecamp if it doesn't have coordinates
     if (context.basecamp && typeof context.basecamp === 'object') {

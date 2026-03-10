@@ -537,7 +537,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                   await supabase
                     .from('smart_import_candidates')
                     .update({ status: 'rejected', updated_at: new Date().toISOString() })
-                    .in('id', rejectedIds);
+                    .in('id', rejectedIds as string[]);
                 }
 
                 // Invalidate cache and close

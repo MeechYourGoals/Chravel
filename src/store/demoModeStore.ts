@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { secureStorageService } from '@/services/secureStorageService';
 
 export type DemoView = 'off' | 'marketing' | 'app-preview';
 
@@ -51,7 +50,7 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
 
       // No cached value
       set({ demoView: 'off', isDemoMode: false, isLoading: false });
-    } catch (error) {
+    } catch {
       set({ demoView: 'off', isDemoMode: false, isLoading: false });
     }
   },
@@ -63,7 +62,7 @@ export const useDemoModeStore = create<DemoModeState>((set, get) => ({
         demoView: view,
         isDemoMode: view === 'app-preview',
       });
-    } catch (error) {
+    } catch {
       // Silent fail - non-critical
     }
   },

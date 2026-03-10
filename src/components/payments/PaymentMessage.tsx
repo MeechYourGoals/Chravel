@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, Users, CreditCard, Clock, Check } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
+import { Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { PaymentMessage as PaymentMessageType, PaymentMethod } from '../../types/payments';

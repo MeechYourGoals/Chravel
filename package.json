@@ -12,6 +12,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
+    "lint:budget": "node scripts/eslint-warning-budget.cjs",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",

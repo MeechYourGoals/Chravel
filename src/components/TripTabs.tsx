@@ -1,13 +1,9 @@
-import React, { useState, lazy, Suspense, useCallback, memo, useEffect } from 'react';
+import React, { useState, lazy, Suspense, useCallback, useEffect } from 'react';
 import {
   MessageCircle,
-  Users,
   Calendar,
   Camera,
-  Radio,
-  Link,
   BarChart3,
-  FileText,
   ClipboardList,
   Lock,
   MapPin,
@@ -89,7 +85,7 @@ export const TripTabs = ({
     | undefined
   >(undefined);
 
-  const { accentColors } = useTripVariant();
+  useTripVariant();
   const features = useFeatureToggle(tripData || {});
   const { isSuperAdmin } = useSuperAdmin();
   const { prefetchTab, prefetchAdjacentTabs, prefetchPriorityTabs } = usePrefetchTrip();
@@ -129,19 +125,19 @@ export const TripTabs = ({
   }, [activeTab, visitedTabs, tripId, prefetchAdjacentTabs]);
 
   // Handler for saving chat links to Explore Links (trip_links table)
-  const handlePromoteToTripLink = (urlData: NormalizedUrl) => {
+  const handlePromoteToTripLink = useCallback((urlData: NormalizedUrl) => {
     setLinkPrefill({
       url: urlData.url,
       title: urlData.title || urlData.domain,
       note: `Shared in chat on ${new Date(urlData.lastSeenAt).toLocaleDateString()}`,
     });
     setIsAddLinkModalOpen(true);
-  };
+  }, []);
 
-  const handleCloseLinkModal = () => {
+  const handleCloseLinkModal = useCallback(() => {
     setIsAddLinkModalOpen(false);
     setLinkPrefill(undefined);
-  };
+  }, []);
 
   // 🆕 Updated tab order: Chat, Calendar, Concierge, Media, Payments, Places, Polls, Tasks
   // Super admins always have all features enabled (no lock icons)

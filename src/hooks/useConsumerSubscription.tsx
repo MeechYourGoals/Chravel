@@ -2,7 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback } from 'rea
 import { ConsumerSubscription } from '../types/consumer';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { STRIPE_PRODUCTS } from '@/constants/stripe';
+import { getTierFromProductId } from '@/constants/stripe';
 import { toast } from 'sonner';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 
@@ -68,19 +68,13 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
           | 'pro-enterprise';
       } else if (product_id) {
         // Fallback detection for legacy/unmapped products
-        const explorerProduct = STRIPE_PRODUCTS['consumer-explorer'];
-        const fcProduct = STRIPE_PRODUCTS['consumer-frequent-chraveler'];
-
-        if (
-          product_id === explorerProduct.product_id_monthly ||
-          product_id === explorerProduct.product_id_annual
-        ) {
-          userTier = 'explorer';
-        } else if (
-          product_id === fcProduct.product_id_monthly ||
-          product_id === fcProduct.product_id_annual
-        ) {
-        }
+        userTier = getTierFromProductId(product_id) as
+          | 'free'
+          | 'explorer'
+          | 'frequent-chraveler'
+          | 'pro-starter'
+          | 'pro-growth'
+          | 'pro-enterprise';
       }
 
       setSubscription({

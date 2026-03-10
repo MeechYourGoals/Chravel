@@ -1,5 +1,5 @@
-import React, { lazy, Suspense, useCallback } from 'react';
-import { CalendarIcon, DollarSign, Shield, FileCheck, Award } from 'lucide-react';
+import React, { lazy, Suspense } from 'react';
+import { DollarSign, Shield, FileCheck, Award } from 'lucide-react';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 

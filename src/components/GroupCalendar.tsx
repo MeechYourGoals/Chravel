@@ -24,7 +24,7 @@ interface GroupCalendarProps {
   tripId: string;
 }
 
-export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
+export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
   const queryClient = useQueryClient();
   const {
     selectedDate,
@@ -380,4 +380,4 @@ export const GroupCalendar = ({ tripId }: GroupCalendarProps) => {
       />
     </div>
   );
-};
+});

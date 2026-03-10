@@ -9,7 +9,8 @@ export type GmailAccount = {
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
   try {
     // Query the safe view — token columns are not exposed to the frontend
-    const { data, error } = await supabase
+    // Cast to 'any' because gmail_accounts_safe view may not be in generated types
+    const { data, error } = await (supabase as any)
       .from('gmail_accounts_safe')
       .select('id, email, created_at')
       .order('created_at', { ascending: false });
@@ -29,7 +30,7 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
       throw new Error(error.message);
     }
 
-    return data || [];
+    return (data || []) as GmailAccount[];
   } catch (err) {
     if (
       err instanceof Error &&
