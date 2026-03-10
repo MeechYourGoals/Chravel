@@ -657,6 +657,7 @@ class BasecampService {
       address: string;
       latitude?: number;
       longitude?: number;
+      confirmation_number?: string;
     },
     options?: { skipHistory?: boolean },
   ): Promise<PersonalBasecamp | null> {
