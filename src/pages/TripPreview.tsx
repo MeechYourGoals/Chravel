@@ -414,7 +414,7 @@ const TripPreview = () => {
               <Users className="h-5 w-5 gold-gradient-icon flex-shrink-0" />
               <span>
                 {tripData.member_count}{' '}
-                {tripData.member_count === 1 ? 'traveler' : 'travelers already planning'}
+                {tripData.member_count === 1 ? 'Chraveler' : 'Chravelers already planning'}
               </span>
             </div>
           </div>

@@ -746,7 +746,7 @@ const JoinTrip = () => {
                 <Users size={16} className="text-primary" />
                 <span className="text-foreground">
                   {inviteData.trip.member_count}{' '}
-                  {inviteData.trip.member_count === 1 ? 'traveler' : 'travelers already planning'}
+                  {inviteData.trip.member_count === 1 ? 'Chraveler' : 'Chravelers already planning'}
                 </span>
               </div>
             )}
