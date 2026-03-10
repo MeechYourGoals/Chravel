@@ -950,6 +950,7 @@ class BasecampService {
         basecamp.latitude && basecamp.longitude
           ? { lat: basecamp.latitude, lng: basecamp.longitude }
           : undefined,
+      confirmationNumber: basecamp.confirmation_number || undefined,
     };
   }
 }

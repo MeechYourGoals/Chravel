@@ -304,6 +304,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
     name: pb.name,
     type: 'other',
     coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined,
+    confirmationNumber: pb.confirmation_number || undefined,
   });
 
   return (
