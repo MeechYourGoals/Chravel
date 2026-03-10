@@ -63,7 +63,7 @@ export const PlaceResultCards: React.FC<PlaceResultCardsProps> = ({
 
   return (
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
-      {places.slice(0, 3).map((place, idx) => {
+      {places.map((place, idx) => {
         const photoSrc = place.previewPhotoUrl || place.photoUrls?.[0] || null;
         const mapsHref = toExternalHttpsUrl(place.mapsUrl);
         const placeUrl =

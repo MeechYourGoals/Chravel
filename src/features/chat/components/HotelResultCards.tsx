@@ -86,7 +86,7 @@ export const HotelResultCards: React.FC<HotelResultCardsProps> = ({
 
   return (
     <div className={`flex flex-col gap-2.5 ${className ?? ''}`}>
-      {hotels.slice(0, 3).map((hotel, idx) => {
+      {hotels.map((hotel, idx) => {
         const primaryUrl = toExternalHttpsUrl(hotel.deep_links?.primary);
         const savedKey = primaryUrl ?? hotel.title;
         const saved = isSaved ? isSaved(savedKey) : false;

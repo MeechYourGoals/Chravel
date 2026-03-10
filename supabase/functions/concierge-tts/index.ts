@@ -1,8 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import {
+  parseServiceAccountKey,
+  createVertexAccessToken,
+} from '../_shared/vertexAuth.ts';
 
-const GOOGLE_CLOUD_TTS_API_KEY = Deno.env.get('GOOGLE_CLOUD_TTS_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
@@ -21,7 +24,29 @@ const FREE_TIER_DAILY_LIMIT = 30;
 const EXPLORER_TIER_DAILY_LIMIT = 100;
 
 /** Status codes from Google Cloud TTS that warrant a fallback voice retry. */
-const FALLBACK_RETRY_STATUSES = new Set([400, 404]);
+const FALLBACK_RETRY_STATUSES = new Set([400, 403, 404]);
+
+// ── Module-level OAuth2 token cache ──
+let cachedAccessToken: string | null = null;
+let tokenExpiresAt = 0;
+
+async function getAccessToken(): Promise<string> {
+  const now = Date.now();
+  // Reuse token if it has >2 min remaining
+  if (cachedAccessToken && tokenExpiresAt - now > 120_000) {
+    return cachedAccessToken;
+  }
+
+  const saKeyBase64 = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
+  if (!saKeyBase64) {
+    throw new Error('VERTEX_SERVICE_ACCOUNT_KEY is not set');
+  }
+
+  const saKey = parseServiceAccountKey(saKeyBase64);
+  cachedAccessToken = await createVertexAccessToken(saKey);
+  tokenExpiresAt = now + 3500_000; // ~58 min (tokens last 1 hour)
+  return cachedAccessToken;
+}
 
 const isActiveEntitlement = (status?: string | null, periodEnd?: string | null): boolean => {
   if (status !== 'active' && status !== 'trialing') return false;
@@ -85,14 +110,14 @@ const decodeBase64Audio = (audioContent: string): Uint8Array => {
 };
 
 async function callGoogleCloudTTS(text: string, voiceName: string): Promise<Response> {
-  const url =
-    'https://texttospeech.googleapis.com/v1/text:synthesize' +
-    `?key=${encodeURIComponent(GOOGLE_CLOUD_TTS_API_KEY!)}`;
+  const accessToken = await getAccessToken();
+  const url = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 
   return await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
       input: { text },
@@ -121,9 +146,10 @@ serve(async (req: Request) => {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
-  if (!GOOGLE_CLOUD_TTS_API_KEY) {
-    console.error('[concierge-tts] GOOGLE_CLOUD_TTS_API_KEY is not set');
-    return new Response(JSON.stringify({ error: 'Google Cloud TTS API key not configured' }), {
+  // Validate that VERTEX_SERVICE_ACCOUNT_KEY is available
+  if (!Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY')) {
+    console.error('[concierge-tts] VERTEX_SERVICE_ACCOUNT_KEY is not set');
+    return new Response(JSON.stringify({ error: 'TTS service account key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -269,6 +295,12 @@ serve(async (req: Request) => {
       console.warn(
         `[concierge-tts] Primary voice ${resolvedVoiceId} returned ${ttsRes.status}: ${errBody}. Retrying with fallback voice ${fallbackVoice}`,
       );
+
+      // If auth failed (403), invalidate cached token before retry
+      if (ttsRes.status === 403) {
+        cachedAccessToken = null;
+        tokenExpiresAt = 0;
+      }
 
       ttsRes = await callGoogleCloudTTS(text, fallbackVoice);
       usedFallback = true;
