@@ -18,15 +18,15 @@ const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
 // The old preview model (gemini-live-2.5-flash-preview-native-audio-09-2025) is deprecated.
 const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
 
-// Phase A: Mode 0 — all features OFF by default for boring handshake baseline
+// All features ON by default — supported on GA native-audio model
 const VOICE_TOOLS_ENABLED =
-  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'false').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
 
-// Preview features — OFF by default for isolation, not because invalid on GA model
+// Native-audio features — supported on gemini-live-2.5-flash-native-audio
 const VOICE_AFFECTIVE_DIALOG =
-  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
 const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase, SUPABASE_PROJECT_URL } from '@/integrations/supabase/client';
 import { AudioPlaybackQueue } from '@/lib/geminiLive/audioPlayback';
 import { startAudioCapture, type AudioCaptureHandle } from '@/lib/geminiLive/audioCapture';
@@ -564,6 +565,7 @@ export function useGeminiLive({
       setCircuitBreakerOpen(true);
       setError('Voice is temporarily unavailable. Tap "Try voice again" to retry.');
       setState('error');
+      toast.warning('Voice temporarily unavailable after repeated failures. Tap "Try voice again" to retry.');
       return;
     }
 
@@ -1317,6 +1319,7 @@ export function useGeminiLive({
       setError(errMsg);
       patchDiagnostics({ lastError: errMsg, connectionStatus: 'error' });
       transition('error', 'start_failed');
+      toast.error(errMsg);
       void cleanup();
     }
   }, [

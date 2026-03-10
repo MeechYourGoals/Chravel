@@ -1,49 +1,32 @@
 
 
-# Fix: Live Button Silent Failure + Enable Features + Toast Feedback
+## Problem
 
-## Root Cause
-
-**The edge function was not deployed.** Zero logs for `gemini-voice-proxy` despite it being configured in `config.toml` and having code in place. I just deployed it successfully. The WS connection from the client was timing out after 20 seconds with no toast feedback visible because the user likely didn't wait that long.
-
-Additionally, there's a **missing toast on initial click** — the user gets no immediate visual feedback that the Live session is starting, so it looks like "nothing happens."
+The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
 
 ## Changes
 
-### 1. `src/components/AIConciergeChat.tsx` — Add toast feedback to `handleLiveToggle`
-- Add `toast.info('Starting live voice…')` immediately when Live toggle starts
-- Wrap the `await startLiveSession()` in a try/catch that shows `toast.error(...)` on failure
-- This ensures the user always sees feedback on click, even before WS connects
+### `src/components/pro/team/RolesView.tsx` (lines 202-262)
 
-### 2. `src/hooks/useGeminiLive.ts` — Add toast on dictation/voice errors
-- Import `toast` from sonner
-- Add toast feedback in `startSession` catch block and WS error/close handlers so the user always sees what went wrong
-- Add toast on circuit breaker open
+Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
 
-### 3. `supabase/functions/gemini-voice-proxy/index.ts` — Enable tools, affective, proactive
-- Change `VOICE_TOOLS_ENABLED` default from `'false'` to `'true'`
-- Change `VOICE_AFFECTIVE_DIALOG` default from `'false'` to `'true'`
-- Change `VOICE_PROACTIVE_AUDIO` default from `'false'` to `'true'`
+**Desktop container:**
+```tsx
+// Before
+className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
 
-### 4. `supabase/functions/gemini-voice-session/index.ts` — Enable tools, affective, proactive
-- Same three default changes to `'true'`
+// After
+className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
+```
 
-### 5. `src/config/voiceFeatureFlags.ts` — Align client-side defaults
-- Change `VOICE_AFFECTIVE_DIALOG` default from `'false'` to `'true'`
-- Change `VOICE_PROACTIVE_AUDIO` default from `'false'` to `'true'`
+**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
+```tsx
+className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
+  hover:border-amber-400/50 text-white border-white/20 transition-colors 
+  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
+```
 
-### 6. Redeploy both edge functions after changes
+**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
 
-## Toast Strategy
-
-| Event | Toast Type | Message |
-|-------|-----------|---------|
-| Live button clicked | info | "Starting live voice…" |
-| Mic denied | error | "Microphone permission denied…" |
-| WS connection dropped | error | "Voice connection dropped…" |
-| Setup timeout | error | "Voice setup timed out…" |
-| Circuit breaker open | warning | "Voice temporarily unavailable" |
-| Auth failed | error | "Not authenticated…" |
-| Vertex not configured | error | "Voice AI not configured" |
-| Live session started | success | (none — the UI state change is sufficient) |
+**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
 

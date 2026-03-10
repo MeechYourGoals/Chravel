@@ -40,11 +40,11 @@ export const VOICE_DIAGNOSTICS_ENABLED = parseBool(
 /** Require WebSocket for Live voice; reject silent downgrade to SSE/HTTP. Default: true. */
 export const VOICE_USE_WEBSOCKET_ONLY = parseBool(getEnv('VITE_VOICE_USE_WEBSOCKET_ONLY', 'true'));
 
-/** Preview: Enable affective dialog (emotional tone awareness). Default: false for Phase A isolation. */
-export const VOICE_AFFECTIVE_DIALOG = parseBool(getEnv('VITE_VOICE_AFFECTIVE_DIALOG', 'false'));
+/** Enable affective dialog (emotional tone awareness). Default: true — supported on GA native-audio model. */
+export const VOICE_AFFECTIVE_DIALOG = parseBool(getEnv('VITE_VOICE_AFFECTIVE_DIALOG', 'true'));
 
-/** Preview: Enable proactive audio (model-initiated speech). Default: false for Phase A isolation. */
-export const VOICE_PROACTIVE_AUDIO = parseBool(getEnv('VITE_VOICE_PROACTIVE_AUDIO', 'false'));
+/** Enable proactive audio (model-initiated speech). Default: true — supported on GA native-audio model. */
+export const VOICE_PROACTIVE_AUDIO = parseBool(getEnv('VITE_VOICE_PROACTIVE_AUDIO', 'true'));
 
 /** All voice flags for debugging / diagnostics. */
 export function getVoiceFlags(): {
