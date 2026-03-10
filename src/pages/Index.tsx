@@ -532,14 +532,14 @@ const Index = () => {
 
     // Convert events (Record<string, EventData>) to Trip[]
     Object.entries(filteredData.events).forEach(([id, evt]) => {
-      const event = evt as EventData;
+      const eventData = evt as EventData;
       result.push({
         id,
-        title: evt.title,
-        location: evt.location,
-        dateRange: evt.dateRange,
-        description: evt.description || '',
-        coverPhoto: evt.coverPhoto,
+        title: eventData.title,
+        location: eventData.location,
+        dateRange: eventData.dateRange,
+        description: eventData.description || '',
+        coverPhoto: eventData.coverPhoto,
         participants: [],
         trip_type: 'event' as const,
       });
