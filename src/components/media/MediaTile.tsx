@@ -1,3 +1,4 @@
+import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { TripMediaRenderer } from './TripMediaRenderer';
 
@@ -23,7 +24,7 @@ interface MediaTileProps {
  * - Visible delete button (always accessible, no hidden gestures)
  * - Click-to-view support via onView callback
  */
-export function MediaTile({
+export const MediaTile = React.memo(function MediaTile({
   id,
   url,
   mimeType,
@@ -89,4 +90,4 @@ export function MediaTile({
       )}
     </div>
   );
-}
+});
