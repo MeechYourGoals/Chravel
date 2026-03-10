@@ -15,6 +15,32 @@ export interface RoleTemplate {
   updatedAt: string;
 }
 
+interface RoleTemplateRow {
+  id: string;
+  name: string;
+  description: string;
+  category: ProTripCategory;
+  roles: RoleTemplate['roles'];
+  created_by: string;
+  organization_id: string | null;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+const mapRoleTemplateRow = (row: RoleTemplateRow): RoleTemplate => ({
+  id: row.id,
+  name: row.name,
+  description: row.description,
+  category: row.category,
+  roles: row.roles,
+  createdBy: row.created_by,
+  organizationId: row.organization_id ?? undefined,
+  isPublic: row.is_public,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
 export interface RoleTemplateCreateRequest {
   name: string;
   description?: string;
@@ -71,18 +97,7 @@ class RoleTemplateService {
 
       if (error) throw error;
 
-      return {
-        id: (data as any).id,
-        name: (data as any).name,
-        description: (data as any).description,
-        category: (data as any).category,
-        roles: (data as any).roles,
-        createdBy: (data as any).created_by,
-        organizationId: (data as any).organization_id,
-        isPublic: (data as any).is_public,
-        createdAt: (data as any).created_at,
-        updatedAt: (data as any).updated_at,
-      };
+      return mapRoleTemplateRow(data as RoleTemplateRow);
     } catch (error) {
       console.error('Failed to save template:', error);
       return null;
@@ -102,18 +117,7 @@ class RoleTemplateService {
 
       if (error) throw error;
 
-      return {
-        id: (data as any).id,
-        name: (data as any).name,
-        description: (data as any).description,
-        category: (data as any).category,
-        roles: (data as any).roles,
-        createdBy: (data as any).created_by,
-        organizationId: (data as any).organization_id,
-        isPublic: (data as any).is_public,
-        createdAt: (data as any).created_at,
-        updatedAt: (data as any).updated_at,
-      };
+      return mapRoleTemplateRow(data as RoleTemplateRow);
     } catch (error) {
       console.error('Failed to load template:', error);
       return null;
@@ -138,18 +142,7 @@ class RoleTemplateService {
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        description: d.description,
-        category: d.category,
-        roles: d.roles,
-        createdBy: d.created_by,
-        organizationId: d.organization_id,
-        isPublic: d.is_public,
-        createdAt: d.created_at,
-        updatedAt: d.updated_at,
-      }));
+      return ((data || []) as RoleTemplateRow[]).map(mapRoleTemplateRow);
     } catch (error) {
       console.error('Failed to get user templates:', error);
       return [];
@@ -175,18 +168,7 @@ class RoleTemplateService {
 
       if (error) throw error;
 
-      return (data || []).map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        description: d.description,
-        category: d.category,
-        roles: d.roles,
-        createdBy: d.created_by,
-        organizationId: d.organization_id,
-        isPublic: d.is_public,
-        createdAt: d.created_at,
-        updatedAt: d.updated_at,
-      }));
+      return ((data || []) as RoleTemplateRow[]).map(mapRoleTemplateRow);
     } catch (error) {
       console.error('Failed to get templates by category:', error);
       return [];

@@ -129,7 +129,7 @@ export const useEventRSVP = (eventId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, eventId]);
+  }, [user?.id, user?.email, eventId]);
 
   // Submit RSVP
   const submitRSVP = useCallback(
@@ -169,7 +169,7 @@ export const useEventRSVP = (eventId: string) => {
         }
 
         // Upsert RSVP
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('event_rsvps' as any)
           .upsert(
             {
@@ -206,7 +206,7 @@ export const useEventRSVP = (eventId: string) => {
         setIsSubmitting(false);
       }
     },
-    [user?.id, eventId, capacity, loadRSVP],
+    [user?.id, user?.email, eventId, capacity, loadRSVP],
   );
 
   useEffect(() => {

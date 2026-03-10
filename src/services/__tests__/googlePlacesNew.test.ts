@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  autocomplete,
-  resolveQuery,
   apiQuotaMonitor,
   retryWithBackoff,
   generateSessionToken,
@@ -138,7 +136,7 @@ describe('Google Places New API Service', () => {
     it('should use cached results when available', async () => {
       const input = 'Coffee Shop';
       const origin: SearchOrigin = { lat: 40.758, lng: -73.9855 };
-      const sessionToken = generateSessionToken();
+      generateSessionToken();
 
       const cachedResults = [{ place_id: '123', description: 'Coffee Shop NYC' }];
 
@@ -165,7 +163,7 @@ describe('Google Places New API Service', () => {
     it('should use cached results when available', async () => {
       const query = 'Starbucks NYC';
       const origin: SearchOrigin = { lat: 40.758, lng: -73.9855 };
-      const sessionToken = generateSessionToken();
+      generateSessionToken();
 
       const cachedResult = {
         place_id: '123',
