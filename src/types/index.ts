@@ -1,8 +1,6 @@
 // Central export for all type definitions
 export * from './ai';
 export * from './events';
-export * from './eventSetup';
-export * from './imports';
 export type {
   MediaMetadata,
   MediaItem,
