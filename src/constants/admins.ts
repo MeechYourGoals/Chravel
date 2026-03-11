@@ -4,6 +4,8 @@ const FOUNDER_EMAILS: string[] = [
   'ccamechi@gmail.com',
   'christian@chravelapp.com',
   'demo@chravelapp.com',
+  'phil@philquist.com',
+  'darren.hartgee@gmail.com',
 ];
 
 // Additional super admin emails can be set via VITE_SUPER_ADMIN_EMAILS env var (comma-separated).
