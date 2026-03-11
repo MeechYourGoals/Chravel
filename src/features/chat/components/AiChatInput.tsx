@@ -135,7 +135,7 @@ export const AiChatInput = ({
         </div>
       )}
 
-      <div className="chat-composer flex flex-nowrap items-end gap-2 sm:gap-3 min-w-0">
+      <div className="chat-composer flex flex-nowrap items-center gap-2 sm:gap-3 min-w-0">
         {/* Waveform / Dictation button */}
         {onConvoToggle && (
           <VoiceButton
