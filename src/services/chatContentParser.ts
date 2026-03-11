@@ -139,7 +139,7 @@ export async function parseReceipt(imageUrl: string, tripId: string): Promise<Pa
     if (receipt.structured_data.total_cost) {
       suggestions.push({
         action: 'extract_receipt',
-        data: receipt,
+        data: receipt as unknown as Record<string, unknown>,
         message: `Extract receipt for $${receipt.structured_data.total_cost}`,
       });
     }
