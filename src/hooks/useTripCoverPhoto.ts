@@ -31,6 +31,17 @@ export const useTripCoverPhoto = (tripId: string, initialPhotoUrl?: string) => {
       return false;
     }
 
+    // Reject URLs that don't look like images (prevents webpage URLs being saved)
+    if (!isDemoMode) {
+      const isKnownHost = photoUrl.includes('unsplash.com') || photoUrl.includes('supabase.co');
+      const hasImageExt = /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(photoUrl);
+      if (!isKnownHost && !hasImageExt) {
+        console.warn('[useTripCoverPhoto] Rejecting non-image URL:', photoUrl);
+        toast.error('Please use a direct image URL');
+        return false;
+      }
+    }
+
     // Demo mode: update session storage
     if (isDemoMode) {
       setCoverPhoto(photoUrl);

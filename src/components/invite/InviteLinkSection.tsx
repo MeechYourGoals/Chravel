@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Copy, Check, RotateCcw, AlertTriangle, Share2 } from 'lucide-react';
+import { Button } from '../ui/button';
 import { isDemoInviteLink } from '@/lib/inviteLinkUtils';
 
 interface InviteLinkSectionProps {
@@ -71,31 +72,33 @@ export const InviteLinkSection = ({
       </div>
       <div className="flex gap-2">
         {/* Copy button - first */}
-        <button
+        <Button
           onClick={onCopyLink}
           disabled={loading || !inviteLink}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+          size="sm"
+          className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8"
         >
-          {copied ? <Check size={16} /> : <Copy size={16} />}
+          {copied ? <Check size={14} /> : <Copy size={14} />}
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
-        </button>
+        </Button>
 
         {/* Link display - center */}
-        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-gray-300 text-sm font-mono truncate">
+        <div className="flex-1 bg-muted border border-border rounded-xl px-3 py-2 text-foreground text-sm font-mono truncate">
           {loading ? 'Generating invite link...' : inviteLink || 'Failed to generate link'}
         </div>
 
         {/* Share button - last */}
         {canNativeShare && (
-          <button
+          <Button
             onClick={handleNativeShare}
             disabled={loading || !inviteLink || isSharing}
-            className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+            size="sm"
+            className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8"
             title="Share via Messages, Email, and more"
           >
-            <Share2 size={16} />
+            <Share2 size={14} />
             <span className="hidden sm:inline">Share</span>
-          </button>
+          </Button>
         )}
       </div>
 
