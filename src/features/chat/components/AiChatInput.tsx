@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Send, X, CalendarPlus, Bookmark, ListChecks, Sparkles, Loader2 } from 'lucide-react';
+import { Send, X, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
@@ -29,14 +29,8 @@ interface AiChatInputProps {
   showImageAttach?: boolean;
   /** Callback when a Smart Import quick action chip is tapped */
   onQuickAction?: (action: string) => void;
-  /** Callback to toggle Gemini Live mode */
-  onLiveToggle?: () => void;
-  /** Whether Gemini Live is currently active */
+  /** Whether Gemini Live is currently active (for textarea styling) */
   isLiveActive?: boolean;
-  /** Whether user is eligible for Gemini Live */
-  isLiveEligible?: boolean;
-  /** Whether Gemini Live is in a connecting/loading state */
-  isLiveConnecting?: boolean;
 }
 
 export const AiChatInput = ({
@@ -55,10 +49,7 @@ export const AiChatInput = ({
   onRemoveImage,
   showImageAttach: _showImageAttach = false,
   onQuickAction,
-  onLiveToggle,
   isLiveActive = false,
-  isLiveEligible = false,
-  isLiveConnecting = false,
 }: AiChatInputProps) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
@@ -145,49 +136,14 @@ export const AiChatInput = ({
       )}
 
       <div className="chat-composer flex flex-nowrap items-end gap-2 sm:gap-3 min-w-0">
-        {/* Left voice control stack: Live button (top) + Waveform/Dictation (bottom) */}
+        {/* Waveform / Dictation button */}
         {onConvoToggle && (
-          <div className="flex flex-col items-center gap-1.5 shrink-0">
-            {/* Gemini Live button — stacked above waveform */}
-            {isLiveEligible && onLiveToggle && (
-              <button
-                type="button"
-                onClick={onLiveToggle}
-                className={`relative h-8 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
-                  isLiveActive
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 border-transparent'
-                    : isLiveConnecting
-                      ? 'bg-gray-800/80 text-white/70 border-[hsl(var(--gold-primary))]/40'
-                      : 'bg-gray-800/80 text-white/50 hover:text-white/80 hover:bg-gray-700/80'
-                }`}
-                aria-label={isLiveActive ? 'Stop live voice' : 'Start live voice'}
-              >
-                {/* Active glow ring */}
-                {isLiveActive && (
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-emerald-400/30 to-teal-400/20 blur-sm"
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-1">
-                  {isLiveConnecting ? (
-                    <Loader2 size={12} className="animate-spin" />
-                  ) : (
-                    <Sparkles size={12} />
-                  )}
-                  <span className="text-[10px] font-medium leading-none">Live</span>
-                </span>
-              </button>
-            )}
-
-            {/* Waveform / Dictation button */}
-            <VoiceButton
-              voiceState={convoVoiceState}
-              isEligible={isVoiceEligible}
-              onToggle={onConvoToggle}
-              onUpgrade={onVoiceUpgrade}
-            />
-          </div>
+          <VoiceButton
+            voiceState={convoVoiceState}
+            isEligible={isVoiceEligible}
+            onToggle={onConvoToggle}
+            onUpgrade={onVoiceUpgrade}
+          />
         )}
 
         {/* Input container — clean, no embedded Live button */}
