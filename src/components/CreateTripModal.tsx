@@ -352,8 +352,8 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1.5rem)] sm:max-h-[90vh] overflow-y-auto pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+1rem))]">
         {/* Header */}
         <div
           className="flex items-center justify-between mb-6"
@@ -424,7 +424,10 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
+        >
           {/* Trip Title */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Trip Title</label>
