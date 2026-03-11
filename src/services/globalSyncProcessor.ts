@@ -172,7 +172,7 @@ export async function processGlobalSyncQueue(): Promise<{
 
     // Calendar event handlers
     onCalendarEventCreate: async (tripId, data) => {
-      const result = await calendarService.createEvent(data);
+      const result = await calendarService.createEvent(data as any);
       if (!result) throw new Error('Failed to create calendar event');
       return result;
     },

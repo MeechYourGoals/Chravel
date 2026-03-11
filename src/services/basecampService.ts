@@ -412,11 +412,11 @@ class BasecampService {
       }
 
       // Check for conflict
-      if (data && typeof data === 'object' && data.conflict === true) {
+      if (data && typeof data === 'object' && (data as any).conflict === true) {
         console.warn(this.LOG_PREFIX, 'tryRpcBasecampUpdate: conflict detected', {
           tripId,
           currentVersion,
-          serverVersion: data.current_version,
+          serverVersion: (data as any).current_version,
         });
         return {
           success: false,

@@ -344,7 +344,8 @@ export class AdvertiserService {
       } = await supabase.auth.getUser();
 
       // Insert analytics event
-      await supabase.from('campaign_analytics').insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('campaign_analytics') as any).insert({
         campaign_id: campaignId,
         user_id: user?.id,
         event_type: eventType,

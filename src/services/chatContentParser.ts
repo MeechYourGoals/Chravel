@@ -368,7 +368,7 @@ export async function parseMessage(messageText: string, tripId: string): Promise
         if (todo.confidence > 0.7) {
           suggestions.push({
             action: 'create_todo',
-            data: todo,
+            data: todo as unknown as Record<string, unknown>,
             message: `Create todo: "${todo.title}"`,
           });
         }

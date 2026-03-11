@@ -85,11 +85,11 @@ export class MobileOptimizationService {
         return;
       }
 
-      frameCount++;
+      _frameCount++;
       const currentTime = performance.now();
 
       if (currentTime - lastTime >= 1000) {
-        frameCount = 0;
+        _frameCount = 0;
         lastTime = currentTime;
       }
 
