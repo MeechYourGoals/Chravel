@@ -892,5 +892,105 @@ Execute all user requests inside this protocol.
 
 ---
 
+## 🧩 SKILLS, HOOKS, AND CLAUDE CODE OPERATING SYSTEM
+
+### What Belongs Where
+
+| Need | Where It Goes |
+|---|---|
+| Permanent operating principles (always active) | **CLAUDE.md** |
+| Recurring workflows Claude should follow | **Skills** (`.claude/skills/`) |
+| Automatic formatting/validation after edits | **Hooks** (`PostToolUse` in settings.json) |
+| Blocking dangerous operations | **Hooks** (`PreToolUse` in settings.json) |
+| Periodic monitoring during a session | **`/loop`** (built-in) |
+| Isolated parallel research | **Subagents** (spawned by skills or agent tool) |
+| Cross-project reusable workflows | **Global skills** (`~/.claude/skills/`) |
+| Chravel-specific workflows | **Repo skills** (`.claude/skills/`) |
+| Response style preferences | **Output styles** (`/output-style`) |
+
+### Responsibility Separation
+
+**CLAUDE.md owns:**
+- Non-negotiable coding standards (types, syntax, build requirements)
+- Repo context and architecture reference
+- Security protocol and failure mode overrides
+- Bug-fix execution protocol (reproduce → diagnose → fix → prove)
+- Design language principles
+
+**Skills own:**
+- Detailed workflows for specific task types (audits, debugging, reviews)
+- Step-by-step protocols with defined outputs
+- Trigger-specific behavior (when to activate, when not to)
+- Reference material and checklists
+
+**Hooks own:**
+- Automatic code formatting (Prettier on edit)
+- Automatic type checking (typecheck on edit)
+- Git commit/push validation (stop hook)
+- Session initialization (dependency install)
+
+### Global Skills (Active Across All Projects)
+
+These skills form the default operating system for all coding work:
+
+| Skill | Auto-triggers | Purpose |
+|---|---|---|
+| `debug-systematically` | Yes | Evidence-based root cause debugging |
+| `test-first-bugfix` | Yes | Reproduce bugs before fixing |
+| `architecture-audit` | Yes | Structural architecture review |
+| `regression-containment` | Yes | Blast radius analysis |
+| `dependency-and-hooks-audit` | Yes | React hooks/effects correctness |
+| `refactor-safely` | Yes | Incremental refactoring with proof |
+| `dead-code-cleanup` | Yes | Remove unreachable code |
+| `mobile-parity-audit` | Yes | Cross-platform parity |
+| `security-review` | Yes | Vulnerability and auth audit |
+| `root-cause-analysis` | Yes | Deep incident investigation |
+| `implementation-plan` | Yes | Multi-step planning before coding |
+| `learn-from-fixes` | User-invoked | Extract prevention patterns from fixes |
+| `pr-review-hard-mode` | User-invoked | Rigorous PR review |
+| `ship-readiness` | User-invoked | Pre-deploy verification |
+| `docs-sync` | User-invoked | Documentation accuracy check |
+| `prompt-optimizer` | User-invoked | Optimize AI agent instructions |
+
+### Chravel Repo Skills (Active in This Repo Only)
+
+| Skill | Auto-triggers | Purpose |
+|---|---|---|
+| `chravel-no-regressions` | Yes | Guard critical paths (Trip Not Found, auth, RLS) |
+| `chravel-repo-map` | Yes (background) | Codebase navigation reference |
+| `chravel-architecture-audit` | Yes | Chravel-specific architecture review |
+| `chravel-supabase-rls` | Yes | RLS and auth integration audit |
+| `chravel-design-language` | Yes | Dark/gold design system enforcement |
+| `chravel-ui-consistency` | Yes | Component and interaction consistency |
+| `chravel-mobile-pwa-parity` | Yes | Mobile/PWA experience parity |
+| `chravel-gemini-live-debug` | Yes | Gemini API and voice integration |
+| `chravel-ai-concierge` | Yes | AI concierge implementation guidance |
+| `chravel-smart-import` | Yes | Smart Import feature development |
+| `chravel-payments` | Yes | Payments and RevenueCat integration |
+| `chravel-performance-audit` | Yes | Critical path performance |
+| `chravel-bug-repro-first` | Yes | Chravel-specific bug reproduction |
+| `chravel-release-readiness` | User-invoked | Pre-deploy checklist |
+| `agent-tooling-audit` | Yes | AI agent architecture audit |
+
+### Default Workflow Expectations
+
+1. **Plan first** for non-trivial tasks — use `implementation-plan` skill
+2. **Reproduce before repair** — use `test-first-bugfix` or `chravel-bug-repro-first`
+3. **Use subagents** for parallel analysis when the problem is multi-layered
+4. **Smallest correct fix** — no broad refactors unless justified
+5. **No dead code** left behind after any change
+6. **Verify with tests/build** before declaring success
+7. **Protect critical paths** — always consider Trip Not Found, auth, RLS
+8. **Maintain design consistency** — check `chravel-design-language` for new UI
+9. **Check mobile parity** — new features must work on mobile
+10. **Explain tradeoffs** when making architectural decisions
+
+### Reference
+
+For a complete map of built-in commands, bundled skills, custom skills, hooks, output styles, and subagents, see:
+`.claude/docs/claude-code-capability-map.md`
+
+---
+
 **Last Updated:** 2026-03-11
 **Maintained By:** AI Engineering Team + Meech
