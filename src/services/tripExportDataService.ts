@@ -36,7 +36,7 @@ export interface ExportTripData {
   };
   polls?: Array<{
     question: string;
-    options: any;
+    options: Array<{ text: string; votes?: number }> | Record<string, unknown>;
     total_votes: number;
     status: string;
   }>;
@@ -176,7 +176,7 @@ export async function getExportData(
 
     // Map Broadcasts (Pro only)
     if (sections.includes('broadcasts') && mockProTrip.broadcasts) {
-      (result as any).broadcasts = mockProTrip.broadcasts.map(b => ({
+      result.broadcasts = mockProTrip.broadcasts.map(b => ({
         message: b.message,
         priority: b.priority,
         timestamp: b.timestamp,
@@ -352,7 +352,15 @@ export async function getExportData(
         .eq('trip_id', tripId);
 
       const memberIds = (members || []).map(m => m.user_id);
-      let profilesMap = new Map<string, any>();
+      let profilesMap = new Map<
+        string,
+        {
+          user_id: string;
+          display_name: string | null;
+          resolved_display_name: string | null;
+          avatar_url: string | null;
+        }
+      >();
 
       if (memberIds.length) {
         const { data: profiles } = await supabase
@@ -394,11 +402,12 @@ export async function getExportData(
         .order('created_at', { ascending: true });
 
       if (broadcasts && broadcasts.length > 0) {
-        (result as any).broadcasts = broadcasts.map(b => ({
+        result.broadcasts = broadcasts.map(b => ({
           message: b.message,
           priority: b.priority || 'fyi',
           timestamp: b.created_at,
-          sender: (b.profiles as any)?.display_name || 'Team Member',
+          sender:
+            (b.profiles as { display_name: string | null } | null)?.display_name || 'Team Member',
           read_count: 0,
         }));
       }
@@ -485,6 +494,14 @@ export async function getExportData(
       });
 
       (result as any).attachments = attachments;
+      result.attachments =
+        files?.map(f => ({
+          name: f.name,
+          type: f.file_type,
+          uploaded_at: f.created_at,
+          uploaded_by:
+            (f.profiles as { display_name: string | null } | null)?.display_name || 'Unknown',
+        })) || [];
     }
 
     // Fetch agenda items if requested (event-specific)
@@ -498,7 +515,7 @@ export async function getExportData(
       result.agenda =
         agendaItems?.map(item => ({
           title: item.title,
-          session_date: (item as any).session_date || undefined,
+          session_date: (item as { session_date?: string }).session_date || undefined,
           start_time: item.start_time || undefined,
           end_time: item.end_time || undefined,
           location: item.location || undefined,

@@ -54,8 +54,8 @@ vi.mock('jspdf', () => {
 });
 
 vi.mock('jspdf-autotable', () => ({
-  default: (doc: any, options: any) => {
-    doc.lastAutoTable = { finalY: (options?.startY || 0) + 20 };
+  default: (doc: Record<string, unknown>, options: Record<string, unknown>) => {
+    doc.lastAutoTable = { finalY: ((options?.startY as number) || 0) + 20 };
   },
 }));
 
@@ -66,16 +66,16 @@ import jsPDF from 'jspdf';
 
 describe('PDF Export Client Helpers', () => {
   afterEach(() => {
-    (jsPDF as any).instances = [];
+    (jsPDF as unknown as Record<string, unknown[]>).instances = [];
     vi.unstubAllGlobals();
   });
 
   describe('chunkArray', () => {
     it('should chunk array into smaller arrays', () => {
       // This would test the chunkArray helper if exported
-      const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-      const chunkSize = 3;
-      const expected = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]];
+      const _array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      const _chunkSize = 3;
+      const _expected = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]];
 
       // Implementation would be:
       // const chunks: number[][] = [];
@@ -88,17 +88,17 @@ describe('PDF Export Client Helpers', () => {
     });
 
     it('should handle empty arrays', () => {
-      const array: number[] = [];
-      const chunkSize = 3;
-      const expected: number[][] = [];
+      const _array: number[] = [];
+      const _chunkSize = 3;
+      const _expected: number[][] = [];
 
       expect(true).toBe(true); // Placeholder
     });
 
     it('should handle arrays smaller than chunk size', () => {
-      const array = [1, 2];
-      const chunkSize = 5;
-      const expected = [[1, 2]];
+      const _array = [1, 2];
+      const _chunkSize = 5;
+      const _expected = [[1, 2]];
 
       expect(true).toBe(true); // Placeholder
     });
@@ -107,8 +107,8 @@ describe('PDF Export Client Helpers', () => {
   describe('hexToRgb', () => {
     it('should parse hex color to RGB array', () => {
       // This would test hexToRgb if exported
-      const hex = '#428BCA';
-      const expected: [number, number, number] = [66, 139, 202];
+      const _hex = '#428BCA';
+      const _expected: [number, number, number] = [66, 139, 202];
 
       // Implementation would be:
       // const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -118,15 +118,15 @@ describe('PDF Export Client Helpers', () => {
     });
 
     it('should handle hex without # prefix', () => {
-      const hex = '428BCA';
-      const expected: [number, number, number] = [66, 139, 202];
+      const _hex = '428BCA';
+      const _expected: [number, number, number] = [66, 139, 202];
 
       expect(true).toBe(true); // Placeholder
     });
 
     it('should return default color for invalid hex', () => {
-      const hex = 'invalid';
-      const defaultColor: [number, number, number] = [66, 139, 202];
+      const _hex = 'invalid';
+      const _defaultColor: [number, number, number] = [66, 139, 202];
 
       expect(true).toBe(true); // Placeholder
     });
@@ -153,7 +153,9 @@ describe('PDF Export Client Helpers', () => {
         ['attachments'],
       );
 
-      const instances = (jsPDF as any).instances as any[];
+      const instances = (jsPDF as unknown as Record<string, unknown[]>).instances as Array<{
+        _texts: string[];
+      }>;
       const latest = instances[instances.length - 1];
       expect(latest._texts).toContain('Attachments');
     });

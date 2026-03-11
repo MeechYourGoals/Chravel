@@ -33,7 +33,7 @@ export interface AgendaParseResult {
 
 // ─── ICS Parser ──────────────────────────────────────────────────────────────
 
-function icsEventToSession(event: ICSParsedEvent, index: number): ParsedAgendaSession {
+function icsEventToSession(event: ICSParsedEvent, _index: number): ParsedAgendaSession {
   const session: ParsedAgendaSession = { title: event.title };
   const dateStr = formatLocalDate(event.startTime);
   session.session_date = dateStr;
@@ -135,7 +135,7 @@ function parseCSVLine(line: string): string[] {
 function rowToAgendaSession(
   row: string[],
   mapping: AgendaColumnMapping,
-  index: number,
+  _index: number,
 ): ParsedAgendaSession | null {
   const title = row[mapping.title]?.trim();
   if (!title) return null;

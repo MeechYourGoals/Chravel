@@ -292,7 +292,7 @@ export const EventNotificationsSection = () => {
     } finally {
       setIsSendingTestSms(false);
     }
-  }, [user?.id, smsPhoneNumber, smsDeliveryEligible, formatPhoneNumber]);
+  }, [user?.id, smsPhoneNumber, smsDeliveryEligible, formatPhoneNumber, toast]);
 
   const handleSmsPhoneSubmit = async () => {
     if (!user?.id) return;

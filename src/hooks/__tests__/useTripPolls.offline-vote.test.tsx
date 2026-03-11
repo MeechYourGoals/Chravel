@@ -6,7 +6,7 @@ import { waitFor } from '@testing-library/react';
 
 import { useTripPolls } from '../useTripPolls';
 
-const cacheStore = new Map<string, any>();
+const cacheStore = new Map<string, unknown>();
 
 vi.mock('@/offline/cache', () => {
   return {
@@ -19,15 +19,27 @@ vi.mock('@/offline/cache', () => {
         return entities;
       },
     ),
-    cacheEntity: vi.fn(async ({ tripId, entityType, entityId, data }: any) => {
-      cacheStore.set(`${tripId}:${entityType}:${entityId}`, {
+    cacheEntity: vi.fn(
+      async ({
         tripId,
         entityType,
         entityId,
         data,
-        cachedAt: Date.now(),
-      });
-    }),
+      }: {
+        tripId: string;
+        entityType: string;
+        entityId: string;
+        data: unknown;
+      }) => {
+        cacheStore.set(`${tripId}:${entityType}:${entityId}`, {
+          tripId,
+          entityType,
+          entityId,
+          data,
+          cachedAt: Date.now(),
+        });
+      },
+    ),
   };
 });
 

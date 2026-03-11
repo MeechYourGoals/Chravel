@@ -154,7 +154,7 @@ export const CalendarGrid = ({
 
               {/* Event Indicators */}
               <div className="space-y-1 overflow-hidden">
-                {dayEvents.slice(0, 3).map((event, idx) => (
+                {dayEvents.slice(0, 3).map((event, _idx) => (
                   <div
                     key={event.id}
                     className={cn(

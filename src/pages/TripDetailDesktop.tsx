@@ -62,7 +62,7 @@ export const TripDetailDesktop = () => {
     isMembersLoading,
     isAuthLoading,
     tripError,
-    membersError,
+    _membersError,
   } = useTripDetailData(tripId);
 
   // 🔄 Keep useTripMembers for member management actions (canRemoveMembers, removeMember, leaveTrip)

@@ -7,7 +7,7 @@ interface CategoryTagsProps {
   className?: string;
 }
 
-export const CategoryTags = ({ category, tags, className = '' }: CategoryTagsProps) => {
+export const CategoryTags = ({ category, _tags, className = '' }: CategoryTagsProps) => {
   const config = getCategoryConfig(category);
 
   // MVP: Only show the category pill, ignore additional tags for now

@@ -11,7 +11,6 @@ import React, { useState, useEffect } from 'react';
 import { Switch } from '../ui/switch';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Bell,
@@ -59,6 +58,7 @@ export const NotificationPreferences = () => {
     if (user?.id) {
       loadPreferences();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPreferences deps covered by user?.id
   }, [user?.id]);
 
   const loadPreferences = async () => {

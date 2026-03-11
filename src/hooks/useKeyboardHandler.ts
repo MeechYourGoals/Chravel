@@ -118,6 +118,7 @@ export const useKeyboardHandler = (options: KeyboardHandlerOptions = {}) => {
       document.body.classList.remove('keyboard-visible');
       document.documentElement.style.removeProperty('--keyboard-height');
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- options properties are already destructured in deps
   }, [isMobile, options.preventZoom, options.adjustViewport, options.onShow, options.onHide]);
 
   return {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, X } from 'lucide-react';
 import { Button } from '../ui/button';
-import { GoogleMapsService } from '../../services/googleMapsService';
 import { useBasecamp } from '../../contexts/BasecampContext';
 
 interface LocationSearchBarProps {

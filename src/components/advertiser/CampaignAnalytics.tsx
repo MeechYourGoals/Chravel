@@ -11,7 +11,6 @@ import {
 import {
   BarChart3,
   TrendingUp,
-  TrendingDown,
   Eye,
   MousePointer,
   Bookmark,
@@ -40,7 +39,7 @@ interface CampaignAnalyticsProps {
 export const CampaignAnalytics = ({ campaigns }: CampaignAnalyticsProps) => {
   const [selectedCampaign, setSelectedCampaign] = useState<string>('all');
   const [timeRange, setTimeRange] = useState('7d');
-  const [stats, setStats] = useState<CampaignStats | null>(null);
+  const [_stats, setStats] = useState<CampaignStats | null>(null);
 
   // Filter campaigns based on selection
   const filteredCampaigns =

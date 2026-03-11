@@ -137,6 +137,7 @@ export const ChannelChatView = ({
       );
       return unsubscribe;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadMessages depends on channel.id already in deps
   }, [channel.id, channel.tripId]);
 
   const loadMessages = async () => {

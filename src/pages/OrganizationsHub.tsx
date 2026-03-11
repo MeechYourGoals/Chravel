@@ -10,12 +10,13 @@ import { SUBSCRIPTION_TIERS } from '@/types/pro';
 
 export const OrganizationsHub = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { _user } = useAuth();
   const { organizations, loading, fetchUserOrganizations } = useOrganization();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     fetchUserOrganizations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hook already auto-fetches internally
   }, []);
 
   if (loading) {

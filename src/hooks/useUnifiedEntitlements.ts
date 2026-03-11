@@ -103,6 +103,7 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
       await store.refreshEntitlements(user.id, user.email);
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- store from Zustand is unstable; would cause infinite loop
   }, [isDemoMode, user?.id, user?.email, isSuperAdminByEmail]);
 
   const refreshEntitlements = useCallback(async () => {
@@ -127,7 +128,7 @@ export function useUnifiedEntitlements(): UseUnifiedEntitlementsReturn {
   const canUse = useCallback(
     (feature: FeatureName, context?: FeatureContext): boolean => {
       if (hasUnlimitedAccess) return true;
-      const tierEnts = getEntitlementsForTier(store.plan);
+      const _tierEnts = getEntitlementsForTier(store.plan);
       const limits = FEATURE_LIMITS[feature];
       if (!limits) return true;
       const limit = limits[store.plan] ?? limits.free ?? 0;

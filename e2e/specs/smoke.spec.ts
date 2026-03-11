@@ -62,13 +62,13 @@ test.describe('Smoke Tests — App Shell', () => {
     await page.waitForSelector('#root main', { timeout: 15000 });
 
     // The landing page should have at minimum a sign-in or get-started CTA
-    const hasAuthCta = await page
+    const _hasAuthCta = await page
       .getByRole('button', { name: /sign in|log in|get started/i })
       .first()
       .isVisible()
       .catch(() => false);
 
-    const hasLink = await page
+    const _hasLink = await page
       .getByRole('link', { name: /sign in|log in|get started/i })
       .first()
       .isVisible()

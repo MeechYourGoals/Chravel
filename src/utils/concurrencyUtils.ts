@@ -57,8 +57,8 @@ export async function retryWithBackoff<T>(
       // Don't retry on optimistic lock errors or authentication errors
       if (
         error instanceof OptimisticLockError ||
-        (error as any)?.message?.includes('not authenticated') ||
-        (error as any)?.code === 'PGRST116'
+        (error instanceof Error && error.message?.includes('not authenticated')) ||
+        (error as Record<string, unknown>)?.code === 'PGRST116'
       ) {
         throw error;
       }
@@ -86,7 +86,7 @@ type ToastFunction = (options: {
 // Conflict resolution utility - accepts toast function as parameter
 // Usage: handleConflictError(error, toast, 'item')
 export function handleConflictError(
-  error: any,
+  error: { message?: string },
   toast: ToastFunction,
   entityType: string = 'item',
 ): void {
@@ -165,7 +165,7 @@ export const connectionMonitor = new ConnectionMonitor();
 export class OfflineQueue {
   private queue: Array<{
     id: string;
-    operation: () => Promise<any>;
+    operation: () => Promise<unknown>;
     retryCount: number;
   }> = [];
 
@@ -179,7 +179,7 @@ export class OfflineQueue {
     });
   }
 
-  add(id: string, operation: () => Promise<any>) {
+  add(id: string, operation: () => Promise<unknown>) {
     this.queue.push({ id, operation, retryCount: 0 });
 
     if (connectionMonitor.getStatus()) {
@@ -215,20 +215,22 @@ export class OfflineQueue {
 export const offlineQueue = new OfflineQueue();
 
 // Debounce utility for reducing rapid-fire mutations
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic utility requires broad function constraint
 export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
   let timeout: NodeJS.Timeout;
 
-  return ((...args: any[]) => {
+  return ((...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   }) as T;
 }
 
 // Throttle utility for rate limiting
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic utility requires broad function constraint
 export function throttle<T extends (...args: any[]) => any>(func: T, limit: number): T {
   let inThrottle: boolean;
 
-  return ((...args: any[]) => {
+  return ((...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;

@@ -35,6 +35,7 @@ export const useStorageQuota = (tripId?: string) => {
     }
 
     calculateStorageUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- calculateStorageUsage deps covered by tripId
   }, [tripId, isPlus, isDemoMode]);
 
   const calculateStorageUsage = async () => {

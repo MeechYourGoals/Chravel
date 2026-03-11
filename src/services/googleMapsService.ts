@@ -1,8 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getGoogleMapsApiKey } from '@/config/maps';
 
 export class GoogleMapsService {
-  private static async callProxy(endpoint: string, data: any) {
+  private static async callProxy(endpoint: string, data: Record<string, unknown>) {
     const { data: result, error } = await supabase.functions.invoke('google-maps-proxy', {
       body: { endpoint, ...data },
       headers: {
@@ -33,7 +32,7 @@ export class GoogleMapsService {
     origins: string,
     destinations: string,
     mode: string = 'DRIVING',
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     return await this.callProxy('distance-matrix', {
       origins,
       destinations,
@@ -141,19 +140,27 @@ export class GoogleMapsService {
 
       const results = await response.json();
 
-      return results.map((result: any) => ({
-        place_id: `nominatim-${result.place_id}`,
-        description: result.display_name,
-        structured_formatting: {
-          main_text: result.name || result.display_name.split(',')[0],
-          secondary_text: result.display_name.split(',').slice(1).join(',').trim(),
-        },
-        // Store coordinates for direct use
-        _coords: {
-          lat: parseFloat(result.lat),
-          lng: parseFloat(result.lon),
-        },
-      }));
+      return results.map(
+        (result: {
+          place_id: string;
+          display_name: string;
+          name?: string;
+          lat: string;
+          lon: string;
+        }) => ({
+          place_id: `nominatim-${result.place_id}`,
+          description: result.display_name,
+          structured_formatting: {
+            main_text: result.name || result.display_name.split(',')[0],
+            secondary_text: result.display_name.split(',').slice(1).join(',').trim(),
+          },
+          // Store coordinates for direct use
+          _coords: {
+            lat: parseFloat(result.lat),
+            lng: parseFloat(result.lon),
+          },
+        }),
+      );
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[GoogleMapsService] Nominatim autocomplete error:', error);
@@ -165,7 +172,7 @@ export class GoogleMapsService {
   static async getPlaceAutocomplete(
     input: string,
     types: string[] = ['establishment', 'geocode'],
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     try {
       return await this.callProxy('autocomplete', {
         input,
@@ -179,7 +186,7 @@ export class GoogleMapsService {
     }
   }
 
-  static async getPlaceDetailsById(placeId: string): Promise<any> {
+  static async getPlaceDetailsById(placeId: string): Promise<Record<string, unknown> | null> {
     try {
       return await this.callProxy('place-details', { placeId });
     } catch (error) {
@@ -194,7 +201,7 @@ export class GoogleMapsService {
     query: string,
     basecampCoords: { lat: number; lng: number },
     radius: number = 5000,
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     return await this.callProxy('places-search', {
       query,
       location: `${basecampCoords.lat},${basecampCoords.lng}`,
@@ -202,7 +209,7 @@ export class GoogleMapsService {
     });
   }
 
-  static async getPlaceDetails(placeId: string): Promise<any> {
+  static async getPlaceDetails(placeId: string): Promise<Record<string, unknown>> {
     return await this.callProxy('place-details', { placeId });
   }
 
@@ -267,7 +274,7 @@ export class GoogleMapsService {
       region?: string; // Region bias ccTLD (e.g., "us", "uk", "fr")
       type?: string; // Place type filter (e.g., "restaurant", "lodging")
     },
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     try {
       // Auto-detect browser language if not provided
       const language = options?.language || navigator.language.split('-')[0];

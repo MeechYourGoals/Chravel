@@ -78,7 +78,7 @@ export async function tagMediaItem(
 
     // Determine category
     let category = 'general';
-    const activityLower = (analysis.activity || '').toLowerCase();
+    const _activityLower = (analysis.activity || '').toLowerCase();
     const tagsLower = tags.map(t => t.toLowerCase()).join(' ');
 
     if (
@@ -255,14 +255,14 @@ export function filterMediaByAITags<T extends { metadata?: Record<string, unknow
   const queryWords = queryLower.split(/\s+/).filter(w => w.length > 0);
 
   return items.filter(item => {
-    const metadata = item.metadata || {};
+    const metadata = (item.metadata || {}) as Record<string, unknown>;
     const tags = [
-      ...(Array.isArray((metadata as any).tags) ? (metadata as any).tags : []),
-      ...(Array.isArray((metadata as any).ai_tags) ? (metadata as any).ai_tags : []),
+      ...(Array.isArray(metadata.tags) ? (metadata.tags as unknown[]) : []),
+      ...(Array.isArray(metadata.ai_tags) ? (metadata.ai_tags as unknown[]) : []),
     ].map((t: unknown) => String(t).toLowerCase());
 
-    const category = String((metadata as any).ai_category || '').toLowerCase();
-    const description = String((metadata as any).ai_description || '').toLowerCase();
+    const category = String(metadata.ai_category || '').toLowerCase();
+    const description = String(metadata.ai_description || '').toLowerCase();
 
     // Check if any query word matches tags, category, or description
     return queryWords.some(word => {

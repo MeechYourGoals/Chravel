@@ -25,7 +25,7 @@ export const Poll = ({
   onRemoveVote,
   onClose,
   onDelete,
-  onExport,
+  _onExport,
   disabled = false,
   isVoting = false,
   isClosing = false,

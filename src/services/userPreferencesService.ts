@@ -117,7 +117,7 @@ export const userPreferencesService = {
         .maybeSingle();
       if (error) return DEFAULT_PREFERENCES;
       return { ...DEFAULT_PREFERENCES, ...(data?.preferences || {}) } as AppPreferences;
-    } catch (e) {
+    } catch (_e) {
       return DEFAULT_PREFERENCES;
     }
   },
@@ -131,7 +131,7 @@ export const userPreferencesService = {
         .from('user_preferences')
         .upsert({ user_id: userId, preferences: merged }, { onConflict: 'user_id' });
       return !error;
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
   },

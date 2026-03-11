@@ -22,7 +22,7 @@ export interface TripEvent {
   include_in_itinerary: boolean;
   is_all_day?: boolean;
   source_type: string;
-  source_data: any;
+  source_data: Record<string, unknown> | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -40,7 +40,7 @@ export interface CreateEventData {
   include_in_itinerary?: boolean;
   is_all_day?: boolean;
   source_type?: string;
-  source_data?: any;
+  source_data?: Record<string, unknown>;
   // Recurring event support
   recurrence_rule?: string;
   recurrence_exceptions?: string[];
@@ -201,7 +201,11 @@ export const calendarService = {
           event: {
             id: queueId,
             ...eventData,
-            created_by: user?.id || (eventData as any).created_by || user?.id || '',
+            created_by:
+              user?.id ||
+              ((eventData as unknown as Record<string, unknown>).created_by as string) ||
+              user?.id ||
+              '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             version: 1,
@@ -334,7 +338,7 @@ export const calendarService = {
 
   async getTripEvents(tripId: string): Promise<TripEvent[]> {
     // Declare outside try block for catch block access
-    let cachedEvents: any[] = [];
+    let cachedEvents: Array<{ data: unknown }> = [];
 
     try {
       // Check if in demo mode
@@ -438,7 +442,7 @@ export const calendarService = {
     // Check if offline - queue the operation
     if (!navigator.onLine) {
       const tripId = updates.trip_id || '';
-      const version = (updates as any).version;
+      const version = (updates as Record<string, unknown>).version as number | undefined;
 
       await calendarOfflineQueue.queueUpdate(tripId, eventId, updates, version);
       await offlineSyncService.queueOperation(
@@ -720,6 +724,7 @@ export const calendarService = {
         notificationService.sendPushNotification({
           tripId,
           excludeUserId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- notification type not in generated types yet
           type: 'calendar_bulk_import' as any,
           title: `${count} New Calendar Events Added`,
           body: `${count} calendar events have been added via Smart Import. Open ChravelApp to review.`,

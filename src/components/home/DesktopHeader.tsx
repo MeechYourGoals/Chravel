@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface DesktopHeaderProps {
   viewMode: string;
   onCreateTrip: () => void;

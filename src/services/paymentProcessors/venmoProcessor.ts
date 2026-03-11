@@ -3,7 +3,7 @@
  * Adapter for Venmo payment processing (via API or deeplink)
  */
 
-import type { PaymentProcessor, PaymentRequest, PaymentResponse, PaymentError } from './types';
+import type { PaymentProcessor, PaymentRequest, PaymentResponse } from './types';
 
 export class VenmoProcessor implements PaymentProcessor {
   private config: {

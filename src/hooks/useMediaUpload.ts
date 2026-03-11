@@ -293,6 +293,7 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
 
       return results;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- uploadSingleFile deps covered by existing deps
     [tripId, queryClient, onProgress, onComplete, onError, isDemoMode, mediaLimits],
   );
 

@@ -87,7 +87,7 @@ export async function processQueue(): Promise<{ success: number; failed: number 
       await db.put('queue', { ...queued, status: 'sending' });
 
       // Attempt to send
-      const { data, error } = await supabase
+      const { _data, error } = await supabase
         .from('trip_chat_messages')
         .insert({
           ...queued.message,

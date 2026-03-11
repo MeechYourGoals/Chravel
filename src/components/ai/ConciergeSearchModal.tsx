@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  MessageSquare,
   X,
   Sparkles,
   Calendar,
@@ -11,7 +10,6 @@ import {
   MapPin,
   Link,
   Image,
-  ExternalLink,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 // import { useDebounce } from '@/hooks/useDebounce'; // Unused

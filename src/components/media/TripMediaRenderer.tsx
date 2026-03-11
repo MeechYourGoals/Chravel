@@ -283,7 +283,7 @@ interface VideoPlayerModalProps {
 
 export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
   url,
-  mimeType = 'video/mp4',
+  _mimeType = 'video/mp4',
   onClose,
 }) => {
   const [hasError, setHasError] = useState(false);

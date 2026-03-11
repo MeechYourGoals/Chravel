@@ -2,7 +2,7 @@ import { errorTracking } from '@/services/errorTracking';
 
 type AuthDebugData = Record<string, unknown>;
 
-function safeGetLocalStorageItem(key: string): string | null {
+function _safeGetLocalStorageItem(key: string): string | null {
   try {
     return globalThis.localStorage?.getItem(key) ?? null;
   } catch {
@@ -26,7 +26,7 @@ function safeRemoveLocalStorageItem(key: string): void {
   }
 }
 
-function hasAuthDebugQueryParam(): boolean {
+function _hasAuthDebugQueryParam(): boolean {
   try {
     if (typeof globalThis.location === 'undefined') return false;
     return new URLSearchParams(globalThis.location.search).get('authDebug') === '1';

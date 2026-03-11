@@ -196,7 +196,10 @@ export const calculateEventStats = (
 };
 
 // Helper function to filter items by status
-export const filterItemsByStatus = (items: any[], status: string): any[] => {
+export const filterItemsByStatus = (
+  items: Array<{ dateRange: string }>,
+  status: string,
+): Array<{ dateRange: string }> => {
   if (status === 'total' || !status) return items;
 
   return items.filter(item => {

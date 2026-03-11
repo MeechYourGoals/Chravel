@@ -41,6 +41,7 @@ export function SwipeableRowProvider({ children }: SwipeableRowProviderProps): J
  * Hook to access swipeable row context.
  * Returns null values if used outside of SwipeableRowProvider (graceful fallback).
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSwipeableRowContext(): SwipeableRowContextValue {
   const context = useContext(SwipeableRowContext);
 

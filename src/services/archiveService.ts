@@ -119,8 +119,8 @@ export const getArchivedTripCount = async (
 // Archive a trip
 export const archiveTrip = async (
   tripId: string,
-  tripType: TripType,
-  userId?: string,
+  _tripType: TripType,
+  _userId?: string,
 ): Promise<void> => {
   const { error } = await supabase.from('trips').update({ is_archived: true }).eq('id', tripId);
 
@@ -177,8 +177,8 @@ export const restoreTrip = async (
 // Check if a trip is archived
 export const isTripArchived = async (
   tripId: string,
-  tripType: TripType,
-  userId?: string,
+  _tripType: TripType,
+  _userId?: string,
 ): Promise<boolean> => {
   const { data, error } = await supabase
     .from('trips')
@@ -230,7 +230,7 @@ export const getArchivedTrips = async (userId?: string) => {
 export const filterActiveTrips = async <T extends { id: string | number }>(
   trips: T[],
   tripType: TripType,
-  userId?: string,
+  _userId?: string,
 ): Promise<T[]> => {
   // Get all archived trip IDs from database
   const { data: archivedTrips, error } = await supabase
@@ -261,8 +261,8 @@ export const getTripArchiveStatus = async (tripId: string, tripType: TripType, u
 // Bulk archive operations
 export const bulkArchiveTrips = async (
   tripIds: string[],
-  tripType: TripType,
-  userId?: string,
+  _tripType: TripType,
+  _userId?: string,
 ): Promise<void> => {
   const { error } = await supabase.from('trips').update({ is_archived: true }).in('id', tripIds);
 
@@ -274,8 +274,8 @@ export const bulkArchiveTrips = async (
 
 export const bulkRestoreTrips = async (
   tripIds: string[],
-  tripType: TripType,
-  userId?: string,
+  _tripType: TripType,
+  _userId?: string,
 ): Promise<void> => {
   const { error } = await supabase.from('trips').update({ is_archived: false }).in('id', tripIds);
 

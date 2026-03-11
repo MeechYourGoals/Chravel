@@ -13,7 +13,7 @@ interface PendingTripCardProps {
 }
 
 export const PendingTripCard: React.FC<PendingTripCardProps> = ({
-  tripId,
+  _tripId,
   tripName,
   destination,
   startDate,

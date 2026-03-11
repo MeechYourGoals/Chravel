@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Users, Shield, Trash2, X, ScrollText, Activity } from 'lucide-react';
+import { Settings, Users, Trash2, X, ScrollText, Activity } from 'lucide-react';
 import { TripUserManagement } from './TripUserManagement';
 import { getConsistentAvatar } from '../utils/avatarUtils';
 import { EventLogDrawer } from './trip/EventLogDrawer';
@@ -102,7 +102,7 @@ export const TripSettings = ({
   };
 
   const handleSaveCategory = () => {
-    const finalCategory = showCustomInput ? customCategory : tripCategory;
+    const _finalCategory = showCustomInput ? customCategory : tripCategory;
     // This would save to your backend
   };
 

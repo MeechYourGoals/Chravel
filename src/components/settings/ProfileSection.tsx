@@ -43,6 +43,7 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
     } finally {
       setSavingDisplayName(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only user.displayName is read, not full user object
   }, [displayNameDraft, toast, updateProfile, user.displayName]);
 
   const handleToggleShowEmail = useCallback(async () => {

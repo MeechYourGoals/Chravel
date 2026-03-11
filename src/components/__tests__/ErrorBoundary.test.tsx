@@ -40,12 +40,12 @@ describe('ErrorBoundary', () => {
     // Mock import.meta.env.DEV - expects boolean
     vi.stubEnv('DEV', false);
     // Mock window.gtag
-    (window as any).gtag = vi.fn();
+    (window as unknown as Record<string, unknown>).gtag = vi.fn();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    delete (window as any).gtag;
+    delete (window as unknown as Record<string, unknown>).gtag;
   });
 
   it('should render children when there is no error', () => {
@@ -112,7 +112,7 @@ describe('ErrorBoundary', () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
 
-    const { rerender } = render(
+    const { _rerender } = render(
       <ErrorBoundary onRetry={onRetry}>
         <ThrowingComponent error={new Error('Test error')} />
       </ErrorBoundary>,
@@ -159,10 +159,14 @@ describe('ErrorBoundary', () => {
         <ThrowingComponent error={new Error('Tracked error')} />
       </ErrorBoundary>,
     );
-    expect((window as any).gtag).toHaveBeenCalledWith('event', 'exception', {
-      description: 'Tracked error',
-      fatal: false,
-    });
+    expect((window as unknown as Record<string, unknown>).gtag).toHaveBeenCalledWith(
+      'event',
+      'exception',
+      {
+        description: 'Tracked error',
+        fatal: false,
+      },
+    );
   });
 
   it('should recognize various chunk error patterns', () => {

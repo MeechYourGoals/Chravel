@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tripService } from '@/services/tripService';
 import { archiveService } from '@/services/archiveService';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';

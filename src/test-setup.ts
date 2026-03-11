@@ -25,7 +25,7 @@ global.IntersectionObserver = class IntersectionObserver {
     return [];
   }
   unobserve() {}
-} as any;
+} as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
@@ -33,7 +33,7 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
   observe() {}
   unobserve() {}
-} as any;
+} as unknown as typeof ResizeObserver;
 
 // Mock indexedDB for offlineSyncService
 global.indexedDB = {
@@ -42,11 +42,11 @@ global.indexedDB = {
     onsuccess: null,
     onerror: null,
   }),
-} as any;
+} as unknown as IDBFactory;
 
 // Mock Deno for edge functions
 global.Deno = {
   env: {
     get: vi.fn().mockReturnValue('mock-key'),
   },
-} as any;
+} as unknown as typeof Deno;

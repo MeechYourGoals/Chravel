@@ -13,7 +13,7 @@ import { useJoinRequests } from '../useJoinRequests';
 
 const mockRpc = vi.fn();
 const mockFrom = vi.fn();
-const mockChannel = vi.fn();
+const _mockChannel = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {

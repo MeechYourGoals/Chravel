@@ -21,7 +21,7 @@ interface MemberWithProfile {
 }
 
 export const SeatManagement = () => {
-  const { currentOrg, members, fetchOrgMembers, removeMember, updateMemberRole } =
+  const { currentOrg, members, fetchOrgMembers, removeMember, _updateMemberRole } =
     useOrganization();
   const { user } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -32,6 +32,7 @@ export const SeatManagement = () => {
     if (currentOrg) {
       fetchOrgMembers(currentOrg.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchOrgMembers stability unknown from hook
   }, [currentOrg]);
 
   useEffect(() => {

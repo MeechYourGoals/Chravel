@@ -536,7 +536,7 @@ export const AIConciergeChat = ({
     error: liveError,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
-    conversationHistory: liveConversationHistory,
+    conversationHistory: _liveConversationHistory,
     startSession: startLiveSession,
     endSession: endLiveSession,
     diagnostics: liveDiagnostics,
@@ -879,6 +879,7 @@ export const AIConciergeChat = ({
     [user?.id],
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- ref-sync pattern; wrapping in useCallback is impractical
   const handleSendMessage = async (messageOverride?: string) => {
     const typedMessage =
       typeof messageOverride === 'string' ? messageOverride.trim() : inputMessage.trim();

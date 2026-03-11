@@ -156,21 +156,21 @@ describe('TripContextAggregator', () => {
             single: vi.fn().mockResolvedValue({ data: mockTripMetadata, error: null }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock collaborator members
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: mockCollaboratorMembers, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock collaborator profiles
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           in: vi.fn().mockResolvedValue({ data: mockCollaboratorProfiles, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock messages
       mockSupabase.from.mockReturnValueOnce({
@@ -181,7 +181,7 @@ describe('TripContextAggregator', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock calendar
       mockSupabase.from.mockReturnValueOnce({
@@ -190,28 +190,28 @@ describe('TripContextAggregator', () => {
             order: vi.fn().mockResolvedValue({ data: mockCalendar, error: null }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock tasks
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: mockTasks, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock payments
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: mockPayments, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock polls
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: mockPolls, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock places (trip)
       mockSupabase.from.mockReturnValueOnce({
@@ -220,28 +220,28 @@ describe('TripContextAggregator', () => {
             single: vi.fn().mockResolvedValue({ data: mockPlaces.trip, error: null }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock places (places)
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: mockPlaces.places, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock files
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: mockFiles, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Mock links
       mockSupabase.from.mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ data: mockLinks, error: null }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       const result = await TripContextAggregator.buildContext(mockTripId);
 
@@ -281,7 +281,7 @@ describe('TripContextAggregator', () => {
             single: vi.fn().mockResolvedValue({ data: null, error: new Error('Database error') }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       const result = await TripContextAggregator.buildContext(mockTripId);
 
@@ -309,7 +309,7 @@ describe('TripContextAggregator', () => {
             }),
           }),
         }),
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       const result = await TripContextAggregator.buildContext(mockTripId);
 

@@ -129,7 +129,7 @@ export const useChatComposer = ({
         paymentData?: PaymentData;
       } = {},
     ): Promise<ChatMessage | null> => {
-      const { isPayment = false, paymentData } = options;
+      const { isPayment = false, _paymentData } = options;
 
       // Prevent payment creation for events
       if (isEvent && isPayment) {
@@ -152,7 +152,7 @@ export const useChatComposer = ({
 
       return message;
     },
-    [inputMessage, createMessage, demoMode, tripId, parseMessage],
+    [inputMessage, createMessage, demoMode, tripId, parseMessage, isEvent],
   );
 
   const setReply = useCallback((messageId: string, messageText: string, senderName: string) => {

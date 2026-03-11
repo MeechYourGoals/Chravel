@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Home, Users, Calendar, MapPin } from 'lucide-react';
+import { X, Home, Users, Calendar } from 'lucide-react';
 import { RoomAssignment, ProParticipant } from '../../types/pro';
 
 interface RoomAssignmentsModalProps {
@@ -17,7 +17,7 @@ export const RoomAssignmentsModal = ({
   roster,
   onUpdateAssignments,
 }: RoomAssignmentsModalProps) => {
-  const [assignments, setAssignments] = useState<RoomAssignment[]>(roomAssignments);
+  const [assignments, _setAssignments] = useState<RoomAssignment[]>(roomAssignments);
 
   if (!isOpen) return null;
 

@@ -34,6 +34,7 @@ export const useOnboarding = (options: UseOnboardingOptions = {}) => {
       // Unauthenticated: use localStorage only
       store.init();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- store from Zustand is unstable; would cause infinite loop
   }, [userId, isDemoMode]); // Removed store.isInitialized - let initWithUser decide
 
   // Callback to complete onboarding and navigate to pending destination
@@ -49,6 +50,7 @@ export const useOnboarding = (options: UseOnboardingOptions = {}) => {
       }
       return false;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- store from Zustand is unstable; methods are stable internally
     [],
   );
 

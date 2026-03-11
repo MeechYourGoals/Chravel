@@ -50,7 +50,7 @@ export type SearchOrigin = { lat: number; lng: number } | null;
 class ApiQuotaMonitor {
   private dailyRequests: Map<string, number> = new Map();
   private hourlyRequests: Map<string, number> = new Map();
-  private cachedResults: Map<string, { data: any; timestamp: number }> = new Map();
+  private cachedResults: Map<string, { data: unknown; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 3600000; // 1 hour cache
   private readonly DAILY_LIMIT = 10000; // Conservative daily limit
   private readonly HOURLY_LIMIT = 1000; // Conservative hourly limit
@@ -99,7 +99,7 @@ class ApiQuotaMonitor {
   /**
    * Cache a result with TTL
    */
-  cacheResult(key: string, data: any): void {
+  cacheResult(key: string, data: unknown): void {
     this.cachedResults.set(key, {
       data,
       timestamp: Date.now(),

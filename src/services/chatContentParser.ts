@@ -88,7 +88,7 @@ export interface ParsedContent {
   confidence: number;
   suggestions?: Array<{
     action: 'create_calendar_event' | 'create_todo' | 'extract_receipt' | 'none';
-    data?: any;
+    data?: Record<string, unknown>;
     message: string;
   }>;
 }
@@ -311,24 +311,24 @@ export async function parseMessage(messageText: string, tripId: string): Promise
 
     const extractedData = data?.extracted_data;
     const entities: ExtractedEntities = {
-      dates: extractedData?.events?.map((e: any) => ({
-        value: e.date,
-        confidence: e.confidence || 0.8,
+      dates: extractedData?.events?.map((e: Record<string, unknown>) => ({
+        value: e.date as string,
+        confidence: (e.confidence as number) || 0.8,
       })),
-      times: extractedData?.events?.map((e: any) => ({
-        value: e.start_time || '',
-        confidence: e.confidence || 0.8,
+      times: extractedData?.events?.map((e: Record<string, unknown>) => ({
+        value: (e.start_time as string) || '',
+        confidence: (e.confidence as number) || 0.8,
       })),
-      locations: extractedData?.events?.map((e: any) => ({
-        value: e.location || '',
-        confidence: e.confidence || 0.8,
+      locations: extractedData?.events?.map((e: Record<string, unknown>) => ({
+        value: (e.location as string) || '',
+        confidence: (e.confidence as number) || 0.8,
       })),
-      suggested_events: extractedData?.events?.map((e: any) => ({
-        title: e.title,
-        date: e.date,
-        time: e.start_time,
-        location: e.location,
-        confidence: e.confidence || 0.8,
+      suggested_events: extractedData?.events?.map((e: Record<string, unknown>) => ({
+        title: e.title as string,
+        date: e.date as string,
+        time: e.start_time as string | undefined,
+        location: e.location as string | undefined,
+        confidence: (e.confidence as number) || 0.8,
       })),
     };
 
@@ -449,21 +449,18 @@ export async function applySuggestion(
       case 'create_calendar_event': {
         if (!suggestion.data) return null;
 
+        const sd = suggestion.data;
         const eventData: CreateEventData = {
           trip_id: tripId,
-          title: suggestion.data.title,
-          start_time: suggestion.data.date
-            ? new Date(
-                `${suggestion.data.date}T${suggestion.data.start_time || '12:00'}`,
-              ).toISOString()
+          title: sd.title as string,
+          start_time: sd.date
+            ? new Date(`${sd.date}T${(sd.start_time as string) || '12:00'}`).toISOString()
             : new Date().toISOString(),
-          end_time: suggestion.data.end_time
-            ? new Date(`${suggestion.data.date}T${suggestion.data.end_time}`).toISOString()
-            : undefined,
-          location: suggestion.data.location,
-          event_category: suggestion.data.category || 'other',
+          end_time: sd.end_time ? new Date(`${sd.date}T${sd.end_time}`).toISOString() : undefined,
+          location: sd.location as string | undefined,
+          event_category: (sd.category as string) || 'other',
           source_type: 'ai_parsed',
-          source_data: suggestion.data,
+          source_data: sd,
         };
 
         const result = await calendarService.createEvent(eventData);

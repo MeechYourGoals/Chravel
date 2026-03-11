@@ -34,7 +34,7 @@ describe('openStreetMapFallback', () => {
         },
       ];
 
-      (global.fetch as any).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
       });
@@ -54,7 +54,7 @@ describe('openStreetMapFallback', () => {
     });
 
     it('should return empty array on error', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'));
 
       const results = await searchPlacesOSM('coffee shop');
 
@@ -79,7 +79,7 @@ describe('openStreetMapFallback', () => {
         },
       ];
 
-      (global.fetch as any).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
       });
@@ -92,7 +92,7 @@ describe('openStreetMapFallback', () => {
     });
 
     it('should return null when no results', async () => {
-      (global.fetch as any).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => [],
       });
@@ -122,7 +122,7 @@ describe('openStreetMapFallback', () => {
           LatLng: vi.fn(function (lat, lng) {
             return { lat, lng };
           }),
-        } as any,
+        } as unknown as typeof google.maps,
       };
 
       const result = convertOSMToGoogleFormat(osmPlace);

@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import imageCompression from 'browser-image-compression';
 import { getUploadContentType } from '@/utils/mime';
 
@@ -42,7 +41,7 @@ export async function uploadToStorage(
 
   const contentType = getUploadContentType(file);
 
-  const { data, error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
+  const { _data, error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
     contentType,
     upsert: false,
   });

@@ -76,7 +76,7 @@ export async function isBiometricAvailable(): Promise<BiometricAvailability> {
  * @returns BiometricResult with authentication status
  */
 export async function authenticateWithBiometrics(
-  reason: string = 'Authenticate to continue',
+  _reason: string = 'Authenticate to continue',
 ): Promise<BiometricResult> {
   // Check availability first
   const availability = await isBiometricAvailable();

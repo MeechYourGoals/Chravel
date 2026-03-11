@@ -22,7 +22,7 @@ interface TripPreferencesProps {
 }
 
 export const TripPreferences = ({
-  tripId,
+  _tripId,
   onPreferencesChange,
   initialPreferences,
 }: TripPreferencesProps) => {

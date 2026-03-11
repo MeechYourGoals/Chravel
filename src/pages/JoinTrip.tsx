@@ -100,6 +100,7 @@ const JoinTrip = () => {
         pathname: location.pathname,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only debug log
   }, []);
 
   // Safety timeout - prevent infinite loading states
@@ -180,6 +181,7 @@ const JoinTrip = () => {
       setError(createInviteError('INVALID_LINK'));
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- checkDeepLinkAndFetchInvite depends on token already in deps
   }, [token]);
 
   const checkDeepLinkAndFetchInvite = async () => {
@@ -529,6 +531,7 @@ const JoinTrip = () => {
           navigate('/');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchInvitePreview is stable in practice; wrapping in useCallback would require many deps
     [navigate, token, location.pathname],
   );
 

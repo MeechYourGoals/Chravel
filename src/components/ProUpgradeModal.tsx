@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Crown, Users, Shield, Zap, TrendingUp, Building, Star } from 'lucide-react';
+import { X, Crown, Shield, Zap, TrendingUp, Building, Star } from 'lucide-react';
 import { SUBSCRIPTION_TIERS } from '../types/pro';
 import { useIsMobile } from '../hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';

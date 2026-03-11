@@ -26,7 +26,7 @@ export interface CalendarEvent {
   source_data?: {
     confirmation_number?: string;
     original_text?: string;
-    venue_details?: any;
+    venue_details?: unknown;
   };
   // All-day / multi-day support
   is_all_day?: boolean; // true = no specific time, spans full day(s)

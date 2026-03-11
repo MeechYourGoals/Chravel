@@ -146,14 +146,14 @@ export class PaymentRetryQueue {
   /**
    * Callback for successful payment retry
    */
-  private onPaymentSuccess(payment: QueuedPayment, response: PaymentResponse): void {
+  private onPaymentSuccess(_payment: QueuedPayment, _response: PaymentResponse): void {
     // In production, emit event or call callback
   }
 
   /**
    * Callback for payment retry attempt
    */
-  private onPaymentRetry(payment: QueuedPayment, error: PaymentError): void {
+  private onPaymentRetry(_payment: QueuedPayment, _error: PaymentError): void {
     // In production, emit event or call callback
   }
 

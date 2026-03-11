@@ -22,12 +22,20 @@ export function convertSupabaseTripToMock(supabaseTrip: SupabaseTrip): MockTrip 
   }
 
   // Extract counts from joined tables (Supabase returns [{count: N}] for count aggregates)
-  const peopleCount = (supabaseTrip as any).trip_members?.[0]?.count ?? 0;
+  const peopleCount = (supabaseTrip as Record<string, unknown>).trip_members
+    ? (((supabaseTrip as Record<string, unknown>).trip_members as Array<{ count: number }>)?.[0]
+        ?.count ?? 0)
+    : 0;
   // Places count now comes from calendar events with locations (not trip_links)
-  const placesCount = (supabaseTrip as any).trip_events_places?.[0]?.count ?? 0;
+  const placesCount = (supabaseTrip as Record<string, unknown>).trip_events_places
+    ? ((
+        (supabaseTrip as Record<string, unknown>).trip_events_places as Array<{ count: number }>
+      )?.[0]?.count ?? 0)
+    : 0;
 
   return {
-    id: supabaseTrip.id as any, // Keep UUID string for service calls
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Keep UUID string for service calls; MockTrip.id type mismatch
+    id: supabaseTrip.id as any,
     title: supabaseTrip.name || 'Untitled Trip',
     location: supabaseTrip.destination || 'No destination',
     dateRange,
@@ -63,7 +71,11 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     location: mockTrip.location,
     dateRange: mockTrip.dateRange,
     proTripCategory: normalizeLegacyCategory(
-      (supabaseTrip as any).categories?.find((c: any) => c.type === 'pro_category')?.value,
+      (
+        (supabaseTrip as Record<string, unknown>).categories as
+          | Array<{ type: string; value: string }>
+          | undefined
+      )?.find(c => c.type === 'pro_category')?.value,
     ),
     tags: [],
     participants: [],
@@ -94,7 +106,7 @@ export function convertSupabaseTripToProTrip(supabaseTrip: SupabaseTrip): ProTri
     privacy_mode: 'standard',
     ai_access_enabled: true,
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
-    card_color: (supabaseTrip as any).card_color ?? undefined,
+    card_color: (supabaseTrip as Record<string, unknown>).card_color as string | undefined,
   };
 }
 
@@ -134,7 +146,7 @@ export function convertSupabaseTripToEvent(supabaseTrip: SupabaseTrip): EventDat
     },
     itinerary: [],
     coverPhoto: supabaseTrip.cover_image_url ?? undefined,
-    card_color: (supabaseTrip as any).card_color ?? undefined,
+    card_color: (supabaseTrip as Record<string, unknown>).card_color as string | undefined,
     organizer_display_name: supabaseTrip.organizer_display_name ?? undefined,
   };
 }

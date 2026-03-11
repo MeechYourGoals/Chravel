@@ -92,6 +92,7 @@ export const useInviteLink = ({
     if (isOpen) {
       generateTripLink();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink closure deps already covered by dep array
   }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
 
   const createInviteInDatabase = async (
@@ -197,7 +198,7 @@ export const useInviteLink = ({
   const generateTripLink = async () => {
     setLoading(true);
     // Always use branded chravel.app URL for invite links
-    const baseUrl = 'https://chravel.app';
+    const _baseUrl = 'https://chravel.app';
     const actualTripId = proTripId || tripId;
 
     if (!actualTripId) {

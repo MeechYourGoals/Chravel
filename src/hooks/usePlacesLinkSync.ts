@@ -3,7 +3,7 @@ import { PlaceWithDistance } from '../types/basecamp';
 import { supabase } from '@/integrations/supabase/client';
 
 export const usePlacesLinkSync = () => {
-  const mapPlaceCategoryToLink = (placeCategory: string): string => {
+  const _mapPlaceCategoryToLink = (placeCategory: string): string => {
     switch (placeCategory) {
       case 'restaurant':
         return 'eats';
@@ -33,7 +33,12 @@ export const usePlacesLinkSync = () => {
   };
 
   const createLinkFromPlace = useCallback(
-    async (place: PlaceWithDistance, userName: string = 'You', tripId: string, userId?: string) => {
+    async (
+      place: PlaceWithDistance,
+      _userName: string = 'You',
+      tripId: string,
+      userId?: string,
+    ) => {
       try {
         // Demo mode fallback - store in localStorage
         if (!userId) {

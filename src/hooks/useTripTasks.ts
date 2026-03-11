@@ -204,34 +204,22 @@ export const useTripTasks = (
           return true;
         }
 
-        const assignmentsTable = supabase.from('task_assignments') as any;
-        const assignmentWrite =
-          typeof assignmentsTable.upsert === 'function'
-            ? assignmentsTable.upsert(
-                {
-                  task_id: taskId,
-                  user_id: userId,
-                  assigned_by: user.id,
-                },
-                { onConflict: 'task_id,user_id' },
-              )
-            : assignmentsTable.insert({
-                task_id: taskId,
-                user_id: userId,
-                assigned_by: user.id,
-              });
-
-        const { error } = await assignmentWrite;
+        const { error } = await supabase.from('task_assignments').upsert(
+          {
+            task_id: taskId,
+            user_id: userId,
+            assigned_by: user.id,
+          },
+          { onConflict: 'task_id,user_id' },
+        );
         if (error) throw error;
 
-        const statusTable = supabase.from('task_status') as any;
-        const statusWrite =
-          typeof statusTable.upsert === 'function'
-            ? statusTable.upsert(
-                { task_id: taskId, user_id: userId, completed: false },
-                { onConflict: 'task_id,user_id' },
-              )
-            : statusTable.insert({ task_id: taskId, user_id: userId, completed: false });
+        const statusWrite = supabase
+          .from('task_status')
+          .upsert(
+            { task_id: taskId, user_id: userId, completed: false },
+            { onConflict: 'task_id,user_id' },
+          );
 
         await statusWrite;
 
@@ -352,8 +340,20 @@ export const useTripTasks = (
   useEffect(() => {
     if (!tripId || isDemoMode) return;
 
-    const hub = (window as any).__tripRealtimeHubs?.get(tripId);
-    if (!hub) {
+    const hub = (window as Record<string, unknown>).__tripRealtimeHubs as
+      | Map<
+          string,
+          {
+            subscribe: (
+              table: string,
+              event: string,
+              callback: (payload: Record<string, unknown>) => void,
+            ) => () => void;
+          }
+        >
+      | undefined;
+    const hubInstance = hub?.get(tripId);
+    if (!hubInstance) {
       // Fallback: hub not mounted yet, use minimal channel
       const channel = supabase
         .channel(`trip_tasks:${tripId}`)
@@ -368,17 +368,18 @@ export const useTripTasks = (
       };
     }
 
-    const unsub1 = hub.subscribe('trip_tasks', '*', (payload: any) => {
+    const unsub1 = hubInstance.subscribe('trip_tasks', '*', (payload: Record<string, unknown>) => {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       if (payload.eventType === 'INSERT') {
+        const newRecord = payload.new as Record<string, unknown> | undefined;
         toast({
           title: 'New Task Added',
-          description: `${payload.new?.title} was added.`,
+          description: `${newRecord?.title} was added.`,
           duration: 3000,
         });
       }
     });
-    const unsub2 = hub.subscribe('task_status', '*', () => {
+    const unsub2 = hubInstance.subscribe('task_status', '*', () => {
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
     });
     return () => {
@@ -464,23 +465,32 @@ export const useTripTasks = (
         }
 
         // Transform database tasks to match TripTask interface
-        const transformed = tasks.map((task: any) => ({
-          id: task.id,
-          trip_id: task.trip_id,
-          creator_id: task.creator_id,
-          title: task.title,
-          description: task.description,
-          due_at: task.due_at,
-          is_poll: task.is_poll,
-          created_at: task.created_at,
-          updated_at: task.updated_at,
-          creator: {
-            id: task.creator_id,
-            name: task.creator?.display_name || 'Former Member',
-            avatar: task.creator?.avatar_url,
-          },
-          task_status: (task.task_status || []) as any[],
-        }));
+        const transformed = tasks.map(task => {
+          const creator = task.creator as { display_name?: string; avatar_url?: string } | null;
+          const taskStatusRows = (task.task_status || []) as Array<{
+            task_id: string;
+            user_id: string;
+            completed: boolean;
+            completed_at?: string;
+          }>;
+          return {
+            id: task.id,
+            trip_id: task.trip_id,
+            creator_id: task.creator_id,
+            title: task.title,
+            description: task.description,
+            due_at: task.due_at,
+            is_poll: task.is_poll,
+            created_at: task.created_at,
+            updated_at: task.updated_at,
+            creator: {
+              id: task.creator_id,
+              name: creator?.display_name || 'Former Member',
+              avatar: creator?.avatar_url,
+            },
+            task_status: taskStatusRows,
+          };
+        });
 
         // Cache tasks for offline access (best-effort).
         await Promise.all(
@@ -490,7 +500,7 @@ export const useTripTasks = (
               entityId: t.id,
               tripId: t.trip_id,
               data: t,
-              version: (t as any).version ?? undefined,
+              version: (t as TripTask & { version?: number }).version ?? undefined,
             }),
           ),
         );
@@ -605,26 +615,14 @@ export const useTripTasks = (
       }
 
       if (assignedUserIds.length > 0) {
-        const assignmentsTable = supabase.from('task_assignments') as any;
-        const assignmentWrite =
-          typeof assignmentsTable.upsert === 'function'
-            ? assignmentsTable.upsert(
-                assignedUserIds.map(assigneeId => ({
-                  task_id: newTask.id,
-                  user_id: assigneeId,
-                  assigned_by: authUser.id,
-                })),
-                { onConflict: 'task_id,user_id' },
-              )
-            : assignmentsTable.insert(
-                assignedUserIds.map(assigneeId => ({
-                  task_id: newTask.id,
-                  user_id: assigneeId,
-                  assigned_by: authUser.id,
-                })),
-              );
-
-        await assignmentWrite;
+        await supabase.from('task_assignments').upsert(
+          assignedUserIds.map(assigneeId => ({
+            task_id: newTask.id,
+            user_id: assigneeId,
+            assigned_by: authUser.id,
+          })),
+          { onConflict: 'task_id,user_id' },
+        );
       }
 
       // Transform to TripTask format
@@ -744,26 +742,14 @@ export const useTripTasks = (
 
         if (assignmentError) throw assignmentError;
 
-        const statusTable = supabase.from('task_status') as any;
-        const statusWrite =
-          typeof statusTable.upsert === 'function'
-            ? statusTable.upsert(
-                uniqueAssignees.map(assigneeId => ({
-                  task_id: taskId,
-                  user_id: assigneeId,
-                  completed: false,
-                })),
-                { onConflict: 'task_id,user_id' },
-              )
-            : statusTable.insert(
-                uniqueAssignees.map(assigneeId => ({
-                  task_id: taskId,
-                  user_id: assigneeId,
-                  completed: false,
-                })),
-              );
-
-        const { error: statusError } = await statusWrite;
+        const { error: statusError } = await supabase.from('task_status').upsert(
+          uniqueAssignees.map(assigneeId => ({
+            task_id: taskId,
+            user_id: assigneeId,
+            completed: false,
+          })),
+          { onConflict: 'task_id,user_id' },
+        );
         if (statusError) throw statusError;
       }
 
@@ -832,7 +818,7 @@ export const useTripTasks = (
         p_user_id: authUser.id,
         p_current_version: currentVersion,
         p_completed: completed,
-      } as any);
+      });
 
       if (error) {
         // Check for version conflict (concurrency error)

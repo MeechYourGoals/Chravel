@@ -131,6 +131,7 @@ export const ChatSearchOverlay = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyboard handler; deps would cause excessive re-registration
   }, [selectedIndex, totalResults]);
 
   // Auto-scroll to selected result

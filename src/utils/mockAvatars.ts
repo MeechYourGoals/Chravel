@@ -134,7 +134,7 @@ export const getMockAvatar = (name: string): string => {
   if (!name || typeof name !== 'string') return femaleAvatarPath; // default
 
   const normalizedName = name.trim();
-  const firstName = normalizedName.split(' ')[0];
+  const _firstName = normalizedName.split(' ')[0];
 
   // Check if name starts with female indicator
   if (femaleNames.some(n => normalizedName.toLowerCase().includes(n.toLowerCase()))) {

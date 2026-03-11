@@ -159,7 +159,7 @@ function parseToolSchema(toolBlock: string): ToolSchema {
 
     // Find top-level `required:` inside the parameters block (depth 1)
     // We need to find `required: [...]` at the right nesting level
-    const reqPattern = /required:\s*\[([^\]]*)\]/g;
+    const _reqPattern = /required:\s*\[([^\]]*)\]/g;
     depth = 0;
     let searchIdx = 0;
     while (searchIdx < parametersBlock.length) {

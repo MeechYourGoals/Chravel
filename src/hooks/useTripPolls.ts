@@ -27,6 +27,7 @@ interface TripPoll {
   deadline_at?: string;
   closed_at?: string;
   closed_by?: string;
+  version?: number | null;
 }
 
 interface PollOption {
@@ -125,9 +126,11 @@ export const useTripPolls = (tripId: string) => {
               created_by: poll.created_by,
               created_at: poll.created_at,
               updated_at: poll.updated_at,
-              allow_multiple: (poll as any).allow_multiple ?? false,
-              is_anonymous: (poll as any).is_anonymous ?? false,
-              allow_vote_change: (poll as any).allow_vote_change ?? true,
+              allow_multiple:
+                ((poll as Record<string, unknown>).allow_multiple as boolean) ?? false,
+              is_anonymous: ((poll as Record<string, unknown>).is_anonymous as boolean) ?? false,
+              allow_vote_change:
+                ((poll as Record<string, unknown>).allow_vote_change as boolean) ?? true,
             };
           });
 
@@ -166,7 +169,7 @@ export const useTripPolls = (tripId: string) => {
       const transformed = (data || []).map(poll => ({
         ...poll,
         options: Array.isArray(poll.options)
-          ? ((poll.options as any[]).filter(o => o && typeof o === 'object') as PollOption[])
+          ? ((poll.options as unknown[]).filter(o => o && typeof o === 'object') as PollOption[])
           : [],
         status: poll.status as 'active' | 'closed',
       }));
@@ -179,7 +182,7 @@ export const useTripPolls = (tripId: string) => {
             entityId: p.id,
             tripId,
             data: p,
-            version: (p as any).version ?? undefined,
+            version: p.version ?? undefined,
           }),
         ),
       );
@@ -328,12 +331,14 @@ export const useTripPolls = (tripId: string) => {
         throw new Error('This poll only allows one option per voter.');
       }
 
-      const { error: batchError } = await (supabase.rpc as any)('vote_on_poll_batch', {
+      const { error: batchError } = await (
+        supabase.rpc as (...args: unknown[]) => ReturnType<typeof supabase.rpc>
+      )('vote_on_poll_batch', {
         p_poll_id: pollId,
         p_option_ids: optionIdsArray,
         p_user_id: user.id,
         p_current_version: poll.version ?? null,
-      } as any);
+      });
 
       if (batchError) {
         const missingFn =
@@ -443,7 +448,7 @@ export const useTripPolls = (tripId: string) => {
             entityId: updatedPoll.id,
             tripId,
             data: updatedPoll,
-            version: (updatedPoll as any).version ?? undefined,
+            version: updatedPoll.version ?? undefined,
           });
         }
       } catch {
@@ -460,7 +465,7 @@ export const useTripPolls = (tripId: string) => {
         description: 'Your vote has been saved.',
       });
     },
-    onError: (error: any, vars, context) => {
+    onError: (error: Error, vars, context) => {
       // Keep optimistic update when offline (queued).
       if (!error?.message?.includes('OFFLINE:') && context?.previous) {
         queryClient.setQueryData(['tripPolls', tripId, isDemoMode], context.previous);
@@ -473,7 +478,7 @@ export const useTripPolls = (tripId: string) => {
             entityId: previousPoll.id,
             tripId,
             data: previousPoll,
-            version: (previousPoll as any).version ?? undefined,
+            version: previousPoll.version ?? undefined,
           });
         }
       }
@@ -659,9 +664,12 @@ export const useTripPolls = (tripId: string) => {
     if (!tripId || isDemoMode) return;
 
     // Use hub if available, else fallback to direct channel
-    const hub = (window as any).__tripRealtimeHubs?.get(tripId);
-    if (!hub) {
-      if (typeof (supabase as any).channel !== 'function') return;
+    const hub = (window as unknown as Record<string, unknown>).__tripRealtimeHubs as
+      | Map<string, { subscribe: (table: string, event: string, cb: () => void) => () => void }>
+      | undefined;
+    const tripHub = hub?.get(tripId);
+    if (!tripHub) {
+      if (typeof supabase.channel !== 'function') return;
       const channel = supabase
         .channel(`trip_polls:${tripId}`)
         .on(
@@ -675,7 +683,7 @@ export const useTripPolls = (tripId: string) => {
       };
     }
 
-    const unsub = hub.subscribe('trip_polls', '*', () => {
+    const unsub = tripHub.subscribe('trip_polls', '*', () => {
       queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
     });
     return unsub;

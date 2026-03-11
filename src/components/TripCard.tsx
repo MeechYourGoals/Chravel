@@ -26,7 +26,6 @@ import { archiveTrip, hideTrip } from '../services/archiveService';
 import { useDeleteTrip } from '../hooks/useDeleteTrip';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/use-toast';
-import { ToastAction } from './ui/toast';
 import { Badge } from './ui/badge';
 import { gamificationService } from '../services/gamificationService';
 import { isConsumerTrip } from '../utils/tripTierDetector';
@@ -69,7 +68,7 @@ interface Trip {
 }
 
 // Query key constant shared with useTrips
-const TRIPS_QUERY_KEY = 'trips';
+const _TRIPS_QUERY_KEY = 'trips';
 
 interface TripCardProps {
   trip: Trip;

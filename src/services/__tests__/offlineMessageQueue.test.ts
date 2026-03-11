@@ -37,7 +37,7 @@ describe('offlineMessageQueue', () => {
     const select = vi.fn(() => ({ single }));
     const insert = vi.fn(() => ({ select }));
 
-    fromMock.mockReturnValue({ insert } as any);
+    fromMock.mockReturnValue({ insert } as unknown as ReturnType<typeof supabase.from>);
 
     await queueMessage({
       trip_id: 'trip_1',
@@ -46,7 +46,7 @@ describe('offlineMessageQueue', () => {
       client_message_id: '00000000-0000-4000-8000-000000000000',
       privacy_mode: 'standard',
       message_type: 'text',
-    } as any);
+    } as unknown as Parameters<typeof queueMessage>[0]);
 
     const result = await processQueue();
 

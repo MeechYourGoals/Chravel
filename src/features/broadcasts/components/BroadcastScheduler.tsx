@@ -58,7 +58,7 @@ export const BroadcastScheduler = ({
     onCancel();
   };
 
-  const minDateTime = new Date().toISOString().slice(0, 16);
+  const _minDateTime = new Date().toISOString().slice(0, 16);
 
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mt-3">

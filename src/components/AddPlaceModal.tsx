@@ -44,7 +44,7 @@ export const AddPlaceModal = ({ isOpen, onClose, onPlaceAdded, basecamp }: AddPl
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   // Reserved for multi-result search view
-  const [searchResults, setSearchResults] = useState<ResolvedPlace[]>([]);
+  const [_searchResults, setSearchResults] = useState<ResolvedPlace[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<ResolvedPlace | null>(null);
   const [inputType, setInputType] = useState<'url' | 'place_name' | null>(null);
 
