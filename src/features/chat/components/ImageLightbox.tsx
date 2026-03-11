@@ -66,16 +66,6 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, goToNext, goToPrevious, onClose]);
 
-  const goToPrevious = useCallback(() => {
-    setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
-    setScale(1);
-  }, [images.length]);
-
-  const goToNext = useCallback(() => {
-    setCurrentIndex(prev => (prev < images.length - 1 ? prev + 1 : 0));
-    setScale(1);
-  }, [images.length]);
-
   const handleDownload = async () => {
     const currentImage = images[currentIndex];
     if (!currentImage) return;

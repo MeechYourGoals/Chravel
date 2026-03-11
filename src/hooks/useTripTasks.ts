@@ -545,7 +545,7 @@ export const useTripTasks = (
 
       // Check if offline - queue the operation
       if (!navigator.onLine) {
-        await offlineSyncService.queueOperation('task', 'create', tripId, task);
+        await offlineSyncService.queueOperation('task', 'create', tripId, task as unknown as Record<string, unknown>);
         throw new Error('OFFLINE: Task queued for sync when connection is restored.');
       }
 

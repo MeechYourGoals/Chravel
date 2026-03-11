@@ -55,7 +55,7 @@ async function fetchTripRoles(tripId: string, isDemoMode: boolean): Promise<Trip
         createdAt: role.created_at,
         updatedAt: role.updated_at,
         memberCount: count || 0,
-        channels: role.trip_channels || [],
+        channels: (role.trip_channels || []) as unknown as TripRole['channels'],
       };
     }),
   );
