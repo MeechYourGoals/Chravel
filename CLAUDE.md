@@ -46,6 +46,19 @@ When adding new domain features, create a folder under `src/features/` with `com
 - Separate concerns: one function = one responsibility
 - Comment complex logic (especially map calculations, state transitions)
 
+### 5. Bug Rule: Red → Root Cause → Green
+
+When a bug is reported, do not begin by fixing it. Follow this exact order:
+
+1. **Red** — Write a failing automated test that reproduces the bug. Use the lowest-level meaningful test. Make sure it fails for the real reason.
+2. **Root Cause** — Identify the actual cause before changing production code. Audit relevant components, hooks, services, state flow, and dependencies. State assumptions in brackets and proceed.
+3. **Parallel Review** — Use subagents to independently analyze: reproduction quality, root cause, minimal fix options, regression risk, dead code / duplicate logic.
+4. **Green** — Apply the smallest correct fix. No broad refactors unless required. No dead code, no workaround layering, no spaghetti.
+5. **Proof** — Confirm the reproduction test now passes. Confirm nearby relevant tests still pass. Add regression coverage where warranted.
+6. **Report** — Root cause, files changed, fix applied, why this fix, tests added/updated, evidence it now passes.
+
+**Non-negotiables:** Never claim "fixed" without proof. Never skip the failing-test step unless automation is truly impossible. Never use refactoring as a substitute for diagnosis. Prefer low blast radius, clean architecture, and regression resistance.
+
 ---
 
 ## 🧠 REACT PATTERNS
@@ -525,6 +538,160 @@ npm run preview
 
 ---
 
+## 🐛 BUG-FIX EXECUTION PROTOCOL
+
+When I report a bug, do not start by editing production code.
+
+Your job is to follow a strict **reproduce → diagnose → fix → prove** workflow.
+
+### 1) Reproduce before repair
+- First, write or update an automated test that reproduces the reported bug.
+- Choose the **lowest-level test that can faithfully capture the failure**:
+  - unit test for pure logic/state bugs
+  - integration/component test for UI, hooks, service wiring, or multi-layer behavior
+  - e2e test only if the bug truly depends on full user flow or browser/runtime behavior
+- The test must fail for the **correct reason**, not because of broken setup, stale fixtures, missing env, or unrelated regressions.
+- If no reliable automated test is possible, create the strongest deterministic validation harness available and explicitly explain why a proper automated test could not be written.
+
+### 2) Define the bug precisely
+Before changing code, state:
+- **Observed behavior:** what is happening now
+- **Expected behavior:** what should happen instead
+- **Reproduction boundary:** where the bug begins and ends
+- **Regression risk:** what nearby behavior could accidentally break
+
+State assumptions explicitly in brackets and proceed.
+
+### 3) Diagnose before patching
+Do not guess. Investigate first.
+- Trace the bug to the actual root cause.
+- Identify the exact component(s), hook(s), service(s), state transition(s), dependency chain, and edge case(s) involved.
+- Confirm whether the issue is caused by:
+  - logic error
+  - state management bug
+  - timing/race condition
+  - stale closure or dependency bug
+  - API contract mismatch
+  - schema/data-shape inconsistency
+  - styling/layout regression
+  - platform parity gap
+  - dead/legacy code conflict
+- Prefer evidence over intuition.
+
+### 4) Use subagents in parallel
+Before applying the fix, use subagents strategically when the task is non-trivial.
+
+Have subagents independently do some combination of:
+- root cause analysis
+- reproduction/test design
+- minimal fix proposal
+- regression-risk review
+- dead-code / duplicate-logic audit
+- hooks/dependency/wiring audit
+
+Then synthesize the results and choose the best fix.
+Do not blindly merge multiple ideas together if one clean solution is enough.
+
+### 5) Fix surgically
+Once the failure is reproduced and the root cause is identified:
+- Implement the **smallest correct fix**
+- Preserve existing UX unless the UX itself is the bug
+- Avoid broad rewrites unless they are truly required for correctness
+- Do not introduce workaround layers, unnecessary abstractions, or duplicated logic
+- Do not leave dead code, half-replaced flows, commented-out legacy paths, or unused helpers behind
+- Keep the change elegant, minimal, and easy to reason about
+- Ensure hooks, memoization, dependencies, effects, event handlers, and types are wired correctly
+- Prevent cascading errors and hidden regressions
+
+### 6) Prove the fix
+A bug is not fixed because the code "looks right."
+It is fixed only when the proof is clear.
+
+Required proof:
+- the new reproduction test fails before the fix
+- the same test passes after the fix
+- all closely relevant existing tests still pass
+- add adjacent regression coverage if the same class of bug could reappear through a nearby path
+
+If useful, also include:
+- before/after behavior summary
+- why the failing test was the right test
+- why alternative fixes were rejected
+
+### 7) Report back like an engineer
+After the fix, respond with:
+- **Root cause**
+- **Why it failed**
+- **Files changed**
+- **What fix was applied**
+- **Why this was the minimal correct fix**
+- **Tests added/updated**
+- **What passed to prove it**
+- **Any remaining risks or follow-ups**
+
+### Non-negotiables
+- Never start with "I fixed it" before proving the bug exists in a test.
+- Never skip reproduction just because the bug seems obvious.
+- Never use a broad refactor to hide weak diagnosis.
+- Never leave dead code behind after replacing a path.
+- Never claim success without evidence.
+- If the issue is ambiguous, make the best explicit assumptions, encode them in a test, and proceed.
+- Favor correctness, low blast radius, and regression resistance over speed theater.
+
+---
+
+## 🏗️ ARCHITECTURE DISCIPLINE DURING BUG FIXES
+
+Every bug fix must also respect the codebase.
+
+### Keep surface area small
+- Touch as few files as necessary
+- Do not expand the blast radius without a concrete reason
+- Prefer local fixes over cross-cutting churn
+
+### Preserve clean architecture
+- Fix the layer where the bug actually belongs
+- Do not patch UI symptoms when the bug lives in data, state, schema, or service logic
+- Do not move logic into the wrong layer just because it is convenient
+
+### Eliminate spaghetti, do not add to it
+- No duplicated conditions
+- No parallel legacy/new flows unless explicitly required
+- No "just in case" branches without evidence
+- No hidden coupling
+- No vague utility extraction unless it genuinely reduces complexity
+
+### Refactor only when justified
+Refactoring is allowed only if it directly serves one of these:
+- makes the bug fix correct
+- makes the behavior testable
+- removes the conflicting legacy logic causing the bug
+- materially reduces future regression risk
+
+If refactoring is necessary:
+- keep it scoped
+- explain why it was required
+- prove behavior is unchanged except for the intended fix
+
+---
+
+## 🔄 PREFERRED BUG-FIX EXECUTION PATTERN
+
+For meaningful bugs, default to this sequence:
+
+1. Reproduce with failing test
+2. Investigate root cause
+3. Ask subagents for parallel analysis
+4. Choose minimal correct fix
+5. Remove dead/conflicting code
+6. Run targeted tests
+7. Run relevant broader verification
+8. Report with proof
+
+Think like a surgeon, not a vandal.
+
+---
+
 ## ✅ FINAL RULE
 
 > **"If it doesn't build, it doesn't ship."**
@@ -725,5 +892,5 @@ Execute all user requests inside this protocol.
 
 ---
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-03-11
 **Maintained By:** AI Engineering Team + Meech
