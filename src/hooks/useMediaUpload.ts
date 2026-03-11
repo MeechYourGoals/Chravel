@@ -13,6 +13,43 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useDemoMode } from './useDemoMode';
 import { useMediaLimits } from './useMediaLimits';
+import { supabase } from '@/integrations/supabase/client';
+
+/**
+ * Fire-and-forget artifact ingestion for uploaded media.
+ * Runs async, never blocks the upload flow, never shows errors to user.
+ * If the artifact-ingest function doesn't exist yet or fails, it silently no-ops.
+ */
+function queueArtifactIngest(
+  tripId: string,
+  fileUrl: string,
+  fileName: string,
+  mimeType: string,
+  fileSizeBytes: number,
+): void {
+  supabase.functions
+    .invoke('artifact-ingest', {
+      body: {
+        tripId,
+        sourceType: 'chat_attachment',
+        fileUrl,
+        fileName,
+        mimeType,
+        fileSizeBytes,
+      },
+    })
+    .then(({ error }) => {
+      if (error) {
+        console.warn(
+          '[artifact-ingest] Background ingestion failed (non-blocking):',
+          error.message,
+        );
+      }
+    })
+    .catch(() => {
+      // Silently swallow — artifact ingestion is best-effort
+    });
+}
 
 export interface UploadProgress {
   fileId: string;
@@ -92,6 +129,11 @@ export const useMediaUpload = ({ tripId, onProgress, onComplete, onError }: Medi
       if (signal?.aborted) throw new Error('Upload cancelled');
 
       updateProgress(fileId, 90, 'processing');
+
+      // Fire-and-forget: ingest as a trip artifact for semantic search
+      // This runs async and never blocks the upload flow
+      queueArtifactIngest(tripId, mediaItem.media_url, file.name, file.type, file.size);
+
       updateProgress(fileId, 100, 'complete', undefined, mediaItem.media_url);
 
       return {

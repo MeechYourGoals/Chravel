@@ -10,7 +10,8 @@ export type ContentType =
   | 'payment'
   | 'place'
   | 'link'
-  | 'media';
+  | 'media'
+  | 'artifact';
 export type SearchMode = 'keyword' | 'semantic' | 'hybrid';
 
 /** Escape SQL LIKE/ILIKE wildcards so user input is treated as literal text. */
@@ -626,6 +627,59 @@ async function searchMedia(
 }
 
 /**
+ * Search trip artifacts (semantic search over uploaded documents, images, PDFs)
+ * Falls back gracefully if the trip_artifacts table hasn't been deployed yet.
+ */
+async function searchArtifacts(
+  query: string,
+  isDemoMode: boolean,
+  tripIds?: string[],
+): Promise<UniversalSearchResult[]> {
+  if (isDemoMode) return [];
+
+  try {
+    // Use the artifact-search edge function for semantic search
+    const { data, error } = await supabase.functions.invoke('artifact-search', {
+      body: {
+        tripId: tripIds?.[0] || '',
+        query,
+        limit: 10,
+        threshold: 0.45,
+      },
+    });
+
+    if (error || !data?.success) return [];
+
+    return (data.results || []).map(
+      (artifact: {
+        id: string;
+        tripId: string;
+        artifactType: string;
+        fileName: string | null;
+        summary: string | null;
+        snippet: string | null;
+        similarity: number;
+        createdAt: string;
+      }) => ({
+        id: artifact.id,
+        contentType: 'artifact' as const,
+        tripId: artifact.tripId,
+        tripName: '',
+        title: artifact.fileName || artifact.summary || 'Artifact',
+        snippet: artifact.snippet || artifact.summary || artifact.artifactType,
+        matchScore: artifact.similarity || 0.5,
+        deepLink: `/trip/${artifact.tripId}#media`,
+        metadata: { artifactType: artifact.artifactType },
+        timestamp: artifact.createdAt,
+      }),
+    );
+  } catch {
+    // Graceful fallback if artifact-search doesn't exist yet
+    return [];
+  }
+}
+
+/**
  * Main universal search function
  */
 export async function performUniversalSearch(
@@ -669,6 +723,9 @@ export async function performUniversalSearch(
   }
   if (contentTypes.includes('media')) {
     searchPromises.push(searchMedia(query, isDemoMode, filters.tripIds));
+  }
+  if (contentTypes.includes('artifact')) {
+    searchPromises.push(searchArtifacts(query, isDemoMode, filters.tripIds));
   }
 
   // Wait for all searches to complete (settled)
