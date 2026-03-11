@@ -1196,6 +1196,63 @@ async function _executeImpl(
       };
     }
 
+    // ========== TRIP ARTIFACT SEMANTIC SEARCH ==========
+
+    case 'searchTripArtifacts': {
+      const { query: artifactQuery, artifact_types, limit: artifactLimit } = args;
+      const searchText = String(artifactQuery || '').trim();
+      if (!searchText) return { error: 'Search query is required' };
+
+      try {
+        // Import multimodal embeddings at call time to avoid top-level import issues
+        const { embedText } = await import('./multimodalEmbeddings.ts');
+        const queryEmbedding = await embedText(searchText);
+
+        const { data: artifacts, error: searchErr } = await supabase.rpc('search_trip_artifacts', {
+          p_trip_id: tripId,
+          p_query_embedding: queryEmbedding.embedding,
+          p_match_threshold: 0.45,
+          p_match_count: Number(artifactLimit) || 5,
+          p_artifact_types: Array.isArray(artifact_types) ? artifact_types : null,
+          p_source_types: null,
+          p_created_after: null,
+          p_created_before: null,
+          p_creator_id: null,
+        });
+
+        if (searchErr) throw searchErr;
+
+        const formattedArtifacts = (artifacts || []).map((a: Record<string, unknown>) => ({
+          id: a.id,
+          type: a.artifact_type,
+          fileName: a.file_name,
+          summary: a.ai_summary || (a.extracted_text as string)?.substring(0, 300) || '',
+          similarity: a.similarity,
+          createdAt: a.created_at,
+        }));
+
+        return {
+          success: true,
+          query: searchText,
+          totalResults: formattedArtifacts.length,
+          artifacts: formattedArtifacts,
+          message:
+            formattedArtifacts.length > 0
+              ? `Found ${formattedArtifacts.length} artifact(s) matching "${searchText}"`
+              : `No artifacts found matching "${searchText}"`,
+        };
+      } catch (artifactErr) {
+        console.error('[Tool] searchTripArtifacts error:', artifactErr);
+        return {
+          success: false,
+          error: 'Artifact search failed',
+          query: searchText,
+          totalResults: 0,
+          artifacts: [],
+        };
+      }
+    }
+
     // ========== CALENDAR CONFLICT DETECTION ==========
 
     case 'detectCalendarConflicts': {

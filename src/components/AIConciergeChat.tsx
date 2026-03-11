@@ -544,7 +544,7 @@ export const AIConciergeChat = ({
   // Voice state for VoiceButton — dictation only (Live is separate button now)
   const convoVoiceState: VoiceState = dictationState;
 
-  // Whether Gemini Live session is active (for Live button + streaming bubbles)
+  // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
   const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   // Waveform button — dictation only. Stops Live if active first.
@@ -1954,6 +1954,10 @@ export const AIConciergeChat = ({
             onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
             isLiveActive={isLiveSessionActive}
+            isLiveEligible={DUPLEX_VOICE_ENABLED}
+            isLiveConnecting={
+              DUPLEX_VOICE_ENABLED && (liveState === 'requesting_mic' || liveState === 'ready')
+            }
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {
