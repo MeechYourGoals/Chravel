@@ -445,6 +445,15 @@ export const MobileTripDetail = () => {
             <button
               onClick={() => {
                 hapticService.light();
+                navigate(`/trip/${tripId}/preview`);
+              }}
+              className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            >
+              View Trip Preview
+            </button>
+            <button
+              onClick={() => {
+                hapticService.light();
                 navigate('/');
               }}
               className="bg-white/10 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"

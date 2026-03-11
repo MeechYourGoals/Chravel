@@ -295,13 +295,13 @@ const TripPreview = () => {
         navigate(`/join/${activeInviteCode}`);
         return;
       }
-      // Otherwise navigate to trip (will show "Not a Member" if denied)
-      navigate(tripRoute);
+      // No invite code — stay on preview and inform the user
+      toast.info('Ask the trip organizer for an invite link to join this trip.');
       return;
     }
 
-    // Not logged in - if there's an invite, use join flow after auth
-    const returnTo = activeInviteCode ? `/join/${activeInviteCode}` : tripRoute;
+    // Not logged in — after auth, return to preview (not the RLS-gated trip detail)
+    const returnTo = activeInviteCode ? `/join/${activeInviteCode}` : `/trip/${tripId}/preview`;
     navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(returnTo)}`, {
       replace: true,
     });
