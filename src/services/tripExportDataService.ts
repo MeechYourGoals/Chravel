@@ -69,6 +69,10 @@ export interface ExportTripData {
     type: string;
     uploaded_at: string;
     uploaded_by?: string;
+    /** AI-classified category (e.g. "Hotel Booking"). Absent when no artifact match. */
+    artifact_category?: string;
+    /** AI-generated summary (e.g. "Hilton, Mar 15-18"). Absent when no artifact match. */
+    artifact_summary?: string;
   }>;
   agenda?: Array<{
     title: string;
@@ -411,23 +415,85 @@ export async function getExportData(
 
     // Fetch attachments if requested
     if (sections.includes('attachments')) {
-      const { data: files } = await supabase
-        .from('trip_files')
-        .select(
-          `
-          id,
-          name,
-          file_type,
-          created_at,
-          uploaded_by,
-          profiles:uploaded_by (
-            display_name
+      // Fetch files and artifact enrichments in parallel
+      const [filesResult, artifactsResult] = await Promise.all([
+        supabase
+          .from('trip_files')
+          .select(
+            `
+            id,
+            name,
+            file_type,
+            created_at,
+            uploaded_by,
+            profiles:uploaded_by (
+              display_name
+            )
+          `,
           )
-        `,
-        )
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+          .eq('trip_id', tripId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('trip_artifacts')
+          .select('file_name, artifact_type, ai_summary, artifact_type_confidence')
+          .eq('trip_id', tripId)
+          .in('embedding_status', ['completed', 'skipped'])
+          .gt('artifact_type_confidence', 0.5),
+      ]);
 
+      // Build enrichment lookup (graceful: empty map on failure)
+      const enrichmentMap = new Map<string, { category: string; summary: string }>();
+      const artifactCategoryLabels: Record<string, string> = {
+        flight: 'Flight',
+        hotel: 'Hotel Booking',
+        restaurant_reservation: 'Restaurant Reservation',
+        event_ticket: 'Event Ticket',
+        itinerary: 'Itinerary',
+        schedule: 'Schedule',
+        place_recommendation: 'Place Recommendation',
+        payment_proof: 'Payment Receipt',
+        roster: 'Roster',
+        credential: 'Credential',
+        generic_document: 'Document',
+        generic_image: 'Photo',
+      };
+
+      if (artifactsResult.data && !artifactsResult.error) {
+        for (const artifact of artifactsResult.data) {
+          if (!artifact.file_name) continue;
+          const key = (artifact.file_name as string).toLowerCase().trim();
+          if (enrichmentMap.has(key)) continue;
+          const label = artifactCategoryLabels[artifact.artifact_type as string];
+          if (!label) continue;
+          enrichmentMap.set(key, {
+            category: label,
+            summary: (artifact.ai_summary as string) || '',
+          });
+        }
+      }
+
+      const attachments =
+        filesResult.data?.map(f => {
+          const fileName = f.name || 'Unknown file';
+          const enrichment = enrichmentMap.get((fileName as string).toLowerCase().trim());
+          return {
+            name: fileName,
+            type: f.file_type,
+            uploaded_at: f.created_at,
+            uploaded_by: (f.profiles as any)?.display_name || 'Unknown',
+            artifact_category: enrichment?.category,
+            artifact_summary: enrichment?.summary || undefined,
+          };
+        }) || [];
+
+      // Sort: enriched (classified) attachments first, then by original order
+      attachments.sort((a, b) => {
+        const aEnriched = a.artifact_category ? 0 : 1;
+        const bEnriched = b.artifact_category ? 0 : 1;
+        return aEnriched - bEnriched;
+      });
+
+      (result as any).attachments = attachments;
       result.attachments =
         files?.map(f => ({
           name: f.name,

@@ -19,12 +19,7 @@ interface VoiceButtonProps {
  * Waveform button — dedicated to one-shot dictation only.
  * Tap to start/stop Web Speech API dictation.
  */
-export const VoiceButton = ({
-  voiceState,
-  isEligible,
-  onToggle,
-  onUpgrade,
-}: VoiceButtonProps) => {
+export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: VoiceButtonProps) => {
   const handleClick = useCallback(() => {
     if (!isEligible) {
       onUpgrade?.();

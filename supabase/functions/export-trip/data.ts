@@ -522,6 +522,79 @@ function mapPriority(priority: string | null): 'Low' | 'Normal' | 'High' {
   return 'Normal';
 }
 
+/**
+ * Maps artifact_type from trip_artifacts to a human-readable category label.
+ * Used to enrich the Attachments section in the PDF recap.
+ */
+const ARTIFACT_TYPE_LABELS: Record<string, string> = {
+  flight: 'Flight',
+  hotel: 'Hotel Booking',
+  restaurant_reservation: 'Restaurant Reservation',
+  event_ticket: 'Event Ticket',
+  itinerary: 'Itinerary',
+  schedule: 'Schedule',
+  place_recommendation: 'Place Recommendation',
+  payment_proof: 'Payment Receipt',
+  roster: 'Roster',
+  credential: 'Credential',
+  generic_document: 'Document',
+  generic_image: 'Photo',
+  // 'unknown' intentionally omitted — no label means no enrichment shown
+};
+
+/**
+ * Fetches artifact enrichments from trip_artifacts for a given trip.
+ * Returns a Map keyed by normalized filename for O(1) lookup.
+ * Gracefully returns an empty map on any error.
+ */
+async function fetchArtifactEnrichments(
+  supabase: SupabaseClient,
+  tripId: string,
+): Promise<Map<string, { category: string; summary: string }>> {
+  const enrichments = new Map<string, { category: string; summary: string }>();
+
+  try {
+    const { data: artifacts, error } = await supabase
+      .from('trip_artifacts')
+      .select('file_name, artifact_type, ai_summary, artifact_type_confidence')
+      .eq('trip_id', tripId)
+      .in('embedding_status', ['completed', 'skipped'])
+      .gt('artifact_type_confidence', 0.5)
+      .order('created_at', { ascending: false });
+
+    if (error || !artifacts) {
+      console.warn(
+        '[EXPORT-DATA] Artifact enrichment query failed (graceful skip):',
+        error?.message,
+      );
+      return enrichments;
+    }
+
+    for (const artifact of artifacts) {
+      if (!artifact.file_name) continue;
+      const key = artifact.file_name.toLowerCase().trim();
+      // First match wins (most recent due to order by created_at desc)
+      if (enrichments.has(key)) continue;
+
+      const label = ARTIFACT_TYPE_LABELS[artifact.artifact_type];
+      if (!label) continue; // Skip 'unknown' artifacts — no value added
+
+      enrichments.set(key, {
+        category: label,
+        summary: artifact.ai_summary || '',
+      });
+    }
+
+    console.log(
+      `[EXPORT-DATA] Artifact enrichments found: ${enrichments.size} of ${artifacts.length} artifacts`,
+    );
+  } catch (err) {
+    console.warn('[EXPORT-DATA] Artifact enrichment lookup failed (graceful skip):', err);
+  }
+
+  return enrichments;
+}
+
 function classifyAttachmentType(opts: {
   filename?: string;
   mimeType?: string;
@@ -550,26 +623,32 @@ async function fetchAttachments(
 ): Promise<AttachmentItem[]> {
   // NOTE: trip_files schema has evolved over time. We select a superset of columns
   // and normalize to a stable AttachmentItem shape.
-  const { data: files, error } = await supabase
-    .from('trip_files')
-    .select(
-      'id, created_at, uploaded_by, file_name, name, file_type, file_path, file_url, mime_type, file_size, size_bytes',
-    )
-    .eq('trip_id', tripId)
-    // Deterministic ordering: preserve upload order (oldest → newest)
-    .order('created_at', { ascending: true });
+  const [filesResult, enrichments] = await Promise.all([
+    supabase
+      .from('trip_files')
+      .select(
+        'id, created_at, uploaded_by, file_name, name, file_type, file_path, file_url, mime_type, file_size, size_bytes',
+      )
+      .eq('trip_id', tripId)
+      // Deterministic ordering: preserve upload order (oldest → newest)
+      .order('created_at', { ascending: true }),
+    fetchArtifactEnrichments(supabase, tripId),
+  ]);
 
-  if (error) {
-    console.error('[EXPORT-DATA] Error fetching attachments:', error);
+  if (filesResult.error) {
+    console.error('[EXPORT-DATA] Error fetching attachments:', filesResult.error);
     return [];
   }
 
-  return (files || []).map((f: any) => {
+  const items = (filesResult.data || []).map((f: any) => {
     const displayName: string = f.file_name || f.name || f.filename || 'Unknown file';
     const rawType: string = f.file_type || f.filetype || f.mime_type || '';
     const mimeType: string | undefined =
       f.mime_type || (rawType.includes('/') ? rawType : undefined);
     const typeLabel = classifyAttachmentType({ filename: displayName, mimeType, rawType });
+
+    // Look up artifact enrichment by normalized filename
+    const enrichment = enrichments.get(displayName.toLowerCase().trim());
 
     return {
       name: displayName,
@@ -582,8 +661,20 @@ async function fetchAttachments(
       url: f.file_url || undefined,
       mime_type: mimeType,
       size_bytes: Number(f.size_bytes ?? f.file_size ?? 0) || undefined,
+      // Artifact enrichment — only set when a classified artifact match exists
+      artifact_category: enrichment?.category,
+      artifact_summary: enrichment?.summary || undefined,
     } satisfies AttachmentItem;
   });
+
+  // Sort: enriched (classified) attachments first, then by original upload order
+  items.sort((a, b) => {
+    const aEnriched = a.artifact_category ? 0 : 1;
+    const bEnriched = b.artifact_category ? 0 : 1;
+    return aEnriched - bEnriched;
+  });
+
+  return items;
 }
 
 // Date formatting helpers

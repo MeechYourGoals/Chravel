@@ -119,6 +119,21 @@ export interface AttachmentItem {
    * Byte size when available (used for safeguards/logging).
    */
   size_bytes?: number;
+
+  // --- Artifact enrichment (optional, from trip_artifacts) ---
+
+  /**
+   * Human-readable category derived from artifact classification.
+   * e.g. "Hotel Booking", "Flight", "Payment Receipt".
+   * Only present when a matching trip_artifact exists with a classified type.
+   */
+  artifact_category?: string;
+  /**
+   * AI-generated summary of the document contents.
+   * e.g. "Hilton Downtown Miami, Mar 15-18, Conf #HLT-29471".
+   * Only present when the artifact ingestion pipeline extracted a summary.
+   */
+  artifact_summary?: string;
 }
 
 export interface TripExportData {
