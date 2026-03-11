@@ -82,6 +82,8 @@ function generateHTML(
   <!-- Additional Meta Tags -->
   <meta name="description" content="${safeDescription}">
 
+  <!-- Auto-redirect real users to the app (crawlers ignore meta refresh) -->
+  <meta http-equiv="refresh" content="0; url=${escapeHtml(appTripUrl)}">
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }

@@ -31,8 +31,13 @@ function generateInviteHTML(
   tripId: string,
   baseUrl: string,
   canonicalUrl?: string | null,
+  inviteCode?: string | null,
 ): string {
-  const appTripUrl = `${baseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
+  // When we have an invite code, redirect directly to the join flow so the
+  // code is preserved end-to-end. Fall back to the preview page otherwise.
+  const appTripUrl = inviteCode
+    ? `${baseUrl}/join/${encodeURIComponent(inviteCode)}`
+    : `${baseUrl}/trip/${encodeURIComponent(tripId)}/preview`;
   // Use canonical URL (the branded unfurl URL) for og:url when provided
   const ogUrl = canonicalUrl || appTripUrl;
 
@@ -97,6 +102,9 @@ function generateInviteHTML(
 
   <!-- Additional Meta Tags -->
   <meta name="description" content="${safeDescription}">
+
+  <!-- Auto-redirect real users to the app (crawlers ignore meta refresh) -->
+  <meta http-equiv="refresh" content="0; url=${escapeHtml(appTripUrl)}">
 
 
   <style>
@@ -385,7 +393,7 @@ serve(async (req: Request): Promise<Response> => {
     };
 
     logStep('Serving invite preview', { tripId: invite.trip_id, title: tripData.title });
-    const html = generateInviteHTML(tripData, invite.trip_id, baseUrl, canonicalUrl);
+    const html = generateInviteHTML(tripData, invite.trip_id, baseUrl, canonicalUrl, inviteCode);
 
     // Build ETag from updated_at for cache busting
     const etag = trip.updated_at

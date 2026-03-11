@@ -33,38 +33,9 @@ import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
 import { safeReload } from '@/utils/safeReload';
 import { parseJwtPayload } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
+import { retryImport } from '@/lib/retryImport';
 
 // Lazy load pages for better performance
-// Enhanced retry mechanism with exponential backoff and better error handling
-const retryImport = <T,>(importFn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
-  return new Promise((resolve, reject) => {
-    importFn()
-      .then(resolve)
-      .catch(error => {
-        const errorMessage = error?.message || String(error);
-        const isChunkError =
-          errorMessage.includes('Failed to fetch dynamically imported module') ||
-          errorMessage.includes('Loading chunk') ||
-          errorMessage.includes('Failed to fetch') ||
-          errorMessage.includes('NetworkError');
-
-        // Only retry on chunk loading errors
-        if (!isChunkError || retries === 0) {
-          console.error('Import failed after retries:', error);
-          reject(error);
-          return;
-        }
-
-        // Exponential backoff: 1s, 2s, 4s
-        const nextDelay = delay * Math.pow(2, 3 - retries);
-        console.warn(`Retrying import (${retries} retries left) after ${nextDelay}ms...`);
-
-        setTimeout(() => {
-          retryImport(importFn, retries - 1, delay).then(resolve, reject);
-        }, nextDelay);
-      });
-  });
-};
 
 const Index = lazy(() => retryImport(() => import('./pages/Index')));
 const TripDetail = lazy(() => retryImport(() => import('./pages/TripDetail')));

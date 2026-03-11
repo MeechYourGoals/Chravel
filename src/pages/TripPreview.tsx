@@ -61,6 +61,10 @@ const TripPreview = () => {
   const [isMember, setIsMember] = useState<boolean | null>(null);
   const [activeInviteCode, setActiveInviteCode] = useState<string | null>(null);
 
+  // True while membership/invite checks are still in-flight for a logged-in user on a real trip.
+  // Prevents the CTA from incorrectly denying access before async checks resolve.
+  const accessLoading = !!user && !!tripId && isUuid(tripId) && isMember === null;
+
   // Safety timeout - prevent infinite loading states
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -286,6 +290,10 @@ const TripPreview = () => {
     }
 
     if (user) {
+      // Still resolving membership/invite — don't deny access yet
+      if (isMember === null) {
+        return;
+      }
       // If we know user is a member, go directly to trip
       if (isMember) {
         navigate(tripRoute);
@@ -296,13 +304,13 @@ const TripPreview = () => {
         navigate(`/join/${activeInviteCode}`);
         return;
       }
-      // Otherwise navigate to trip (will show "Not a Member" if denied)
-      navigate(tripRoute);
+      // No invite code — stay on preview and inform the user
+      toast.info('Ask the trip organizer for an invite link to join this trip.');
       return;
     }
 
-    // Not logged in - if there's an invite, use join flow after auth
-    const returnTo = activeInviteCode ? `/join/${activeInviteCode}` : tripRoute;
+    // Not logged in — after auth, return to preview (not the RLS-gated trip detail)
+    const returnTo = activeInviteCode ? `/join/${activeInviteCode}` : `/trip/${tripId}/preview`;
     navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(returnTo)}`, {
       replace: true,
     });
@@ -461,8 +469,10 @@ const TripPreview = () => {
                 <>
                   <Button
                     onClick={handleViewTrip}
+                    disabled={accessLoading}
                     className="w-full accent-fill-gold font-semibold py-3 text-base"
                   >
+                    {accessLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     {ctaLabel}
                   </Button>
                   {helperText && <p className="text-white/40 text-xs text-center">{helperText}</p>}

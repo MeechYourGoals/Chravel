@@ -591,6 +591,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             hasExpiresAt: Boolean(session.expires_at),
             hasRefreshToken: Boolean(session.refresh_token),
           });
+
+          // 🔒 Clear stale demo mode when restoring an authenticated session.
+          // Prevents demo trips from appearing on the dashboard after a page
+          // reload when the user previously explored the app in demo mode.
+          const demoStore = useDemoModeStore.getState();
+          if (demoStore.isDemoMode || demoStore.demoView === 'app-preview') {
+            demoStore.setDemoView('off');
+          }
+
           // Log session info in dev for debugging
           if (import.meta.env.DEV) {
             console.log('[Auth] Session state:', {
@@ -645,6 +654,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Invalidate auth cache on explicit sign in / session refresh
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
           invalidateAuthCache();
+        }
+
+        // 🔒 Clear demo mode when a real user signs in — prevents stale demo
+        // data from showing on the dashboard after invite-link sign-up/sign-in.
+        if (event === 'SIGNED_IN') {
+          const demoStore = useDemoModeStore.getState();
+          if (demoStore.isDemoMode || demoStore.demoView === 'app-preview') {
+            demoStore.setDemoView('off');
+          }
         }
 
         // Defer async work with setTimeout(0) to avoid Supabase auth deadlock

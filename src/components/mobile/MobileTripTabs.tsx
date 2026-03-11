@@ -30,41 +30,56 @@ import type { EventData } from '../../types/events';
 import { DisabledTabDialog } from '../events/DisabledTabDialog';
 import { EventTabKey, EVENT_TABS_CONFIG, isEventTabEnabled } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
+import { retryImport } from '@/lib/retryImport';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
-// This significantly reduces initial bundle size - tabs load on demand
+// retryImport handles stale-chunk failures with exponential backoff
 const TripChat = lazy(() =>
-  import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })),
+  retryImport(() =>
+    import('@/features/chat/components/TripChat').then(m => ({ default: m.TripChat })),
+  ),
 );
 const MobileGroupCalendar = lazy(() =>
-  import('./MobileGroupCalendar').then(m => ({ default: m.MobileGroupCalendar })),
+  retryImport(() =>
+    import('./MobileGroupCalendar').then(m => ({ default: m.MobileGroupCalendar })),
+  ),
 );
 const MobileTripTasks = lazy(() =>
-  import('./MobileTripTasks').then(m => ({ default: m.MobileTripTasks })),
+  retryImport(() => import('./MobileTripTasks').then(m => ({ default: m.MobileTripTasks }))),
 );
-const CommentsWall = lazy(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall })));
+const CommentsWall = lazy(() =>
+  retryImport(() => import('../CommentsWall').then(m => ({ default: m.CommentsWall }))),
+);
 const MobileUnifiedMediaHub = lazy(() =>
-  import('./MobileUnifiedMediaHub').then(m => ({ default: m.MobileUnifiedMediaHub })),
+  retryImport(() =>
+    import('./MobileUnifiedMediaHub').then(m => ({ default: m.MobileUnifiedMediaHub })),
+  ),
 );
 const PlacesSection = lazy(() =>
-  import('../PlacesSection').then(m => ({ default: m.PlacesSection })),
+  retryImport(() => import('../PlacesSection').then(m => ({ default: m.PlacesSection }))),
 );
 const AIConciergeChat = lazy(() =>
-  import('../AIConciergeChat').then(m => ({ default: m.AIConciergeChat })),
+  retryImport(() => import('../AIConciergeChat').then(m => ({ default: m.AIConciergeChat }))),
 );
 const MobileTripPayments = lazy(() =>
-  import('./MobileTripPayments').then(m => ({ default: m.MobileTripPayments })),
+  retryImport(() => import('./MobileTripPayments').then(m => ({ default: m.MobileTripPayments }))),
 );
 const EnhancedAgendaTab = lazy(() =>
-  import('../events/EnhancedAgendaTab').then(m => ({ default: m.EnhancedAgendaTab })),
+  retryImport(() =>
+    import('../events/EnhancedAgendaTab').then(m => ({ default: m.EnhancedAgendaTab })),
+  ),
 );
-const LineupTab = lazy(() => import('../events/LineupTab').then(m => ({ default: m.LineupTab })));
+const LineupTab = lazy(() =>
+  retryImport(() => import('../events/LineupTab').then(m => ({ default: m.LineupTab }))),
+);
 const EventTasksTab = lazy(() =>
-  import('../events/EventTasksTab').then(m => ({ default: m.EventTasksTab })),
+  retryImport(() => import('../events/EventTasksTab').then(m => ({ default: m.EventTasksTab }))),
 );
-const TeamTab = lazy(() => import('../pro/TeamTab').then(m => ({ default: m.TeamTab })));
+const TeamTab = lazy(() =>
+  retryImport(() => import('../pro/TeamTab').then(m => ({ default: m.TeamTab }))),
+);
 const EventAdminTab = lazy(() =>
-  import('../events/EventAdminTab').then(m => ({ default: m.EventAdminTab })),
+  retryImport(() => import('../events/EventAdminTab').then(m => ({ default: m.EventAdminTab }))),
 );
 
 interface MobileTripTabsProps {

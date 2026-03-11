@@ -1,3 +1,16 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { TripVariantProvider } from '@/contexts/TripVariantContext';
+import { BasecampProvider } from '@/contexts/BasecampContext';
+import { initNativeLifecycle } from '@/native/lifecycle';
+import { registerServiceWorker } from './utils/serviceWorkerRegistration';
+import { initRevenueCat } from '@/config/revenuecat';
+import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
+import App from './App.tsx';
+import './index.css';
+
+// ── Imperative init (runs after all imports are resolved) ──────────────────
+
 // Unregister stale service workers from old hosts on first load
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
@@ -10,7 +23,7 @@ if ('serviceWorker' in navigator) {
 
 // Version-based cache busting: clear caches when app version changes
 const STORED_VERSION_KEY = 'chravel_host_version';
-const currentVersion = import.meta.env.VITE_APP_VERSION || '0';
+const currentVersion = (import.meta.env.VITE_APP_VERSION as string) || '0';
 const storedVersion = localStorage.getItem(STORED_VERSION_KEY);
 if (storedVersion !== null && storedVersion !== currentVersion) {
   // Version changed — clear all caches and reload
@@ -25,17 +38,6 @@ if (storedVersion !== null && storedVersion !== currentVersion) {
 } else {
   localStorage.setItem(STORED_VERSION_KEY, currentVersion);
 }
-
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { TripVariantProvider } from '@/contexts/TripVariantContext';
-import { BasecampProvider } from '@/contexts/BasecampContext';
-import { initNativeLifecycle } from '@/native/lifecycle';
-import { registerServiceWorker } from './utils/serviceWorkerRegistration';
-import { initRevenueCat } from '@/config/revenuecat';
-import { setupGlobalPurchaseListener } from '@/integrations/revenuecat/revenuecatClient';
-import App from './App.tsx';
-import './index.css';
 
 // Register service worker for offline support
 if (import.meta.env.PROD) {
