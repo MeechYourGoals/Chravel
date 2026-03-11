@@ -140,6 +140,9 @@ Project-specific skills for ChravelApp.
 | `chravel-no-regressions` | Regression prevention for Trip Not Found, auth, RLS |
 | `chravel-repo-map` | Codebase navigation and architecture reference |
 | `chravel-bug-repro-first` | Chravel-specific bug reproduction workflow |
+| `chravel-prd` | Create PRDs for Chravel features (user-invoked) |
+| `chravel-ralph` | Convert PRDs to Ralph JSON format (user-invoked) |
+| `chravel-gemini-api-ref` | Gemini API reference (auto-loaded, not in menu) |
 | `agent-tooling-audit` | AI agent architecture and tool safety audit |
 
 ---
@@ -163,7 +166,29 @@ Spawned by skills or Claude directly for parallel/isolated work.
 |---|---|---|
 | `superpowers` | obra/superpowers v4.3.1 | TDD, debugging, planning, worktrees, reviews (13 skills) |
 | `agent-browser` | vercel-labs/agent-browser | Browser dogfooding |
-| `chravel` | Local plugin | Loop, PRD, Ralph, Gemini API (migrating to skills) |
+| `chravel` | Local plugin | Loop, PRD, Ralph, Gemini API (migrated to repo skills) |
+
+### Superpowers Overlap Monitoring
+
+Superpowers v4.3.1 includes skills that overlap with custom global skills. Both coexist safely, but monitor for drift:
+
+| Superpowers Skill | Overlapping Custom Skill | Status |
+|---|---|---|
+| `systematic-debugging` | `debug-systematically` (global) | Complementary — superpowers adds process; global adds depth |
+| `test-driven-development` | `test-first-bugfix` (global) | Different scope — TDD for features; test-first for bugs |
+| `verification-before-completion` | `ship-readiness` (global) | Complementary — superpowers auto-triggers; ship-readiness is manual |
+| `worktrees` | N/A | No overlap — unique to superpowers |
+| `parallel-implementation` | N/A | No overlap — unique to superpowers |
+
+When superpowers updates to a new version, re-check for new overlap with the custom skill set.
+
+---
+
+## 9. Output Styles (custom)
+
+| Style | Path | Purpose |
+|---|---|---|
+| `chravel` | `.claude/output-styles/chravel/STYLE.md` | Adds regression risk footer to code change responses |
 
 ---
 

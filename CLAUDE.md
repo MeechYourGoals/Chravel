@@ -970,6 +970,9 @@ These skills form the default operating system for all coding work:
 | `chravel-performance-audit` | Yes | Critical path performance |
 | `chravel-bug-repro-first` | Yes | Chravel-specific bug reproduction |
 | `chravel-release-readiness` | User-invoked | Pre-deploy checklist |
+| `chravel-prd` | User-invoked | Create PRDs for Chravel features |
+| `chravel-ralph` | User-invoked | Convert PRDs to Ralph JSON format |
+| `chravel-gemini-api-ref` | Yes (background) | Gemini API reference material |
 | `agent-tooling-audit` | Yes | AI agent architecture audit |
 
 ### Default Workflow Expectations

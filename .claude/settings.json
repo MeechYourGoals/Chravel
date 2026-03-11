@@ -14,6 +14,17 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If the file being edited is a critical path file (useAuth, useTrip, trip loading pages, Supabase client, RLS policies, payment hooks, or auth guards), remind Claude to verify this change won't cause Trip Not Found, auth desync, or RLS leaks. Otherwise approve silently."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",

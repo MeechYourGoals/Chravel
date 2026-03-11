@@ -248,6 +248,26 @@ Validation matrix for all custom skills. Each entry shows when the skill SHOULD 
 
 ---
 
+### chravel-prd (user-invoked only)
+| Should Trigger | Should NOT Trigger |
+|---|---|
+| User types `/chravel-prd` | Never auto-triggers |
+| **Risk:** None — user-invoked only. |
+
+### chravel-ralph (user-invoked only)
+| Should Trigger | Should NOT Trigger |
+|---|---|
+| User types `/chravel-ralph` | Never auto-triggers |
+| **Risk:** None — user-invoked only. |
+
+### chravel-gemini-api-ref (auto, background context)
+| Should Trigger | Should NOT Trigger |
+|---|---|
+| Never user-invoked — serves as background reference for Gemini API work | N/A |
+| **Risk:** None — `user-invocable: false` keeps it out of the menu. |
+
+---
+
 ## Overlap Resolution Summary
 
 | Overlapping Skills | Resolution |
