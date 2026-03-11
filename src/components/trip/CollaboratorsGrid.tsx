@@ -25,11 +25,11 @@ export const CollaboratorsGrid: React.FC<CollaboratorsGridProps> = ({
   participants,
   countLabel,
   maxRows = 1,
-  _minColWidth = 140,
+  minColWidth: _minColWidth = 140,
   onShowAll,
   tripType = 'consumer',
   displayContext = 'trip-detail',
-  _pendingRequestsCount = 0,
+  pendingRequestsCount: _pendingRequestsCount = 0,
   hideBottomRow = false,
 }) => {
   // Determine whether to show avatars or initials

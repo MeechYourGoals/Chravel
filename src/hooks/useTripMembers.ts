@@ -359,7 +359,7 @@ export const useTripMembers = (tripId?: string) => {
     let unsubFn: (() => void) | undefined;
 
     const timer = setTimeout(() => {
-      const realtimeHubs = (window as Record<string, unknown>).__tripRealtimeHubs as
+      const realtimeHubs = (window as unknown as Record<string, unknown>).__tripRealtimeHubs as
         | Map<
             string,
             { subscribe: (table: string, event: string, callback: () => void) => () => void }

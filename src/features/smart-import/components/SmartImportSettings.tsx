@@ -73,7 +73,7 @@ export const SmartImportSettings = () => {
       toast.success('Gmail account disconnected');
       setAccounts(accounts.filter(a => a.id !== accountId));
     } catch (error: unknown) {
-      toast.error('Failed to disconnect account', { description: error.message });
+      toast.error('Failed to disconnect account', { description: (error as Error)?.message });
     } finally {
       setDisconnectingId(null);
     }

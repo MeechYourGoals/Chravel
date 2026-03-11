@@ -47,7 +47,7 @@ async function fetchRemoteOrder(
     .maybeSingle();
 
   if (error || !data) return null;
-  const ids = (data as Record<string, unknown>).ordered_ids;
+  const ids = (data as unknown as Record<string, unknown>).ordered_ids;
   return Array.isArray(ids) ? ids : null;
 }
 

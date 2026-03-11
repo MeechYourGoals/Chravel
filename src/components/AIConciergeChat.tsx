@@ -1958,12 +1958,7 @@ export const AIConciergeChat = ({
             }
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
-            isVoiceEligible={true}
-            isLiveActive={isLiveSessionActive}
             isVoiceEligible={DUPLEX_VOICE_ENABLED}
-            isLiveConnecting={
-              DUPLEX_VOICE_ENABLED && (liveState === 'requesting_mic' || liveState === 'ready')
-            }
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {

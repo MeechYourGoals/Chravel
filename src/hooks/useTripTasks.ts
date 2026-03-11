@@ -340,7 +340,7 @@ export const useTripTasks = (
   useEffect(() => {
     if (!tripId || isDemoMode) return;
 
-    const hub = (window as Record<string, unknown>).__tripRealtimeHubs as
+    const hub = (window as unknown as Record<string, unknown>).__tripRealtimeHubs as
       | Map<
           string,
           {

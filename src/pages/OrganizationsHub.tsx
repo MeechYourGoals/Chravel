@@ -10,7 +10,7 @@ import { SUBSCRIPTION_TIERS } from '@/types/pro';
 
 export const OrganizationsHub = () => {
   const navigate = useNavigate();
-  const { _user } = useAuth();
+  const { user: _user } = useAuth();
   const { organizations, loading, fetchUserOrganizations } = useOrganization();
   const [showCreateModal, setShowCreateModal] = useState(false);
 

@@ -112,8 +112,9 @@ describe('useTripTasks', () => {
     (supabase as unknown as Record<string, unknown>).removeChannel = vi.fn();
 
     tableMocks = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(supabase.from).mockImplementation((tableName: string) => {
-      return tableMocks[String(tableName)] ?? makeSupabaseChain();
+      return (tableMocks[String(tableName)] ?? makeSupabaseChain()) as any;
     });
   });
 

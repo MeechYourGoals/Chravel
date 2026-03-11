@@ -37,10 +37,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
           onClose();
           break;
         case 'ArrowLeft':
-          goToPrevious();
+          goToPreviousRef.current();
           break;
         case 'ArrowRight':
-          goToNext();
+          goToNextRef.current();
           break;
         case '+':
         case '=':
@@ -54,7 +54,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, goToNext, goToPrevious, onClose]);
+  }, [isOpen, onClose]);
 
   const goToPrevious = useCallback(() => {
     setCurrentIndex(prev => (prev > 0 ? prev - 1 : images.length - 1));
