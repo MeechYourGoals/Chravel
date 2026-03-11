@@ -125,7 +125,7 @@ Only include relevant suggested_actions. For example, a flight confirmation shou
     });
 
     const text = extractTextFromChatResponse(result.raw, result.provider);
-    const parsed = parseJsonSafely(text) as ClassificationResult;
+    const parsed = parseJsonSafely(text) as unknown as ClassificationResult;
     console.log(
       `[artifact-ingest] classification: type=${parsed.artifact_type} confidence=${parsed.confidence}`,
     );

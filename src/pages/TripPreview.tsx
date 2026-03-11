@@ -4,7 +4,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
-import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-react';
+import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'sonner';
