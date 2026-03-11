@@ -15,7 +15,7 @@ function isProbablyIOS(): boolean {
   const ua =
     navigator.userAgent ||
     navigator.vendor ||
-    ((window as Record<string, unknown>).opera as string) ||
+    ((window as unknown as Record<string, unknown>).opera as string) ||
     '';
   const iDevice = /iPad|iPhone|iPod/.test(ua);
   const iPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;

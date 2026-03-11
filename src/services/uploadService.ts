@@ -41,7 +41,7 @@ export async function uploadToStorage(
 
   const contentType = getUploadContentType(file);
 
-  const { _data, error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
+  const { data: _data, error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
     contentType,
     upsert: false,
   });
