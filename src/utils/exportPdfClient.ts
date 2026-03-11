@@ -168,6 +168,10 @@ interface ExportData {
     type: string;
     uploaded_at: string;
     uploaded_by?: string;
+    /** AI-classified category (e.g. "Hotel Booking"). Absent when no artifact match. */
+    artifact_category?: string;
+    /** AI-generated summary (e.g. "Hilton, Mar 15-18"). Absent when no artifact match. */
+    artifact_summary?: string;
   }>;
   agenda?: Array<{
     title: string;
@@ -800,10 +804,14 @@ export async function generateClientPDF(
       }
     }
 
-    // Attachments section (filenames only — no content embedding for privacy)
+    // Attachments section — enriched with artifact classification when available
     if (section === 'attachments') {
       const attachments = data.attachments || [];
       if (attachments.length > 0) {
+        // Detect whether any attachment has artifact enrichment data.
+        // If so, render a richer 4-column table; otherwise, exact same 2-column as before.
+        const hasEnrichment = attachments.some((att: any) => att.artifact_category);
+
         const attachmentChunks =
           attachments.length > maxItems ? chunkArray(attachments, maxItems) : [attachments];
 
@@ -812,20 +820,47 @@ export async function generateClientPDF(
 
           if (chunkIndex > 0) yPos = checkPageBreak(doc, yPos, 60);
 
-          const attachmentRows = chunk.map((att: any) => [
-            sanitizePdfText(att.name || 'Unnamed file'),
-            sanitizePdfText(att.type || 'Unknown'),
-          ]);
+          if (hasEnrichment) {
+            // Enriched layout: Filename | Category | Details | Type
+            const attachmentRows = chunk.map((att: any) => [
+              sanitizePdfText(att.name || 'Unnamed file'),
+              sanitizePdfText(att.artifact_category || '—'),
+              sanitizePdfText(att.artifact_summary || ''),
+              sanitizePdfText(att.type || 'Unknown'),
+            ]);
 
-          autoTable(doc, {
-            startY: yPos,
-            head: [['Filename', 'Type']],
-            body: attachmentRows,
-            theme: 'striped',
-            headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
-            margin: { left: margin, right: margin },
-            styles: { fontSize: 9 },
-          });
+            autoTable(doc, {
+              startY: yPos,
+              head: [['Filename', 'Category', 'Details', 'Type']],
+              body: attachmentRows,
+              theme: 'striped',
+              headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+              margin: { left: margin, right: margin },
+              styles: { fontSize: 9, cellPadding: 4, overflow: 'linebreak' },
+              columnStyles: {
+                0: { cellWidth: contentWidth * 0.3 },
+                1: { cellWidth: contentWidth * 0.2 },
+                2: { cellWidth: contentWidth * 0.38 },
+                3: { cellWidth: contentWidth * 0.12 },
+              },
+            });
+          } else {
+            // Fallback: original 2-column layout (no enrichment data available)
+            const attachmentRows = chunk.map((att: any) => [
+              sanitizePdfText(att.name || 'Unnamed file'),
+              sanitizePdfText(att.type || 'Unknown'),
+            ]);
+
+            autoTable(doc, {
+              startY: yPos,
+              head: [['Filename', 'Type']],
+              body: attachmentRows,
+              theme: 'striped',
+              headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
+              margin: { left: margin, right: margin },
+              styles: { fontSize: 9 },
+            });
+          }
 
           yPos = getFinalY(doc, yPos) + 10;
 
