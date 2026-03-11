@@ -41,10 +41,12 @@ export async function uploadToStorage(
 
   const contentType = getUploadContentType(file);
 
-  const { data: _data, error } = await supabase.storage.from('trip-media').upload(key, fileToUpload, {
-    contentType,
-    upsert: false,
-  });
+  const { data: _data, error } = await supabase.storage
+    .from('trip-media')
+    .upload(key, fileToUpload, {
+      contentType,
+      upsert: false,
+    });
 
   if (error) throw error;
   const { data: pub } = supabase.storage.from('trip-media').getPublicUrl(key);
