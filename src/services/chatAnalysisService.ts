@@ -691,7 +691,7 @@ export async function analyzeChatMessagesForPayment(
 
     // Find messages with payment context
     // The query selects columns that may differ between DB versions; cast to a flexible shape
-    const typedMessages = (messages as unknown) as Array<{
+    const typedMessages = messages as unknown as Array<{
       id: string;
       message_content?: string;
       content?: string;
