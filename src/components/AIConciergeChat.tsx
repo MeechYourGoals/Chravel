@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ImagePlus, X } from 'lucide-react';
+import { Search, ImagePlus, X, Sparkles, Loader2 } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -57,7 +57,6 @@ const UPLOAD_ENABLED = true;
  */
 const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
-
 
 interface AIConciergeChatProps {
   tripId: string;
@@ -399,7 +398,7 @@ export const AIConciergeChat = ({
   // ─── Voice ─────────────────────────────────────────────────────────────────
   // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
   // first.  If bidirectional audio fails, we fall back to Web Speech API
-   // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
+  // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
   // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
   // Speech API dictation. Transcribed text fills the input field so the user
   // can review/edit before sending. All Gemini Live hooks remain initialised
@@ -554,8 +553,7 @@ export const AIConciergeChat = ({
   const convoVoiceState: VoiceState = dictationState;
 
   // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
-  const isLiveSessionActive =
-    DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
+  const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   // Waveform button — dictation only. Stops Live if active first.
   const handleConvoToggle = useCallback(() => {
@@ -1521,7 +1519,10 @@ export const AIConciergeChat = ({
                 setMessages(prev => {
                   // Check if cards/actions were already attached by tool calls
                   const existing = prev.find(m => m.id === streamingMessageId);
-                  const hasCards = existing?.functionCallHotels?.length || existing?.functionCallPlaces?.length || (existing?.conciergeActions && existing.conciergeActions.length > 0);
+                  const hasCards =
+                    existing?.functionCallHotels?.length ||
+                    existing?.functionCallPlaces?.length ||
+                    (existing?.conciergeActions && existing.conciergeActions.length > 0);
                   return [
                     ...prev.filter(m => m.id !== streamingMessageId),
                     {
@@ -1531,15 +1532,24 @@ export const AIConciergeChat = ({
                         ? "Here's what I found:"
                         : 'Sorry, I encountered an error processing your request.',
                       timestamp: new Date().toISOString(),
-                      ...(existing?.functionCallHotels ? { functionCallHotels: existing.functionCallHotels } : {}),
-                      ...(existing?.functionCallPlaces ? { functionCallPlaces: existing.functionCallPlaces } : {}),
-                      ...(existing?.conciergeActions ? { conciergeActions: existing.conciergeActions } : {}),
+                      ...(existing?.functionCallHotels
+                        ? { functionCallHotels: existing.functionCallHotels }
+                        : {}),
+                      ...(existing?.functionCallPlaces
+                        ? { functionCallPlaces: existing.functionCallPlaces }
+                        : {}),
+                      ...(existing?.conciergeActions
+                        ? { conciergeActions: existing.conciergeActions }
+                        : {}),
                     },
                   ];
                 });
               } else {
                 updateStreamMsg(msg => {
-                  const hasCards = msg.functionCallHotels?.length || msg.functionCallPlaces?.length || (msg.conciergeActions && msg.conciergeActions.length > 0);
+                  const hasCards =
+                    msg.functionCallHotels?.length ||
+                    msg.functionCallPlaces?.length ||
+                    (msg.conciergeActions && msg.conciergeActions.length > 0);
                   return msg.content.length > 0 || hasCards
                     ? {}
                     : { content: 'Sorry, I encountered an error processing your request.' };
@@ -1768,12 +1778,43 @@ export const AIConciergeChat = ({
             >
               <Search size={CTA_ICON_SIZE} className="text-white" />
             </button>
-            <h3
-              className="text-lg font-semibold text-white flex-1 text-center min-w-0"
-              data-testid="ai-concierge-header"
-            >
-              Concierge AI | Chravel Agent
-            </h3>
+            <div className="flex-1 flex flex-col items-center min-w-0 gap-1">
+              <h3
+                className="text-lg font-semibold text-white text-center min-w-0 leading-tight"
+                data-testid="ai-concierge-header"
+              >
+                Concierge AI | Chravel Agent
+              </h3>
+              {DUPLEX_VOICE_ENABLED && (
+                <button
+                  type="button"
+                  onClick={handleLiveToggle}
+                  className={`relative h-7 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
+                    isLiveSessionActive
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 border-transparent'
+                      : liveState === 'requesting_mic' || liveState === 'ready'
+                        ? 'bg-gray-800/80 text-white/70 border-[hsl(var(--gold-primary))]/40'
+                        : 'bg-gray-800/80 text-white/50 hover:text-white/80 hover:bg-gray-700/80'
+                  }`}
+                  aria-label={isLiveSessionActive ? 'Stop live voice' : 'Start live voice'}
+                >
+                  {isLiveSessionActive && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-emerald-400/30 to-teal-400/20 blur-sm"
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1">
+                    {liveState === 'requesting_mic' || liveState === 'ready' ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={12} />
+                    )}
+                    <span className="text-[10px] font-medium leading-none">Live</span>
+                  </span>
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2 flex-shrink-0 min-w-fit">
               <button
                 type="button"
@@ -1944,10 +1985,7 @@ export const AIConciergeChat = ({
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
-            onLiveToggle={DUPLEX_VOICE_ENABLED ? handleLiveToggle : undefined}
             isLiveActive={isLiveSessionActive}
-            isLiveEligible={DUPLEX_VOICE_ENABLED}
-            isLiveConnecting={DUPLEX_VOICE_ENABLED && (liveState === 'requesting_mic' || liveState === 'ready')}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {
