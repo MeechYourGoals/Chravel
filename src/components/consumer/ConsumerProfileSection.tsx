@@ -8,7 +8,7 @@ import { getConsistentAvatar } from '../../utils/avatarUtils';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
-  const { _isDemoMode, showDemoContent } = useDemoMode();
+  const { isDemoMode: _isDemoMode, showDemoContent } = useDemoMode();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
