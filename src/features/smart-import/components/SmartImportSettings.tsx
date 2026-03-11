@@ -48,7 +48,7 @@ export const SmartImportSettings = () => {
       const data = await fetchGmailAccounts();
       setAccounts(data);
     } catch (error: unknown) {
-      toast.error('Failed to load connected accounts', { description: error.message });
+      toast.error('Failed to load connected accounts', { description: (error as Error)?.message });
     } finally {
       setLoading(false);
     }
