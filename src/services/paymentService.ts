@@ -216,6 +216,27 @@ export const paymentService = {
         });
       }
 
+      // Auto-settle solo self-payments: creator is the only split participant.
+      // You cannot owe yourself — mark the split settled immediately so it never
+      // appears as "Pending" in a solo trip.
+      const isSelfPayment =
+        paymentData.splitParticipants.length === 1 && paymentData.splitParticipants[0] === userId;
+
+      if (isSelfPayment) {
+        try {
+          const { data: splits } = await supabase
+            .from('payment_splits')
+            .select('id')
+            .eq('payment_message_id', paymentId);
+          if (splits?.length === 1) {
+            await this.settlePayment(splits[0].id, 'self');
+          }
+        } catch (err) {
+          // Non-blocking: auto-settle failure does not fail payment creation
+          console.debug('[paymentService] Auto-settle self-payment failed:', err);
+        }
+      }
+
       return { success: true, paymentId };
     } catch (error) {
       console.error('[paymentService] Unexpected error creating payment:', error);
