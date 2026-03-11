@@ -89,20 +89,10 @@ export const OutstandingPayments = ({
 
   const demoActive = isDemoMode && isDemoTrip(tripId);
 
-  // Filter to unsettled payments from the centralized source.
-  // Also exclude solo self-payments (creator is the only split participant) —
-  // those are pre-settled at creation time but may exist as legacy DB records.
+  // Filter to unsettled payments from the centralized source
   const unsettledPayments = useMemo(() => {
-    return payments.filter(p => {
-      if (p.isSettled) return false;
-      const isSelfOnlyPayment =
-        p.createdBy === user?.id &&
-        Array.isArray(p.splitParticipants) &&
-        p.splitParticipants.length === 1 &&
-        p.splitParticipants[0] === user?.id;
-      return !isSelfOnlyPayment;
-    });
-  }, [payments, user?.id]);
+    return payments.filter(p => !p.isSettled);
+  }, [payments]);
 
   // Enrich payments with splits and creator payment methods
   useEffect(() => {
