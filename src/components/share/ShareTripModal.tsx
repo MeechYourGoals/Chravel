@@ -172,7 +172,11 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
           <div>
             <label className="block text-foreground text-xs font-medium mb-1">Preview Link</label>
             <div className="flex gap-2">
-              <Button onClick={handleCopyLink} size="sm" className="px-3 h-8">
+              <Button
+                onClick={handleCopyLink}
+                size="sm"
+                className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8"
+              >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
               </Button>
@@ -184,7 +188,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   onClick={handleNativeShare}
                   disabled={isSharing}
                   size="sm"
-                  className="px-3 h-8 bg-green-600 hover:bg-green-700"
+                  className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8"
                   title="Share via Messages, Email, and more"
                 >
                   <Share2 size={14} />

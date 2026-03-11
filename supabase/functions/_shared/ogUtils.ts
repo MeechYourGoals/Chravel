@@ -50,7 +50,40 @@ export function toLandscapeOgImage(url: string): string {
       '?width=1200&height=630&resize=cover'
     );
   }
+  // Unsplash supports native image API resizing via query params
+  if (url.includes('images.unsplash.com')) {
+    try {
+      const parsed = new URL(url);
+      parsed.searchParams.set('w', '1200');
+      parsed.searchParams.set('h', '630');
+      parsed.searchParams.set('fit', 'crop');
+      return parsed.toString();
+    } catch {
+      return url;
+    }
+  }
   return url;
+}
+
+/**
+ * Check whether a URL likely points to an image resource (not a webpage).
+ * Used to prevent non-image URLs (e.g. article pages) from being emitted
+ * into og:image tags, which causes crawlers like iMessage to scrape the
+ * wrong page's OG metadata instead of displaying the intended image.
+ */
+export function isValidImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;
+    // Known image hosts are always valid
+    if (parsed.hostname.includes('unsplash.com')) return true;
+    if (parsed.hostname.includes('supabase.co')) return true;
+    // Check for common image extensions in pathname
+    if (/\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(parsed.pathname)) return true;
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------

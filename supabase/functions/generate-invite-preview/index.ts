@@ -5,6 +5,7 @@ import {
   escapeHtml,
   OG_FALLBACK_IMAGE,
   toLandscapeOgImage,
+  isValidImageUrl,
   DEMO_TRIPS,
   safeHexColor,
   getOgSecurityHeaders,
@@ -361,12 +362,24 @@ serve(async (req: Request): Promise<Response> => {
       : '';
     const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : 'Dates TBD';
 
+    // Validate cover image URL to prevent non-image URLs (e.g. article pages)
+    // from being used as og:image, which causes crawlers to scrape the wrong page
+    if (trip.cover_image_url && !isValidImageUrl(trip.cover_image_url)) {
+      console.warn(
+        '[generate-invite-preview] Invalid cover image URL, using fallback:',
+        trip.cover_image_url,
+      );
+    }
+
     const tripData = {
       title: trip.name || 'Untitled Trip',
       location: trip.destination || 'Location TBD',
       dateRange,
       description: trip.description || 'An amazing adventure awaits!',
-      coverPhoto: trip.cover_image_url || 'https://chravel.app/chravelapp-og-20251219.png',
+      coverPhoto:
+        trip.cover_image_url && isValidImageUrl(trip.cover_image_url)
+          ? trip.cover_image_url
+          : OG_FALLBACK_IMAGE,
       participantCount: participantCount || 1,
       tripType: trip.trip_type as 'consumer' | 'pro' | 'event' | undefined,
     };
