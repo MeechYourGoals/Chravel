@@ -56,7 +56,7 @@ export const TTSSpeakerButton: React.FC<TTSSpeakerButtonProps> = ({
       onClick={handleClick}
       disabled={playbackState === 'loading' && playingMessageId !== messageId}
       className={cn(
-        'inline-flex items-center justify-center rounded-md transition-all min-w-[44px] min-h-[44px]',
+        'inline-flex items-center justify-center rounded-md transition-all min-w-[33px] min-h-[33px]',
         'text-white/50 hover:text-white/80 hover:bg-white/10',
         isActive && 'text-blue-400 hover:text-blue-300',
         isThisLoading && 'animate-pulse',
