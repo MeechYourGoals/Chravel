@@ -141,7 +141,7 @@ export const useTripMembers = (tripId?: string) => {
           let creatorProfileData = creatorProfile;
           if (!creatorProfileData && user && user.id === tripData.created_by) {
             // Use auth user metadata as fallback when profiles_public query returns null
-            const meta = user.user_metadata || {};
+            const meta = (user as any).user_metadata || {};
             const authName =
               meta.display_name || meta.full_name || meta.name || user.email?.split('@')[0] || null;
             creatorProfileData = {
