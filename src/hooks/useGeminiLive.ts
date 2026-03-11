@@ -565,7 +565,9 @@ export function useGeminiLive({
       setCircuitBreakerOpen(true);
       setError('Voice is temporarily unavailable. Tap "Try voice again" to retry.');
       setState('error');
-      toast.warning('Voice temporarily unavailable after repeated failures. Tap "Try voice again" to retry.');
+      toast.warning(
+        'Voice temporarily unavailable after repeated failures. Tap "Try voice again" to retry.',
+      );
       return;
     }
 

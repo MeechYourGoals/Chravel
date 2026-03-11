@@ -669,10 +669,7 @@ You MUST speak only in English. Every single word must be in English.
 Ignore all background noise.`;
 
 // ── OAuth2 token minting — import from shared module ──
-import {
-  createVertexAccessToken,
-  parseServiceAccountKey,
-} from '../_shared/vertexAuth.ts';
+import { createVertexAccessToken, parseServiceAccountKey } from '../_shared/vertexAuth.ts';
 
 /** Filter close codes that are invalid for ws.close() */
 function safeCloseCode(code: number): number {
@@ -883,9 +880,7 @@ serve(async (req: Request) => {
 
         // Mode 2+: tools (OFF by default in Phase A)
         if (VOICE_TOOLS_ENABLED) {
-          setupConfig.tools = [
-            { functionDeclarations: VOICE_FUNCTION_DECLARATIONS },
-          ];
+          setupConfig.tools = [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }];
         }
 
         // Mode 4+: affective dialog (OFF by default in Phase A)
@@ -980,7 +975,9 @@ serve(async (req: Request) => {
                 setupCompleteReceived = true;
                 log('setup_complete_received');
               }
-            } catch { /* binary frame, ignore */ }
+            } catch {
+              /* binary frame, ignore */
+            }
           }
 
           // Relay upstream messages to client
