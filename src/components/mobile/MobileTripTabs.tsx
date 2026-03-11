@@ -23,6 +23,7 @@ import { useEventPermissions } from '@/hooks/useEventPermissions';
 import { useEventAgenda } from '@/hooks/useEventAgenda';
 import { useEventLineup } from '@/hooks/useEventLineup';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
+import { LoadingSpinner } from '../LoadingSpinner';
 import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
 import type { EventData } from '../../types/events';
@@ -332,10 +333,7 @@ export const MobileTripTabs = ({
   // ⚡ PERFORMANCE: Content-aware skeletons for lazy-loaded tabs
   const DefaultTabSkeleton = () => (
     <div className="flex items-center justify-center h-full min-h-[300px]">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 gold-gradient-spinner animate-spin" />
-        <p className="text-sm text-gray-400">Loading...</p>
-      </div>
+      <LoadingSpinner size="md" text="Loading..." />
     </div>
   );
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Building, Users, Briefcase, Settings, UserPlus, ChevronLeft } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -126,10 +127,7 @@ export const OrganizationDashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 gold-gradient-spinner animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading organization...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading organization..." />
       </div>
     );
   }
@@ -401,8 +399,7 @@ export const OrganizationDashboard = () => {
           <TabsContent value="trips" className="mt-6">
             {loadingTrips ? (
               <div className="text-center py-12">
-                <div className="w-12 h-12 gold-gradient-spinner animate-spin mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading trips...</p>
+                <LoadingSpinner size="lg" text="Loading trips..." />
               </div>
             ) : linkedTrips.length === 0 ? (
               <Card className="bg-white/5 border-white/10">

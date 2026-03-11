@@ -10,6 +10,7 @@ import { InviteModal } from '../components/InviteModal';
 import { DeleteTripConfirmDialog } from '../components/DeleteTripConfirmDialog';
 import { useDeleteTrip } from '../hooks/useDeleteTrip';
 import { useAuth } from '../hooks/useAuth';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useKeyboardHandler } from '../hooks/useKeyboardHandler';
 import { hapticService } from '../services/hapticService';
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -282,10 +283,7 @@ export const MobileEventDetail = () => {
   if (demoModeLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin h-12 w-12 gold-gradient-spinner mx-auto mb-4"></div>
-          <p className="text-gray-400">Initializing...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Initializing..." />
       </div>
     );
   }
@@ -313,10 +311,7 @@ export const MobileEventDetail = () => {
   if (tripsLoading && !isDemoMode) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin h-12 w-12 gold-gradient-spinner mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading event...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading event..." />
       </div>
     );
   }

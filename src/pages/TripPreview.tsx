@@ -4,8 +4,9 @@ import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { tripsData } from '../data/tripsData';
-import { Loader2, Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-react';
+import { Users, MapPin, Calendar, Share2, ExternalLink, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'sonner';
 
 interface TripPreviewData {
@@ -334,10 +335,7 @@ const TripPreview = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin gold-gradient-icon mx-auto mb-4" />
-          <p className="text-white/60">Loading trip details...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading trip details..." />
       </div>
     );
   }

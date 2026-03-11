@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, BarChart3, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { AdvertiserService } from '@/services/advertiserService';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Advertiser, CampaignWithTargeting } from '@/types/advertiser';
 import { AdvertiserOnboarding } from '@/components/advertiser/AdvertiserOnboarding';
 import { CampaignList } from '@/components/advertiser/CampaignList';
@@ -193,7 +194,7 @@ export const AdvertiserDashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin h-12 w-12 gold-gradient-spinner"></div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
