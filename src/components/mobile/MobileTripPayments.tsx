@@ -32,6 +32,7 @@ import { getConsistentAvatar, getInitials } from '@/utils/avatarUtils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { isDemoTrip } from '@/utils/demoUtils';
+import { OutstandingPayments } from '@/components/payments/OutstandingPayments';
 
 interface Payment {
   id: string;
@@ -432,6 +433,24 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
     // TODO: Open payment detail modal for _paymentId
   };
 
+  const handleUpdatePayment = useCallback(
+    async (paymentId: string, updates: { amount?: number; description?: string }) => {
+      const success = await paymentService.updatePaymentMessage(paymentId, updates);
+      if (success) refetchPayments();
+      return success;
+    },
+    [refetchPayments],
+  );
+
+  const handleDeletePayment = useCallback(
+    async (paymentId: string) => {
+      const success = await paymentService.deletePaymentMessage(paymentId);
+      if (success) refetchPayments();
+      return success;
+    },
+    [refetchPayments],
+  );
+
   const handleRefresh = useCallback(async () => {
     if (demoActive) {
       handleRetryAfterTimeout();
@@ -586,28 +605,41 @@ export const MobileTripPayments = ({ tripId }: MobileTripPaymentsProps) => {
           </div>
         ) : (
           <>
-            {/* Outstanding Payments Section */}
-            {outstandingPayments.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock size={16} className="text-yellow-500" />
-                  <h3 className="text-sm font-semibold text-foreground">Outstanding Payments</h3>
-                  <span className="text-xs text-muted-foreground">
-                    ({outstandingPayments.length})
-                  </span>
+            {/* Outstanding Payments Section —
+                Auth mode: OutstandingPayments component with settle/unsettle checkboxes.
+                Demo mode: simplified read-only cards (no real splits to act on). */}
+            {demoActive ? (
+              outstandingPayments.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock size={16} className="text-yellow-500" />
+                    <h3 className="text-sm font-semibold text-foreground">Outstanding Payments</h3>
+                    <span className="text-xs text-muted-foreground">
+                      ({outstandingPayments.length})
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {outstandingPayments.map(payment => (
+                      <PaymentCard
+                        key={payment.id}
+                        payment={payment}
+                        onTap={handlePaymentTap}
+                        formatCurrency={formatCurrencyFn}
+                        getStatusIcon={getStatusIcon}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {outstandingPayments.map(payment => (
-                    <PaymentCard
-                      key={payment.id}
-                      payment={payment}
-                      onTap={handlePaymentTap}
-                      formatCurrency={formatCurrencyFn}
-                      getStatusIcon={getStatusIcon}
-                    />
-                  ))}
-                </div>
-              </div>
+              )
+            ) : (
+              <OutstandingPayments
+                tripId={tripId}
+                tripMembers={effectiveTripMembers}
+                onPaymentUpdated={() => refetchPayments()}
+                payments={authPaymentData?.payments ?? []}
+                onUpdatePayment={handleUpdatePayment}
+                onDeletePayment={handleDeletePayment}
+              />
             )}
 
             {/* Completed Payments Section */}
