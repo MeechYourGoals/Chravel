@@ -20,7 +20,7 @@ interface TripUserManagementProps {
 }
 
 export const TripUserManagement = ({
-  _tripId,
+  tripId: _tripId,
   tripName,
   users,
   currentUserId,
