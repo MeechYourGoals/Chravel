@@ -63,8 +63,7 @@ export async function processGlobalSyncQueue(): Promise<{
       if (!user) throw new Error('User not authenticated');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: newTask, error } = await (supabase
-        .from('trip_tasks') as any)
+      const { data: newTask, error } = await (supabase.from('trip_tasks') as any)
         .insert({
           trip_id: tripId,
           creator_id: user.id,
