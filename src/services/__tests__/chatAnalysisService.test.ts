@@ -61,6 +61,8 @@ describe('chatAnalysisService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (vi.mocked as any)(supabase).from = vi.fn();
   });
 
   describe('detectPaymentParticipantsFromMessage', () => {
