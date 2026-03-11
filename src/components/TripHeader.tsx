@@ -147,7 +147,7 @@ export const TripHeader = ({
       return () => clearTimeout(timeoutId);
     }
   }, [searchParams, setSearchParams]);
-  const { variant, _accentColors } = useTripVariant();
+  const { variant } = useTripVariant();
   const { coverPhoto, updateCoverPhoto, isUpdating } = useTripCoverPhoto(
     trip.id.toString(),
     trip.coverPhoto,

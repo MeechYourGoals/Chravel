@@ -16,7 +16,7 @@ import { tripsData } from '@/data/tripsData';
 import { useToast } from '@/hooks/use-toast';
 
 export const SavedRecommendations = () => {
-  const { items, loading, addToTrip, _refresh } = useSavedRecommendations();
+  const { items, loading, addToTrip, refresh } = useSavedRecommendations();
   const { toast } = useToast();
   const [selectedTrip, setSelectedTrip] = useState<Record<string, string>>({});
 

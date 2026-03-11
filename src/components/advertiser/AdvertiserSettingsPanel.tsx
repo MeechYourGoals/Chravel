@@ -16,7 +16,7 @@ interface AdvertiserSettingsPanelProps {
   currentUserId: string;
 }
 
-export const AdvertiserSettingsPanel = ({ _currentUserId }: AdvertiserSettingsPanelProps) => {
+export const AdvertiserSettingsPanel = ({ currentUserId: _currentUserId }: AdvertiserSettingsPanelProps) => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const isDemoMode = useDemoModeStore(state => state.isDemoMode);

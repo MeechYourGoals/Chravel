@@ -95,7 +95,7 @@ function getFormatLabel(format: AgendaParseResult['sourceFormat']): string {
 export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
   isOpen,
   onClose,
-  _eventId,
+  eventId: _eventId,
   existingSessions = [],
   onImportSessions,
   onBulkImportSessions,

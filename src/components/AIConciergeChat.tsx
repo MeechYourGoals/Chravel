@@ -1960,7 +1960,7 @@ export const AIConciergeChat = ({
             onConvoToggle={handleConvoToggle}
             isVoiceEligible={true}
             isLiveActive={isLiveSessionActive}
-            isLiveEligible={DUPLEX_VOICE_ENABLED}
+            isVoiceEligible={DUPLEX_VOICE_ENABLED}
             isLiveConnecting={
               DUPLEX_VOICE_ENABLED && (liveState === 'requesting_mic' || liveState === 'ready')
             }

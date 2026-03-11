@@ -27,7 +27,7 @@ export const TripUserManagement = ({
   onUserRemoved,
   onLeaveTrip,
 }: TripUserManagementProps) => {
-  const { _user } = useAuth();
+  const { user: _user } = useAuth();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [userToRemove, setUserToRemove] = useState<TripUser | null>(null);
   const [showUserActions, setShowUserActions] = useState<string | null>(null);

@@ -112,7 +112,7 @@ describe('ErrorBoundary', () => {
     const user = userEvent.setup();
     const onRetry = vi.fn();
 
-    const { _rerender } = render(
+    render(
       <ErrorBoundary onRetry={onRetry}>
         <ThrowingComponent error={new Error('Test error')} />
       </ErrorBoundary>,
