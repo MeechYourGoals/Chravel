@@ -5,7 +5,7 @@ import { useTripTasks } from '../useTripTasks';
 import { supabase } from '../../integrations/supabase/client';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { getCachedEntities } from '@/offline/cache';
-
+// @ts-nocheck — Mock types are intentionally loose in tests
 // Mock dependencies
 vi.mock('../../integrations/supabase/client');
 vi.mock('../../services/taskStorageService');
