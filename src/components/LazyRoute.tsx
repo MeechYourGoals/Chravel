@@ -98,7 +98,7 @@ const ChunkErrorFallback = ({
     <div className="max-w-md w-full text-center space-y-6">
       <div className="flex justify-center">
         {isAutoRetrying ? (
-          <RefreshCw className="h-16 w-16 text-primary animate-spin" />
+          <LoadingSpinner size="xl" />
         ) : (
           <AlertTriangle className="h-16 w-16 text-destructive" />
         )}

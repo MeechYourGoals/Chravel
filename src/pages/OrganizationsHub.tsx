@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building, Plus, Users, ChevronRight } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreateOrganizationModal } from '@/components/enterprise/CreateOrganizationModal';
@@ -22,10 +23,7 @@ export const OrganizationsHub = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 gold-gradient-spinner animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading organizations...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading organizations..." />
       </div>
     );
   }
