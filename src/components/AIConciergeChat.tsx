@@ -570,6 +570,11 @@ export const AIConciergeChat = ({
       return;
     }
 
+    // If previous session errored, clean up before retrying
+    if (liveState === 'error') {
+      await endLiveSession();
+    }
+
     // Check plan limits
     if (isLimitedPlan) {
       let incrementResult;
@@ -592,6 +597,7 @@ export const AIConciergeChat = ({
       toast.error(msg);
     }
   }, [
+    liveState,
     isDictationActive,
     toggleDictation,
     isLiveSessionActive,
