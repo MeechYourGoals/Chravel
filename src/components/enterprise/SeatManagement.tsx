@@ -21,7 +21,7 @@ interface MemberWithProfile {
 }
 
 export const SeatManagement = () => {
-  const { currentOrg, members, fetchOrgMembers, removeMember, _updateMemberRole } =
+  const { currentOrg, members, fetchOrgMembers, removeMember, updateMemberRole: _updateMemberRole } =
     useOrganization();
   const { user } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);

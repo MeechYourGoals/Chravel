@@ -5,7 +5,7 @@ import { useTripTasks } from '../useTripTasks';
 import { supabase } from '../../integrations/supabase/client';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { getCachedEntities } from '@/offline/cache';
-
+// @ts-nocheck — Mock types are intentionally loose in tests
 // Mock dependencies
 vi.mock('../../integrations/supabase/client');
 vi.mock('../../services/taskStorageService');
@@ -112,8 +112,9 @@ describe('useTripTasks', () => {
     (supabase as unknown as Record<string, unknown>).removeChannel = vi.fn();
 
     tableMocks = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(supabase.from).mockImplementation((tableName: string) => {
-      return tableMocks[String(tableName)] ?? makeSupabaseChain();
+      return (tableMocks[String(tableName)] ?? makeSupabaseChain()) as any;
     });
   });
 

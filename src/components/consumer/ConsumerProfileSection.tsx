@@ -8,7 +8,7 @@ import { getConsistentAvatar } from '../../utils/avatarUtils';
 
 export const ConsumerProfileSection = () => {
   const { user, updateProfile, signOut } = useAuth();
-  const { _isDemoMode, showDemoContent } = useDemoMode();
+  const { isDemoMode: _isDemoMode, showDemoContent } = useDemoMode();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -158,7 +158,7 @@ export const ConsumerProfileSection = () => {
       });
     } catch (error: unknown) {
       console.error('Error uploading photo:', error);
-      const errMsg = error?.message || error?.statusCode || '';
+      const errMsg = (error as any)?.message || (error as any)?.statusCode || '';
       let description = 'Failed to upload profile photo. Please try again.';
       if (typeof errMsg === 'string') {
         if (errMsg.includes('Bucket not found') || errMsg.includes('not found')) {

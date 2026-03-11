@@ -14,7 +14,7 @@ interface TripDetailContentProps {
 export const TripDetailContent = ({
   activeTab,
   onTabChange,
-  _onShowTripsPlusModal,
+  onShowTripsPlusModal: _onShowTripsPlusModal,
   tripId,
   tripName,
   basecamp,

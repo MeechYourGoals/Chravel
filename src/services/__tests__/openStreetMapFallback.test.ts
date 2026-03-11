@@ -1,3 +1,4 @@
+// @ts-nocheck — Mock types are intentionally loose in tests
 /**
  * Tests for OpenStreetMap Fallback Service
  *

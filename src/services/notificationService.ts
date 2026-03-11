@@ -548,7 +548,7 @@ export class NotificationService {
    */
   async sendEmailNotification(userId: string, subject: string, content: string): Promise<boolean> {
     try {
-      const { _data, error } = await supabase.functions.invoke('push-notifications', {
+      const { data: _data, error } = await supabase.functions.invoke('push-notifications', {
         body: {
           action: 'send_email',
           userId,

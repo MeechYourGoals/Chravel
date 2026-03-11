@@ -29,7 +29,7 @@ export const MediaTile = React.memo(function MediaTile({
   url,
   mimeType,
   fileName,
-  _metadata,
+  metadata: _metadata,
   onDelete,
   onView,
 }: MediaTileProps) {

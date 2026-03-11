@@ -5,7 +5,7 @@ import { useTripVariant } from '../../contexts/TripVariantContext';
 
 export const NotificationsSection = () => {
   const { user, updateNotificationSettings } = useAuth();
-  const { _accentColors } = useTripVariant();
+  const { accentColors: _accentColors } = useTripVariant();
 
   if (!user) return null;
 

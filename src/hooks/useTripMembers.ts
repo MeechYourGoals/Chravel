@@ -141,7 +141,7 @@ export const useTripMembers = (tripId?: string) => {
           let creatorProfileData = creatorProfile;
           if (!creatorProfileData && user && user.id === tripData.created_by) {
             // Use auth user metadata as fallback when profiles_public query returns null
-            const meta = user.user_metadata || {};
+            const meta = (user as any).user_metadata || {};
             const authName =
               meta.display_name || meta.full_name || meta.name || user.email?.split('@')[0] || null;
             creatorProfileData = {
@@ -289,7 +289,7 @@ export const useTripMembers = (tripId?: string) => {
 
         if (error) {
           console.error('Error leaving trip:', error);
-          toast.error(error.message || 'Failed to leave trip');
+          toast.error((error as Error)?.message || 'Failed to leave trip');
           return false;
         }
 
@@ -359,7 +359,7 @@ export const useTripMembers = (tripId?: string) => {
     let unsubFn: (() => void) | undefined;
 
     const timer = setTimeout(() => {
-      const realtimeHubs = (window as Record<string, unknown>).__tripRealtimeHubs as
+      const realtimeHubs = (window as unknown as Record<string, unknown>).__tripRealtimeHubs as
         | Map<
             string,
             { subscribe: (table: string, event: string, callback: () => void) => () => void }

@@ -62,8 +62,9 @@ export async function processGlobalSyncQueue(): Promise<{
       } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: newTask, error } = await supabase
-        .from('trip_tasks')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: newTask, error } = await (supabase
+        .from('trip_tasks') as any)
         .insert({
           trip_id: tripId,
           creator_id: user.id,
@@ -109,7 +110,7 @@ export async function processGlobalSyncQueue(): Promise<{
       const { error } = await supabase.rpc('toggle_task_status', {
         p_task_id: entityId,
         p_user_id: user.id,
-        p_completed: data.completed,
+        p_completed: data.completed as boolean,
         p_current_version: taskRow?.version ?? 1,
       });
 
@@ -171,7 +172,7 @@ export async function processGlobalSyncQueue(): Promise<{
 
     // Calendar event handlers
     onCalendarEventCreate: async (tripId, data) => {
-      const result = await calendarService.createEvent(data);
+      const result = await calendarService.createEvent(data as any);
       if (!result) throw new Error('Failed to create calendar event');
       return result;
     },

@@ -23,7 +23,7 @@ class CalendarOfflineQueue {
    * Queue a calendar event creation
    */
   async queueCreate(tripId: string, eventData: CreateEventData): Promise<string> {
-    return offlineSyncService.queueOperation('calendar_event', 'create', tripId, eventData);
+    return offlineSyncService.queueOperation('calendar_event', 'create', tripId, eventData as unknown as Record<string, unknown>);
   }
 
   /**

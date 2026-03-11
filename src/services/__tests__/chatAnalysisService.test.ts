@@ -1,3 +1,4 @@
+// @ts-nocheck — Supabase mock chain types are intentionally loose in tests
 /**
  * Tests for Chat Analysis Service - Payment Participant Detection
  *
@@ -12,6 +13,9 @@ import {
   recordPaymentSplitPattern,
 } from '../chatAnalysisService';
 import { supabase } from '@/integrations/supabase/client';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseFrom = supabase.from as any;
 
 interface SupabaseResponse {
   data: unknown;
@@ -58,6 +62,8 @@ describe('chatAnalysisService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (vi.mocked as any)(supabase).from = vi.fn();
   });
 
   describe('detectPaymentParticipantsFromMessage', () => {

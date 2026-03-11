@@ -45,8 +45,9 @@ global.indexedDB = {
 } as unknown as IDBFactory;
 
 // Mock Deno for edge functions
-global.Deno = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(global as any).Deno = {
   env: {
     get: vi.fn().mockReturnValue('mock-key'),
   },
-} as unknown as typeof Deno;
+};

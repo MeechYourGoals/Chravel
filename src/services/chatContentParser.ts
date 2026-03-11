@@ -139,7 +139,7 @@ export async function parseReceipt(imageUrl: string, tripId: string): Promise<Pa
     if (receipt.structured_data.total_cost) {
       suggestions.push({
         action: 'extract_receipt',
-        data: receipt,
+        data: receipt as unknown as Record<string, unknown>,
         message: `Extract receipt for $${receipt.structured_data.total_cost}`,
       });
     }
@@ -368,7 +368,7 @@ export async function parseMessage(messageText: string, tripId: string): Promise
         if (todo.confidence > 0.7) {
           suggestions.push({
             action: 'create_todo',
-            data: todo,
+            data: todo as unknown as Record<string, unknown>,
             message: `Create todo: "${todo.title}"`,
           });
         }

@@ -48,7 +48,7 @@ export const SmartImportSettings = () => {
       const data = await fetchGmailAccounts();
       setAccounts(data);
     } catch (error: unknown) {
-      toast.error('Failed to load connected accounts', { description: error.message });
+      toast.error('Failed to load connected accounts', { description: (error as Error)?.message });
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ export const SmartImportSettings = () => {
       // Redirect to Google OAuth consent screen
       window.location.href = url;
     } catch (error: unknown) {
-      toast.error('Failed to initiate connection', { description: error.message });
+      toast.error('Failed to initiate connection', { description: (error as Error)?.message });
       setConnecting(false);
     }
   };
@@ -73,7 +73,7 @@ export const SmartImportSettings = () => {
       toast.success('Gmail account disconnected');
       setAccounts(accounts.filter(a => a.id !== accountId));
     } catch (error: unknown) {
-      toast.error('Failed to disconnect account', { description: error.message });
+      toast.error('Failed to disconnect account', { description: (error as Error)?.message });
     } finally {
       setDisconnectingId(null);
     }

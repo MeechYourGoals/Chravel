@@ -129,7 +129,7 @@ export const useChatComposer = ({
         paymentData?: PaymentData;
       } = {},
     ): Promise<ChatMessage | null> => {
-      const { isPayment = false, _paymentData } = options;
+      const { isPayment = false, paymentData: _paymentData } = options;
 
       // Prevent payment creation for events
       if (isEvent && isPayment) {

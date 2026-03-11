@@ -10,7 +10,7 @@ interface GroundingCitationCardProps {
   index: number;
 }
 
-export const GroundingCitationCard = ({ citation, _index }: GroundingCitationCardProps) => {
+export const GroundingCitationCard = ({ citation, index: _index }: GroundingCitationCardProps) => {
   const isMobilePortrait = useMobilePortrait();
   const isGoogleMaps = citation.source === 'google_maps_grounding';
 
