@@ -289,7 +289,7 @@ export const useTripMembers = (tripId?: string) => {
 
         if (error) {
           console.error('Error leaving trip:', error);
-          toast.error(error.message || 'Failed to leave trip');
+          toast.error((error as Error)?.message || 'Failed to leave trip');
           return false;
         }
 
