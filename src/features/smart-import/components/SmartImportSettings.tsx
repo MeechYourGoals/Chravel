@@ -61,7 +61,7 @@ export const SmartImportSettings = () => {
       // Redirect to Google OAuth consent screen
       window.location.href = url;
     } catch (error: unknown) {
-      toast.error('Failed to initiate connection', { description: error.message });
+      toast.error('Failed to initiate connection', { description: (error as Error)?.message });
       setConnecting(false);
     }
   };
