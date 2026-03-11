@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ImagePlus, X, Sparkles, Loader2 } from 'lucide-react';
+import { Search, ImagePlus, X, Sparkles } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -26,9 +26,7 @@ import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
-import type { GeminiLiveState } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
-import { VoiceActiveBar } from '@/features/chat/components/VoiceActiveBar';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -52,8 +50,8 @@ const UPLOAD_ENABLED = true;
 /**
  * DUPLEX_VOICE_ENABLED — When true, the waveform button starts Gemini Live
  * bidirectional voice (Vertex AI). When false, it uses basic Web Speech API
- * dictation instead. Voice state is shown inline via VoiceActiveBar (compact
- * bar at top of chat) and transcripts appear as normal chat bubbles.
+ * dictation instead. Transcripts appear as normal chat bubbles and errors
+ * surface via toast notifications.
  */
 const DUPLEX_VOICE_ENABLED = true;
 // ─────────────────────────────────────────────────────────────────────────────
@@ -427,8 +425,7 @@ export const AIConciergeChat = ({
    * While Gemini Live is in 'playing' state (assistant speaking), we maintain
    * a transient ChatMessage here so the chat scroll area shows a live-updating
    * bubble — matching ChatGPT / Grok behaviour where the assistant's turn is
-   * visible in the chat *while* it is being spoken, not only in the compact
-   * VoiceLiveOverlay banner.
+   * visible in the chat *while* it is being spoken.
    *
    * Lifecycle:
    *   liveAssistantTranscript updates + liveState === 'playing'  → set here
@@ -533,15 +530,10 @@ export const AIConciergeChat = ({
 
   const {
     state: liveState,
-    error: liveError,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
-    conversationHistory: _liveConversationHistory,
     startSession: startLiveSession,
     endSession: endLiveSession,
-    diagnostics: liveDiagnostics,
-    circuitBreakerOpen: liveCircuitBreakerOpen,
-    resetCircuitBreaker: resetLiveCircuitBreaker,
   } = useGeminiLive({
     tripId,
     onToolCall: handleToolCall,
@@ -552,7 +544,7 @@ export const AIConciergeChat = ({
   // Voice state for VoiceButton — dictation only (Live is separate button now)
   const convoVoiceState: VoiceState = dictationState;
 
-  // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
+  // Whether Gemini Live session is active (for Live button + streaming bubbles)
   const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   // Waveform button — dictation only. Stops Live if active first.
@@ -593,7 +585,6 @@ export const AIConciergeChat = ({
       }
     }
 
-    toast.info('Starting live voice…');
     try {
       await startLiveSession();
     } catch (err) {
@@ -610,10 +601,6 @@ export const AIConciergeChat = ({
     incrementUsageOnSuccess,
     buildLimitReachedMessage,
   ]);
-
-  const handleEndLiveSession = useCallback(() => {
-    void endLiveSession();
-  }, [endLiveSession]);
 
   // Fix 2: Keep the streaming voice bubble in sync with liveAssistantTranscript.
   // While Gemini Live is in 'playing' state, update the transient bubble so the
@@ -1792,9 +1779,7 @@ export const AIConciergeChat = ({
                   className={`relative h-7 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
                     isLiveSessionActive
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 border-transparent'
-                      : liveState === 'requesting_mic' || liveState === 'ready'
-                        ? 'bg-gray-800/80 text-white/70 border-[hsl(var(--gold-primary))]/40'
-                        : 'bg-gray-800/80 text-white/50 hover:text-white/80 hover:bg-gray-700/80'
+                      : 'bg-gray-800/80 text-white/50 hover:text-white/80 hover:bg-gray-700/80'
                   }`}
                   aria-label={isLiveSessionActive ? 'Stop live voice' : 'Start live voice'}
                 >
@@ -1805,11 +1790,7 @@ export const AIConciergeChat = ({
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-1">
-                    {liveState === 'requesting_mic' || liveState === 'ready' ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Sparkles size={12} />
-                    )}
+                    <Sparkles size={12} />
                     <span className="text-[10px] font-medium leading-none">Live</span>
                   </span>
                 </button>
@@ -1889,19 +1870,6 @@ export const AIConciergeChat = ({
               </div>
             </div>
           </div>
-        )}
-
-        {/* Inline voice status bar — shown when Gemini Live session is active */}
-        {isLiveSessionActive && (
-          <VoiceActiveBar
-            state={liveState}
-            error={liveError}
-            circuitBreakerOpen={liveCircuitBreakerOpen}
-            onEnd={handleEndLiveSession}
-            onResetCircuitBreaker={resetLiveCircuitBreaker}
-            onReconnect={handleLiveToggle}
-            diagnostics={liveDiagnostics}
-          />
         )}
 
         {/* Chat Messages */}
