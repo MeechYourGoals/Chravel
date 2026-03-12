@@ -632,6 +632,39 @@ The single highest-leverage next move.
 
 ---
 
+## Command Routing
+
+When this skill auto-triggers, check the user's intent against this table. If a specialized command matches, **suggest it explicitly** before proceeding with a general analysis. Always let the user confirm before invoking.
+
+### Google Commands
+
+| User Intent | Suggest | When |
+|---|---|---|
+| Audit / evaluate / assess a Google integration | `/google-audit` | User wants a full-stack health check, deprecation scan, or production-readiness review |
+| Upgrade / migrate / update a Google model, SDK, or API | `/google-upgrade` | User asks to move to a newer model, SDK version, or API path |
+| Realtime voice / Gemini Live / bidirectional audio | `/google-live-deep-dive` | User asks about voice concierge, barge-in, live audio, speech architecture |
+| Embeddings / RAG / document ingestion / semantic search | `/google-rag-architect` | User asks about multimodal retrieval, PDF ingestion, concierge memory, vector search |
+| Cloud Console / API enablement / OAuth / IAM setup | `/google-console-setup` | User asks about enabling APIs, billing, service accounts, OAuth config, project setup |
+| "Can we use X?" / ship-readiness / feasibility check | `/google-api-readiness` | User asks whether a Google feature is ready to implement or wants a go/no-go assessment |
+
+### Cross-Domain Audit Skills
+
+| Context | Suggest | When |
+|---|---|---|
+| Tool-calling safety, mutation reliability, agent actions | `agent-tooling-audit` | Analysis reveals the issue is agent/tool-call safety, not Google-specific |
+| Mobile vs web parity of a Google feature | `mobile-parity-audit` | Analysis reveals the issue is mobile parity, not Google-specific |
+| UX consistency of a Google-powered feature | `ux-consistency-audit` | Analysis reveals the issue is UX drift, not Google-specific |
+
+### Routing Behavior
+
+1. After restating the technical question (Step 1 of the workflow), check this routing table.
+2. If the request clearly maps to a command, suggest it: _"This maps to the `/google-upgrade` workflow — want me to run it, or proceed with general analysis?"_
+3. If the request spans multiple commands, suggest the most specific one first and mention the secondary.
+4. If the request is general architecture work that doesn't map to a specific command, proceed with the ecosystem architect's own workflow (no suggestion needed).
+5. Never auto-invoke a command without suggesting first — let the user confirm.
+
+---
+
 ## Special Instructions by Feature Area
 
 ## A. Gemini Live / bidirectional voice

@@ -722,6 +722,16 @@ npm run build        # Production build
 npm run preview      # Preview production build
 ```
 
+### Google Integration Commands (Auto-Suggested)
+Specialized workflows for Google-related work — automatically suggested by the
+Google Gemini Ecosystem Architect skill when relevant context is detected:
+- `/google-audit` — Full Google stack audit
+- `/google-upgrade` — Upgrade a Google AI subsystem
+- `/google-live-deep-dive` — Realtime voice stack deep-dive
+- `/google-rag-architect` — Multimodal RAG pipeline design
+- `/google-console-setup` — Cloud Console setup research
+- `/google-api-readiness` — Pre-implementation readiness check
+
 ### When Builds Fail
 1. Read the **exact error message** (line number + file)
 2. Check **bracket balance** in that file
