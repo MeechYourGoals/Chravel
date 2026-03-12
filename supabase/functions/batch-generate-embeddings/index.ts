@@ -70,7 +70,7 @@ serve(async (req) => {
                   source_type: item.sourceType,
                   source_id: item.sourceId,
                   content_text: item.contentText.substring(0, 5000),
-                  embedding: result.embedding,
+                  embedding: JSON.stringify(embedding),
                   metadata: item.metadata,
                 });
                 processed++;
