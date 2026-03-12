@@ -520,7 +520,7 @@ export async function generateClientPDF(
             doc.text(`${pollNumber}. ${sanitizePdfText(poll.question)}`, margin, yPos);
             yPos += 15;
 
-            if (poll.options && poll.options.length > 0) {
+            if (Array.isArray(poll.options) && poll.options.length > 0) {
               const pollRows = poll.options.map((opt: any) => {
                 const percentage =
                   poll.total_votes > 0 ? ((opt.votes / poll.total_votes) * 100).toFixed(1) : '0.0';
