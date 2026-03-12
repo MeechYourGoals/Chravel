@@ -141,7 +141,18 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              navigator.clipboard.writeText(messageContent).catch(() => {});
+              if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(messageContent).catch(() => {});
+              } else {
+                const ta = document.createElement('textarea');
+                ta.value = messageContent;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+              }
               toast.success('Copied');
             }}
           >

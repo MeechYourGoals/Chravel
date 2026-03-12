@@ -109,10 +109,11 @@ export const ChatInput = ({
 
   const loadEmojiPicker = useCallback(async () => {
     if (EmojiPickerComponent) return;
-    const [{ Picker }, dataModule] = await Promise.all([
+    const [pickerModule, dataModule] = await Promise.all([
       import('@emoji-mart/react'),
       import('@emoji-mart/data'),
     ]);
+    const Picker = pickerModule.default || pickerModule.Picker;
     setEmojiPickerData(dataModule.default);
     setEmojiPickerComponent(() => Picker);
   }, [EmojiPickerComponent]);
