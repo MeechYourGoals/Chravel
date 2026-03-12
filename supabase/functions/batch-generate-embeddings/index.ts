@@ -91,8 +91,8 @@ serve(async (req) => {
           await Promise.all(embedPromises);
         }
 
-        results.push({ tripId: trip.id, name: trip.name, status: 'ok', count: processed });
-        console.log(`[batch-embed] Done: ${trip.name} — ${processed} embeddings`);
+        results.push({ tripId: trip.id, name: trip.name, status: 'ok', count: processed, sourceCount: sourceData.length });
+        console.log(`[batch-embed] Done: ${trip.name} — ${processed}/${sourceData.length} embeddings`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         results.push({ tripId: trip.id, name: trip.name, status: 'error', error: msg });
