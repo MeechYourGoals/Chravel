@@ -543,7 +543,9 @@ export class EnhancedTripContextService {
     const recentDecisions = polls
       .filter(p => p.status === 'closed')
       .map(p => {
-        const winner = p.options.reduce((max, opt) => (opt.votes > max.votes ? opt : max));
+        const safeOptions = Array.isArray(p.options) ? p.options : [];
+        if (safeOptions.length === 0) return `${p.question}: (no options)`;
+        const winner = safeOptions.reduce((max, opt) => (opt.votes > max.votes ? opt : max));
         return `${p.question}: ${winner.text}`;
       });
 

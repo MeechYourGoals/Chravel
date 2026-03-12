@@ -64,6 +64,23 @@ interface MockPollVotes {
   };
 }
 
+// Normalize poll options from any shape Supabase or storage might return.
+// Handles: proper PollOption[], JSON strings, objects, null, undefined.
+// Auth/RLS untouched — this only normalizes the `options` field shape after data is fetched.
+function parsePollOptions(raw: unknown): PollOption[] {
+  if (typeof raw === 'string') {
+    try {
+      return parsePollOptions(JSON.parse(raw));
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(raw)) return [];
+  return (raw as unknown[]).filter(
+    (o): o is PollOption => o !== null && typeof o === 'object' && !Array.isArray(o),
+  );
+}
+
 // Helper to get mock poll votes from storage
 const getMockPollVotes = async (tripId: string): Promise<MockPollVotes> => {
   return await getStorageItem<MockPollVotes>(`mock_poll_votes_${tripId}`, {});
@@ -88,7 +105,11 @@ export const useTripPolls = (tripId: string) => {
     queryFn: async (): Promise<TripPoll[]> => {
       if (isDemoMode) {
         // Get storage polls (user-created in demo mode)
-        const storagePolls = await pollStorageService.getPolls(tripId);
+        const rawStoragePolls = await pollStorageService.getPolls(tripId);
+        const storagePolls = rawStoragePolls.map(p => ({
+          ...p,
+          options: parsePollOptions(p.options),
+        }));
 
         // Get mock poll votes from storage
         const mockVotes = await getMockPollVotes(tripId);
@@ -142,7 +163,10 @@ export const useTripPolls = (tripId: string) => {
       if (navigator.onLine === false) {
         const cachedEntities = await getCachedEntities({ tripId, entityType: 'trip_polls' });
         const cachedPolls = cachedEntities
-          .map(c => c.data as TripPoll)
+          .map(c => {
+            const poll = c.data as TripPoll;
+            return { ...poll, options: parsePollOptions(poll.options) };
+          })
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         if (cachedPolls.length > 0) {
           return cachedPolls;
@@ -159,7 +183,11 @@ export const useTripPolls = (tripId: string) => {
         // Online fetch failed — try cache as fallback
         const cachedEntities = await getCachedEntities({ tripId, entityType: 'trip_polls' });
         const cachedPolls = cachedEntities
-          .map(c => c.data as TripPoll)
+          .map(c => {
+            const poll = c.data as TripPoll;
+            // parsePollOptions defined above — normalizes options shape only, auth/RLS unchanged
+            return { ...poll, options: parsePollOptions(poll.options) };
+          })
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         if (cachedPolls.length > 0) return cachedPolls;
         throw error;
@@ -168,9 +196,7 @@ export const useTripPolls = (tripId: string) => {
       // Transform the data to handle JSON types
       const transformed = (data || []).map(poll => ({
         ...poll,
-        options: Array.isArray(poll.options)
-          ? ((poll.options as unknown[]).filter(o => o && typeof o === 'object') as PollOption[])
-          : [],
+        options: parsePollOptions(poll.options),
         status: poll.status as 'active' | 'closed',
       }));
 

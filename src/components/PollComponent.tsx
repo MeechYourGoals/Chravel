@@ -100,7 +100,8 @@ export const PollComponent = ({
 
   const formattedPolls: PollType[] = useMemo(() => {
     return polls.map(poll => {
-      const userVoteOptions = poll.options.filter(option => option.voters?.includes(userId || ''));
+      const safeOptions = Array.isArray(poll.options) ? poll.options : [];
+      const userVoteOptions = safeOptions.filter(option => option.voters?.includes(userId || ''));
       const userVote = poll.allow_multiple
         ? userVoteOptions.map(opt => opt.id)
         : userVoteOptions[0]?.id;
@@ -108,7 +109,7 @@ export const PollComponent = ({
       return {
         id: poll.id,
         question: poll.question,
-        options: poll.options.map(option => ({
+        options: safeOptions.map(option => ({
           id: option.id,
           text: option.text,
           votes: option.votes,
@@ -209,7 +210,7 @@ export const PollComponent = ({
       ['Option', 'Votes', 'Percentage', ...(poll.is_anonymous ? [] : ['Voters'])],
     ];
 
-    poll.options.forEach(option => {
+    (Array.isArray(poll.options) ? poll.options : []).forEach(option => {
       const percentage =
         poll.totalVotes > 0 ? ((option.votes / poll.totalVotes) * 100).toFixed(1) : '0';
       const row = [
