@@ -62,8 +62,9 @@ serve(async (req) => {
           const batch = sourceData.slice(i, i + 5);
           const embedPromises = batch.map(async (item) => {
             try {
-              const result = await invokeEmbeddingModel({ content: item.contentText });
-              if (result?.embedding) {
+              const result = await invokeEmbeddingModel({ input: item.contentText });
+              const embedding = result?.embeddings?.[0];
+              if (embedding) {
                 await supabase.from('trip_embeddings').insert({
                   trip_id: item.tripId,
                   source_type: item.sourceType,
