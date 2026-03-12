@@ -18,17 +18,23 @@ serve(async (req) => {
   }
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const offset = body.offset ?? 0;
+    const limit = body.limit ?? 5;
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get all active trips
+    // Get active trips with pagination
     const { data: trips, error: tripsError } = await supabase
       .from('trips')
       .select('id, name')
-      .or('is_archived.eq.false,is_archived.is.null');
+      .or('is_archived.eq.false,is_archived.is.null')
+      .order('created_at', { ascending: true })
+      .range(offset, offset + limit - 1);
 
     if (tripsError) throw tripsError;
 
-    console.log(`[batch-embed] Found ${trips?.length || 0} active trips`);
+    console.log(`[batch-embed] Processing ${trips?.length || 0} trips (offset=${offset}, limit=${limit})`);
 
     const results: { tripId: string; name: string; status: string; count?: number; error?: string }[] = [];
 
