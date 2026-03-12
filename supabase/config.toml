@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.batch-generate-embeddings]
 verify_jwt = false
+
+[functions.seed-carlton-social]
+verify_jwt = false
