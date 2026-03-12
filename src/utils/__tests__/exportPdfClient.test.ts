@@ -16,6 +16,7 @@ vi.mock('jspdf', () => {
     };
     lastAutoTable?: { finalY: number };
     _texts: string[] = [];
+    _links: string[] = [];
 
     constructor() {
       JsPDFMock.instances.push(this);
@@ -45,6 +46,11 @@ vi.mock('jspdf', () => {
         this._texts.push(String(text));
       }
     }
+    link(_x: number, _y: number, _w: number, _h: number, options: { url?: string }) {
+      if (options?.url) {
+        this._links.push(options.url);
+      }
+    }
     output() {
       return new Blob(['pdf']);
     }
@@ -56,6 +62,34 @@ vi.mock('jspdf', () => {
 vi.mock('jspdf-autotable', () => ({
   default: (doc: Record<string, unknown>, options: Record<string, unknown>) => {
     doc.lastAutoTable = { finalY: ((options?.startY as number) || 0) + 20 };
+
+    const body = (options?.body as Array<Array<string>>) || [];
+    const didParseCell = options?.didParseCell as
+      | ((hookData: Record<string, unknown>) => void)
+      | undefined;
+    const didDrawCell = options?.didDrawCell as
+      | ((hookData: Record<string, unknown>) => void)
+      | undefined;
+
+    body.forEach((row, rowIndex) => {
+      row.forEach((_cell, columnIndex) => {
+        const hookData = {
+          section: 'body',
+          row: { index: rowIndex },
+          column: { index: columnIndex },
+          cell: {
+            x: 10,
+            y: 10,
+            width: 100,
+            height: 12,
+            styles: {},
+          },
+        };
+
+        didParseCell?.(hookData);
+        didDrawCell?.(hookData);
+      });
+    });
   },
 }));
 
@@ -133,6 +167,34 @@ describe('PDF Export Client Helpers', () => {
   });
 
   describe('PDF Generation', () => {
+    it('creates clickable links for places URLs (including missing protocol)', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+      const { generateClientPDF } = await import('../exportPdfClient');
+
+      await generateClientPDF(
+        {
+          tripId: '1',
+          tripTitle: 'Trip',
+          places: [
+            { name: 'Camp', url: 'maps.google.com', votes: 0 },
+            { name: 'Hotel', url: 'https://example.com/hotel', votes: 2 },
+            { name: 'Bad URL', url: 'not a valid url', votes: 1 },
+          ],
+        },
+        ['places'],
+      );
+
+      const instances = (jsPDF as unknown as Record<string, unknown[]>).instances as Array<{
+        _links: string[];
+      }>;
+      const latest = instances[instances.length - 1];
+
+      expect(latest._links).toContain('https://maps.google.com/');
+      expect(latest._links).toContain('https://example.com/hotel');
+      expect(latest._links).not.toContain('not a valid url');
+    });
+
     it('renders attachments header when files exist', async () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
