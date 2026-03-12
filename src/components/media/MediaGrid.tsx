@@ -3,7 +3,14 @@ import { MediaTile } from './MediaTile';
 import { MediaViewerModal, type MediaViewerItem } from './MediaViewerModal';
 import { Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import type { UploadProgress } from '@/hooks/useMediaUpload';
+export interface UploadProgress {
+  fileId: string;
+  fileName: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'processing' | 'complete' | 'error';
+  error?: string;
+  url?: string;
+}
 
 interface MediaItemData {
   id: string;

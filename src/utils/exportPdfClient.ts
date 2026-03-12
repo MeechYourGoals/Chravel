@@ -223,6 +223,23 @@ function sanitizePdfText(value: string): string {
   );
 }
 
+function normalizeUrlForPdfLink(url?: string): string | null {
+  if (!url) return null;
+
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) return null;
+
+  try {
+    return new URL(trimmedUrl).toString();
+  } catch {
+    try {
+      return new URL(`https://${trimmedUrl}`).toString();
+    } catch {
+      return null;
+    }
+  }
+}
+
 function formatEventDateTime(start?: string, end?: string): string {
   if (!start) return 'N/A';
   const startDate = new Date(start);
@@ -520,7 +537,7 @@ export async function generateClientPDF(
             doc.text(`${pollNumber}. ${sanitizePdfText(poll.question)}`, margin, yPos);
             yPos += 15;
 
-            if (poll.options && poll.options.length > 0) {
+            if (Array.isArray(poll.options) && poll.options.length > 0) {
               const pollRows = poll.options.map((opt: any) => {
                 const percentage =
                   poll.total_votes > 0 ? ((opt.votes / poll.total_votes) * 100).toFixed(1) : '0.0';
@@ -593,16 +610,20 @@ export async function generateClientPDF(
             }
           };
 
-          const placeRows = chunk.map((place: any) => [
-            sanitizePdfText(place.name || 'N/A'),
-            sanitizePdfText(shortenUrl(place.url || 'N/A')),
-            place.votes?.toString() || '0',
-          ]);
+          const placeRows = chunk.map((place: any) => {
+            const rawUrl = typeof place.url === 'string' ? place.url : '';
+            return {
+              name: sanitizePdfText(place.name || 'N/A'),
+              displayUrl: sanitizePdfText(shortenUrl(rawUrl || 'N/A')),
+              linkUrl: normalizeUrlForPdfLink(rawUrl),
+              votes: place.votes?.toString() || '0',
+            };
+          });
 
           autoTable(doc, {
             startY: yPos,
             head: [['Name', 'URL', 'Votes']],
-            body: placeRows,
+            body: placeRows.map(row => [row.name, row.displayUrl, row.votes]),
             theme: 'striped',
             headStyles: { fillColor: [primaryR, primaryG, primaryB], fontSize: 10 },
             margin: { left: margin, right: margin },
@@ -615,6 +636,28 @@ export async function generateClientPDF(
               0: { cellWidth: contentWidth * 0.4 },
               1: { cellWidth: contentWidth * 0.48 },
               2: { cellWidth: contentWidth * 0.12, halign: 'center' },
+            },
+            didParseCell: hookData => {
+              if (hookData.section !== 'body' || hookData.column.index !== 1) return;
+              if (!placeRows[hookData.row.index]?.linkUrl) return;
+
+              hookData.cell.styles.textColor = [37, 99, 235];
+            },
+            didDrawCell: hookData => {
+              if (hookData.section !== 'body' || hookData.column.index !== 1) return;
+
+              const linkUrl = placeRows[hookData.row.index]?.linkUrl;
+              if (!linkUrl) return;
+
+              doc.link(
+                hookData.cell.x,
+                hookData.cell.y,
+                hookData.cell.width,
+                hookData.cell.height,
+                {
+                  url: linkUrl,
+                },
+              );
             },
           });
 

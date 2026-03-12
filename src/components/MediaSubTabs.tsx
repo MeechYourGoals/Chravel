@@ -14,18 +14,16 @@ import {
   X,
   Trash2,
 } from 'lucide-react';
-import { mediaService } from '@/services/mediaService';
+import { mediaService, uploadTripMedia } from '@/services/mediaService';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { PaymentMethodIcon } from './receipts/PaymentMethodIcon';
 import { generatePaymentDeeplink } from '../utils/paymentDeeplinks';
 import { AddLinkModal } from './AddLinkModal';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { toast } from 'sonner';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
-import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
   id: string;
@@ -266,47 +264,12 @@ export const MediaSubTabs = ({
           finalMediaType = 'document';
         }
 
-        const fileName = `${tripId}/${user.id}/${Date.now()}-${file.name}`;
-        const contentType = getUploadContentType(file);
-
-        // Upload to Supabase Storage with explicit contentType
-        // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
-        const { data: _uploadData, error: uploadError } = await supabase.storage
-          .from('trip-media')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType,
-          });
-
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
+        try {
+          await uploadTripMedia(tripId, file, user.id, finalMediaType);
+          uploadedCount++;
+        } catch (_uploadErr) {
           toast.error(`Failed to upload ${file.name}`);
           continue;
-        }
-
-        // Get public URL
-        const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(fileName);
-
-        // Insert into trip_media_index
-        const { error: dbError } = await supabase.from('trip_media_index').insert({
-          trip_id: tripId,
-          media_url: urlData.publicUrl,
-          filename: file.name,
-          media_type: finalMediaType, // Use the detected/validated type
-          file_size: file.size,
-          mime_type: contentType,
-          metadata: {
-            upload_path: fileName,
-            uploaded_by: user.id,
-          },
-        });
-
-        if (dbError) {
-          console.error('Database error:', dbError);
-          toast.error(`Failed to save ${file.name} metadata`);
-        } else {
-          uploadedCount++;
         }
       }
 

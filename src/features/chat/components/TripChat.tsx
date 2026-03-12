@@ -107,7 +107,7 @@ export const TripChat = React.memo(
   }: TripChatProps) => {
     const [demoMessages, setDemoMessages] = useState<MockMessage[]>([]);
     const [reactions, setReactions] = useState<
-      Record<string, Record<string, { count: number; userReacted: boolean }>>
+      Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
     >({});
 
     const [readStatusesByMessage, setReadStatusesByMessage] = useState<Record<string, any[]>>({});
@@ -207,6 +207,12 @@ export const TripChat = React.memo(
     } = useChatComposer({ tripId: resolvedTripId, demoMode: demoMode.isDemoMode, isEvent });
 
     // Extract unique roles from participants for channel generation
+
+    const reactionUserNamesById = useMemo(
+      () => Object.fromEntries(tripMembers.map(member => [member.id, member.name])),
+      [tripMembers],
+    );
+
     const participantRoles = useMemo(() => {
       if (!isPro) return [];
       return [...new Set(participants.map(p => p.role).filter(Boolean))];
@@ -405,12 +411,16 @@ export const TripChat = React.memo(
           const data = await getMessagesReactions(messageIds, user.id);
           const formatted: Record<
             string,
-            Record<string, { count: number; userReacted: boolean }>
+            Record<string, { count: number; userReacted: boolean; users: string[] }>
           > = {};
           for (const [msgId, typeMap] of Object.entries(data)) {
             formatted[msgId] = {};
             for (const [type, rData] of Object.entries(typeMap)) {
-              formatted[msgId][type] = { count: rData.count, userReacted: rData.userReacted };
+              formatted[msgId][type] = {
+                count: rData.count,
+                userReacted: rData.userReacted,
+                users: rData.users || [],
+              };
             }
           }
           setReactions(formatted);
@@ -443,17 +453,22 @@ export const TripChat = React.memo(
           const current = updated[payload.messageId][payload.reactionType] || {
             count: 0,
             userReacted: false,
+            users: [],
           };
 
           if (payload.eventType === 'INSERT') {
             updated[payload.messageId][payload.reactionType] = {
               count: current.count + 1,
               userReacted: payload.userId === user.id ? true : current.userReacted,
+              users: current.users.includes(payload.userId)
+                ? current.users
+                : [...current.users, payload.userId],
             };
           } else if (payload.eventType === 'DELETE') {
             updated[payload.messageId][payload.reactionType] = {
               count: Math.max(0, current.count - 1),
               userReacted: payload.userId === user.id ? false : current.userReacted,
+              users: current.users.filter(id => id !== payload.userId),
             };
           }
 
@@ -582,9 +597,15 @@ export const TripChat = React.memo(
         const currentReaction = updatedReactions[messageId][reactionType] || {
           count: 0,
           userReacted: false,
+          users: [],
         };
         currentReaction.userReacted = !currentReaction.userReacted;
         currentReaction.count += currentReaction.userReacted ? 1 : -1;
+        if (user?.id) {
+          currentReaction.users = currentReaction.userReacted
+            ? Array.from(new Set([...currentReaction.users, user.id]))
+            : currentReaction.users.filter(id => id !== user.id);
+        }
 
         updatedReactions[messageId][reactionType] = currentReaction;
         setReactions(updatedReactions);
@@ -598,11 +619,18 @@ export const TripChat = React.memo(
         if (!updated[messageId]) {
           updated[messageId] = {};
         }
-        const current = updated[messageId][reactionType] || { count: 0, userReacted: false };
+        const current = updated[messageId][reactionType] || {
+          count: 0,
+          userReacted: false,
+          users: [],
+        };
         const wasReacted = current.userReacted;
         updated[messageId][reactionType] = {
           count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
           userReacted: !wasReacted,
+          users: wasReacted
+            ? current.users.filter(id => id !== user.id)
+            : Array.from(new Set([...current.users, user.id])),
         };
         return updated;
       });
@@ -616,12 +644,16 @@ export const TripChat = React.memo(
         const freshReactions = await getMessagesReactions(messageIds, user.id);
         const formatted: Record<
           string,
-          Record<string, { count: number; userReacted: boolean }>
+          Record<string, { count: number; userReacted: boolean; users: string[] }>
         > = {};
         for (const [msgId, typeMap] of Object.entries(freshReactions)) {
           formatted[msgId] = {};
           for (const [type, data] of Object.entries(typeMap)) {
-            formatted[msgId][type] = { count: data.count, userReacted: data.userReacted };
+            formatted[msgId][type] = {
+              count: data.count,
+              userReacted: data.userReacted,
+              users: data.users || [],
+            };
           }
         }
         setReactions(formatted);
@@ -844,6 +876,7 @@ export const TripChat = React.memo(
                           tripMembers={tripMembers} // Pass trip members
                           readStatuses={readStatusesByMessage[message.id]} // Pass read statuses for this message
                           showSenderInfo={showSenderInfo}
+                          reactionUserNamesById={reactionUserNamesById}
                         />
                       </div>
                     )}

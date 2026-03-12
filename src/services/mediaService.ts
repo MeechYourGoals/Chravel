@@ -103,6 +103,7 @@ export async function uploadTripMedia(
   tripId: string,
   file: File,
   userId: string,
+  mediaTypeOverride?: 'image' | 'video' | 'document',
 ): Promise<TripMedia> {
   const mime = getUploadContentType(file);
 
@@ -112,15 +113,12 @@ export async function uploadTripMedia(
     throw new Error('HEIC images are not supported. Please upload JPG or PNG.');
   }
 
-  // Warn on MOV (codec issues)
-  if (mime === 'video/quicktime') {
-    console.warn('[mediaService] MOV uploaded. Ensure codec is H.264 for browser compatibility.');
+  // Determine media type: use override if provided, otherwise detect from MIME
+  let mediaType: 'image' | 'video' | 'document' = mediaTypeOverride ?? 'document';
+  if (!mediaTypeOverride) {
+    if (mime.startsWith('image/')) mediaType = 'image';
+    else if (mime.startsWith('video/')) mediaType = 'video';
   }
-
-  // Determine media type from MIME (not extension)
-  let mediaType: 'image' | 'video' | 'document' = 'document';
-  if (mime.startsWith('image/')) mediaType = 'image';
-  else if (mime.startsWith('video/')) mediaType = 'video';
 
   const fileExt = file.name.split('.').pop();
   const storagePath = `${tripId}/${crypto.randomUUID()}.${fileExt}`;

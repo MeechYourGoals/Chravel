@@ -217,7 +217,10 @@ export class TripContextAggregator {
       polls: mockPolls.map(poll => ({
         id: poll.id,
         question: poll.question,
-        options: poll.options.map(opt => ({ text: opt.text, votes: opt.votes })),
+        options: (Array.isArray(poll.options) ? poll.options : []).map(opt => ({
+          text: opt.text,
+          votes: opt.votes,
+        })),
         status: poll.status as 'active' | 'closed',
       })),
       places: {
