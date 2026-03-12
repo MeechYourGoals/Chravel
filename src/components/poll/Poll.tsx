@@ -135,7 +135,7 @@ export const Poll = ({
 
       {/* Options */}
       <div className="space-y-2">
-        {poll.options.map(option => (
+        {(Array.isArray(poll.options) ? poll.options : []).map(option => (
           <PollOption
             key={option.id}
             option={option}
