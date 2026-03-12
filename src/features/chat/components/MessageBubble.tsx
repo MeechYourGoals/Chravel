@@ -37,7 +37,7 @@ export interface MessageBubbleProps {
   isPayment?: boolean;
   isOwnMessage?: boolean;
   isEdited?: boolean;
-  reactions?: Record<string, { count: number; userReacted: boolean }>;
+  reactions?: Record<string, { count: number; userReacted: boolean; users?: string[] }>;
   onReaction: (messageId: string, reactionType: string) => void;
   showSenderInfo?: boolean;
   messageType?: 'channel' | 'trip';
@@ -78,6 +78,7 @@ export interface MessageBubbleProps {
   currentUserId: string;
   // 🆕 Inline Reply Support
   replyTo?: { id: string; text: string; sender: string };
+  reactionUserNamesById?: Record<string, string>;
 }
 
 export const MessageBubble = memo(
@@ -112,6 +113,7 @@ export const MessageBubble = memo(
     readStatuses,
     currentUserId,
     replyTo,
+    reactionUserNamesById,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -502,7 +504,12 @@ export const MessageBubble = memo(
 
             {showReactions && (
               <div className={cn(isMobilePortrait ? 'mt-1' : 'mt-1')}>
-                <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
+                <MessageReactionBar
+                  messageId={id}
+                  reactions={reactions}
+                  onReaction={onReaction}
+                  userNamesById={reactionUserNamesById}
+                />
               </div>
             )}
 
