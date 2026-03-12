@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
 import { uploadTripMedia } from '@/services/mediaService';
+import { getUploadContentType } from '@/utils/mime';
 
 interface MediaItem {
   id: string;
@@ -317,7 +318,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       const uploadedUrls: string[] = [];
 
       for (const file of Array.from(files)) {
-        const mime = file.type || '';
+        const mime = getUploadContentType(file);
         // Check extension for video detection (Files app may not set MIME type correctly)
         const isVideoByExtension = /\.(mp4|mov|m4v|avi|webm|mkv)$/i.test(file.name);
         const detected: 'image' | 'video' | 'document' = mime.startsWith('image/')
