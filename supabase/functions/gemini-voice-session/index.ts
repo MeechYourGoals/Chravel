@@ -16,7 +16,7 @@ const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
 
 // GA model for Vertex AI Live API — gemini-live-2.5-flash-native-audio
 // The old preview model (gemini-live-2.5-flash-preview-native-audio-09-2025) is deprecated.
-const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
+const VERTEX_LIVE_MODEL = Deno.env.get('VERTEX_LIVE_MODEL') || 'gemini-live-2.5-flash-native-audio';
 
 // All features ON by default — supported on GA native-audio model
 const VOICE_TOOLS_ENABLED =

@@ -112,10 +112,13 @@ export const MessageItem = memo(
           onEdit={handleEdit}
           onDelete={handleDelete}
           grounding={
-            messageWithGrounding.sources || messageWithGrounding.googleMapsWidget
+            messageWithGrounding.sources ||
+            messageWithGrounding.googleMapsWidget ||
+            messageWithGrounding.googleMapsWidgetContextToken
               ? {
                   sources: messageWithGrounding.sources,
                   googleMapsWidget: messageWithGrounding.googleMapsWidget,
+                  googleMapsWidgetContextToken: messageWithGrounding.googleMapsWidgetContextToken,
                 }
               : undefined
           }

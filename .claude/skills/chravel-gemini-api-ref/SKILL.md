@@ -8,11 +8,47 @@ user-invocable: false
 
 ## Current Models (as of March 2026)
 
-- `gemini-3-pro-preview`: 1M tokens, complex reasoning, coding, research
+- `gemini-3.1-pro-preview`: 1M tokens, complex reasoning, coding, research (replaces deprecated `gemini-3-pro-preview`)
 - `gemini-3-flash-preview`: 1M tokens, fast, balanced performance, multimodal
 - `gemini-3-pro-image-preview`: 65k / 32k tokens, image generation and editing
+- `gemini-live-2.5-flash-native-audio`: GA voice model for Vertex AI Live API
 
 > Models like `gemini-2.5-*`, `gemini-2.0-*`, `gemini-1.5-*` are legacy and deprecated.
+> `gemini-3-pro-preview` deprecated March 9, 2026 — routes to `gemini-3.1-pro-preview`.
+
+## Thought Signatures (thinkingConfig)
+
+Gemini 3+ models use `thinkingLevel` in `generationConfig` (NOT `thinkingBudget` — that's Gemini 2.5):
+```typescript
+generationConfig: {
+  thinkingConfig: { thinkingLevel: "medium" } // "low" | "medium" | "high"
+}
+```
+- `medium` for flash (speed/quality balance), `high` for pro (max reasoning)
+- Chravel concierge: controlled by `ENABLE_THINKING_CONFIG` env var (default ON)
+
+## Streaming Function Call Arguments
+
+For faster tool-use feedback during streaming:
+```typescript
+toolConfig: {
+  functionCallingConfig: { streamFunctionCallArguments: true }
+}
+```
+Function call arguments arrive incrementally instead of all-at-once.
+
+## Combined Grounding
+
+`googleSearch` and `functionDeclarations` CAN coexist as **separate tool objects**:
+```typescript
+tools: [
+  { functionDeclarations: [...] },
+  { googleSearch: {} },        // separate object — OK
+  { googleMaps: {} },          // maps grounding (Gemini 2.5 only)
+]
+```
+> Combining them in the SAME object causes 400 errors.
+> Chravel: controlled by `ENABLE_COMBINED_GROUNDING` (default OFF) and `ENABLE_MAPS_GROUNDING` (default OFF).
 
 ## SDK
 

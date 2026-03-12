@@ -38,6 +38,7 @@ export interface ConciergeSessionMessage {
     source?: string;
   }>;
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
   functionCallPlaces?: Array<{
     placeId?: string | null;
     name: string;

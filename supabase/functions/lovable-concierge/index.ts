@@ -22,6 +22,15 @@ import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
 const FORCE_LOVABLE_PROVIDER = (Deno.env.get('AI_PROVIDER') || '').toLowerCase() === 'lovable';
+
+// Defense-in-depth: reject if GEMINI_API_KEY matches the client-side Maps API key pattern.
+// The Maps key (VITE_GOOGLE_MAPS_API_KEY) should NEVER be used server-side for Gemini.
+const MAPS_API_KEY = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+if (GEMINI_API_KEY && MAPS_API_KEY && GEMINI_API_KEY === MAPS_API_KEY) {
+  console.error(
+    '[SECURITY] GEMINI_API_KEY matches VITE_GOOGLE_MAPS_API_KEY — misconfiguration detected. Gemini calls will be disabled.',
+  );
+}
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
@@ -622,9 +631,16 @@ async function streamGeminiToSSE(
     const followUpBody = {
       contents: currentContents,
       systemInstruction: { parts: [{ text: systemInstruction }] },
-      generationConfig: { temperature, maxOutputTokens: maxTokens },
+      generationConfig: {
+        temperature,
+        maxOutputTokens: maxTokens,
+        ...(geminiRequestBody.generationConfig.thinkingConfig && {
+          thinkingConfig: geminiRequestBody.generationConfig.thinkingConfig,
+        }),
+      },
       safetySettings: followUpSafetySettings,
       tools: geminiRequestBody.tools,
+      ...(geminiRequestBody.toolConfig && { toolConfig: geminiRequestBody.toolConfig }),
     };
 
     const followUpStartMs = performance.now();
@@ -2019,25 +2035,41 @@ Answer the user's question accurately. Use web search for real-time info (weathe
     ];
 
     // ========== BUILD GEMINI TOOLS ==========
-    // Google Search is enabled for ALL queries — Gemini decides when to use it.
-    // This mirrors the voice session setup which always includes both tools.
-    // Trip-related queries additionally get function declarations for trip actions
+    // Trip-related queries always get function declarations for trip actions
     // (addToCalendar, createTask, createPoll, searchPlaces, getPaymentSummary).
-    // gemini-3-flash-preview / gemini-3.1-pro-preview do NOT support combining functionDeclarations
-    // with googleSearch in the same tools array (400: "Tool use with function
-    // calling is unsupported by the model"). Use one or the other.
+    // Non-trip queries get googleSearch for web grounding.
+    //
+    // Combined grounding: googleSearch + functionDeclarations CAN coexist as
+    // SEPARATE tool objects (not in the same object — that causes 400 errors).
+    // Feature flags for combined grounding — default OFF, zero production impact.
+    // googleSearch/googleMaps are Gemini-side web tools; they never touch Supabase,
+    // RLS, trip records, or payment data. functionDeclarations always included for trip queries.
+    const ENABLE_COMBINED_GROUNDING =
+      (Deno.env.get('ENABLE_COMBINED_GROUNDING') || 'false').toLowerCase() === 'true';
+    const ENABLE_MAPS_GROUNDING =
+      (Deno.env.get('ENABLE_MAPS_GROUNDING') || 'false').toLowerCase() === 'true';
+
     const geminiTools: any[] = [];
     if (tripRelated) {
       geminiTools.push({ functionDeclarations });
+      if (ENABLE_COMBINED_GROUNDING) {
+        geminiTools.push({ googleSearch: {} });
+      }
+      if (ENABLE_MAPS_GROUNDING) {
+        geminiTools.push({ googleMaps: {} });
+      }
     } else {
       geminiTools.push({ googleSearch: {} });
+      if (ENABLE_MAPS_GROUNDING) {
+        geminiTools.push({ googleMaps: {} });
+      }
     }
 
     console.log(
       '[Grounding]',
-      tripRelated
-        ? 'Function declarations enabled for trip actions'
-        : 'Google Search enabled for general web query',
+      tripRelated ? 'functionDeclarations' : 'googleSearch',
+      ENABLE_COMBINED_GROUNDING && tripRelated ? '+googleSearch' : '',
+      ENABLE_MAPS_GROUNDING ? '+googleMaps' : '',
     );
 
     // ========== CALL GEMINI API DIRECTLY ==========
@@ -2076,15 +2108,26 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
     ];
 
+    // Thought signatures: Gemini 3+ models use thinkingLevel for best function calling results.
+    // "medium" for flash (balanced speed/quality), "high" for pro (max reasoning).
+    const ENABLE_THINKING_CONFIG =
+      (Deno.env.get('ENABLE_THINKING_CONFIG') || 'true').toLowerCase() === 'true';
+    const thinkingLevel = selectedModel.includes('pro') ? 'high' : 'medium';
+
     const geminiRequestBody: any = {
       contents: geminiContents,
       systemInstruction: { parts: [{ text: systemInstruction }] },
       generationConfig: {
         temperature,
         maxOutputTokens: config.maxTokens || 4096,
+        ...(ENABLE_THINKING_CONFIG && { thinkingConfig: { thinkingLevel } }),
       },
       safetySettings: GEMINI_SAFETY_SETTINGS,
       tools: geminiTools,
+      // Stream function call arguments for faster tool-use UI feedback
+      toolConfig: tripRelated
+        ? { functionCallingConfig: { streamFunctionCallArguments: true } }
+        : undefined,
     };
 
     // ========== STREAMING PATH (SSE) ==========
@@ -2121,9 +2164,11 @@ Answer the user's question accurately. Use web search for real-time info (weathe
               locationData,
             );
 
-            // Extract grounding citations
+            // Extract grounding citations and maps widget tokens
             const groundingChunks = groundingMetadata?.groundingChunks || [];
             const googleMapsWidget = groundingMetadata?.searchEntryPoint?.renderedContent || null;
+            const googleMapsWidgetContextToken =
+              groundingMetadata?.googleMapsWidgetContextToken || null;
 
             const citations = groundingChunks.map((chunk: any, index: number) => ({
               id: `citation_${index}`,
@@ -2142,6 +2187,7 @@ Answer the user's question accurately. Use web search for real-time info (weathe
                 usage: streamUsage,
                 sources: citations,
                 googleMapsWidget,
+                googleMapsWidgetContextToken,
                 model: selectedModel,
                 complexity: {
                   score: complexity.score,
@@ -2612,9 +2658,16 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           body: JSON.stringify({
             contents: currentContents,
             systemInstruction: { parts: [{ text: systemInstruction }] },
-            generationConfig: { temperature, maxOutputTokens: config.maxTokens || 2048 },
+            generationConfig: {
+              temperature,
+              maxOutputTokens: config.maxTokens || 2048,
+              ...(ENABLE_THINKING_CONFIG && { thinkingConfig: { thinkingLevel } }),
+            },
             safetySettings: GEMINI_SAFETY_SETTINGS,
             tools: geminiTools,
+            ...(tripRelated && {
+              toolConfig: { functionCallingConfig: { streamFunctionCallArguments: true } },
+            }),
           }),
           signal: AbortSignal.timeout(40_000),
         });

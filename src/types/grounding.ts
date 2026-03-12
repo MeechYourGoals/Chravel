@@ -39,6 +39,7 @@ export interface ChatMessageWithGrounding {
   };
   sources?: GroundingCitation[];
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
 }
 
 export interface PlaceGroundingData {

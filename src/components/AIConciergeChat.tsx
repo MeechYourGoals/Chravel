@@ -81,6 +81,7 @@ export interface ChatMessage {
     source?: string;
   }>;
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
   /** Rich place results from searchPlaces / getPlaceDetails tool calls */
   functionCallPlaces?: Array<{
     placeId?: string | null;
@@ -149,6 +150,7 @@ interface ConciergeInvokePayload {
   sources?: ChatMessage['sources'];
   citations?: ChatMessage['sources'];
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
   success?: boolean;
   error?: string;
 }
@@ -1478,6 +1480,7 @@ export const AIConciergeChat = ({
                 usage: metadata.usage,
                 sources: metadata.sources as ChatMessage['sources'],
                 googleMapsWidget: metadata.googleMapsWidget ?? undefined,
+                googleMapsWidgetContextToken: metadata.googleMapsWidgetContextToken ?? undefined,
               }));
             },
             onError: (errorMsg: string) => {

@@ -58,6 +58,12 @@ Audit these dimensions:
 8. State synchronization after AI actions
 9. Observability and verification
 10. Scalability of agent workflows over time
+11. **Evaluation framework** (AgentOps 4-layer):
+    - Component testing: individual tool/function unit tests
+    - Trajectory review: multi-step action sequence correctness
+    - Outcome validation: end-to-end result verification
+    - Production monitoring: runtime metrics, latency, error rates
+12. **Cross-provider interoperability**: model/provider swap readiness, adapter boundaries
 
 ---
 

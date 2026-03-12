@@ -35,7 +35,7 @@ const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-const VERTEX_LIVE_MODEL = 'gemini-live-2.5-flash-native-audio';
+const VERTEX_LIVE_MODEL = Deno.env.get('VERTEX_LIVE_MODEL') || 'gemini-live-2.5-flash-native-audio';
 
 // All features ON by default — supported on GA native-audio model
 const VOICE_TOOLS_ENABLED =
