@@ -12,7 +12,7 @@ interface MessageItemProps {
     status?: 'sending' | 'sent' | 'failed';
     replyCount?: number;
   };
-  reactions?: Record<string, { count: number; userReacted: boolean }>;
+  reactions?: Record<string, { count: number; userReacted: boolean; users?: string[] }>;
   onReaction: (messageId: string, reactionType: string) => void;
   onReply?: (messageId: string) => void;
   showSenderInfo?: boolean;
@@ -26,6 +26,7 @@ interface MessageItemProps {
   };
   tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
   readStatuses?: ReadStatus[];
+  reactionUserNamesById?: Record<string, string>;
 }
 
 export const MessageItem = memo(
@@ -41,6 +42,7 @@ export const MessageItem = memo(
     systemMessagePrefs,
     tripMembers,
     readStatuses,
+    reactionUserNamesById,
   }: MessageItemProps) => {
     const { user } = useAuth();
     const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
@@ -130,6 +132,7 @@ export const MessageItem = memo(
           currentUserId={user?.id || ''}
           // Pass the resolved replyTo context if available
           replyTo={message.replyTo}
+          reactionUserNamesById={reactionUserNamesById}
         />
       </div>
     );

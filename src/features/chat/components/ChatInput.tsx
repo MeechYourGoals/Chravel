@@ -21,10 +21,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PaymentInput } from '@/components/payments/PaymentInput';
 import { useShareAsset } from '@/hooks/useShareAsset';
-import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { ParsedContentSuggestions } from './ParsedContentSuggestions';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fetchOGMetadata } from '@/services/ogMetadataService';
 import { cn } from '@/lib/utils';
 import * as haptics from '@/native/haptics';
@@ -87,6 +87,8 @@ export const ChatInput = ({
   const [isDragActive, setIsDragActive] = useState(false);
   const [isFetchingPreview, setIsFetchingPreview] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false); // Send-lock to prevent double submit
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareUrlInput, setShareUrlInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -106,21 +108,6 @@ export const ChatInput = ({
     parsedContent,
     clearParsedContent,
   } = useShareAsset(tripId);
-
-  const {
-    uploadFiles,
-    uploadQueue,
-    isUploading: isMediaUploading,
-  } = useMediaUpload({
-    tripId,
-    onComplete: () => {
-      // Upload complete - no action needed, message will be sent with attachment
-    },
-    onError: (error, fileName) => {
-      toast.error(`Failed to upload ${fileName}: ${error.message}`);
-      void haptics.error();
-    },
-  });
 
   // Track typing status
   useEffect(() => {
@@ -317,10 +304,6 @@ export const ChatInput = ({
     fileInputRef.current.onchange = async e => {
       const files = (e.target as HTMLInputElement).files;
       if (files && files.length > 0) {
-        // Use new upload hook with progress tracking
-        await uploadFiles(files);
-
-        // Also share to chat (legacy flow)
         await shareMultipleFiles(files, type);
 
         if (onFileUpload) {
@@ -359,9 +342,6 @@ export const ChatInput = ({
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      // Use new upload hook with progress tracking
-      await uploadFiles(files);
-
       const file = files[0];
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
@@ -376,14 +356,16 @@ export const ChatInput = ({
   };
 
   const handleLinkShare = async () => {
-    const url = prompt('Paste the link you want to share:');
-    if (url && url.trim()) {
-      try {
-        await shareLink(url.trim());
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('Failed to share link:', error);
-        }
+    const url = shareUrlInput.trim();
+    if (!url) return;
+
+    try {
+      await shareLink(url);
+      setShareUrlInput('');
+      setIsShareModalOpen(false);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to share link:', error);
       }
     }
   };
@@ -479,7 +461,7 @@ export const ChatInput = ({
 
               {/* Link */}
               <DropdownMenuItem
-                onClick={handleLinkShare}
+                onClick={() => setIsShareModalOpen(true)}
                 className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
               >
                 <Link className="w-4 h-4" />
@@ -538,7 +520,7 @@ export const ChatInput = ({
           <button
             onClick={handleSend}
             disabled={
-              (!inputMessage.trim() && !isMediaUploading && !isShareUploading) ||
+              (!inputMessage.trim() && !isShareUploading) ||
               isTyping ||
               isFetchingPreview ||
               isSendingMessage
@@ -606,27 +588,41 @@ export const ChatInput = ({
         </div>
       )}
 
-      {/* Upload Progress Indicators - New Media Hook */}
-      {uploadQueue.length > 0 && (
-        <div className="space-y-2 px-4 py-3 bg-background/50 backdrop-blur-sm rounded-lg border border-white/10">
-          {uploadQueue.map(item => (
-            <div key={item.fileId} className="flex items-center gap-3">
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-foreground/80 truncate max-w-[200px]">{item.fileName}</span>
-                  <span className="text-foreground/60">{item.progress}%</span>
-                </div>
-                <Progress value={item.progress} className="h-1.5" />
-              </div>
-              {item.status === 'complete' && <span className="text-green-500 text-sm">✓</span>}
-              {item.status === 'error' && <span className="text-red-500 text-sm">✗</span>}
-              {item.status === 'uploading' && (
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              )}
+      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+        <DialogContent className="bg-gray-900 border-white/10 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Share a link</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <textarea
+              value={shareUrlInput}
+              onChange={e => setShareUrlInput(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full min-h-[88px] rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsShareModalOpen(false);
+                  setShareUrlInput('');
+                }}
+                className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLinkShare}
+                disabled={!shareUrlInput.trim() || isShareUploading}
+                className="px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground disabled:opacity-50"
+              >
+                {isShareUploading ? 'Sharing…' : 'Share link'}
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

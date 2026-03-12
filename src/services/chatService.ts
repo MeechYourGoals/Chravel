@@ -4,13 +4,25 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type ReactionType = 'like' | 'love' | 'dislike' | 'important';
+export type ReactionType =
+  | 'like'
+  | 'love'
+  | 'laugh'
+  | 'wow'
+  | 'sad'
+  | 'angry'
+  | 'clap'
+  | 'party'
+  | 'question'
+  | 'dislike'
+  | 'important';
 
 export type ChatMessageInsert = Database['public']['Tables']['trip_chat_messages']['Insert'];
 
 export interface ReactionCount {
   count: number;
   userReacted: boolean;
+  users: string[];
 }
 
 type MessageRow = Database['public']['Tables']['trip_chat_messages']['Row'];
@@ -125,15 +137,24 @@ export async function deleteChannelMessage(messageId: string): Promise<boolean> 
   return true;
 }
 
-// ─── Reactions (payload-based, no separate table) ───────────────────────────
+// ─── Reactions (message_reactions table-backed) ─────────────────────────────
 
-interface PayloadReactions {
-  [reactionType: string]: string[]; // array of user IDs
-}
+const SUPPORTED_REACTION_TYPES = [
+  'like',
+  'love',
+  'laugh',
+  'wow',
+  'sad',
+  'angry',
+  'clap',
+  'party',
+  'question',
+  'dislike',
+  'important',
+] as const;
 
-function getReactionsFromPayload(payload: unknown): PayloadReactions {
-  const p = (payload as Record<string, unknown>) || {};
-  return (p.reactions as PayloadReactions) || {};
+function isValidReactionType(reactionType: string): reactionType is ReactionType {
+  return SUPPORTED_REACTION_TYPES.includes(reactionType as ReactionType);
 }
 
 export async function toggleMessageReaction(
@@ -142,39 +163,43 @@ export async function toggleMessageReaction(
   reactionType: ReactionType,
 ): Promise<{ data: unknown; error: unknown }> {
   try {
-    const { data: message, error: fetchError } = await supabase
-      .from('trip_chat_messages')
-      .select('payload')
-      .eq('id', messageId)
-      .single();
+    if (!isValidReactionType(reactionType)) {
+      throw new Error(`Unsupported reaction type: ${reactionType}`);
+    }
 
-    if (fetchError || !message) throw fetchError || new Error('Message not found');
+    const { data: existingReaction, error: existingError } = await supabase
+      .from('message_reactions')
+      .select('reaction_type')
+      .eq('message_id', messageId)
+      .eq('user_id', userId)
+      .maybeSingle();
 
-    const currentPayload = (message.payload as Record<string, unknown>) || {};
-    const reactions = getReactionsFromPayload(currentPayload);
-    const users = reactions[reactionType] || [];
-    const idx = users.indexOf(userId);
+    if (existingError) throw existingError;
 
-    if (idx >= 0) {
-      users.splice(idx, 1);
+    if (existingReaction?.reaction_type === reactionType) {
+      const { error: deleteError } = await supabase
+        .from('message_reactions')
+        .delete()
+        .eq('message_id', messageId)
+        .eq('user_id', userId);
+
+      if (deleteError) throw deleteError;
     } else {
-      users.push(userId);
+      const { error: deleteExistingError } = await supabase
+        .from('message_reactions')
+        .delete()
+        .eq('message_id', messageId)
+        .eq('user_id', userId);
+      if (deleteExistingError) throw deleteExistingError;
+
+      const { error: insertError } = await supabase.from('message_reactions').insert({
+        message_id: messageId,
+        user_id: userId,
+        reaction_type: reactionType,
+      });
+
+      if (insertError) throw insertError;
     }
-
-    const updatedReactions = { ...reactions, [reactionType]: users };
-    // Clean up empty arrays
-    for (const key of Object.keys(updatedReactions)) {
-      if (updatedReactions[key].length === 0) delete updatedReactions[key];
-    }
-
-    const newPayload = { ...currentPayload, reactions: updatedReactions };
-
-    const { error: updateError } = await supabase
-      .from('trip_chat_messages')
-      .update({ payload: newPayload as Json })
-      .eq('id', messageId);
-
-    if (updateError) throw updateError;
 
     return { data: { toggled: true }, error: null };
   } catch (error) {
@@ -191,24 +216,36 @@ export async function getMessagesReactions(
 
   try {
     const { data, error } = await supabase
-      .from('trip_chat_messages')
-      .select('id, payload')
-      .in('id', messageIds);
+      .from('message_reactions')
+      .select('message_id, reaction_type, user_id')
+      .in('message_id', messageIds);
 
     if (error) throw error;
 
     const result: Record<string, Record<string, ReactionCount>> = {};
 
     for (const row of data || []) {
-      const reactions = getReactionsFromPayload(row.payload);
-      if (Object.keys(reactions).length === 0) continue;
+      const messageId = row.message_id;
+      const reactionType = row.reaction_type;
+      const reactionUserId = row.user_id;
 
-      result[row.id] = {};
-      for (const [type, users] of Object.entries(reactions)) {
-        result[row.id][type] = {
-          count: users.length,
-          userReacted: currentUserId ? users.includes(currentUserId) : false,
+      if (!result[messageId]) {
+        result[messageId] = {};
+      }
+
+      if (!result[messageId][reactionType]) {
+        result[messageId][reactionType] = {
+          count: 0,
+          userReacted: false,
+          users: [],
         };
+      }
+
+      const reaction = result[messageId][reactionType];
+      reaction.count += 1;
+      reaction.users.push(reactionUserId);
+      if (currentUserId && reactionUserId === currentUserId) {
+        reaction.userReacted = true;
       }
     }
 
@@ -230,48 +267,60 @@ export function subscribeToReactions(
   tripId: string,
   callback: (payload: ReactionPayload) => void,
 ): RealtimeChannel {
+  const messageIdsPromise = supabase
+    .from('trip_chat_messages')
+    .select('id')
+    .eq('trip_id', tripId)
+    .then(({ data }) => new Set((data || []).map(row => row.id)));
+
   const channel = supabase
     .channel(`reactions-${tripId}`)
     .on(
       'postgres_changes',
       {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
-        table: 'trip_chat_messages',
-        filter: `trip_id=eq.${tripId}`,
+        table: 'message_reactions',
       },
-      change => {
-        // Detect reaction changes by comparing old vs new payload
-        const newPayload = (change.new as Record<string, unknown>)?.payload as Record<
-          string,
-          unknown
-        > | null;
-        const oldPayload = (change.old as Record<string, unknown>)?.payload as Record<
-          string,
-          unknown
-        > | null;
-        const newReactions = getReactionsFromPayload(newPayload);
-        const oldReactions = getReactionsFromPayload(oldPayload);
+      async change => {
+        const messageIds = await messageIdsPromise;
+        const row = (change.new || change.old) as Record<string, unknown>;
+        const messageId = row?.message_id as string | undefined;
+        const reactionType = row?.reaction_type as string | undefined;
+        const userId = row?.user_id as string | undefined;
 
-        const messageId = (change.new as Record<string, unknown>)?.id as string;
-        if (!messageId) return;
+        if (!messageId || !reactionType || !userId || !messageIds.has(messageId)) return;
 
-        // Find added/removed reactions
-        const allTypes = new Set([...Object.keys(newReactions), ...Object.keys(oldReactions)]);
-        for (const type of allTypes) {
-          const newUsers = new Set(newReactions[type] || []);
-          const oldUsers = new Set(oldReactions[type] || []);
+        if (change.eventType === 'INSERT' || change.eventType === 'DELETE') {
+          callback({
+            messageId,
+            reactionType,
+            eventType: change.eventType,
+            userId,
+          });
+          return;
+        }
 
-          for (const uid of newUsers) {
-            if (!oldUsers.has(uid)) {
-              callback({ messageId, reactionType: type, eventType: 'INSERT', userId: uid });
-            }
+        if (change.eventType === 'UPDATE') {
+          const oldRow = change.old as Record<string, unknown>;
+          const oldReactionType = oldRow?.reaction_type as string | undefined;
+          const oldUserId = oldRow?.user_id as string | undefined;
+
+          if (oldReactionType && oldUserId) {
+            callback({
+              messageId,
+              reactionType: oldReactionType,
+              eventType: 'DELETE',
+              userId: oldUserId,
+            });
           }
-          for (const uid of oldUsers) {
-            if (!newUsers.has(uid)) {
-              callback({ messageId, reactionType: type, eventType: 'DELETE', userId: uid });
-            }
-          }
+
+          callback({
+            messageId,
+            reactionType,
+            eventType: 'INSERT',
+            userId,
+          });
         }
       },
     )
