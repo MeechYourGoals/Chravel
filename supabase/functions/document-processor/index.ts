@@ -598,7 +598,7 @@ async function generateChunkEmbeddings(
     let vectors: number[][];
     try {
       const embeddingResult = await invokeEmbeddingModel({
-        model: 'text-embedding-004',
+        model: 'gemini-embedding-001',
         input: batch.map(row => row.content),
         timeoutMs: 30000,
       });
