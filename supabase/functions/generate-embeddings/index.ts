@@ -390,7 +390,6 @@ async function generateEmbeddings(sourceData: SourceData[]): Promise<any[]> {
     );
 
     const embeddingResult = await invokeEmbeddingModel({
-      model: 'text-embedding-004',
       input: batch.map(item => item.contentText),
       timeoutMs: 30000,
     });
