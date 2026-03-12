@@ -10,11 +10,17 @@ interface ChatMessageLike {
   id: string;
   created_at?: string;
   createdAt?: string;
+  sender_id?: string;
+  user_id?: string;
 }
 
 interface VirtualizedMessageContainerProps {
   messages: ChatMessageLike[];
-  renderMessage: (message: ChatMessageLike, index: number) => React.ReactNode;
+  renderMessage: (
+    message: ChatMessageLike,
+    index: number,
+    showSenderInfo: boolean,
+  ) => React.ReactNode;
   onLoadMore: () => void;
   hasMore: boolean;
   isLoading: boolean;
@@ -29,7 +35,7 @@ interface VirtualizedMessageContainerProps {
 
 type RowItem =
   | { type: 'date'; date: Date }
-  | { type: 'message'; message: ChatMessageLike; index: number };
+  | { type: 'message'; message: ChatMessageLike; index: number; showSenderInfo: boolean };
 
 const ROW_HEIGHT_ESTIMATE = 72;
 const DATE_ROW_HEIGHT = 40;
@@ -60,6 +66,8 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
   const localHasMore = visibleStartIndex > 0;
   const visibleMessages = messages.slice(visibleStartIndex);
 
+  const TWO_MINUTES_MS = 2 * 60 * 1000;
+
   const rows = useMemo((): RowItem[] => {
     const result: RowItem[] = [];
     visibleMessages.forEach((message, idx) => {
@@ -72,7 +80,15 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
       if (showDateSeparator) {
         result.push({ type: 'date', date: currentDate });
       }
-      result.push({ type: 'message', message, index: visibleStartIndex + idx });
+      // Collapse sender info if same sender within 2-minute window (message grouping)
+      const senderId = message.sender_id || message.user_id;
+      const prevSenderId = prevMessage ? prevMessage.sender_id || prevMessage.user_id : null;
+      const withinWindow = prevDate
+        ? currentDate.getTime() - prevDate.getTime() < TWO_MINUTES_MS
+        : false;
+      const showSenderInfo =
+        showDateSeparator || !senderId || senderId !== prevSenderId || !withinWindow;
+      result.push({ type: 'message', message, index: visibleStartIndex + idx, showSenderInfo });
     });
     return result;
   }, [visibleMessages, visibleStartIndex]);
@@ -255,7 +271,9 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="space-y-2">{renderMessage(row.message, row.index)}</div>
+                <div className="space-y-2">
+                  {renderMessage(row.message, row.index, row.showSenderInfo)}
+                </div>
               </div>
             );
           })}

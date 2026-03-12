@@ -514,7 +514,7 @@ export const TripChat = React.memo(
           user?.id,
           effectivePrivacyMode,
           messageType,
-          // TODO: Pass replyingTo?.id here once useTripChat is updated
+          replyingTo?.id,
         );
 
         // Auto-parse message for entities (dates, times, locations)
@@ -830,7 +830,7 @@ export const TripChat = React.memo(
                 ) : (
                   <VirtualizedMessageContainer
                     messages={messagesWithFailed as any}
-                    renderMessage={(message: any) => (
+                    renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
                       <div data-message-id={message.id}>
                         <MessageItem
                           message={message}
@@ -843,6 +843,7 @@ export const TripChat = React.memo(
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
                           tripMembers={tripMembers} // Pass trip members
                           readStatuses={readStatusesByMessage[message.id]} // Pass read statuses for this message
+                          showSenderInfo={showSenderInfo}
                         />
                       </div>
                     )}

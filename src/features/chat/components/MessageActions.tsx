@@ -6,11 +6,12 @@
  */
 
 import React, { useState } from 'react';
-import { Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, MessageSquareReply, Copy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -41,6 +42,7 @@ export interface MessageActionsProps {
   isDeleted?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
+  onReply?: (messageId: string) => void;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -51,6 +53,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   isDeleted = false,
   onEdit,
   onDelete,
+  onReply,
 }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -131,8 +134,24 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
+          {/* Actions available for all messages */}
+          <DropdownMenuItem onClick={() => onReply?.(messageId)}>
+            <MessageSquareReply className="mr-2 h-4 w-4" />
+            Reply
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              navigator.clipboard.writeText(messageContent).catch(() => {});
+              toast.success('Copied');
+            }}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            Copy
+          </DropdownMenuItem>
+          {/* Own-message-only actions */}
           {isOwnMessage && (
             <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
                   setEditedContent(messageContent);

@@ -38,6 +38,7 @@ interface CreateMessageRequest {
   userId?: string;
   privacyMode?: string;
   messageType?: 'text' | 'broadcast' | 'payment' | 'system';
+  replyToId?: string;
 }
 
 /**
@@ -374,6 +375,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         message_type: message.messageType || 'text',
         media_type: message.media_type,
         media_url: message.media_url,
+        reply_to_id: message.replyToId,
       };
 
       // If offline, queue the message using unified sync service
@@ -440,6 +442,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     userId?: string,
     privacyMode?: string,
     messageType?: 'text' | 'broadcast' | 'payment' | 'system',
+    replyToId?: string,
   ) => {
     createMessageMutation.mutate({
       content,
@@ -449,6 +452,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       userId,
       privacyMode,
       messageType,
+      replyToId,
     });
   };
 
@@ -460,6 +464,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     userId?: string,
     privacyMode?: string,
     messageType?: 'text' | 'broadcast' | 'payment' | 'system',
+    replyToId?: string,
   ) => {
     return createMessageMutation.mutateAsync({
       content,
@@ -469,6 +474,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       userId,
       privacyMode,
       messageType,
+      replyToId,
     });
   };
 

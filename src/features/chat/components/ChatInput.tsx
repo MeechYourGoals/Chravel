@@ -12,7 +12,9 @@ import {
   Image,
   Film,
   File,
+  Smile,
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,6 +99,46 @@ export const ChatInput = ({
   const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(null);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const [mentionedUsers, setMentionedUsers] = useState<TripMember[]>([]);
+
+  // Emoji picker state — lazily loaded on first open
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerData, setEmojiPickerData] = useState<any>(null);
+  const [EmojiPickerComponent, setEmojiPickerComponent] = useState<React.ComponentType<any> | null>(
+    null,
+  );
+
+  const loadEmojiPicker = useCallback(async () => {
+    if (EmojiPickerComponent) return;
+    const [{ Picker }, dataModule] = await Promise.all([
+      import('@emoji-mart/react'),
+      import('@emoji-mart/data'),
+    ]);
+    setEmojiPickerData(dataModule.default);
+    setEmojiPickerComponent(() => Picker);
+  }, [EmojiPickerComponent]);
+
+  const handleEmojiSelect = useCallback(
+    (emoji: { native: string }) => {
+      const textarea = textareaRef.current;
+      if (!textarea) {
+        onInputChange(inputMessage + emoji.native);
+        setShowEmojiPicker(false);
+        return;
+      }
+      const start = textarea.selectionStart ?? inputMessage.length;
+      const end = textarea.selectionEnd ?? inputMessage.length;
+      const newValue = inputMessage.slice(0, start) + emoji.native + inputMessage.slice(end);
+      onInputChange(newValue);
+      // Restore cursor after inserted emoji
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const newPos = start + emoji.native.length;
+        textarea.setSelectionRange(newPos, newPos);
+      });
+      setShowEmojiPicker(false);
+    },
+    [inputMessage, onInputChange],
+  );
 
   const {
     shareLink,
@@ -442,6 +484,43 @@ export const ChatInput = ({
               </div>
             </div>
           )}
+
+          {/* Emoji Picker Button — desktop-first, lazy-loaded */}
+          <Popover
+            open={showEmojiPicker}
+            onOpenChange={open => {
+              setShowEmojiPicker(open);
+              if (open) loadEmojiPicker();
+            }}
+          >
+            <PopoverTrigger asChild>
+              <button
+                className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-neutral-900 hover:bg-neutral-800 transition-all"
+                aria-label="Insert emoji"
+              >
+                <Smile className="w-5 h-5 text-neutral-300" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              align="start"
+              className="p-0 w-auto border-0 bg-transparent shadow-none"
+            >
+              {EmojiPickerComponent && emojiPickerData ? (
+                <EmojiPickerComponent
+                  data={emojiPickerData}
+                  onEmojiSelect={handleEmojiSelect}
+                  theme="dark"
+                  previewPosition="none"
+                  skinTonePosition="none"
+                />
+              ) : (
+                <div className="w-72 h-40 flex items-center justify-center bg-neutral-900 rounded-xl text-neutral-400 text-sm">
+                  Loading emojis…
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
 
           {/* + Button with Dropdown Menu */}
           <DropdownMenu>

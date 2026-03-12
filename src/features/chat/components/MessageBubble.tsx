@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, useRef, useCallback, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MessageReactionBar } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/utils/avatarUtils';
 import { defaultAvatar } from '@/utils/mockAvatars';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
+import { hapticService } from '@/services/hapticService';
 
 export interface MessageBubbleProps {
   id: string;
@@ -116,6 +117,12 @@ export const MessageBubble = memo(
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState(0);
+    const [swipeOffset, setSwipeOffset] = useState(0);
+    const [swipeThresholdMet, setSwipeThresholdMet] = useState(false);
+    const swipeTouchStartX = useRef(0);
+    const swipeTouchStartY = useRef(0);
+    const swipeIsActive = useRef(false);
+    const swipeHapticFired = useRef(false);
     const isMobilePortrait = useMobilePortrait();
 
     // Check for media content
@@ -336,18 +343,87 @@ export const MessageBubble = memo(
     };
 
     // Unified layout: Metadata above bubble for both mobile and desktop (consistency)
-    const _longPressHandlers = useLongPress({
+    const hideReactionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const longPressHandlers = useLongPress({
       onLongPress: () => {
         setShowReactions(true);
-        // Auto-hide after 5 seconds
-        setTimeout(() => setShowReactions(false), 5000);
+        // Auto-hide after 5 seconds on mobile long-press
+        if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
+        hideReactionsTimerRef.current = setTimeout(() => setShowReactions(false), 5000);
       },
       threshold: 500,
     });
 
+    const handleMouseEnter = useCallback(() => {
+      if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
+      setShowReactions(true);
+    }, []);
+
+    const handleMouseLeave = useCallback(() => {
+      if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
+      hideReactionsTimerRef.current = setTimeout(() => setShowReactions(false), 300);
+    }, []);
+
+    // Swipe-to-reply touch handlers (mobile only, swipe right)
+    const SWIPE_THRESHOLD = 60;
+    const handleTouchStart = useCallback(
+      (e: React.TouchEvent) => {
+        if (!isMobilePortrait || !onReply) return;
+        swipeTouchStartX.current = e.touches[0].clientX;
+        swipeTouchStartY.current = e.touches[0].clientY;
+        swipeIsActive.current = false;
+        swipeHapticFired.current = false;
+      },
+      [isMobilePortrait, onReply],
+    );
+
+    const handleTouchMove = useCallback(
+      (e: React.TouchEvent) => {
+        if (!isMobilePortrait || !onReply) return;
+        const dx = e.touches[0].clientX - swipeTouchStartX.current;
+        const dy = e.touches[0].clientY - swipeTouchStartY.current;
+        // Only activate for dominant rightward swipes
+        if (!swipeIsActive.current) {
+          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+          if (Math.abs(dy) > Math.abs(dx)) return; // vertical scroll wins
+          if (dx < 0) return; // leftward swipe — ignore
+          swipeIsActive.current = true;
+        }
+        const clamped = Math.min(dx, SWIPE_THRESHOLD + 20);
+        setSwipeOffset(clamped);
+        const met = clamped >= SWIPE_THRESHOLD;
+        if (met && !swipeHapticFired.current) {
+          hapticService.light();
+          swipeHapticFired.current = true;
+        }
+        setSwipeThresholdMet(met);
+      },
+      [isMobilePortrait, onReply],
+    );
+
+    const handleTouchEnd = useCallback(() => {
+      if (!swipeIsActive.current) return;
+      if (swipeThresholdMet && onReply) {
+        onReply(id);
+      }
+      setSwipeOffset(0);
+      setSwipeThresholdMet(false);
+      swipeIsActive.current = false;
+      swipeHapticFired.current = false;
+    }, [swipeThresholdMet, onReply, id]);
+
     return (
       <>
-        <div className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}>
+        <div
+          className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}
+          {...longPressHandlers}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {!isOwnMessage && showSenderInfo && (
             <Avatar className="w-8 h-8 md:w-10 md:h-10 border-2 border-border/50 flex-shrink-0">
               <AvatarImage src={senderAvatar || defaultAvatar} alt={senderName} />
@@ -358,11 +434,27 @@ export const MessageBubble = memo(
           )}
           {!isOwnMessage && !showSenderInfo && <div className="w-8 md:w-10 flex-shrink-0" />}
 
+          {/* Swipe-to-reply hint icon */}
+          {swipeOffset > 10 && (
+            <div
+              className={cn(
+                'flex items-center justify-center w-7 h-7 rounded-full bg-primary/20 mr-1 flex-shrink-0 transition-opacity',
+                swipeThresholdMet ? 'opacity-100' : 'opacity-50',
+              )}
+            >
+              <MessageSquareReply className="w-4 h-4 text-primary" />
+            </div>
+          )}
+
           <div
             className={cn(
               'flex flex-col max-w-[85%]',
               isOwnMessage ? 'items-end text-right' : 'items-start text-left',
             )}
+            style={{
+              transform: swipeOffset > 0 ? `translateX(${swipeOffset}px)` : undefined,
+              transition: swipeOffset === 0 ? 'transform 0.2s ease' : undefined,
+            }}
           >
             <div className="flex items-center gap-2">
               {showSenderInfo && (
@@ -379,6 +471,7 @@ export const MessageBubble = memo(
                 isDeleted={isDeleted}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onReply={onReply}
               />
             </div>
             <div
@@ -500,8 +593,37 @@ export const MessageBubble = memo(
               </div>
             )}
 
+            {/* Persistent reaction badges — always visible when count > 0 */}
+            {reactions && Object.keys(reactions).some(k => reactions[k].count > 0) && (
+              <div
+                className={cn(
+                  'flex flex-wrap gap-1 mt-1',
+                  isOwnMessage ? 'justify-end' : 'justify-start',
+                )}
+              >
+                {Object.entries(reactions)
+                  .filter(([, data]) => data.count > 0)
+                  .map(([emoji, data]) => (
+                    <button
+                      key={emoji}
+                      onClick={() => onReaction(id, emoji)}
+                      className={cn(
+                        'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors',
+                        data.userReacted
+                          ? 'bg-primary/20 border border-primary/40 text-primary'
+                          : 'bg-muted/60 border border-white/10 text-white/70 hover:bg-muted/80',
+                      )}
+                    >
+                      <span>{emoji}</span>
+                      <span>{data.count}</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+
+            {/* Reaction picker — shown on hover (desktop) or long-press (mobile) */}
             {showReactions && (
-              <div className={cn(isMobilePortrait ? 'mt-1' : 'mt-1')}>
+              <div className="mt-1">
                 <MessageReactionBar messageId={id} reactions={reactions} onReaction={onReaction} />
               </div>
             )}
