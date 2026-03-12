@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.seed-carlton-social]
 verify_jwt = false
+
+[functions.regenerate-all-embeddings]
+verify_jwt = false
