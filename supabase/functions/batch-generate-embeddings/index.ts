@@ -11,7 +11,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-serve(async (req) => {
+serve(async req => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -34,38 +34,47 @@ serve(async (req) => {
 
     if (tripsError) throw tripsError;
 
-    console.log(`[batch-embed] Processing ${trips?.length || 0} trips (offset=${offset}, limit=${limit})`);
+    console.log(
+      `[batch-embed] Processing ${trips?.length || 0} trips (offset=${offset}, limit=${limit})`,
+    );
 
-    const results: { tripId: string; name: string; status: string; count?: number; error?: string }[] = [];
+    const results: {
+      tripId: string;
+      name: string;
+      status: string;
+      count?: number;
+      error?: string;
+    }[] = [];
 
-    for (const trip of (trips || [])) {
+    for (const trip of trips || []) {
       try {
         console.log(`[batch-embed] Processing: ${trip.name} (${trip.id})`);
-        
+
         // Collect all source data for this trip
         const sourceData = await collectTripData(supabase, trip.id);
-        
+
         if (sourceData.length === 0) {
           results.push({ tripId: trip.id, name: trip.name, status: 'skipped', count: 0 });
           continue;
         }
 
         // Delete existing embeddings for force refresh
-        await supabase
-          .from('trip_embeddings')
-          .delete()
-          .eq('trip_id', trip.id);
+        await supabase.from('trip_embeddings').delete().eq('trip_id', trip.id);
 
         let processed = 0;
         console.log(`[batch-embed] ${trip.name}: ${sourceData.length} items to embed`);
         // Process in batches of 3
         for (let i = 0; i < sourceData.length; i += 3) {
           const batch = sourceData.slice(i, i + 3);
-          const embedPromises = batch.map(async (item) => {
+          const embedPromises = batch.map(async item => {
             try {
-              console.log(`[batch-embed] Embedding: ${item.sourceType}/${item.sourceId} (${item.contentText.length} chars)`);
+              console.log(
+                `[batch-embed] Embedding: ${item.sourceType}/${item.sourceId} (${item.contentText.length} chars)`,
+              );
               const result = await invokeEmbeddingModel({ input: item.contentText });
-              console.log(`[batch-embed] Result keys: ${Object.keys(result || {}).join(',')}, embeddings count: ${result?.embeddings?.length}`);
+              console.log(
+                `[batch-embed] Result keys: ${Object.keys(result || {}).join(',')}, embeddings count: ${result?.embeddings?.length}`,
+              );
               const embedding = result?.embeddings?.[0];
               if (embedding) {
                 const { error: insertError } = await supabase.from('trip_embeddings').insert({
@@ -82,17 +91,30 @@ serve(async (req) => {
                   processed++;
                 }
               } else {
-                console.warn(`[batch-embed] No embedding returned for ${item.sourceType}/${item.sourceId}`);
+                console.warn(
+                  `[batch-embed] No embedding returned for ${item.sourceType}/${item.sourceId}`,
+                );
               }
             } catch (e) {
-              console.error(`[batch-embed] Embed error for ${item.sourceType}/${item.sourceId}:`, e instanceof Error ? e.message : String(e));
+              console.error(
+                `[batch-embed] Embed error for ${item.sourceType}/${item.sourceId}:`,
+                e instanceof Error ? e.message : String(e),
+              );
             }
           });
           await Promise.all(embedPromises);
         }
 
-        results.push({ tripId: trip.id, name: trip.name, status: 'ok', count: processed, sourceCount: sourceData.length });
-        console.log(`[batch-embed] Done: ${trip.name} — ${processed}/${sourceData.length} embeddings`);
+        results.push({
+          tripId: trip.id,
+          name: trip.name,
+          status: 'ok',
+          count: processed,
+          sourceCount: sourceData.length,
+        });
+        console.log(
+          `[batch-embed] Done: ${trip.name} — ${processed}/${sourceData.length} embeddings`,
+        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         results.push({ tripId: trip.id, name: trip.name, status: 'error', error: msg });
@@ -101,7 +123,9 @@ serve(async (req) => {
     }
 
     const totalProcessed = results.reduce((sum, r) => sum + (r.count || 0), 0);
-    console.log(`[batch-embed] Complete: ${totalProcessed} total embeddings across ${trips?.length} trips`);
+    console.log(
+      `[batch-embed] Complete: ${totalProcessed} total embeddings across ${trips?.length} trips`,
+    );
 
     return new Response(JSON.stringify({ success: true, totalProcessed, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -123,7 +147,10 @@ interface SourceItem {
   metadata: Record<string, unknown>;
 }
 
-async function collectTripData(supabase: ReturnType<typeof createClient>, tripId: string): Promise<SourceItem[]> {
+async function collectTripData(
+  supabase: ReturnType<typeof createClient>,
+  tripId: string,
+): Promise<SourceItem[]> {
   const items: SourceItem[] = [];
 
   // Chat messages
@@ -133,7 +160,7 @@ async function collectTripData(supabase: ReturnType<typeof createClient>, tripId
     .eq('trip_id', tripId)
     .not('content', 'is', null);
 
-  for (const msg of (messages || [])) {
+  for (const msg of messages || []) {
     if (msg.content && msg.content.trim().length > 5) {
       items.push({
         tripId,
@@ -151,7 +178,7 @@ async function collectTripData(supabase: ReturnType<typeof createClient>, tripId
     .select('id, title, description, created_at')
     .eq('trip_id', tripId);
 
-  for (const task of (tasks || [])) {
+  for (const task of tasks || []) {
     items.push({
       tripId,
       sourceType: 'task',
@@ -167,7 +194,7 @@ async function collectTripData(supabase: ReturnType<typeof createClient>, tripId
     .select('id, question, options, created_at')
     .eq('trip_id', tripId);
 
-  for (const poll of (polls || [])) {
+  for (const poll of polls || []) {
     items.push({
       tripId,
       sourceType: 'poll',
@@ -183,7 +210,7 @@ async function collectTripData(supabase: ReturnType<typeof createClient>, tripId
     .select('id, description, amount, currency, created_at')
     .eq('trip_id', tripId);
 
-  for (const pay of (payments || [])) {
+  for (const pay of payments || []) {
     items.push({
       tripId,
       sourceType: 'payment',
@@ -199,7 +226,7 @@ async function collectTripData(supabase: ReturnType<typeof createClient>, tripId
     .select('id, message, created_at')
     .eq('trip_id', tripId);
 
-  for (const bc of (broadcasts || [])) {
+  for (const bc of broadcasts || []) {
     items.push({
       tripId,
       sourceType: 'broadcast',
@@ -215,7 +242,7 @@ async function collectTripData(supabase: ReturnType<typeof createClient>, tripId
     .select('id, title, description, location, start_time, end_time')
     .eq('trip_id', tripId);
 
-  for (const evt of (events || [])) {
+  for (const evt of events || []) {
     items.push({
       tripId,
       sourceType: 'calendar',
@@ -231,7 +258,7 @@ async function collectTripData(supabase: ReturnType<typeof createClient>, tripId
     .select('id, title, url, description')
     .eq('trip_id', tripId);
 
-  for (const link of (links || [])) {
+  for (const link of links || []) {
     items.push({
       tripId,
       sourceType: 'link',
