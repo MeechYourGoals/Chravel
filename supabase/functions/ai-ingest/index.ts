@@ -406,7 +406,7 @@ async function ingestSingleItem(
 async function generateEmbedding(text: string): Promise<number[]> {
   const result = await invokeEmbeddingModel({
     input: text.slice(0, 8000),
-    model: 'gemini-embedding-001',
+    model: 'text-embedding-004',
     timeoutMs: 30_000,
   });
 

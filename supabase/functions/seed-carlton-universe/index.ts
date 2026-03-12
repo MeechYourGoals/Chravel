@@ -3199,7 +3199,7 @@ serve(async req => {
       const baseTime = new Date(trip.start_date).getTime();
       for (let i = 0; i < queries.length; i++) {
         const metadata: Record<string, unknown> = {
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-2.0-flash',
           context_sources: ['chat', 'calendar', 'places'],
         };
         if (queries[i].rich_cards) {

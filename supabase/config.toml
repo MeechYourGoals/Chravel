@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.concierge-tts]
 verify_jwt = false
+
+[functions.batch-generate-embeddings]
+verify_jwt = false
