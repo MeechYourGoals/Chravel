@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { TripChannel, ChannelMessage } from '../../../types/roleChannels';
 import { channelService } from '../../../services/channelService';
 import { useToast } from '../../../hooks/use-toast';
@@ -15,6 +15,13 @@ import {
   formatToastDescription,
   validateMessageContent,
 } from '@/utils/channelErrors';
+import {
+  toggleMessageReaction,
+  getMessagesReactions,
+  subscribeToReactions,
+  type ReactionType,
+} from '@/services/chatService';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,7 +60,7 @@ export const ChannelChatView = ({
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reactions, setReactions] = useState<
-    Record<string, Record<string, { count: number; userReacted: boolean }>>
+    Record<string, Record<string, { count: number; userReacted: boolean; users: string[] }>>
   >({});
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -61,6 +68,13 @@ export const ChannelChatView = ({
   const { toast } = useToast();
   const { canPerformAction } = useRolePermissions(channel.tripId);
   const { leaveRole } = useRoleAssignments({ tripId: channel.tripId });
+
+  const DEMO_TRIP_IDS = [
+    'lakers-road-trip',
+    'beyonce-cowboy-carter-tour',
+    'eli-lilly-c-suite-retreat-2026',
+  ];
+  const isDemoChannel = DEMO_TRIP_IDS.includes(channel.tripId);
 
   // Handle user leaving the channel/role (self-service)
   const handleLeaveChannel = async () => {
@@ -243,22 +257,140 @@ export const ChannelChatView = ({
     }
   };
 
-  const handleReaction = (messageId: string, reactionType: string) => {
-    const updatedReactions = { ...reactions };
-    if (!updatedReactions[messageId]) {
-      updatedReactions[messageId] = {};
-    }
+  // Load reactions for visible messages and subscribe to realtime updates
+  useEffect(() => {
+    if (!user?.id || isDemoChannel || messages.length === 0) return;
 
-    const currentReaction = updatedReactions[messageId][reactionType] || {
-      count: 0,
-      userReacted: false,
+    const messageIds = messages.map(m => m.id);
+
+    const loadReactions = async () => {
+      const fetched = await getMessagesReactions(messageIds, user.id);
+      const formatted: typeof reactions = {};
+      for (const [msgId, typeMap] of Object.entries(fetched)) {
+        formatted[msgId] = {};
+        for (const [type, data] of Object.entries(typeMap)) {
+          formatted[msgId][type] = {
+            count: data.count,
+            userReacted: data.userReacted,
+            users: data.users || [],
+          };
+        }
+      }
+      setReactions(formatted);
     };
-    currentReaction.userReacted = !currentReaction.userReacted;
-    currentReaction.count += currentReaction.userReacted ? 1 : -1;
 
-    updatedReactions[messageId][reactionType] = currentReaction;
-    setReactions(updatedReactions);
-  };
+    loadReactions();
+
+    const knownIds = new Set(messageIds);
+    const reactionChannel = subscribeToReactions(
+      channel.tripId,
+      payload => {
+        setReactions(prev => {
+          const updated = { ...prev };
+          if (!updated[payload.messageId]) {
+            updated[payload.messageId] = {};
+          }
+          const current = updated[payload.messageId][payload.reactionType] || {
+            count: 0,
+            userReacted: false,
+            users: [],
+          };
+
+          if (payload.eventType === 'INSERT') {
+            updated[payload.messageId][payload.reactionType] = {
+              count: current.count + 1,
+              userReacted: payload.userId === user.id ? true : current.userReacted,
+              users: Array.from(new Set([...current.users, payload.userId])),
+            };
+          } else if (payload.eventType === 'DELETE') {
+            updated[payload.messageId][payload.reactionType] = {
+              count: Math.max(0, current.count - 1),
+              userReacted: payload.userId === user.id ? false : current.userReacted,
+              users: current.users.filter(id => id !== payload.userId),
+            };
+          }
+
+          return updated;
+        });
+      },
+      knownIds,
+    );
+
+    return () => {
+      supabase.removeChannel(reactionChannel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- messages.length tracks when message list changes
+  }, [user?.id, channel.tripId, messages.length, isDemoChannel]);
+
+  const handleReaction = useCallback(
+    async (messageId: string, reactionType: string) => {
+      if (!user?.id) return;
+
+      if (isDemoChannel) {
+        // Demo mode: local-only reactions
+        setReactions(prev => {
+          const updated = { ...prev };
+          if (!updated[messageId]) updated[messageId] = {};
+          const current = updated[messageId][reactionType] || {
+            count: 0,
+            userReacted: false,
+            users: [],
+          };
+          const wasReacted = current.userReacted;
+          updated[messageId][reactionType] = {
+            count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
+            userReacted: !wasReacted,
+            users: wasReacted
+              ? current.users.filter(id => id !== user.id)
+              : Array.from(new Set([...current.users, user.id])),
+          };
+          return updated;
+        });
+        return;
+      }
+
+      // Optimistic update
+      setReactions(prev => {
+        const updated = { ...prev };
+        if (!updated[messageId]) updated[messageId] = {};
+        const current = updated[messageId][reactionType] || {
+          count: 0,
+          userReacted: false,
+          users: [],
+        };
+        const wasReacted = current.userReacted;
+        updated[messageId][reactionType] = {
+          count: wasReacted ? Math.max(0, current.count - 1) : current.count + 1,
+          userReacted: !wasReacted,
+          users: wasReacted
+            ? current.users.filter(id => id !== user.id)
+            : Array.from(new Set([...current.users, user.id])),
+        };
+        return updated;
+      });
+
+      // Persist to database
+      const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
+      if (result.error) {
+        // Revert on failure — refetch all reactions
+        const messageIds = messages.map(m => m.id);
+        const freshReactions = await getMessagesReactions(messageIds, user.id);
+        const formatted: typeof reactions = {};
+        for (const [msgId, typeMap] of Object.entries(freshReactions)) {
+          formatted[msgId] = {};
+          for (const [type, data] of Object.entries(typeMap)) {
+            formatted[msgId][type] = {
+              count: data.count,
+              userReacted: data.userReacted,
+              users: data.users || [],
+            };
+          }
+        }
+        setReactions(formatted);
+      }
+    },
+    [user?.id, messages, isDemoChannel],
+  );
 
   // Calculate member count from available channels, with direct DB fallback
   const [memberCount, setMemberCount] = useState(0);
@@ -274,12 +406,7 @@ export const ChannelChatView = ({
     }
 
     // Fallback: query channel_members directly for an accurate count
-    const DEMO_TRIP_IDS_LOCAL = [
-      'lakers-road-trip',
-      'beyonce-cowboy-carter-tour',
-      'eli-lilly-c-suite-retreat-2026',
-    ];
-    if (!channel?.id || DEMO_TRIP_IDS_LOCAL.includes(channel.tripId)) return;
+    if (!channel?.id || isDemoChannel) return;
 
     const fetchMemberCount = async () => {
       try {
@@ -318,15 +445,8 @@ export const ChannelChatView = ({
     };
 
     fetchMemberCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isDemoChannel derived from channel.tripId already in deps
   }, [channel?.id, channel?.tripId, availableChannels]);
-
-  // Check if this is a demo channel (can't leave demo channels)
-  const DEMO_TRIP_IDS = [
-    'lakers-road-trip',
-    'beyonce-cowboy-carter-tour',
-    'eli-lilly-c-suite-retreat-2026',
-  ];
-  const isDemoChannel = DEMO_TRIP_IDS.includes(channel.tripId);
 
   return (
     <>

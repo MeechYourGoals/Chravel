@@ -167,43 +167,16 @@ export async function toggleMessageReaction(
       throw new Error(`Unsupported reaction type: ${reactionType}`);
     }
 
-    const { data: existingReaction, error: existingError } = await supabase
-      .from('message_reactions')
-      .select('reaction_type')
-      .eq('message_id', messageId)
-      .eq('user_id', userId)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('toggle_reaction', {
+      p_message_id: messageId,
+      p_user_id: userId,
+      p_reaction_type: reactionType,
+    });
 
-    if (existingError) throw existingError;
+    if (error) throw error;
 
-    if (existingReaction?.reaction_type === reactionType) {
-      const { error: deleteError } = await supabase
-        .from('message_reactions')
-        .delete()
-        .eq('message_id', messageId)
-        .eq('user_id', userId);
-
-      if (deleteError) throw deleteError;
-    } else {
-      const { error: deleteExistingError } = await supabase
-        .from('message_reactions')
-        .delete()
-        .eq('message_id', messageId)
-        .eq('user_id', userId);
-      if (deleteExistingError) throw deleteExistingError;
-
-      const { error: insertError } = await supabase.from('message_reactions').insert({
-        message_id: messageId,
-        user_id: userId,
-        reaction_type: reactionType,
-      });
-
-      if (insertError) throw insertError;
-    }
-
-    return { data: { toggled: true }, error: null };
+    return { data: { toggled: true, result: data }, error: null };
   } catch (error) {
-    console.error('[chatService] toggleMessageReaction error:', error);
     return { data: null, error };
   }
 }
@@ -266,15 +239,20 @@ interface ReactionPayload {
 export function subscribeToReactions(
   tripId: string,
   callback: (payload: ReactionPayload) => void,
+  knownMessageIds?: Set<string>,
 ): RealtimeChannel {
-  const messageIdsPromise = supabase
-    .from('trip_chat_messages')
-    .select('id')
-    .eq('trip_id', tripId)
-    .then(({ data }) => new Set((data || []).map(row => row.id)));
+  const messageIdsPromise = knownMessageIds
+    ? Promise.resolve(knownMessageIds)
+    : supabase
+        .from('trip_chat_messages')
+        .select('id')
+        .eq('trip_id', tripId)
+        .then(({ data }) => new Set((data || []).map(row => row.id)));
+
+  const channelName = knownMessageIds ? `reactions-channel-${tripId}` : `reactions-${tripId}`;
 
   const channel = supabase
-    .channel(`reactions-${tripId}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       {

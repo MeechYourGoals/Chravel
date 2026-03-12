@@ -22,7 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createTripLink } from '@/services/tripLinksService';
 import { toast } from 'sonner';
-import { getUploadContentType } from '@/utils/mime';
+import { uploadTripMedia } from '@/services/mediaService';
 
 interface MediaItem {
   id: string;
@@ -317,8 +317,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       const uploadedUrls: string[] = [];
 
       for (const file of Array.from(files)) {
-        const contentType = getUploadContentType(file);
-        const mime = contentType || '';
+        const mime = file.type || '';
         // Check extension for video detection (Files app may not set MIME type correctly)
         const isVideoByExtension = /\.(mp4|mov|m4v|avi|webm|mkv)$/i.test(file.name);
         const detected: 'image' | 'video' | 'document' = mime.startsWith('image/')
@@ -340,44 +339,12 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           continue;
         }
 
-        const safeName = file.name.replace(/\//g, '-');
-        const storagePath = `${tripId}/${pre.userId}/${Date.now()}-${safeName}`;
-
-        // CRITICAL: iOS Safari requires correct Content-Type headers to decode video
-        const { error: uploadError } = await supabase.storage
-          .from('trip-media')
-          .upload(storagePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType,
-          });
-
-        if (uploadError) {
-          console.error('[MobileUnifiedMediaHub] Upload error:', uploadError);
+        try {
+          const result = await uploadTripMedia(tripId, file, pre.userId, finalType);
+          uploadedUrls.push(result.media_url);
+        } catch (_uploadErr) {
           toast.error(`Failed to upload ${file.name}`);
           continue;
-        }
-
-        const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(storagePath);
-        const publicUrl = urlData.publicUrl;
-        uploadedUrls.push(publicUrl);
-
-        const { error: dbError } = await supabase.from('trip_media_index').insert({
-          trip_id: tripId,
-          media_url: publicUrl,
-          filename: file.name,
-          media_type: finalType,
-          file_size: file.size,
-          mime_type: contentType,
-          metadata: {
-            upload_path: storagePath,
-            uploaded_by: pre.userId,
-          },
-        });
-
-        if (dbError) {
-          console.error('[MobileUnifiedMediaHub] DB error:', dbError);
-          toast.error(`Failed to save ${file.name}`);
         }
       }
 
