@@ -636,6 +636,10 @@ export const TripDetailDesktop = () => {
         tripName={tripWithUpdatedData.title}
         tripId={tripId || '1'}
         userId={user?.id}
+        coverPhoto={tripWithUpdatedData.coverPhoto}
+        location={tripWithUpdatedData.location}
+        dateRange={tripWithUpdatedData.dateRange}
+        peopleCount={tripWithUpdatedData.participants?.length}
       />
 
       {/* Export Modal */}

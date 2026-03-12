@@ -15,6 +15,10 @@ interface InviteModalProps {
   tripId?: string;
   proTripId?: string;
   tripType?: 'consumer' | 'pro' | 'event';
+  coverPhoto?: string;
+  location?: string;
+  dateRange?: string;
+  peopleCount?: number;
 }
 
 export const InviteModal = ({
@@ -24,6 +28,10 @@ export const InviteModal = ({
   tripId,
   proTripId,
   tripType = 'consumer',
+  coverPhoto,
+  location,
+  dateRange,
+  peopleCount,
 }: InviteModalProps) => {
   const isMobile = useIsMobile();
   // All trip types require approval (enforced on backend)
@@ -46,7 +54,14 @@ export const InviteModal = ({
 
   const modalContent = (
     <>
-      <InviteModalHeader tripName={tripName} onClose={onClose} />
+      <InviteModalHeader
+        tripName={tripName}
+        onClose={onClose}
+        coverPhoto={coverPhoto}
+        location={location}
+        dateRange={dateRange}
+        peopleCount={peopleCount}
+      />
 
       <InviteLinkSection
         inviteLink={inviteLink}

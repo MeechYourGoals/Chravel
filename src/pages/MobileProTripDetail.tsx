@@ -544,6 +544,10 @@ export const MobileProTripDetail = () => {
           tripName={tripData?.title || 'Pro Trip'}
           proTripId={proTripId}
           tripType="pro"
+          coverPhoto={tripData?.coverPhoto}
+          location={tripData?.location}
+          dateRange={tripData?.dateRange}
+          peopleCount={tripData?.participants?.length}
         />
 
         {/* Delete Trip Confirm Dialog */}

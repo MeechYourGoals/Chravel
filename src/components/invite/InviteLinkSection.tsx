@@ -59,8 +59,7 @@ export const InviteLinkSection = ({
 
   return (
     <div className="mb-3">
-      <div className="flex items-center justify-between mb-2">
-        <label className="block text-gray-300 text-sm">Share Link</label>
+      <div className="flex items-end justify-end mb-2">
         <button
           onClick={onRegenerate}
           disabled={loading}
@@ -70,7 +69,7 @@ export const InviteLinkSection = ({
           Regenerate
         </button>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-end">
         {/* Copy button - first */}
         <Button
           onClick={onCopyLink}
@@ -82,9 +81,12 @@ export const InviteLinkSection = ({
           <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
         </Button>
 
-        {/* Link display - center */}
-        <div className="flex-1 bg-muted border border-border rounded-xl px-3 py-2 text-foreground text-sm font-mono truncate">
-          {loading ? 'Generating invite link...' : inviteLink || 'Failed to generate link'}
+        {/* Link display - center with label */}
+        <div className="flex-1 flex flex-col items-center">
+          <label className="text-gray-300 text-sm mb-1">Share Link</label>
+          <div className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-foreground text-sm font-mono truncate">
+            {loading ? 'Generating invite link...' : inviteLink || 'Failed to generate link'}
+          </div>
         </div>
 
         {/* Share button - last */}
