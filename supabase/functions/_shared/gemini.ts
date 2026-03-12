@@ -45,6 +45,8 @@ export interface ChatModelResponse {
 export interface EmbeddingModelRequest {
   input: string | string[];
   model?: string;
+  /** Output dimension count. Defaults to 1536 to match DB trip_embeddings VECTOR(1536) column. */
+  outputDimensionality?: number;
   timeoutMs?: number;
 }
 
@@ -62,7 +64,8 @@ const ENABLE_LOVABLE_FALLBACK =
 
 const DEFAULT_FLASH_MODEL = 'gemini-3-flash-preview';
 const DEFAULT_PRO_MODEL = 'gemini-3.1-pro-preview';
-const DEFAULT_EMBEDDING_MODEL = 'text-embedding-004';
+const DEFAULT_EMBEDDING_MODEL = 'gemini-embedding-001';
+const DEFAULT_EMBEDDING_DIMENSIONS = 1536;
 const DEFAULT_CHAT_TIMEOUT_MS = 45_000;
 const DEFAULT_EMBED_TIMEOUT_MS = 30_000;
 
@@ -76,6 +79,9 @@ const CHAT_MODEL_ALIASES: Record<string, string> = {
   // gemini-3-pro-preview deprecated March 9 2026 → route to 3.1
   'gemini-3-pro-preview': DEFAULT_PRO_MODEL,
   'google/gemini-3-pro-preview': DEFAULT_PRO_MODEL,
+  // gemini-2.0-flash deprecated June 1 2026 → route to current flash
+  'gemini-2.0-flash': DEFAULT_FLASH_MODEL,
+  'google/gemini-2.0-flash': DEFAULT_FLASH_MODEL,
 };
 
 export function normalizeGeminiModel(
@@ -122,14 +128,17 @@ function normalizeLovableChatModel(model?: string): string {
   return geminiModel.startsWith('google/') ? geminiModel : `google/${geminiModel}`;
 }
 
+const EMBEDDING_MODEL_ALIASES: Record<string, string> = {
+  'text-embedding-004': DEFAULT_EMBEDDING_MODEL,
+  'google/text-embedding-004': DEFAULT_EMBEDDING_MODEL,
+};
+
 function normalizeEmbeddingModel(model?: string): string {
   if (!model) return DEFAULT_EMBEDDING_MODEL;
-  const stripped = model
-    .trim()
-    .replace(/^models\//, '')
-    .replace(/^google\//, '');
+  const trimmed = model.trim();
+  const stripped = trimmed.replace(/^models\//, '').replace(/^google\//, '');
   if (!stripped) return DEFAULT_EMBEDDING_MODEL;
-  return stripped;
+  return EMBEDDING_MODEL_ALIASES[trimmed] || EMBEDDING_MODEL_ALIASES[stripped] || stripped;
 }
 
 function normalizeLovableEmbeddingModel(model?: string): string {
@@ -439,6 +448,7 @@ async function embedWithGemini(
   input: string[],
   model: string,
   timeoutMs: number,
+  outputDimensionality: number = DEFAULT_EMBEDDING_DIMENSIONS,
 ): Promise<number[][]> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -459,6 +469,7 @@ async function embedWithGemini(
             content: {
               parts: [{ text }],
             },
+            outputDimensionality,
           }),
           signal: AbortSignal.timeout(timeoutMs),
         });
@@ -549,7 +560,8 @@ export async function invokeEmbeddingModel(
   }
 
   try {
-    const embeddings = await embedWithGemini(input, geminiModel, timeoutMs);
+    const dims = request.outputDimensionality ?? DEFAULT_EMBEDDING_DIMENSIONS;
+    const embeddings = await embedWithGemini(input, geminiModel, timeoutMs, dims);
     return {
       provider: 'gemini',
       model: geminiModel,
