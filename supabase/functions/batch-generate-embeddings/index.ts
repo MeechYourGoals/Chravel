@@ -57,15 +57,18 @@ serve(async (req) => {
           .eq('trip_id', trip.id);
 
         let processed = 0;
-        // Process in batches of 5
-        for (let i = 0; i < sourceData.length; i += 5) {
-          const batch = sourceData.slice(i, i + 5);
+        console.log(`[batch-embed] ${trip.name}: ${sourceData.length} items to embed`);
+        // Process in batches of 3
+        for (let i = 0; i < sourceData.length; i += 3) {
+          const batch = sourceData.slice(i, i + 3);
           const embedPromises = batch.map(async (item) => {
             try {
+              console.log(`[batch-embed] Embedding: ${item.sourceType}/${item.sourceId} (${item.contentText.length} chars)`);
               const result = await invokeEmbeddingModel({ input: item.contentText });
+              console.log(`[batch-embed] Result keys: ${Object.keys(result || {}).join(',')}, embeddings count: ${result?.embeddings?.length}`);
               const embedding = result?.embeddings?.[0];
               if (embedding) {
-                await supabase.from('trip_embeddings').insert({
+                const { error: insertError } = await supabase.from('trip_embeddings').insert({
                   trip_id: item.tripId,
                   source_type: item.sourceType,
                   source_id: item.sourceId,
@@ -73,10 +76,16 @@ serve(async (req) => {
                   embedding: JSON.stringify(embedding),
                   metadata: item.metadata,
                 });
-                processed++;
+                if (insertError) {
+                  console.error(`[batch-embed] Insert error: ${insertError.message}`);
+                } else {
+                  processed++;
+                }
+              } else {
+                console.warn(`[batch-embed] No embedding returned for ${item.sourceType}/${item.sourceId}`);
               }
             } catch (e) {
-              console.error(`[batch-embed] Embed error for ${item.sourceType}/${item.sourceId}:`, e);
+              console.error(`[batch-embed] Embed error for ${item.sourceType}/${item.sourceId}:`, e instanceof Error ? e.message : String(e));
             }
           });
           await Promise.all(embedPromises);
