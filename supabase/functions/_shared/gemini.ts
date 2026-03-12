@@ -45,7 +45,7 @@ export interface ChatModelResponse {
 export interface EmbeddingModelRequest {
   input: string | string[];
   model?: string;
-  /** Output dimension count. Defaults to 768 to match DB trip_embeddings VECTOR(768) column. */
+  /** Output dimension count. Defaults to 1536 to match DB trip_embeddings VECTOR(1536) column. */
   outputDimensionality?: number;
   timeoutMs?: number;
 }
@@ -65,7 +65,7 @@ const ENABLE_LOVABLE_FALLBACK =
 const DEFAULT_FLASH_MODEL = 'gemini-3-flash-preview';
 const DEFAULT_PRO_MODEL = 'gemini-3.1-pro-preview';
 const DEFAULT_EMBEDDING_MODEL = 'gemini-embedding-001';
-const DEFAULT_EMBEDDING_DIMENSIONS = 768;
+const DEFAULT_EMBEDDING_DIMENSIONS = 1536;
 const DEFAULT_CHAT_TIMEOUT_MS = 45_000;
 const DEFAULT_EMBED_TIMEOUT_MS = 30_000;
 
