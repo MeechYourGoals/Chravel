@@ -253,6 +253,7 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
           case 'updateTask':
           case 'deleteTask':
           case 'searchTripData':
+          case 'searchTripArtifacts':
           case 'detectCalendarConflicts':
           case 'createBroadcast':
           case 'createNotification':
