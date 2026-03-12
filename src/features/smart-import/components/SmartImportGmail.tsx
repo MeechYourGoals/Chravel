@@ -58,14 +58,48 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
     onImportStarted?.();
 
     try {
-      const { data, error } = await supabase.functions.invoke('gmail-import-worker', {
-        body: { tripId, accountId: selectedAccountId },
-      });
+      const accountsToScan = selectedAccountId === 'ALL'
+        ? accounts.map(a => a.id)
+        : [selectedAccountId];
 
-      if (error) throw new Error(error.message);
+      let allCandidates: any[] = [];
+      let anyError = null;
 
-      toast.success('Successfully scanned inbox');
-      onImportComplete?.(data.candidates || []);
+      // Scan accounts sequentially to avoid overwhelming the user or hitting rate limits concurrently
+      for (const accountId of accountsToScan) {
+        const { data, error } = await supabase.functions.invoke('gmail-import-worker', {
+          body: { tripId, accountId },
+        });
+
+        if (error) {
+           // Handle 401 specifically for UX recovery
+           if (error.message.includes('expired')) {
+               toast.error('Gmail Connection Expired', {
+                   description: 'Please go to Settings to reconnect your Gmail account.',
+                   action: {
+                       label: 'Settings',
+                       onClick: () => navigate('/settings', { state: { section: 'integrations' } })
+                   }
+               });
+               // Don't break completely if scanning multiple; just log and continue
+               if (accountsToScan.length === 1) return;
+               continue;
+           }
+           anyError = error;
+           continue;
+        }
+
+        if (data?.candidates) {
+           allCandidates = [...allCandidates, ...data.candidates];
+        }
+      }
+
+      if (anyError && allCandidates.length === 0) {
+        throw new Error(anyError.message);
+      }
+
+      toast.success('Successfully scanned inbox' + (accountsToScan.length > 1 ? 'es' : ''));
+      onImportComplete?.(allCandidates);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Failed to import from Gmail', { description: errMsg });
@@ -126,6 +160,9 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
               <SelectValue placeholder="Select account" />
             </SelectTrigger>
             <SelectContent>
+              {accounts.length > 1 && (
+                <SelectItem value="ALL">All Connected Accounts</SelectItem>
+              )}
               {accounts.map(account => (
                 <SelectItem key={account.id} value={account.id}>
                   {account.email}

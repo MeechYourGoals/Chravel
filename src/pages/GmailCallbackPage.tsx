@@ -15,10 +15,15 @@ export const GmailCallbackPage = () => {
     const errorParam = searchParams.get('error');
 
     if (errorParam) {
-      setError(`Google returned an error: ${errorParam}`);
-      toast.error('Failed to connect Gmail');
+      if (errorParam === 'access_denied') {
+          setError('Google connection cancelled.');
+          toast.info('Connection cancelled');
+      } else {
+          setError(`Google returned an error: ${errorParam}`);
+          toast.error('Failed to connect Gmail');
+      }
       // Redirect back to settings after a delay
-      setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 3000);
+      setTimeout(() => navigate('/settings', { state: { section: 'integrations' } }), 2000);
       return;
     }
 
