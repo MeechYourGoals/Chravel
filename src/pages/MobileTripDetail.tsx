@@ -647,10 +647,6 @@ export const MobileTripDetail = () => {
           onClose={() => setShowInviteModal(false)}
           tripName={tripWithUpdatedDescription?.title || 'Trip'}
           tripId={tripId}
-          coverPhoto={tripWithUpdatedDescription?.coverPhoto}
-          location={tripWithUpdatedDescription?.location}
-          dateRange={tripWithUpdatedDescription?.dateRange}
-          peopleCount={tripWithUpdatedDescription?.participants?.length}
         />
 
         {/* Delete Trip Confirm Dialog */}

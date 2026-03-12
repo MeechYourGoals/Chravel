@@ -442,10 +442,6 @@ export const ProTripCard = ({
         tripName={trip.title}
         proTripId={trip.id}
         tripType="pro"
-        coverPhoto={trip.coverPhoto}
-        location={trip.location}
-        dateRange={trip.dateRange}
-        peopleCount={trip.participants.length}
       />
 
       <ShareTripModal

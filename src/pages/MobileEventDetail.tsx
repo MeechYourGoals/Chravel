@@ -492,10 +492,6 @@ export const MobileEventDetail = () => {
           tripName={eventData?.title || 'Event'}
           tripId={eventId}
           tripType="event"
-          coverPhoto={eventData?.coverPhoto}
-          location={eventData?.location}
-          dateRange={eventData?.dateRange}
-          peopleCount={eventData?.attendanceExpected}
         />
 
         {/* Delete Trip Confirm Dialog */}

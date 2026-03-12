@@ -461,10 +461,6 @@ const EventDetail = () => {
           tripName={eventData.title}
           tripId={eventId || '1'}
           userId={user?.id}
-          coverPhoto={eventData.coverPhoto}
-          location={eventData.location}
-          dateRange={eventData.dateRange}
-          peopleCount={eventData.attendanceExpected}
         />
       </div>
     </TripVariantProvider>

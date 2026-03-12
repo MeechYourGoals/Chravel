@@ -19,10 +19,6 @@ interface TripDetailModalsProps {
   tripName: string;
   tripId: string;
   userId?: string;
-  coverPhoto?: string;
-  location?: string;
-  dateRange?: string;
-  peopleCount?: number;
 }
 
 export const TripDetailModals = ({
@@ -39,10 +35,6 @@ export const TripDetailModals = ({
   tripName,
   tripId,
   userId,
-  coverPhoto,
-  location,
-  dateRange,
-  peopleCount,
 }: TripDetailModalsProps) => {
   return (
     <>
@@ -52,10 +44,6 @@ export const TripDetailModals = ({
         onClose={onCloseInvite}
         tripName={tripName}
         tripId={tripId}
-        coverPhoto={coverPhoto}
-        location={location}
-        dateRange={dateRange}
-        peopleCount={peopleCount}
       />
       <AuthModal isOpen={showAuth} onClose={onCloseAuth} />
       <TripSettings

@@ -15,10 +15,6 @@ interface InviteModalProps {
   tripId?: string;
   proTripId?: string;
   tripType?: 'consumer' | 'pro' | 'event';
-  coverPhoto?: string;
-  location?: string;
-  dateRange?: string;
-  peopleCount?: number;
 }
 
 export const InviteModal = ({
@@ -27,12 +23,13 @@ export const InviteModal = ({
   tripName,
   tripId,
   proTripId,
-  coverPhoto,
-  location,
-  dateRange,
-  peopleCount,
+  tripType = 'consumer',
 }: InviteModalProps) => {
   const isMobile = useIsMobile();
+  // All trip types require approval (enforced on backend)
+  // Consumer trips: any member can approve. Pro/Event: creator/admins only.
+  // The share card / trip preview handles virality; the join boundary handles trust.
+  const [requireApproval, setRequireApproval] = useState(true);
   const [expireIn7Days, setExpireIn7Days] = useState(false);
 
   const {
@@ -43,20 +40,13 @@ export const InviteModal = ({
     regenerateInviteToken,
     handleCopyLink,
     handleShare,
-  } = useInviteLink({ isOpen, tripName, expireIn7Days, tripId, proTripId });
+  } = useInviteLink({ isOpen, tripName, requireApproval, expireIn7Days, tripId, proTripId });
 
   if (!isOpen) return null;
 
   const modalContent = (
     <>
-      <InviteModalHeader
-        tripName={tripName}
-        onClose={onClose}
-        coverPhoto={coverPhoto}
-        location={location}
-        dateRange={dateRange}
-        peopleCount={peopleCount}
-      />
+      <InviteModalHeader tripName={tripName} onClose={onClose} />
 
       <InviteLinkSection
         inviteLink={inviteLink}
@@ -70,8 +60,11 @@ export const InviteModal = ({
       />
 
       <InviteSettingsSection
+        requireApproval={requireApproval}
         expireIn7Days={expireIn7Days}
+        onRequireApprovalChange={setRequireApproval}
         onExpireIn7DaysChange={setExpireIn7Days}
+        tripType={tripType}
       />
 
       <InviteInstructions />

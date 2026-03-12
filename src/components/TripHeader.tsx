@@ -751,10 +751,6 @@ export const TripHeader = ({
         tripName={trip.title}
         tripId={trip.id.toString()}
         tripType={trip.trip_type || 'consumer'}
-        coverPhoto={trip.coverPhoto}
-        location={trip.location}
-        dateRange={trip.dateRange}
-        peopleCount={trip.participants.length}
       />
 
       <CollaboratorsModal
