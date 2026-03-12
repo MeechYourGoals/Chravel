@@ -1923,19 +1923,28 @@ serve(async req => {
 
   const headers = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
 
-  // Auth gate
-  const { requireAuth } = await import('../_shared/requireAuth.ts');
-  const auth = await requireAuth(req, headers);
-  if (auth.response) return auth.response;
+  // Service-role auth gate (admin-only function)
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401, headers,
+    });
+  }
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   );
 
-  // Parse dry_run param
-  const url = new URL(req.url);
-  const dryRun = url.searchParams.get('dry_run') === 'true';
+  // Parse dry_run from body or query params
+  let dryRun = false;
+  try {
+    const body = await req.json();
+    dryRun = body?.dry_run === true;
+  } catch {
+    const url = new URL(req.url);
+    dryRun = url.searchParams.get('dry_run') === 'true';
+  }
 
   try {
     // STEP 0: Verify scope — only Carlton's trips
