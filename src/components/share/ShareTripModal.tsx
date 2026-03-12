@@ -170,8 +170,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
           {/* Preview Link */}
           <div>
-            <label className="block text-foreground text-xs font-medium mb-1">Preview Link</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-end">
               <Button
                 onClick={handleCopyLink}
                 size="sm"
@@ -180,8 +179,11 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
               </Button>
-              <div className="flex-1 bg-muted border border-border rounded-lg px-2 py-1.5 text-foreground text-xs font-mono truncate">
-                {previewLink}
+              <div className="flex-1 flex flex-col items-center">
+                <label className="text-foreground text-xs font-medium mb-1">Preview Link</label>
+                <div className="w-full bg-muted border border-border rounded-lg px-2 py-1.5 text-foreground text-xs font-mono truncate">
+                  {previewLink}
+                </div>
               </div>
               {canNativeShare && (
                 <Button

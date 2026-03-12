@@ -549,6 +549,10 @@ export const TripCard = ({
         onClose={() => setShowInviteModal(false)}
         tripName={trip.title}
         tripId={trip.id.toString()}
+        coverPhoto={trip.coverPhoto}
+        location={trip.location}
+        dateRange={trip.dateRange}
+        peopleCount={trip.peopleCount ?? trip.participants.length}
       />
 
       <ShareTripModal

@@ -367,6 +367,10 @@ export const MobileEventCard = ({
         tripName={event.title}
         tripId={event.id}
         tripType="event"
+        coverPhoto={event.coverPhoto}
+        location={event.location}
+        dateRange={event.dateRange}
+        peopleCount={event.attendanceExpected}
       />
 
       <TripExportModal

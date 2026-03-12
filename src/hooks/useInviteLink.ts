@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -8,7 +8,6 @@ import { buildInviteLink } from '@/lib/unfurlConfig';
 interface UseInviteLinkProps {
   isOpen: boolean;
   tripName: string;
-  requireApproval: boolean;
   expireIn7Days: boolean;
   tripId?: string;
   proTripId?: string;
@@ -77,7 +76,6 @@ const generateUniqueCode = async (maxAttempts = 5): Promise<string> => {
 export const useInviteLink = ({
   isOpen,
   tripName,
-  requireApproval,
   expireIn7Days,
   tripId,
   proTripId,
@@ -87,13 +85,42 @@ export const useInviteLink = ({
   const [loading, setLoading] = useState(false);
   const { isDemoMode } = useDemoMode();
 
-  // Generate invite link when modal opens
+  // Track the current invite code so we can update settings in place
+  const currentInviteCode = useRef<string | null>(null);
+
+  // Generate invite link only when modal opens or trip/mode changes
   useEffect(() => {
     if (isOpen) {
       generateTripLink();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink closure deps already covered by dep array
-  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
+  }, [isOpen, tripId, proTripId, isDemoMode]);
+
+  // Update existing invite settings in place when expireIn7Days changes
+  // (instead of creating a new invite row, which would orphan the old one)
+  useEffect(() => {
+    if (isOpen && currentInviteCode.current && !isDemoMode) {
+      updateInviteSettings(currentInviteCode.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to settings changes
+  }, [expireIn7Days]);
+
+  const updateInviteSettings = async (code: string) => {
+    const { error } = await supabase
+      .from('trip_invites')
+      .update({
+        require_approval: true,
+        expires_at: expireIn7Days
+          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          : null,
+      })
+      .eq('code', code);
+
+    if (error) {
+      console.error('[InviteLink] Failed to update invite settings:', error);
+      toast.error('Failed to update link settings');
+    }
+  };
 
   const createInviteInDatabase = async (
     tripIdValue: string,
@@ -166,7 +193,7 @@ export const useInviteLink = ({
         created_by: user.id,
         is_active: true,
         current_uses: 0,
-        require_approval: requireApproval,
+        require_approval: true, // Always required (backend-enforced policy)
         expires_at: expireIn7Days
           ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           : null,
@@ -197,8 +224,6 @@ export const useInviteLink = ({
 
   const generateTripLink = async () => {
     setLoading(true);
-    // Always use branded chravel.app URL for invite links
-    const _baseUrl = 'https://chravel.app';
     const actualTripId = proTripId || tripId;
 
     if (!actualTripId) {
@@ -211,6 +236,7 @@ export const useInviteLink = ({
     // Use branded unfurl domain for rich OG previews
     if (isDemoMode) {
       const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
+      currentInviteCode.current = null; // Demo codes aren't tracked for updates
       setInviteLink(buildInviteLink(demoInviteCode));
       setLoading(false);
       toast.success('Demo invite link created!');
@@ -248,6 +274,9 @@ export const useInviteLink = ({
       return;
     }
 
+    // Track the code so settings changes can update this row in place
+    currentInviteCode.current = inviteCode;
+
     // Use branded unfurl domain for rich OG previews
     setInviteLink(buildInviteLink(inviteCode));
     setLoading(false);
@@ -260,7 +289,16 @@ export const useInviteLink = ({
       try {
         const oldCode = extractInviteCodeFromLink(inviteLink);
         if (oldCode && !isDemoInviteCode(oldCode)) {
-          await supabase.from('trip_invites').update({ is_active: false }).eq('code', oldCode);
+          const { error } = await supabase
+            .from('trip_invites')
+            .update({ is_active: false })
+            .eq('code', oldCode);
+
+          if (error) {
+            console.error('[InviteLink] Failed to deactivate old invite:', error);
+            toast.error('Failed to revoke old link. Please try again.');
+            return; // Abort — don't create a new link if we can't kill the old one
+          }
         } else if (inviteLink && !oldCode) {
           console.warn(
             '[InviteLink] Could not extract code from invite link for deactivation:',
@@ -269,8 +307,13 @@ export const useInviteLink = ({
         }
       } catch (error) {
         console.error('[InviteLink] Error deactivating old invite:', error);
+        toast.error('Failed to revoke old link. Please try again.');
+        return; // Abort on unexpected error
       }
     }
+
+    // Clear tracked code before generating new one
+    currentInviteCode.current = null;
 
     // Generate new invite link
     await generateTripLink();

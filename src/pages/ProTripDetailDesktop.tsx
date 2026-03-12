@@ -590,6 +590,10 @@ export const ProTripDetailDesktop = () => {
           tripName={tripData.title}
           tripId={proTripId}
           userId={user?.id}
+          coverPhoto={tripData.coverPhoto}
+          location={tripData.location}
+          dateRange={tripData.dateRange}
+          peopleCount={tripData.participants?.length}
         />
 
         <TripExportModal
