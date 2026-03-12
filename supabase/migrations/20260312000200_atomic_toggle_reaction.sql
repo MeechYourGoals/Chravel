@@ -27,6 +27,25 @@ BEGIN
     RAISE EXCEPTION 'unsupported reaction type: %', p_reaction_type;
   END IF;
 
+  -- Verify caller has access to the message (trip member OR channel member)
+  IF NOT EXISTS (
+    -- Trip chat message: user must be a trip member
+    SELECT 1
+    FROM trip_chat_messages tcm
+    JOIN trip_members tm ON tm.trip_id = tcm.trip_id
+    WHERE tcm.id = p_message_id
+    AND tm.user_id = p_user_id
+  ) AND NOT EXISTS (
+    -- Channel message: user must be a channel member
+    SELECT 1
+    FROM channel_messages cm
+    JOIN channel_members cmem ON cmem.channel_id = cm.channel_id
+    WHERE cm.id = p_message_id
+    AND cmem.user_id = p_user_id
+  ) THEN
+    RAISE EXCEPTION 'forbidden: user does not have access to this message';
+  END IF;
+
   -- Row-level lock serializes concurrent requests for the same (message_id, user_id)
   SELECT reaction_type INTO existing_type
   FROM message_reactions

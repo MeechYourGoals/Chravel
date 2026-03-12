@@ -320,7 +320,7 @@ export const ChannelChatView = ({
       supabase.removeChannel(reactionChannel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- messages.length tracks when message list changes
-  }, [user?.id, channel.tripId, messages.length, isDemoChannel]);
+  }, [user?.id, channel.id, channel.tripId, messages.length, isDemoChannel]);
 
   const handleReaction = useCallback(
     async (messageId: string, reactionType: string) => {
