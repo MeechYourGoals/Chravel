@@ -1927,7 +1927,8 @@ serve(async req => {
   const authHeader = req.headers.get('authorization');
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Authentication required' }), {
-      status: 401, headers,
+      status: 401,
+      headers,
     });
   }
 
