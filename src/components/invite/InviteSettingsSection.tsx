@@ -2,48 +2,27 @@ import React from 'react';
 import { Lock } from 'lucide-react';
 
 interface InviteSettingsSectionProps {
-  requireApproval: boolean;
   expireIn7Days: boolean;
-  onRequireApprovalChange: (checked: boolean) => void;
   onExpireIn7DaysChange: (checked: boolean) => void;
-  tripType?: 'consumer' | 'pro' | 'event';
 }
 
 export const InviteSettingsSection = ({
-  requireApproval: _requireApproval,
   expireIn7Days,
-  onRequireApprovalChange,
   onExpireIn7DaysChange,
-  tripType: _tripType = 'consumer',
 }: InviteSettingsSectionProps) => {
-  // All trip types require approval - this is enforced on the backend.
-  // The toggle is locked on and shown to communicate the policy to the user.
-  const effectiveRequireApproval = true;
-
   return (
     <div className="mb-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <label className="text-gray-300 text-sm">Require approval to join</label>
-          <span
-            className="inline-flex items-center gap-1 text-xs text-amber-400"
-            title="All trips require approval for security"
-          >
-            <Lock size={12} />
-            <span>Required</span>
-          </span>
-        </div>
-        <input
-          type="checkbox"
-          checked={effectiveRequireApproval}
-          onChange={e => onRequireApprovalChange(e.target.checked)}
-          disabled
-          className="rounded opacity-60 cursor-not-allowed"
-        />
+      {/* Approval policy — always required, displayed as static info */}
+      <div className="flex items-center gap-2">
+        <Lock size={12} className="text-amber-400 shrink-0" />
+        <span className="text-amber-400 text-xs font-medium">Required</span>
+        <span className="text-gray-300 text-sm">Require approval to join</span>
       </div>
       <p className="text-xs text-gray-500 pl-0">
         Someone in the trip must approve new members before they can join
       </p>
+
+      {/* Expiry toggle — user-controllable */}
       <div className="flex items-center justify-between">
         <label className="text-gray-300 text-sm">Link expires in 7 days</label>
         <input
