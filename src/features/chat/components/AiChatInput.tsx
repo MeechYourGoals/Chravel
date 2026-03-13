@@ -165,13 +165,17 @@ export const AiChatInput = ({
           />
         </div>
 
-        {/* Send button */}
+        {/* Send button — icon always white; gold rim muted when input empty, bright when populated */}
         <button
           type="button"
           onClick={handleSendClick}
           disabled={(!inputMessage.trim() && attachedImages.length === 0) || isTyping || disabled}
           aria-label="Send message"
-          className={`size-11 rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`}
+          className={`size-11 rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation bg-gray-800/80 text-white ${
+            inputMessage.trim() || attachedImages.length > 0
+              ? 'cta-gold-ring'
+              : 'cta-gold-ring-muted'
+          } ${CTA_INTERACTIVE} ${CTA_DISABLED}`}
         >
           <Send size={CTA_ICON_SIZE} />
         </button>
