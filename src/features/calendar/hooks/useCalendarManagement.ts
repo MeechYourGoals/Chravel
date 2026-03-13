@@ -113,8 +113,8 @@ export const useCalendarManagement = (tripId: string) => {
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
     refetchOnWindowFocus: QUERY_CACHE_CONFIG.calendar.refetchOnWindowFocus,
-    retry: 1,
-    retryDelay: 1000,
+    retry: 3,
+    retryDelay: (attempt: number) => Math.min(1000 * Math.pow(2, attempt), 10000),
   });
 
   // ⚡ REALTIME: Subscribe to trip_events changes (shared hook)

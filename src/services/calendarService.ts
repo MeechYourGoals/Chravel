@@ -374,10 +374,16 @@ export const calendarService = {
       } = await supabase.auth.getSession();
       if (!session?.user) {
         // Fallback to direct query if no session
+        const now = new Date();
+        const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+        const threeMonthsFromNow = new Date(now.getFullYear(), now.getMonth() + 4, 0, 23, 59, 59).toISOString();
+
         const { data, error } = await supabase
           .from('trip_events')
           .select('*')
           .eq('trip_id', tripId)
+          .gte('start_time', threeMonthsAgo)
+          .lte('start_time', threeMonthsFromNow)
           .order('start_time', { ascending: true });
 
         if (error) throw error;
@@ -387,10 +393,18 @@ export const calendarService = {
       // Direct query - fast and reliable.
       // The timezone RPC (get_events_in_user_tz) can hang if the function
       // doesn't exist in the remote DB, causing infinite spinner.
+
+      // Calculate date range: now - 3 months to now + 3 months
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+      const threeMonthsFromNow = new Date(now.getFullYear(), now.getMonth() + 4, 0, 23, 59, 59).toISOString();
+
       const { data: events, error: fetchError } = await supabase
         .from('trip_events')
         .select('*')
         .eq('trip_id', tripId)
+        .gte('start_time', threeMonthsAgo)
+        .lte('start_time', threeMonthsFromNow)
         .order('start_time', { ascending: true });
 
       if (fetchError) throw fetchError;
