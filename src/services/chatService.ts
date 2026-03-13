@@ -188,7 +188,7 @@ export async function getMessagesReactions(
   if (!messageIds.length) return {};
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('message_reactions')
       .select('message_id, reaction_type, user_id')
       .in('message_id', messageIds);

@@ -207,9 +207,9 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
                   )}
-                  {data.confirmation_code && (
+                  {(data as Record<string, unknown>).confirmation_code && (
                     <p className="text-xs font-mono mt-1 text-muted-foreground/80">
-                      Ref: {data.confirmation_code}
+                      Ref: {String((data as Record<string, unknown>).confirmation_code)}
                     </p>
                   )}
                   {relevanceScore !== undefined && (

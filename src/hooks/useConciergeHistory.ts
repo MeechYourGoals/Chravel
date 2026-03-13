@@ -46,6 +46,8 @@ export interface ConciergeChatMessage {
   functionCallHotels?: HotelResult[];
   /** Google Maps widget token restored from persisted metadata */
   googleMapsWidget?: string;
+  /** Google Maps widget context token restored from persisted metadata */
+  googleMapsWidgetContextToken?: string;
   /** Concierge action results restored from persisted metadata */
   conciergeActions?: Array<{
     actionType: string;

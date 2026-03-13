@@ -555,7 +555,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
                 // Mark unselected candidates as rejected
                 const rejectedIds = gmailCandidates
-                  .filter(c => !acceptedIds.includes(c.id))
+                  .filter(c => !acceptedIds.includes(c.id as string))
                   .map(c => c.id)
                   .filter(Boolean);
                 if (rejectedIds.length > 0) {

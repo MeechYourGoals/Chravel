@@ -374,7 +374,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                   }
 
                   if (namesToImport.length > 0) {
-                    setParsedNames(Array.from(new Set(namesToImport)));
+                    setParsedNames(Array.from(new Set(namesToImport)) as string[]);
                     setState('preview');
                   } else {
                     toast.error('No names found in these reservations');
