@@ -43,6 +43,7 @@ serve(async req => {
       name: string;
       status: string;
       count?: number;
+      sourceCount?: number;
       error?: string;
     }[] = [];
 
