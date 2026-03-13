@@ -21,7 +21,9 @@ vi.mock('../../integrations/supabase/client', () => ({
   SUPABASE_PUBLIC_ANON_KEY: 'test-key',
   supabase: {
     auth: {
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
     },
     functions: {
       invoke: vi.fn(),

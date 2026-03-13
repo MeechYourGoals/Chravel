@@ -55,7 +55,7 @@ describe('functionExecutor idempotency', () => {
         { title: 'Passports', notes: 'Get them', idempotency_key: 'idemp-1' },
         'trip-1',
         'user-1',
-      )
+      ),
     ).rejects.toEqual({ code: '23505' });
 
     expect(mockFrom).toHaveBeenCalledWith('trip_tasks');
