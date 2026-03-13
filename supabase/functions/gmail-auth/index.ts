@@ -154,6 +154,11 @@ serve(async req => {
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+      // Compute token expiry with a 60s safety buffer
+      const tokenExpiresAt = tokenData.expires_in
+        ? new Date(Date.now() + (tokenData.expires_in - 60) * 1000).toISOString()
+        : null;
+
       const { error: dbError } = await adminClient.from('gmail_accounts').upsert(
         {
           user_id: user.id,
@@ -162,6 +167,7 @@ serve(async req => {
           refresh_token: tokenData.refresh_token,
           access_token: tokenData.access_token,
           scopes: tokenData.scope ? tokenData.scope.split(' ') : [],
+          ...(tokenExpiresAt && { token_expires_at: tokenExpiresAt }),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id, google_user_id' },

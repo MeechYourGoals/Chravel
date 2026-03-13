@@ -264,8 +264,10 @@ export const SmartImport = ({
             {reviewingGmail ? (
               <SmartImportReview
                 candidates={gmailCandidates}
+                tripId={tripId}
                 onAccept={accepted => {
-                  // Extract data from standard json and map it loosely to the format SmartImport component expects downstream
+                  // Persistence (artifact-ingest + status update) is handled inside SmartImportReview.
+                  // Pass raw data to parent for any additional downstream handling.
                   const mappedData = accepted.map(c => c.reservation_data);
                   onDataImported(mappedData);
                   setReviewingGmail(false);

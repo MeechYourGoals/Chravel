@@ -2,11 +2,33 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plane, Hotel, Car, Ticket, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import {
+  Plane,
+  Hotel,
+  Car,
+  Ticket,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+  UtensilsCrossed,
+  Train,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+// Map Gmail extraction types → artifact-ingest artifact_type overrides
+const RESERVATION_TO_ARTIFACT_TYPE: Record<string, string> = {
+  flight: 'flight',
+  lodging: 'hotel',
+  ground_transport: 'generic_document',
+  event_ticket: 'event_ticket',
+  dining_reservation: 'restaurant_reservation',
+  rail_ticket: 'generic_document',
+};
 
 export interface ReviewCandidatesProps {
   candidates: any[];
+  tripId?: string;
   onAccept: (acceptedCandidates: any[]) => void;
   onCancel: () => void;
 }
@@ -16,10 +38,13 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string; label
   lodging: { icon: Hotel, color: 'text-indigo-500', label: 'Lodging' },
   ground_transport: { icon: Car, color: 'text-orange-500', label: 'Transport' },
   event_ticket: { icon: Ticket, color: 'text-pink-500', label: 'Event' },
+  dining_reservation: { icon: UtensilsCrossed, color: 'text-amber-500', label: 'Dining' },
+  rail_ticket: { icon: Train, color: 'text-green-500', label: 'Train' },
 };
 
 export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   candidates,
+  tripId,
   onAccept,
   onCancel,
 }) => {
@@ -52,6 +77,55 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     setIsSubmitting(true);
     try {
       const accepted = candidates.filter(c => selectedIds.has(c.id));
+      const rejected = candidates.filter(c => !selectedIds.has(c.id));
+
+      // Persist accepted candidates as trip artifacts
+      if (tripId && accepted.length > 0) {
+        await Promise.allSettled(
+          accepted.map(async candidate => {
+            const resData = candidate.reservation_data || {};
+            const reservationType = resData.type as string | undefined;
+            const artifactTypeOverride = reservationType
+              ? RESERVATION_TO_ARTIFACT_TYPE[reservationType]
+              : undefined;
+
+            await supabase.functions.invoke('artifact-ingest', {
+              body: {
+                tripId,
+                sourceType: 'gmail_import',
+                text: JSON.stringify(resData),
+                artifactTypeOverride,
+                metadata: {
+                  gmail_message_id: resData._gmail_message_id,
+                  email_subject: resData._email_subject,
+                  smart_import_candidate_id: candidate.id,
+                },
+              },
+            });
+          }),
+        );
+
+        // Mark accepted candidates
+        await (supabase as any)
+          .from('smart_import_candidates')
+          .update({ status: 'accepted' })
+          .in(
+            'id',
+            accepted.map(c => c.id),
+          );
+      }
+
+      // Mark rejected candidates (regardless of whether tripId is present)
+      if (rejected.length > 0) {
+        await (supabase as any)
+          .from('smart_import_candidates')
+          .update({ status: 'rejected' })
+          .in(
+            'id',
+            rejected.map(c => c.id),
+          );
+      }
+
       await onAccept(accepted);
     } catch (error: unknown) {
       toast.error('Failed to save imported items', { description: (error as Error)?.message });
@@ -117,6 +191,12 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           } else if (type === 'event_ticket') {
             title = data.event_name || 'Event Ticket';
             subtitle = data.venue_name || data.city || '';
+          } else if (type === 'dining_reservation') {
+            title = data.restaurant_name || 'Dining Reservation';
+            subtitle = data.city || data.address || '';
+          } else if (type === 'rail_ticket') {
+            title = `${data.operator_name || 'Train'} ${data.train_number || ''}`.trim();
+            subtitle = `${data.departure_station || ''} to ${data.arrival_station || ''}`;
           }
 
           const isSelected = selectedIds.has(candidate.id);
@@ -169,6 +249,11 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                   </div>
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
+                  )}
+                  {data._email_subject && (
+                    <p className="text-xs text-muted-foreground/60 truncate mt-0.5 italic">
+                      {data._email_subject}
+                    </p>
                   )}
                   {data.confirmation_code && (
                     <p className="text-xs font-mono mt-1 text-muted-foreground/80">

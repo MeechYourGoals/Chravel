@@ -20,7 +20,9 @@ function configErrorResponse(message: string): Response {
 }
 
 /** Refresh an expired Google access token using the stored refresh_token */
-async function refreshAccessToken(refreshToken: string): Promise<string> {
+async function refreshAccessToken(
+  refreshToken: string,
+): Promise<{ accessToken: string; expiresAt: string | null }> {
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -38,7 +40,11 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.access_token;
+  // Subtract 60s buffer so we refresh before actual expiry
+  const expiresAt = data.expires_in
+    ? new Date(Date.now() + (data.expires_in - 60) * 1000).toISOString()
+    : null;
+  return { accessToken: data.access_token, expiresAt };
 }
 
 /** Decode base64url-encoded string (Gmail uses URL-safe base64 without padding) */
@@ -125,13 +131,35 @@ function buildTripScopedGmailQuery(trip: TripContext): string {
     queryParts.push(`after:${formatGmailDate(before)}`);
     queryParts.push(`before:${formatGmailDate(afterDate)}`);
   } else {
-    // Fallback: if no trip dates, search last 3 months (narrower than original 6m)
+    // Fallback: if no trip dates, search last 3 months
     queryParts.push('newer_than:3m');
   }
 
-  // Travel-related content filter
+  // Widened travel-related content filter: more domains + more subject keywords
   queryParts.push(
-    '(subject:(itinerary OR reservation OR booking OR confirmation OR ticket OR e-ticket OR "check-in" OR "boarding pass") OR from:(booking.com OR airbnb.com OR hotels.com OR expedia.com OR united.com OR delta.com OR aa.com OR southwest.com OR jetblue.com OR kayak.com OR tripadvisor.com OR vrbo.com OR ticketmaster.com OR eventbrite.com OR stubhub.com OR lyft.com OR uber.com OR amtrak.com OR hertz.com OR avis.com OR enterprise.com OR marriott.com OR hilton.com OR hyatt.com OR ihg.com) OR label:travel)',
+    '(' +
+      'subject:(itinerary OR reservation OR booking OR confirmation OR ticket OR "e-ticket" OR "check-in" OR "boarding pass" OR "order confirmation" OR "your trip" OR receipt) ' +
+      'OR from:(' +
+      // OTAs
+      'booking.com OR expedia.com OR hotels.com OR priceline.com OR kayak.com OR ' +
+      'tripadvisor.com OR travelocity.com OR orbitz.com OR ' +
+      // Airlines
+      'delta.com OR united.com OR aa.com OR southwest.com OR jetblue.com OR ' +
+      'frontier.com OR spirit.com OR allegiant.com OR ' +
+      // Hotels
+      'airbnb.com OR vrbo.com OR marriott.com OR hilton.com OR hyatt.com OR ihg.com OR wyndham.com OR ' +
+      // Car rentals
+      'hertz.com OR avis.com OR enterprise.com OR budget.com OR alamo.com OR nationalcar.com OR turo.com OR zipcar.com OR ' +
+      // Events & tickets
+      'ticketmaster.com OR stubhub.com OR seatgeek.com OR axs.com OR gametime.com OR eventbrite.com OR ' +
+      // Dining
+      'opentable.com OR resy.com OR yelp.com OR ' +
+      // Rail & bus
+      'amtrak.com OR eurostar.com OR trainline.com OR flixbus.com OR ' +
+      // Rideshare
+      'lyft.com OR uber.com' +
+      ') ' +
+      'OR label:travel)',
   );
 
   return queryParts.join(' ');
@@ -169,6 +197,209 @@ async function logMessage(
     console.warn('Failed to log message outcome:', e);
   }
 }
+
+interface MessageResult {
+  candidates: Record<string, unknown>[];
+  parsed: number;
+  skipped: number;
+  errors: number;
+}
+
+/** Process a single Gmail message: fetch body, call LLM, insert candidates */
+async function processMessage(
+  msg: { id: string },
+  accessToken: string,
+  tripContextStr: string,
+  tripId: string,
+  jobId: string,
+  userId: string,
+  supabaseClient: any,
+  geminiApiKey: string,
+): Promise<MessageResult> {
+  const result: MessageResult = { candidates: [], parsed: 0, skipped: 0, errors: 0 };
+
+  try {
+    const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
+    const msgResponse = await fetch(msgUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!msgResponse.ok) {
+      result.errors++;
+      await logMessage(supabaseClient, jobId, msg.id, 'error', `HTTP ${msgResponse.status}`);
+      return result;
+    }
+
+    const msgData = await msgResponse.json();
+
+    // Extract subject and sender from headers
+    const headers = msgData.payload?.headers || [];
+    const subjectHeader = headers.find(
+      (h: Record<string, string>) => h.name?.toLowerCase() === 'subject',
+    );
+    const subject = subjectHeader?.value || '';
+    const fromHeader = headers.find(
+      (h: Record<string, string>) => h.name?.toLowerCase() === 'from',
+    );
+    const from = fromHeader?.value || '';
+
+    // Decode full email body (not just snippet)
+    const bodyText = extractEmailBody(msgData.payload || {});
+    const snippet = msgData.snippet || '';
+    const emailContent = bodyText.length > snippet.length ? bodyText : snippet;
+
+    // Skip very short emails that are unlikely to contain reservation data
+    if (emailContent.length < 50) {
+      result.skipped++;
+      await logMessage(supabaseClient, jobId, msg.id, 'skipped', 'Email too short');
+      return result;
+    }
+
+    // Truncate very long emails to stay within LLM context limits
+    const truncatedContent =
+      emailContent.length > 16000
+        ? emailContent.substring(0, 16000) + '\n[...truncated]'
+        : emailContent;
+
+    // Send to LLM with trip context
+    const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n\nEmail Body:\n${truncatedContent}`;
+
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: { responseMimeType: 'application/json' },
+        }),
+      },
+    );
+
+    if (!aiResponse.ok) {
+      result.errors++;
+      await logMessage(
+        supabaseClient,
+        jobId,
+        msg.id,
+        'error',
+        `AI API error: ${aiResponse.status}`,
+      );
+      return result;
+    }
+
+    const aiData = await aiResponse.json();
+    const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!resultText) {
+      result.skipped++;
+      await logMessage(supabaseClient, jobId, msg.id, 'skipped', 'No AI output');
+      return result;
+    }
+
+    let parsedJSON: Record<string, unknown>;
+    try {
+      parsedJSON = JSON.parse(resultText);
+    } catch {
+      result.errors++;
+      await logMessage(supabaseClient, jobId, msg.id, 'error', 'Failed to parse AI JSON');
+      return result;
+    }
+
+    const reservations = parsedJSON.reservations as Array<Record<string, unknown>> | undefined;
+    const relevanceScore = (parsedJSON.trip_relevance_score as number) ?? 0;
+    const relevanceReason = (parsedJSON.trip_relevance_reason as string) ?? '';
+
+    if (!reservations || reservations.length === 0) {
+      result.skipped++;
+      await logMessage(supabaseClient, jobId, msg.id, 'skipped', 'No reservations found');
+      return result;
+    }
+
+    for (const res of reservations) {
+      // Hardened dedupe key: includes a date component to prevent key collapse
+      // when confirmation_code and booking_source are both absent
+      const dateSignal = (
+        (res.departure_time_local as string) ||
+        (res.check_in_local as string) ||
+        (res.reservation_time_local as string) ||
+        (res.start_time_local as string) ||
+        (res.pickup_time_local as string) ||
+        ''
+      ).substring(0, 10);
+
+      const dedupe_key = [
+        res.type as string,
+        (res.confirmation_code as string) ||
+          (res.flight_number as string) ||
+          (res.train_number as string) ||
+          '',
+        (res.booking_source as string) ||
+          (res.airline_code as string) ||
+          (res.operator_name as string) ||
+          (res.ticket_provider as string) ||
+          '',
+        dateSignal,
+      ].join('_');
+
+      // Check for existing duplicates
+      const { data: existing } = await supabaseClient
+        .from('smart_import_candidates')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('dedupe_key', dedupe_key)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        result.skipped++;
+        continue;
+      }
+
+      // All items go to review (pending). Relevance score helps user prioritize.
+      const { data: candidate, error: candidateError } = await supabaseClient
+        .from('smart_import_candidates')
+        .insert({
+          job_id: jobId,
+          user_id: userId,
+          trip_id: tripId,
+          reservation_data: {
+            ...res,
+            _relevance_score: relevanceScore,
+            _relevance_reason: relevanceReason,
+            _gmail_message_id: msg.id,
+            _email_subject: subject,
+          },
+          status: 'pending',
+          dedupe_key,
+        })
+        .select()
+        .single();
+
+      if (!candidateError && candidate) {
+        result.candidates.push(candidate);
+        result.parsed++;
+      }
+    }
+
+    const logKey = reservations.map(r => `${r.type}_${r.confirmation_code || ''}`).join(',');
+    await logMessage(supabaseClient, jobId, msg.id, 'parsed', logKey);
+  } catch (err) {
+    console.error(`Error processing message ${msg.id}:`, err);
+    result.errors++;
+    await logMessage(
+      supabaseClient,
+      jobId,
+      msg.id,
+      'error',
+      err instanceof Error ? err.message : 'Unknown error',
+    );
+  }
+
+  return result;
+}
+
+const BATCH_SIZE = 5;
+const MAX_MESSAGES = 100;
 
 serve(async req => {
   if (req.method === 'OPTIONS') {
@@ -224,7 +455,7 @@ serve(async req => {
     // 2. Fetch the connected Gmail account — use service role to read token columns
     const { data: account, error: accountError } = await adminClient
       .from('gmail_accounts')
-      .select('access_token, refresh_token')
+      .select('access_token, refresh_token, token_expires_at')
       .eq('id', accountId)
       .eq('user_id', user.id)
       .single();
@@ -236,29 +467,41 @@ serve(async req => {
       });
     }
 
-    // 3. Get a valid access token (refresh if needed)
+    // 3. Get a valid access token — skip live test if token_expires_at confirms it's still valid
     let accessToken = account.access_token;
+    const tokenExpiry = account.token_expires_at ? new Date(account.token_expires_at) : null;
+    const tokenKnownValid = tokenExpiry !== null && tokenExpiry > new Date();
 
-    const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    if (!tokenKnownValid) {
+      const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-    if (testResponse.status === 401 && account.refresh_token) {
-      accessToken = await refreshAccessToken(account.refresh_token);
+      if (testResponse.status === 401) {
+        if (!account.refresh_token) {
+          return new Response(
+            JSON.stringify({
+              error:
+                'Gmail token expired and no refresh token available. Please reconnect your Gmail account in Settings.',
+            }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
 
-      // Persist the refreshed token
-      await adminClient
-        .from('gmail_accounts')
-        .update({ access_token: accessToken, updated_at: new Date().toISOString() })
-        .eq('id', accountId);
-    } else if (testResponse.status === 401) {
-      return new Response(
-        JSON.stringify({
-          error:
-            'Gmail token expired and no refresh token available. Please reconnect your Gmail account in Settings.',
-        }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+        const { accessToken: newToken, expiresAt } = await refreshAccessToken(
+          account.refresh_token,
+        );
+        accessToken = newToken;
+
+        await adminClient
+          .from('gmail_accounts')
+          .update({
+            access_token: newToken,
+            ...(expiresAt && { token_expires_at: expiresAt }),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', accountId);
+      }
     }
 
     // 4. Fetch trip context for scoped queries
@@ -285,23 +528,42 @@ serve(async req => {
       basecampAddress: trip.basecamp_address,
     };
 
-    // 5. Search Gmail with trip-scoped query
+    // 5. Search Gmail — fetch up to 2 pages (max 50 + 50 = 100 messages)
     const gmailQuery = buildTripScopedGmailQuery(tripContext);
-    const searchUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
-    searchUrl.searchParams.set('q', gmailQuery);
-    searchUrl.searchParams.set('maxResults', '30');
+    const allMessages: { id: string }[] = [];
 
-    const searchResponse = await fetch(searchUrl.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const fetchPage = async (pageToken?: string) => {
+      const searchUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
+      searchUrl.searchParams.set('q', gmailQuery);
+      searchUrl.searchParams.set('maxResults', '50');
+      if (pageToken) searchUrl.searchParams.set('pageToken', pageToken);
 
-    if (!searchResponse.ok) {
-      const errorText = await searchResponse.text();
-      throw new Error(`Gmail API search error: ${errorText}`);
+      const searchResponse = await fetch(searchUrl.toString(), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!searchResponse.ok) {
+        const errorText = await searchResponse.text();
+        throw new Error(`Gmail API search error: ${errorText}`);
+      }
+
+      return searchResponse.json();
+    };
+
+    const firstPage = await fetchPage();
+    allMessages.push(...(firstPage.messages || []));
+
+    // Fetch second page if available and we haven't hit the cap
+    if (firstPage.nextPageToken && allMessages.length < MAX_MESSAGES) {
+      try {
+        const secondPage = await fetchPage(firstPage.nextPageToken);
+        allMessages.push(...(secondPage.messages || []));
+      } catch (pageErr) {
+        console.warn('[gmail-import-worker] Second page fetch failed (continuing):', pageErr);
+      }
     }
 
-    const searchData = await searchResponse.json();
-    const messages = searchData.messages || [];
+    const messages = allMessages.slice(0, MAX_MESSAGES);
 
     if (messages.length === 0) {
       return new Response(
@@ -331,164 +593,37 @@ serve(async req => {
     const stats = { scanned: messages.length, parsed: 0, skipped: 0, errors: 0 };
     const tripContextStr = buildTripContextForPrompt(tripContext);
 
-    // 7. Process each message
-    for (const msg of messages) {
-      try {
-        const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
-        const msgResponse = await fetch(msgUrl, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        if (!msgResponse.ok) {
-          stats.errors++;
-          await logMessage(supabaseClient, job.id, msg.id, 'error', `HTTP ${msgResponse.status}`);
-          continue;
-        }
-
-        const msgData = await msgResponse.json();
-
-        // Extract subject and sender from headers
-        const headers = msgData.payload?.headers || [];
-        const subjectHeader = headers.find(
-          (h: Record<string, string>) => h.name?.toLowerCase() === 'subject',
-        );
-        const subject = subjectHeader?.value || '';
-        const fromHeader = headers.find(
-          (h: Record<string, string>) => h.name?.toLowerCase() === 'from',
-        );
-        const from = fromHeader?.value || '';
-
-        // Decode full email body (not just snippet)
-        const bodyText = extractEmailBody(msgData.payload || {});
-        const snippet = msgData.snippet || '';
-        const emailContent = bodyText.length > snippet.length ? bodyText : snippet;
-
-        // Skip very short emails that are unlikely to contain reservation data
-        if (emailContent.length < 50) {
-          stats.skipped++;
-          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'Email too short');
-          continue;
-        }
-
-        // Truncate very long emails to stay within LLM context limits
-        const truncatedContent =
-          emailContent.length > 12000
-            ? emailContent.substring(0, 12000) + '\n[...truncated]'
-            : emailContent;
-
-        // 8. Send to LLM with trip context (geminiApiKey validated at function start)
-        const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n\nEmail Body:\n${truncatedContent}`;
-
-        const aiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: fullPrompt }] }],
-              generationConfig: { responseMimeType: 'application/json' },
-            }),
-          },
-        );
-
-        if (!aiResponse.ok) {
-          stats.errors++;
-          await logMessage(
-            supabaseClient,
+    // 7. Process messages in parallel batches of BATCH_SIZE
+    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+      const batch = messages.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map(msg =>
+          processMessage(
+            msg,
+            accessToken,
+            tripContextStr,
+            tripId,
             job.id,
-            msg.id,
-            'error',
-            `AI API error: ${aiResponse.status}`,
-          );
-          continue;
-        }
+            user.id,
+            supabaseClient,
+            geminiApiKey,
+          ),
+        ),
+      );
 
-        const aiData = await aiResponse.json();
-        const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!resultText) {
-          stats.skipped++;
-          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No AI output');
-          continue;
-        }
-
-        let parsedJSON: Record<string, unknown>;
-        try {
-          parsedJSON = JSON.parse(resultText);
-        } catch {
+      for (const batchResult of batchResults) {
+        if (batchResult.status === 'fulfilled') {
+          allCandidates.push(...batchResult.value.candidates);
+          stats.parsed += batchResult.value.parsed;
+          stats.skipped += batchResult.value.skipped;
+          stats.errors += batchResult.value.errors;
+        } else {
           stats.errors++;
-          await logMessage(supabaseClient, job.id, msg.id, 'error', 'Failed to parse AI JSON');
-          continue;
         }
-
-        const reservations = parsedJSON.reservations as Array<Record<string, unknown>> | undefined;
-        const relevanceScore = (parsedJSON.trip_relevance_score as number) ?? 0;
-        const relevanceReason = (parsedJSON.trip_relevance_reason as string) ?? '';
-
-        if (!reservations || reservations.length === 0) {
-          stats.skipped++;
-          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No reservations found');
-          continue;
-        }
-
-        for (const res of reservations) {
-          const dedupe_key = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}`;
-
-          // Check for existing duplicates
-          const { data: existing } = await supabaseClient
-            .from('smart_import_candidates')
-            .select('id')
-            .eq('trip_id', tripId)
-            .eq('dedupe_key', dedupe_key)
-            .limit(1);
-
-          if (existing && existing.length > 0) {
-            stats.skipped++;
-            continue;
-          }
-
-          // All items go to review (pending). Relevance score helps user prioritize.
-          const { data: candidate, error: candidateError } = await supabaseClient
-            .from('smart_import_candidates')
-            .insert({
-              job_id: job.id,
-              user_id: user.id,
-              trip_id: tripId,
-              reservation_data: {
-                ...res,
-                _relevance_score: relevanceScore,
-                _relevance_reason: relevanceReason,
-                _gmail_message_id: msg.id,
-                _email_subject: subject,
-              },
-              status: 'pending',
-              dedupe_key,
-            })
-            .select()
-            .single();
-
-          if (!candidateError && candidate) {
-            allCandidates.push(candidate);
-            stats.parsed++;
-          }
-        }
-
-        const logKey = reservations.map(r => `${r.type}_${r.confirmation_code || ''}`).join(',');
-        await logMessage(supabaseClient, job.id, msg.id, 'parsed', logKey);
-      } catch (err) {
-        console.error(`Error processing message ${msg.id}:`, err);
-        stats.errors++;
-        await logMessage(
-          supabaseClient,
-          job.id,
-          msg.id,
-          'error',
-          err instanceof Error ? err.message : 'Unknown error',
-        );
       }
     }
 
-    // 9. Mark job complete
+    // 8. Mark job complete
     await supabaseClient
       .from('gmail_import_jobs')
       .update({
