@@ -595,7 +595,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           <button
             onClick={openCapture}
             disabled={isUploading}
-            className="native-button flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-white px-4 py-3 rounded-xl font-medium shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+            className={`native-button flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium disabled:opacity-70 disabled:cursor-not-allowed ${
+              selectedTab === 'urls'
+                ? 'bg-primary text-primary-foreground shadow-primary-glow'
+                : 'bg-secondary text-secondary-foreground shadow-md'
+            }`}
           >
             {isUploading ? (
               <Loader2 size={20} className="animate-spin" />
@@ -608,7 +612,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             <button
               onClick={openLibrary}
               disabled={isUploading}
-              className="native-button flex items-center justify-center gap-2 bg-white/10 text-white px-4 py-3 rounded-xl font-medium backdrop-blur-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              className="native-button flex items-center justify-center gap-2 bg-secondary text-secondary-foreground px-4 py-3 rounded-xl font-medium shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isUploading ? (
                 <Loader2 size={20} className="animate-spin" />
