@@ -388,6 +388,24 @@ export const VOICE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'searchTripArtifacts',
+    description:
+      'Search uploaded trip documents, screenshots, PDFs, receipts, and tickets. SILENT EXECUTION.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'What artifact to find' },
+        artifact_types: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter by type',
+        },
+        limit: { type: 'number', description: 'Max results' },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'detectCalendarConflicts',
     description: 'Check if a time slot conflicts with existing events.',
     parameters: {
