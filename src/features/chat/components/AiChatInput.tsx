@@ -159,7 +159,7 @@ export const AiChatInput = ({
               isConvoActive
                 ? 'border-primary/30 bg-primary/5'
                 : isLiveActive
-                  ? 'border-emerald-500/30 bg-emerald-500/5'
+                  ? 'border-[#c49746]/30 bg-[#c49746]/5'
                   : 'border-white/10'
             }`}
           />
