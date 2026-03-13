@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2, Mail, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, Mail, Trash2, X } from 'lucide-react';
 import {
   fetchGmailAccounts,
   connectGmailAccount,
   disconnectGmailAccount,
   GmailAccount,
 } from '../api/gmailAuth';
+
+const MAX_ACCOUNTS = 5;
 
 /** Official Google "G" logo as inline SVG — no external image dependency */
 const GoogleLogo: React.FC<{ className?: string }> = ({ className = 'h-4 w-4' }) => (
@@ -32,11 +34,30 @@ const GoogleLogo: React.FC<{ className?: string }> = ({ className = 'h-4 w-4' })
   </svg>
 );
 
+/** Determine if a token is expired or expiring within 24h */
+function isTokenStale(tokenExpiresAt: string | null): boolean {
+  if (!tokenExpiresAt) return false;
+  const expiry = new Date(tokenExpiresAt);
+  const threshold = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  return expiry <= threshold;
+}
+
+/** Human-readable "X days ago" / "today" */
+function relativeDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return '1 day ago';
+  return `${diffDays} days ago`;
+}
+
 export const SmartImportSettings = () => {
   const [accounts, setAccounts] = useState<GmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
+  const [reconnectBannerDismissed, setReconnectBannerDismissed] = useState(false);
 
   useEffect(() => {
     loadAccounts();
@@ -79,6 +100,9 @@ export const SmartImportSettings = () => {
     }
   };
 
+  const hasStaleAccount = accounts.some(a => isTokenStale(a.token_expires_at));
+  const atAccountCap = accounts.length >= MAX_ACCOUNTS;
+
   return (
     <Card className="w-full max-w-2xl mx-auto border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0">
@@ -87,11 +111,28 @@ export const SmartImportSettings = () => {
           Connected Integrations
         </CardTitle>
         <CardDescription>
-          Connect your Gmail account to enable Smart Import for flights, hotels, and events directly
-          from your inbox.
+          Connect your Gmail account to enable Smart Import — automatically find flights, hotels,
+          dining, events, train tickets, and private charter confirmations directly from your inbox.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 space-y-4">
+        {/* Reconnect banner — shown if any account token is stale and not dismissed */}
+        {!loading && hasStaleAccount && !reconnectBannerDismissed && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3">
+            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-amber-700 dark:text-amber-400 flex-1">
+              One of your Gmail accounts needs to be reconnected to continue importing.
+            </p>
+            <button
+              onClick={() => setReconnectBannerDismissed(true)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center p-4">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -102,7 +143,8 @@ export const SmartImportSettings = () => {
               <Mail className="h-8 w-8 text-muted-foreground mb-2" />
               <h3 className="font-medium">No Gmail accounts connected</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Connect an account to seamlessly import travel plans.
+                Connect an account to seamlessly import travel plans — including private charter
+                confirmations, glamping bookings, and event tickets.
               </p>
               <Button
                 onClick={handleConnect}
@@ -121,50 +163,79 @@ export const SmartImportSettings = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {accounts.map(account => (
-              <div
-                key={account.id}
-                className="flex items-center justify-between rounded-lg border p-4 bg-card"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <GoogleLogo className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{account.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Connected {new Date(account.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDisconnect(account.id)}
-                  disabled={disconnectingId === account.id}
+            {accounts.map(account => {
+              const stale = isTokenStale(account.token_expires_at);
+              const syncedLabel = relativeDate(account.last_synced_at);
+
+              return (
+                <div
+                  key={account.id}
+                  className="flex items-center justify-between rounded-lg border p-4 bg-card"
                 >
-                  {disconnectingId === account.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            ))}
-            <Button
-              onClick={handleConnect}
-              disabled={connecting}
-              variant="outline"
-              className="w-full gap-2"
-            >
-              {connecting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Mail className="h-4 w-4" />
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                      <GoogleLogo className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm truncate">{account.email}</p>
+                        {stale ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                            <AlertTriangle className="h-3 w-3" />
+                            Reconnect recommended
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Connected
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {syncedLabel
+                          ? `Last synced ${syncedLabel}`
+                          : `Added ${new Date(account.created_at).toLocaleDateString()}`}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:bg-destructive/10 shrink-0"
+                    onClick={() => handleDisconnect(account.id)}
+                    disabled={disconnectingId === account.id}
+                  >
+                    {disconnectingId === account.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
+
+            <div className="space-y-1">
+              <Button
+                onClick={handleConnect}
+                disabled={connecting || atAccountCap}
+                variant="outline"
+                className="w-full gap-2"
+                title={atAccountCap ? `Maximum ${MAX_ACCOUNTS} Gmail accounts allowed` : undefined}
+              >
+                {connecting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
+                Connect another account
+              </Button>
+              {atAccountCap && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Maximum {MAX_ACCOUNTS} Gmail accounts reached. Remove one to add another.
+                </p>
               )}
-              Connect another account
-            </Button>
+            </div>
           </div>
         )}
       </CardContent>

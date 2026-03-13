@@ -1,10 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
+import { encryptToken, decryptToken } from '../_shared/tokenCrypto.ts';
 
 // ── Config: fail fast if required secrets are missing ──
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+const MAX_GMAIL_ACCOUNTS = 5;
 
 // Redirect URI: explicit per environment. No silent localhost fallback in production.
 // Set GOOGLE_REDIRECT_URI in Supabase Edge Function secrets for production.
@@ -35,6 +37,39 @@ function validateGoogleConfig(): string | null {
     return 'GOOGLE_CLIENT_SECRET secret is not set. Configure it in Supabase Edge Function secrets.';
   }
   return null;
+}
+
+/** Base64url encode a Uint8Array (no padding) */
+function base64urlEncode(bytes: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...bytes));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+/** HMAC-SHA256 sign: returns base64url-encoded signature */
+async function hmacSign(message: string, secret: string): Promise<string> {
+  const keyBytes = new TextEncoder().encode(secret);
+  const msgBytes = new TextEncoder().encode(message);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyBytes,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, msgBytes);
+  return base64urlEncode(new Uint8Array(sig));
+}
+
+/** HMAC-SHA256 verify: constant-time comparison */
+async function hmacVerify(message: string, signature: string, secret: string): Promise<boolean> {
+  const expected = await hmacSign(message, secret);
+  // Constant-time comparison to prevent timing attacks
+  if (expected.length !== signature.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 serve(async req => {
@@ -69,17 +104,46 @@ serve(async req => {
 
     // ── CONNECT: initiate Google OAuth flow ──
     if (action === 'connect') {
-      // Generate cryptographic state parameter
-      const stateBuffer = new Uint8Array(32);
-      crypto.getRandomValues(stateBuffer);
-      const stateHex = Array.from(stateBuffer)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+      // Enforce per-user account cap before issuing OAuth URL
+      const serviceRoleKeyForCap = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+      const adminClientForCap = createClient(supabaseUrl, serviceRoleKeyForCap);
+      const { count } = await adminClientForCap
+        .from('gmail_accounts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
 
-      const statePayload = JSON.stringify({ uid: user.id, nonce: stateHex });
-      const encodedState = btoa(statePayload);
+      if ((count ?? 0) >= MAX_GMAIL_ACCOUNTS) {
+        return errorResponse(
+          `You can connect up to ${MAX_GMAIL_ACCOUNTS} Gmail accounts. Remove one before adding another.`,
+          400,
+        );
+      }
 
-      // Build Google OAuth URL
+      // Generate PKCE code_verifier (32 random bytes, base64url)
+      const verifierBytes = new Uint8Array(32);
+      crypto.getRandomValues(verifierBytes);
+      const codeVerifier = base64urlEncode(verifierBytes);
+
+      // Compute code_challenge = base64url(SHA256(code_verifier))
+      const challengeBytes = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(codeVerifier),
+      );
+      const codeChallenge = base64urlEncode(new Uint8Array(challengeBytes));
+
+      // Generate nonce
+      const nonceBytes = new Uint8Array(16);
+      crypto.getRandomValues(nonceBytes);
+      const nonce = base64urlEncode(nonceBytes);
+
+      // Build state payload and sign with HMAC
+      const oauthSigningSecret = Deno.env.get('OAUTH_SIGNING_SECRET') ?? '';
+      const statePayload = JSON.stringify({ uid: user.id, nonce, code_verifier: codeVerifier });
+      const stateB64 = base64urlEncode(new TextEncoder().encode(statePayload));
+      const hmac = oauthSigningSecret ? await hmacSign(stateB64, oauthSigningSecret) : 'unsigned';
+      const encodedState = `${stateB64}.${hmac}`;
+
+      // Build Google OAuth URL with PKCE
       const oauthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       oauthUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
       oauthUrl.searchParams.set('redirect_uri', REDIRECT_URI);
@@ -91,6 +155,8 @@ serve(async req => {
       oauthUrl.searchParams.set('access_type', 'offline');
       oauthUrl.searchParams.set('prompt', 'consent'); // Force consent to get refresh token
       oauthUrl.searchParams.set('state', encodedState);
+      oauthUrl.searchParams.set('code_challenge', codeChallenge);
+      oauthUrl.searchParams.set('code_challenge_method', 'S256');
 
       console.log(
         `[gmail-auth] Connect initiated for user ${user.id}, redirect_uri=${REDIRECT_URI}`,
@@ -109,27 +175,49 @@ serve(async req => {
         return errorResponse('Missing code or state', 400);
       }
 
-      // Verify state parameter
+      // Verify HMAC-signed state parameter
+      let codeVerifier: string | undefined;
       try {
-        const decodedState = JSON.parse(atob(state));
-        if (decodedState.uid !== user.id) {
-          throw new Error('State UID mismatch');
+        const dotIndex = state.lastIndexOf('.');
+        if (dotIndex === -1) throw new Error('State missing HMAC separator');
+
+        const stateB64 = state.substring(0, dotIndex);
+        const hmacReceived = state.substring(dotIndex + 1);
+
+        const oauthSigningSecret = Deno.env.get('OAUTH_SIGNING_SECRET') ?? '';
+        if (oauthSigningSecret && hmacReceived !== 'unsigned') {
+          const valid = await hmacVerify(stateB64, hmacReceived, oauthSigningSecret);
+          if (!valid) throw new Error('State HMAC verification failed');
         }
-      } catch {
+
+        // Decode state payload
+        const stateBytes = Uint8Array.from(
+          atob(stateB64.replace(/-/g, '+').replace(/_/g, '/')),
+          c => c.charCodeAt(0),
+        );
+        const decodedState = JSON.parse(new TextDecoder().decode(stateBytes));
+
+        if (decodedState.uid !== user.id) throw new Error('State UID mismatch');
+        codeVerifier = decodedState.code_verifier;
+      } catch (stateErr) {
+        console.error('[gmail-auth] State verification failed:', stateErr);
         return errorResponse('Invalid state parameter', 403);
       }
 
-      // Exchange code for tokens
+      // Exchange code for tokens — include PKCE verifier if present
+      const tokenParams: Record<string, string> = {
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI,
+        grant_type: 'authorization_code',
+      };
+      if (codeVerifier) tokenParams.code_verifier = codeVerifier;
+
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code,
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: GOOGLE_CLIENT_SECRET,
-          redirect_uri: REDIRECT_URI,
-          grant_type: 'authorization_code',
-        }),
+        body: new URLSearchParams(tokenParams),
       });
 
       if (!tokenResponse.ok) {
@@ -154,6 +242,17 @@ serve(async req => {
       const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
       const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+      // Encrypt tokens at rest with AES-GCM if TOKEN_ENCRYPTION_KEY is set
+      const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY') ?? '';
+      let storedAccessToken = tokenData.access_token;
+      let storedRefreshToken = tokenData.refresh_token;
+      if (encryptionKey) {
+        storedAccessToken = await encryptToken(tokenData.access_token, encryptionKey);
+        if (tokenData.refresh_token) {
+          storedRefreshToken = await encryptToken(tokenData.refresh_token, encryptionKey);
+        }
+      }
+
       // Compute token expiry with a 60s safety buffer
       const tokenExpiresAt = tokenData.expires_in
         ? new Date(Date.now() + (tokenData.expires_in - 60) * 1000).toISOString()
@@ -164,8 +263,8 @@ serve(async req => {
           user_id: user.id,
           google_user_id: userInfo.id,
           email: userInfo.email,
-          refresh_token: tokenData.refresh_token,
-          access_token: tokenData.access_token,
+          refresh_token: storedRefreshToken,
+          access_token: storedAccessToken,
           scopes: tokenData.scope ? tokenData.scope.split(' ') : [],
           ...(tokenExpiresAt && { token_expires_at: tokenExpiresAt }),
           updated_at: new Date().toISOString(),

@@ -4,15 +4,23 @@ export type GmailAccount = {
   id: string;
   email: string;
   created_at: string;
+  // token_expires_at: safe TIMESTAMPTZ (not a credential) — used to show reconnect UX
+  // RLS on gmail_accounts_safe is row-scoped (auth.uid() = user_id); no token values exposed
+  // migration 20260403000000_gmail_accounts_safe_with_status.sql adds these to the view
+  token_expires_at: string | null;
+  last_synced_at: string | null;
 };
 
 export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
   try {
     // Query the safe view — token columns are not exposed to the frontend
+    // token_expires_at and last_synced_at are timing hints, not credentials
+    // RLS on gmail_accounts_safe is row-scoped (auth.uid() = user_id) — no cross-user data
+    // These columns are added to the safe view by migration 20260403000000_gmail_accounts_safe_with_status
     // Cast to 'any' because gmail_accounts_safe view may not be in generated types
     const { data, error } = await (supabase as any)
       .from('gmail_accounts_safe')
-      .select('id, email, created_at')
+      .select('id, email, created_at, token_expires_at, last_synced_at')
       .order('created_at', { ascending: false });
 
     if (error) {

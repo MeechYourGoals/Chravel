@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { runtimePrompt } from './prompt.ts';
+import { decryptToken } from '../_shared/tokenCrypto.ts';
 
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
@@ -138,24 +139,45 @@ function buildTripScopedGmailQuery(trip: TripContext): string {
   // Widened travel-related content filter: more domains + more subject keywords
   queryParts.push(
     '(' +
-      'subject:(itinerary OR reservation OR booking OR confirmation OR ticket OR "e-ticket" OR "check-in" OR "boarding pass" OR "order confirmation" OR "your trip" OR receipt) ' +
+      'subject:(itinerary OR reservation OR booking OR confirmation OR ticket OR "e-ticket" OR "check-in" OR "boarding pass" OR "order confirmation" OR "your trip" OR receipt OR "charter confirmation" OR "flight manifest" OR "passenger manifest" OR "tail number" OR "aircraft assignment" OR "departure briefing" OR "group charter") ' +
       'OR from:(' +
       // OTAs
       'booking.com OR expedia.com OR hotels.com OR priceline.com OR kayak.com OR ' +
       'tripadvisor.com OR travelocity.com OR orbitz.com OR ' +
-      // Airlines
+      // Commercial airlines
       'delta.com OR united.com OR aa.com OR southwest.com OR jetblue.com OR ' +
-      'frontier.com OR spirit.com OR allegiant.com OR ' +
+      'frontier.com OR spirit.com OR allegiant.com OR alaskaair.com OR ' +
+      'lufthansa.com OR ba.com OR airfrance.com OR emirates.com OR qatarairways.com OR ' +
+      'singaporeair.com OR klm.com OR turkish.com OR iberia.com OR ' +
+      // Private jet / fractional ownership
+      'netjets.com OR wheelsup.com OR flexjet.com OR planesense.com OR airshare.com OR ' +
+      'sentientjet.com OR flyalliance.com OR nicholasair.com OR ' +
+      // Charter on-demand
+      'vistajet.com OR xo.com OR flyexclusive.com OR privatefly.com OR ' +
+      'victor.aero OR jettly.com OR stratosjets.com OR aircharterservice.com OR ' +
+      // Semi-commercial / premium commuter
+      'jsx.com OR surf.air OR blade.com OR bladebywheelsup.com OR ' +
+      'capecod.com OR boutiqueair.com OR tropicair.com OR southernairways.com OR ' +
+      // FBO / ground handling (signal of private aviation)
+      'signatureaviation.com OR jetaviation.com OR atlanticaviation.com OR ' +
+      'millionair.com OR sheltair.com OR rossaviation.com OR ' +
       // Hotels
       'airbnb.com OR vrbo.com OR marriott.com OR hilton.com OR hyatt.com OR ihg.com OR wyndham.com OR ' +
+      'fourseasons.com OR ritzcarlton.com OR accor.com OR mandarinoriental.com OR ' +
+      // Alternative accommodations
+      'hipcamp.com OR glamping.com OR glampinghub.com OR tentrr.com OR koa.com OR ' +
+      'outdoorsy.com OR rvshare.com OR cruiseamerica.com OR ' +
+      'sonder.com OR blueground.com OR kasa.com OR vacasa.com OR evolve.com OR ' +
+      'hostelworld.com OR generator.com OR selina.com OR meininger.com OR ' +
       // Car rentals
       'hertz.com OR avis.com OR enterprise.com OR budget.com OR alamo.com OR nationalcar.com OR turo.com OR zipcar.com OR ' +
       // Events & tickets
       'ticketmaster.com OR stubhub.com OR seatgeek.com OR axs.com OR gametime.com OR eventbrite.com OR ' +
       // Dining
-      'opentable.com OR resy.com OR yelp.com OR ' +
+      'opentable.com OR resy.com OR yelp.com OR tock.com OR ' +
       // Rail & bus
       'amtrak.com OR eurostar.com OR trainline.com OR flixbus.com OR ' +
+      'deutschebahn.de OR db.de OR renfe.com OR trenitalia.com OR viarail.ca OR ' +
       // Rideshare
       'lyft.com OR uber.com' +
       ') ' +
@@ -232,7 +254,7 @@ async function processMessage(
 
     const msgData = await msgResponse.json();
 
-    // Extract subject and sender from headers
+    // Extract subject, sender, and sent date from headers
     const headers = msgData.payload?.headers || [];
     const subjectHeader = headers.find(
       (h: Record<string, string>) => h.name?.toLowerCase() === 'subject',
@@ -242,6 +264,21 @@ async function processMessage(
       (h: Record<string, string>) => h.name?.toLowerCase() === 'from',
     );
     const from = fromHeader?.value || '';
+    const dateHeader = headers.find(
+      (h: Record<string, string>) => h.name?.toLowerCase() === 'date',
+    );
+    // Parse email date to ISO date string for trip relevance scoring
+    let emailDate: string | null = null;
+    if (dateHeader?.value) {
+      try {
+        const parsed = new Date(dateHeader.value);
+        if (!isNaN(parsed.getTime())) {
+          emailDate = parsed.toISOString().substring(0, 10);
+        }
+      } catch {
+        // Unparseable date header — leave null
+      }
+    }
 
     // Decode full email body (not just snippet)
     const bodyText = extractEmailBody(msgData.payload || {});
@@ -262,19 +299,27 @@ async function processMessage(
         : emailContent;
 
     // Send to LLM with trip context
-    const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n\nEmail Body:\n${truncatedContent}`;
+    const emailDateLine = emailDate ? `Email Sent Date: ${emailDate}\n` : '';
+    const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n${emailDateLine}\nEmail Body:\n${truncatedContent}`;
 
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: fullPrompt }] }],
-          generationConfig: { responseMimeType: 'application/json' },
-        }),
-      },
+    const geminiTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini request timed out after 25s')), 25000),
     );
+
+    const aiResponse = await Promise.race([
+      fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: { responseMimeType: 'application/json' },
+          }),
+        },
+      ),
+      geminiTimeout,
+    ]);
 
     if (!aiResponse.ok) {
       result.errors++;
@@ -467,8 +512,15 @@ serve(async req => {
       });
     }
 
-    // 3. Get a valid access token — skip live test if token_expires_at confirms it's still valid
-    let accessToken = account.access_token;
+    // 3. Get a valid access token — decrypt if stored as AES-GCM ciphertext
+    const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY') ?? '';
+    let accessToken = encryptionKey
+      ? await decryptToken(account.access_token, encryptionKey)
+      : account.access_token;
+    const decryptedRefreshToken =
+      encryptionKey && account.refresh_token
+        ? await decryptToken(account.refresh_token, encryptionKey)
+        : account.refresh_token;
     const tokenExpiry = account.token_expires_at ? new Date(account.token_expires_at) : null;
     const tokenKnownValid = tokenExpiry !== null && tokenExpiry > new Date();
 
@@ -478,7 +530,7 @@ serve(async req => {
       });
 
       if (testResponse.status === 401) {
-        if (!account.refresh_token) {
+        if (!decryptedRefreshToken) {
           return new Response(
             JSON.stringify({
               error:
@@ -488,15 +540,18 @@ serve(async req => {
           );
         }
 
-        const { accessToken: newToken, expiresAt } = await refreshAccessToken(
-          account.refresh_token,
-        );
+        const { accessToken: newToken, expiresAt } =
+          await refreshAccessToken(decryptedRefreshToken);
         accessToken = newToken;
+
+        // Re-encrypt refreshed token before persisting
+        const { encryptToken } = await import('../_shared/tokenCrypto.ts');
+        const persistToken = encryptionKey ? await encryptToken(newToken, encryptionKey) : newToken;
 
         await adminClient
           .from('gmail_accounts')
           .update({
-            access_token: newToken,
+            access_token: persistToken,
             ...(expiresAt && { token_expires_at: expiresAt }),
             updated_at: new Date().toISOString(),
           })
@@ -632,6 +687,12 @@ serve(async req => {
         stats: stats,
       })
       .eq('id', job.id);
+
+    // Update last_synced_at on the gmail account — visible in Settings
+    await adminClient
+      .from('gmail_accounts')
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq('id', accountId);
 
     // Sort candidates by relevance score (highest first)
     allCandidates.sort((a, b) => {

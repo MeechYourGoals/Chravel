@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,6 +42,25 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string; label
   rail_ticket: { icon: Train, color: 'text-green-500', label: 'Train' },
 };
 
+type FilterTab =
+  | 'all'
+  | 'flight'
+  | 'lodging'
+  | 'event_ticket'
+  | 'dining_reservation'
+  | 'rail_ticket'
+  | 'ground_transport';
+
+const filterTabs: { key: FilterTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'flight', label: 'Flights' },
+  { key: 'lodging', label: 'Lodging' },
+  { key: 'event_ticket', label: 'Events' },
+  { key: 'dining_reservation', label: 'Dining' },
+  { key: 'rail_ticket', label: 'Train' },
+  { key: 'ground_transport', label: 'Transport' },
+];
+
 export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   candidates,
   tripId,
@@ -65,11 +84,35 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     );
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+
+  const visibleCandidates = useMemo(() => {
+    if (activeFilter === 'all') return candidates;
+    return candidates.filter(c => c.reservation_data?.type === activeFilter);
+  }, [candidates, activeFilter]);
+
+  // Only count tabs with at least one candidate
+  const tabsWithData = useMemo(() => {
+    const typeSet = new Set(candidates.map(c => c.reservation_data?.type));
+    return filterTabs.filter(t => t.key === 'all' || typeSet.has(t.key));
+  }, [candidates]);
 
   const toggleSelection = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const selectAllVisible = () => {
+    const next = new Set(selectedIds);
+    visibleCandidates.forEach(c => next.add(c.id));
+    setSelectedIds(next);
+  };
+
+  const deselectAllVisible = () => {
+    const next = new Set(selectedIds);
+    visibleCandidates.forEach(c => next.delete(c.id));
     setSelectedIds(next);
   };
 
@@ -80,8 +123,11 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
       const rejected = candidates.filter(c => !selectedIds.has(c.id));
 
       // Persist accepted candidates as trip artifacts
+      let persistedCount = 0;
+      let failedCount = 0;
+
       if (tripId && accepted.length > 0) {
-        await Promise.allSettled(
+        const ingestResults = await Promise.allSettled(
           accepted.map(async candidate => {
             const resData = candidate.reservation_data || {};
             const reservationType = resData.type as string | undefined;
@@ -105,7 +151,10 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           }),
         );
 
-        // Mark accepted candidates
+        persistedCount = ingestResults.filter(r => r.status === 'fulfilled').length;
+        failedCount = ingestResults.filter(r => r.status === 'rejected').length;
+
+        // Mark accepted candidates (best-effort — don't fail the whole accept if this errors)
         await (supabase as any)
           .from('smart_import_candidates')
           .update({ status: 'accepted' })
@@ -124,6 +173,19 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
             'id',
             rejected.map(c => c.id),
           );
+      }
+
+      if (failedCount > 0) {
+        toast.warning(
+          `${persistedCount} of ${accepted.length} item${accepted.length !== 1 ? 's' : ''} saved.`,
+          {
+            description: `${failedCount} item${failedCount !== 1 ? 's' : ''} may not have been fully indexed.`,
+          },
+        );
+      } else if (accepted.length > 0) {
+        toast.success(
+          `Added ${accepted.length} item${accepted.length !== 1 ? 's' : ''} to your trip`,
+        );
       }
 
       await onAccept(accepted);
@@ -154,6 +216,8 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     );
   }
 
+  const visibleSelectedCount = visibleCandidates.filter(c => selectedIds.has(c.id)).length;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b pb-4">
@@ -163,13 +227,63 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
             Select the reservations you want to add to your trip.
           </p>
         </div>
-        <div className="text-sm font-medium">
-          {selectedIds.size} of {candidates.length} selected
+        <div className="text-sm font-medium text-right">
+          <span>
+            {selectedIds.size} of {candidates.length} selected
+          </span>
         </div>
       </div>
 
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-        {candidates.map(candidate => {
+      {/* Type filter tabs */}
+      {tabsWithData.length > 2 && (
+        <div className="flex gap-1 flex-wrap">
+          {tabsWithData.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                activeFilter === tab.key
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {tab.label}
+              {tab.key !== 'all' && (
+                <span className="ml-1 opacity-60">
+                  {candidates.filter(c => c.reservation_data?.type === tab.key).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Bulk action row */}
+      <div className="flex items-center gap-2 text-xs">
+        <button
+          onClick={selectAllVisible}
+          className="text-primary hover:underline"
+          disabled={visibleSelectedCount === visibleCandidates.length}
+        >
+          Select All{activeFilter !== 'all' ? ' Visible' : ''}
+        </button>
+        <span className="text-muted-foreground">·</span>
+        <button
+          onClick={deselectAllVisible}
+          className="text-muted-foreground hover:underline"
+          disabled={visibleSelectedCount === 0}
+        >
+          Deselect All{activeFilter !== 'all' ? ' Visible' : ''}
+        </button>
+        {activeFilter !== 'all' && (
+          <span className="text-muted-foreground ml-1">
+            ({visibleSelectedCount} of {visibleCandidates.length} visible selected)
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+        {visibleCandidates.map(candidate => {
           const type = candidate.reservation_data?.type || 'unknown';
           const config = typeConfig[type] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
@@ -180,14 +294,16 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           let subtitle = '';
 
           if (type === 'flight') {
-            title = `${data.airline_name || data.airline_code} Flight ${data.flight_number || ''}`;
-            subtitle = `${data.departure_city || data.departure_airport_code} to ${data.arrival_city || data.arrival_airport_code}`;
+            const operatorName = data.airline_name || data.booking_source || data.airline_code;
+            const flightId = data.flight_number || data.tail_number || '';
+            title = `${operatorName || 'Flight'} ${flightId}`.trim();
+            subtitle = `${data.departure_city || data.departure_airport_code || ''} → ${data.arrival_city || data.arrival_airport_code || ''}`;
           } else if (type === 'lodging') {
-            title = data.property_name || 'Hotel Stay';
+            title = data.property_name || 'Stay';
             subtitle = data.city || data.address || '';
           } else if (type === 'ground_transport') {
             title = data.provider_name || 'Ground Transport';
-            subtitle = `${data.pickup_location} to ${data.dropoff_location}`;
+            subtitle = `${data.pickup_location || ''} to ${data.dropoff_location || ''}`;
           } else if (type === 'event_ticket') {
             title = data.event_name || 'Event Ticket';
             subtitle = data.venue_name || data.city || '';
@@ -196,7 +312,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
             subtitle = data.city || data.address || '';
           } else if (type === 'rail_ticket') {
             title = `${data.operator_name || 'Train'} ${data.train_number || ''}`.trim();
-            subtitle = `${data.departure_station || ''} to ${data.arrival_station || ''}`;
+            subtitle = `${data.departure_station || ''} → ${data.arrival_station || ''}`;
           }
 
           const isSelected = selectedIds.has(candidate.id);
@@ -222,9 +338,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                   />
                 </div>
 
-                <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 bg-background border`}
-                >
+                <div className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 bg-background border">
                   <Icon className={`h-5 w-5 ${config.color}`} />
                 </div>
 
