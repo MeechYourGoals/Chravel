@@ -36,6 +36,8 @@ import {
 import { cn } from '@/lib/utils';
 import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
 import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
+import { supabase } from '@/integrations/supabase/client';
+import type { SmartImportCandidate } from '@/features/smart-import/types';
 import {
   parseLineupFile,
   parseLineupText,
@@ -84,7 +86,7 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
   const [showPasteInput, setShowPasteInput] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
-  const [gmailCandidates, setGmailCandidates] = useState<any[]>([]);
+  const [gmailCandidates, setGmailCandidates] = useState<SmartImportCandidate[]>([]);
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url' | 'gmail'>('file');
 
   const processParseResult = useCallback((result: LineupParseResult) => {
@@ -340,20 +342,42 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                   // For Lineup, we are extracting names from reservations (typically attendees or artists from event tickets)
                   const namesToImport = accepted
                     .flatMap(c => {
-                      const data = c.reservation_data;
-                      if (data.type === 'event_ticket') {
-                        return [...(data.attendee_names || []), data.event_name];
+                      const data = c.reservation_data as Record<string, unknown>;
+                      if (data.type === 'event_ticket' || data.type === 'sports_ticket') {
+                        return [
+                          ...((data.attendee_names as string[]) || []),
+                          data.event_name as string,
+                        ];
                       } else if (data.passenger_names) {
-                        return data.passenger_names;
+                        return data.passenger_names as string[];
                       } else if (data.guest_names) {
-                        return data.guest_names;
+                        return data.guest_names as string[];
                       }
                       return [];
                     })
                     .filter(Boolean);
 
+                  const acceptedIds = accepted.map(c => c.id).filter(Boolean);
+                  if (acceptedIds.length > 0) {
+                    await supabase
+                      .from('smart_import_candidates')
+                      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+                      .in('id', acceptedIds);
+                  }
+
+                  const rejectedIds = gmailCandidates
+                    .filter(c => !acceptedIds.includes(c.id))
+                    .map(c => c.id)
+                    .filter(Boolean);
+                  if (rejectedIds.length > 0) {
+                    await supabase
+                      .from('smart_import_candidates')
+                      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+                      .in('id', rejectedIds as string[]);
+                  }
+
                   if (namesToImport.length > 0) {
-                    setParsedNames(Array.from(new Set(namesToImport)));
+                    setParsedNames(Array.from(new Set(namesToImport)) as string[]);
                     setState('preview');
                   } else {
                     toast.error('No names found in these reservations');

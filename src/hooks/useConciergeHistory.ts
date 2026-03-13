@@ -46,6 +46,8 @@ export interface ConciergeChatMessage {
   functionCallHotels?: HotelResult[];
   /** Google Maps widget token restored from persisted metadata */
   googleMapsWidget?: string;
+  /** Google Maps widget context token restored from persisted metadata */
+  googleMapsWidgetContextToken?: string;
   /** Concierge action results restored from persisted metadata */
   conciergeActions?: Array<{
     actionType: string;
@@ -146,6 +148,8 @@ export function useConciergeHistory(tripId: string): {
                 meta.functionCallHotels as ConciergeChatMessage['functionCallHotels'];
             if (typeof meta.googleMapsWidget === 'string')
               assistantMsg.googleMapsWidget = meta.googleMapsWidget;
+            if (typeof meta.googleMapsWidgetContextToken === 'string')
+              assistantMsg.googleMapsWidgetContextToken = meta.googleMapsWidgetContextToken;
             if (Array.isArray(meta.conciergeActions))
               assistantMsg.conciergeActions =
                 meta.conciergeActions as ConciergeChatMessage['conciergeActions'];

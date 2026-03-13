@@ -38,6 +38,7 @@ import { tripKeys } from '@/lib/queryKeys';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
 import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
 import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
+import type { SmartImportCandidate } from '@/features/smart-import/types';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CalendarImportModalProps {
@@ -84,7 +85,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
-  const [gmailCandidates, setGmailCandidates] = useState<Record<string, unknown>[]>([]);
+  const [gmailCandidates, setGmailCandidates] = useState<SmartImportCandidate[]>([]);
   const queryClient = useQueryClient();
 
   const processParseResult = useCallback(
@@ -487,6 +488,31 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                       startTime = data.start_time_local as string | null;
                       endTime = data.end_time_local as string | null;
                       location = (data.venue_name as string) || (data.city as string) || null;
+                    } else if (type === 'sports_ticket') {
+                      title = (data.event_name as string) || 'Sports Event';
+                      startTime = data.start_time_local as string | null;
+                      endTime = data.end_time_local as string | null;
+                      location = (data.venue_name as string) || (data.city as string) || null;
+                    } else if (type === 'restaurant_reservation') {
+                      title = (data.restaurant_name as string) || 'Restaurant Reservation';
+                      startTime = data.reservation_time_local as string | null;
+                      endTime = null;
+                      location = (data.city as string) || null;
+                    } else if (type === 'rail_bus_ferry') {
+                      title = (data.provider_name as string) || 'Rail/Bus/Ferry';
+                      startTime = data.departure_time_local as string | null;
+                      endTime = data.arrival_time_local as string | null;
+                      location = `${data.departure_location || ''} → ${data.arrival_location || ''}`;
+                    } else if (type === 'conference_registration') {
+                      title = (data.event_name as string) || 'Conference Registration';
+                      startTime = data.start_time_local as string | null;
+                      endTime = data.end_time_local as string | null;
+                      location = (data.venue_name as string) || (data.city as string) || null;
+                    } else if (type === 'generic_itinerary_item') {
+                      title = (data.item_label as string) || 'Itinerary Item';
+                      startTime = data.start_time_local as string | null;
+                      endTime = data.end_time_local as string | null;
+                      location = (data.location as string) || null;
                     }
 
                     if (!startTime) return null;
@@ -530,7 +556,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
 
                 // Mark unselected candidates as rejected
                 const rejectedIds = gmailCandidates
-                  .filter(c => !acceptedIds.includes(c.id))
+                  .filter(c => !acceptedIds.includes(c.id as string))
                   .map(c => c.id)
                   .filter(Boolean);
                 if (rejectedIds.length > 0) {

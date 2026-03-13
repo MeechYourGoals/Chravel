@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ImagePlus, X, Sparkles } from 'lucide-react';
+import { Search, ImagePlus, Sparkles } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -26,7 +26,9 @@ import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
+import type { ToolCallResult } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
+import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -81,6 +83,7 @@ export interface ChatMessage {
     source?: string;
   }>;
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
   /** Rich place results from searchPlaces / getPlaceDetails tool calls */
   functionCallPlaces?: Array<{
     placeId?: string | null;
@@ -149,6 +152,7 @@ interface ConciergeInvokePayload {
   sources?: ChatMessage['sources'];
   citations?: ChatMessage['sources'];
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
   success?: boolean;
   error?: string;
 }
@@ -455,7 +459,7 @@ export const AIConciergeChat = ({
   });
 
   const handleLiveTurnComplete = useCallback(
-    async (userText: string, assistantText: string) => {
+    async (userText: string, assistantText: string, toolResults?: ToolCallResult[]) => {
       const now = new Date().toISOString();
       const newMessages: ChatMessage[] = [];
       if (userText) {
@@ -467,12 +471,59 @@ export const AIConciergeChat = ({
         });
       }
       if (assistantText) {
-        newMessages.push({
+        // Build rich card metadata from voice tool results
+        const assistantMsg: ChatMessage = {
           id: `voice-assistant-${Date.now()}`,
           type: 'assistant',
           content: assistantText,
           timestamp: now,
-        });
+        };
+
+        // Map tool results to rich card fields on the assistant message
+        if (toolResults && toolResults.length > 0) {
+          for (const tr of toolResults) {
+            if (
+              (tr.name === 'searchPlaces' || tr.name === 'getPlaceDetails') &&
+              tr.result?.success
+            ) {
+              const places = tr.result.places ?? (tr.result.place ? [tr.result.place] : []);
+              if (Array.isArray(places) && places.length > 0) {
+                assistantMsg.functionCallPlaces = places as ChatMessage['functionCallPlaces'];
+              }
+            }
+            if (tr.name === 'searchFlights' && tr.result?.success && tr.result.flights) {
+              assistantMsg.functionCallFlights = tr.result
+                .flights as ChatMessage['functionCallFlights'];
+            }
+            if (
+              (tr.name === 'searchWeb' || tr.name === 'searchImages') &&
+              tr.result?.success &&
+              tr.result.results
+            ) {
+              assistantMsg.sources = (
+                tr.result.results as Array<{ title: string; url: string; snippet: string }>
+              ).map(r => ({
+                title: r.title || '',
+                url: r.url || '',
+                snippet: r.snippet || '',
+              }));
+            }
+            if (
+              (tr.name === 'addToCalendar' ||
+                tr.name === 'createTask' ||
+                tr.name === 'createPoll') &&
+              tr.result?.success
+            ) {
+              if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
+              assistantMsg.conciergeActions.push({
+                actionType: (tr.result.actionType as string) || tr.name,
+                message: (tr.result.message as string) || '',
+              } as any);
+            }
+          }
+        }
+
+        newMessages.push(assistantMsg);
       }
       if (newMessages.length > 0) {
         // Immediate in-memory update — keeps the UI responsive.
@@ -532,6 +583,7 @@ export const AIConciergeChat = ({
     state: liveState,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
+    diagnostics: liveDiagnostics,
     startSession: startLiveSession,
     endSession: endLiveSession,
   } = useGeminiLive({
@@ -544,16 +596,20 @@ export const AIConciergeChat = ({
   // Voice state for VoiceButton — dictation only (Live is separate button now)
   const convoVoiceState: VoiceState = dictationState;
 
-  // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
+  // Whether Gemini Live session is active (for Live button + inline voice UI)
   const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
+
+  const handleEndLiveSession = useCallback(async () => {
+    await endLiveSession();
+  }, [endLiveSession]);
 
   // Waveform button — dictation only. Stops Live if active first.
   const handleConvoToggle = useCallback(() => {
     if (isLiveSessionActive) {
-      void endLiveSession();
+      void handleEndLiveSession();
     }
     toggleDictation();
-  }, [isLiveSessionActive, endLiveSession, toggleDictation]);
+  }, [isLiveSessionActive, handleEndLiveSession, toggleDictation]);
 
   // Live button — Gemini Live toggle. Stops dictation if active first.
   const handleLiveToggle = useCallback(async () => {
@@ -566,13 +622,13 @@ export const AIConciergeChat = ({
 
     // If Live is already active, stop it
     if (isLiveSessionActive) {
-      await endLiveSession();
+      await handleEndLiveSession();
       return;
     }
 
     // If previous session errored, clean up before retrying
     if (liveState === 'error') {
-      await endLiveSession();
+      await handleEndLiveSession();
     }
 
     // Check plan limits
@@ -601,7 +657,7 @@ export const AIConciergeChat = ({
     isDictationActive,
     toggleDictation,
     isLiveSessionActive,
-    endLiveSession,
+    handleEndLiveSession,
     startLiveSession,
     isLimitedPlan,
     incrementUsageOnSuccess,
@@ -1478,6 +1534,7 @@ export const AIConciergeChat = ({
                 usage: metadata.usage,
                 sources: metadata.sources as ChatMessage['sources'],
                 googleMapsWidget: metadata.googleMapsWidget ?? undefined,
+                googleMapsWidgetContextToken: metadata.googleMapsWidgetContextToken ?? undefined,
               }));
             },
             onError: (errorMsg: string) => {
@@ -1784,15 +1841,15 @@ export const AIConciergeChat = ({
                   onClick={handleLiveToggle}
                   className={`relative h-7 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
                     isLiveSessionActive
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 border-transparent'
-                      : 'bg-gray-800/80 text-white/50 hover:text-white/80 hover:bg-gray-700/80'
+                      ? 'bg-gradient-to-br from-[#533517] to-[#c49746] text-white shadow-md shadow-[#c49746]/25 border-transparent'
+                      : 'bg-gray-800/80 text-white hover:bg-gray-700/80'
                   }`}
                   aria-label={isLiveSessionActive ? 'Stop live voice' : 'Start live voice'}
                 >
                   {isLiveSessionActive && (
                     <span
                       aria-hidden
-                      className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-emerald-400/30 to-teal-400/20 blur-sm"
+                      className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#c49746]/30 to-[#feeaa5]/20 blur-sm"
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-1">
@@ -1871,71 +1928,80 @@ export const AIConciergeChat = ({
                   &bull; &ldquo;Create a poll: Saturday night plans with 4 options near us&rdquo;
                 </p>
               </div>
-              <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
+              <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 rounded px-2.5 py-1 inline-block">
                 Chravel Agent can search, display info cards, and add things directly your trip
               </div>
             </div>
           </div>
         )}
 
-        {/* Chat Messages */}
-        <div
-          ref={chatScrollRef}
-          className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
-        >
-          {/* "Picked up where you left off" divider — shown once when server history hydrates */}
-          {historyLoadedFromServer && messages.length > 0 && (
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-xs text-gray-500 whitespace-nowrap">
-                ↩ Picked up where you left off
-              </span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-          )}
-          {/* Merge transient streaming bubbles into the message list so both the
-               user's live STT and the assistant's live TTS are visible in the
-               chat while Gemini Live is active.  Order: persisted messages →
-               user interim bubble (while listening) → assistant streaming bubble
-               (while playing).  handleLiveTurnComplete clears both transient
-               entries and appends the finalised messages, so there is no
-               duplication or flash. */}
-          {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
-            <ChatMessages
-              messages={[
-                ...messages,
-                ...(streamingUserMessage ? [streamingUserMessage] : []),
-                ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
-              ]}
-              isTyping={isTyping}
-              showMapWidgets={true}
-              onDeleteMessage={handleDeleteMessage}
-              onTabChange={onTabChange}
-              onSavePlace={savePlace}
-              onSaveFlight={saveFlight}
-              onSaveHotel={saveHotel}
-              isUrlSaved={isUrlSaved}
-              isSaving={isSaving}
-              onEditReservation={(prefill: string) => {
-                setInputMessage(prefill);
-              }}
-              onSmartImportConfirm={handleSmartImportConfirm}
-              onSmartImportDismiss={handleSmartImportDismiss}
-              smartImportStates={smartImportStates}
-              ttsPlaybackState={ttsPlaybackState}
-              ttsPlayingMessageId={ttsPlayingMessageId}
-              onTTSPlay={handleTTSPlay}
-              onTTSStop={ttsStop}
-            />
-          )}
-        </div>
+        {/* Chat area — shows inline live UI when active, otherwise normal messages */}
+        {isLiveSessionActive ? (
+          <VoiceLiveInline
+            liveState={liveState}
+            userTranscript={liveUserTranscript}
+            assistantTranscript={liveAssistantTranscript}
+            diagnostics={liveDiagnostics}
+            onEndSession={() => void handleEndLiveSession()}
+          />
+        ) : (
+          <div
+            ref={chatScrollRef}
+            className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
+          >
+            {/* "Picked up where you left off" divider — shown once when server history hydrates */}
+            {historyLoadedFromServer && messages.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  ↩ Picked up where you left off
+                </span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+            )}
+            {/* Merge transient streaming bubbles into the message list so both the
+                 user's live STT and the assistant's live TTS are visible in the
+                 chat while Gemini Live is active.  Order: persisted messages →
+                 user interim bubble (while listening) → assistant streaming bubble
+                 (while playing).  handleLiveTurnComplete clears both transient
+                 entries and appends the finalised messages, so there is no
+                 duplication or flash. */}
+            {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
+              <ChatMessages
+                messages={[
+                  ...messages,
+                  ...(streamingUserMessage ? [streamingUserMessage] : []),
+                  ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
+                ]}
+                isTyping={isTyping}
+                showMapWidgets={true}
+                onDeleteMessage={handleDeleteMessage}
+                onTabChange={onTabChange}
+                onSavePlace={savePlace}
+                onSaveFlight={saveFlight}
+                onSaveHotel={saveHotel}
+                isUrlSaved={isUrlSaved}
+                isSaving={isSaving}
+                onEditReservation={(prefill: string) => {
+                  setInputMessage(prefill);
+                }}
+                onSmartImportConfirm={handleSmartImportConfirm}
+                onSmartImportDismiss={handleSmartImportDismiss}
+                smartImportStates={smartImportStates}
+                ttsPlaybackState={ttsPlaybackState}
+                ttsPlayingMessageId={ttsPlayingMessageId}
+                onTTSPlay={handleTTSPlay}
+                onTTSStop={ttsStop}
+              />
+            )}
+          </div>
+        )}
 
         {/* Input area — sticky bottom with inline voice banner above input */}
         <div
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
-          {/* Voice overlay rendered below as full-screen portal */}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -1976,9 +2042,6 @@ export const AIConciergeChat = ({
           />
         </div>
       </div>
-
-      {/* Inline voice bar — compact status indicator at top of chat */}
-      {/* (positioned absolutely so it overlays the top of chat scroll area) */}
     </div>
   );
 };

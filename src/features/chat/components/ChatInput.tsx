@@ -115,7 +115,7 @@ export const ChatInput = ({
       import('@emoji-mart/react'),
       import('@emoji-mart/data'),
     ]);
-    const Picker = pickerModule.default || pickerModule.Picker;
+    const Picker = (pickerModule as any).default || (pickerModule as any).Picker;
     setEmojiPickerData(dataModule.default);
     setEmojiPickerComponent(() => Picker);
   }, [EmojiPickerComponent]);

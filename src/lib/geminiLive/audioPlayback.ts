@@ -11,12 +11,19 @@ export class AudioPlaybackQueue {
   private activeSources: AudioBufferSourceNode[] = [];
   private onFirstFramePlayed?: () => void;
   private onDrain?: () => void;
+  private onRms?: (rms: number) => void;
   private hasReportedFirstFrame = false;
 
-  constructor(ctx: AudioContext, onFirstFramePlayed?: () => void, onDrain?: () => void) {
+  constructor(
+    ctx: AudioContext,
+    onFirstFramePlayed?: () => void,
+    onDrain?: () => void,
+    onRms?: (rms: number) => void,
+  ) {
     this.ctx = ctx;
     this.onFirstFramePlayed = onFirstFramePlayed;
     this.onDrain = onDrain;
+    this.onRms = onRms;
     this.gainNode = ctx.createGain();
     this.gainNode.connect(ctx.destination);
     this.nextStartTime = ctx.currentTime;
@@ -28,6 +35,16 @@ export class AudioPlaybackQueue {
     try {
       const pcm16 = base64ToPCM16(base64Audio);
       if (pcm16.length === 0) return;
+
+      // Compute RMS for playback visualization
+      if (this.onRms) {
+        let sum = 0;
+        for (let i = 0; i < pcm16.length; i++) {
+          const v = pcm16[i] / 32768.0;
+          sum += v * v;
+        }
+        this.onRms(Math.sqrt(sum / pcm16.length));
+      }
 
       const float32 = pcm16ToFloat32(pcm16);
       const buffer = this.ctx.createBuffer(1, float32.length, OUTPUT_SAMPLE_RATE);
@@ -50,6 +67,7 @@ export class AudioPlaybackQueue {
       source.onended = () => {
         this.activeSources = this.activeSources.filter(s => s !== source);
         if (this.activeSources.length === 0) {
+          this.onRms?.(0);
           this.onDrain?.();
         }
       };

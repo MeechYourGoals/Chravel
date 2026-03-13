@@ -52,6 +52,7 @@ export interface MessageBubbleProps {
   grounding?: {
     sources?: GroundingCitation[];
     googleMapsWidget?: string;
+    googleMapsWidgetContextToken?: string;
   };
   // 🆕 Rich media support
   mediaType?: 'image' | 'video' | 'document' | null;
@@ -551,11 +552,13 @@ export const MessageBubble = memo(
               )}
             </div>
 
-            {/* Google Maps Widget */}
-            {grounding?.googleMapsWidget && (
+            {/* Google Maps Widget — prefer context token from maps grounding */}
+            {(grounding?.googleMapsWidgetContextToken || grounding?.googleMapsWidget) && (
               <div className="mt-2">
                 <GoogleMapsWidget
-                  widgetToken={grounding.googleMapsWidget}
+                  widgetToken={
+                    grounding.googleMapsWidgetContextToken || grounding.googleMapsWidget!
+                  }
                   height={isMobilePortrait ? 200 : 250}
                 />
               </div>

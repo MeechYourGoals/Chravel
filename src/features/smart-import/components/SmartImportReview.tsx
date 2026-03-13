@@ -7,14 +7,17 @@ import {
   Hotel,
   Car,
   Ticket,
+  Utensils,
+  Train,
+  CalendarCheck,
+  Map,
   Loader2,
   AlertTriangle,
   RefreshCw,
-  UtensilsCrossed,
-  Train,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import type { SmartImportCandidate } from '../types';
 
 // Map Gmail extraction types → artifact-ingest artifact_type overrides
 const RESERVATION_TO_ARTIFACT_TYPE: Record<string, string> = {
@@ -22,14 +25,20 @@ const RESERVATION_TO_ARTIFACT_TYPE: Record<string, string> = {
   lodging: 'hotel',
   ground_transport: 'generic_document',
   event_ticket: 'event_ticket',
+  sports_ticket: 'event_ticket',
+  restaurant_reservation: 'restaurant_reservation',
+  rail_bus_ferry: 'generic_document',
+  conference_registration: 'generic_document',
+  generic_itinerary_item: 'generic_document',
+  // Legacy aliases (pre-normalization)
   dining_reservation: 'restaurant_reservation',
   rail_ticket: 'generic_document',
 };
 
 export interface ReviewCandidatesProps {
-  candidates: any[];
+  candidates: SmartImportCandidate[];
   tripId?: string;
-  onAccept: (acceptedCandidates: any[]) => void;
+  onAccept: (acceptedCandidates: SmartImportCandidate[]) => void;
   onCancel: () => void;
 }
 
@@ -38,8 +47,11 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string; label
   lodging: { icon: Hotel, color: 'text-indigo-500', label: 'Lodging' },
   ground_transport: { icon: Car, color: 'text-orange-500', label: 'Transport' },
   event_ticket: { icon: Ticket, color: 'text-pink-500', label: 'Event' },
-  dining_reservation: { icon: UtensilsCrossed, color: 'text-amber-500', label: 'Dining' },
-  rail_ticket: { icon: Train, color: 'text-green-500', label: 'Train' },
+  sports_ticket: { icon: Ticket, color: 'text-red-500', label: 'Sports' },
+  restaurant_reservation: { icon: Utensils, color: 'text-emerald-500', label: 'Restaurant' },
+  rail_bus_ferry: { icon: Train, color: 'text-cyan-500', label: 'Rail/Bus/Ferry' },
+  conference_registration: { icon: CalendarCheck, color: 'text-violet-500', label: 'Conference' },
+  generic_itinerary_item: { icon: Map, color: 'text-slate-500', label: 'Itinerary' },
 };
 
 type FilterTab =
@@ -47,8 +59,9 @@ type FilterTab =
   | 'flight'
   | 'lodging'
   | 'event_ticket'
-  | 'dining_reservation'
-  | 'rail_ticket'
+  | 'sports_ticket'
+  | 'restaurant_reservation'
+  | 'rail_bus_ferry'
   | 'ground_transport';
 
 const filterTabs: { key: FilterTab; label: string }[] = [
@@ -56,8 +69,9 @@ const filterTabs: { key: FilterTab; label: string }[] = [
   { key: 'flight', label: 'Flights' },
   { key: 'lodging', label: 'Lodging' },
   { key: 'event_ticket', label: 'Events' },
-  { key: 'dining_reservation', label: 'Dining' },
-  { key: 'rail_ticket', label: 'Train' },
+  { key: 'sports_ticket', label: 'Sports' },
+  { key: 'restaurant_reservation', label: 'Dining' },
+  { key: 'rail_bus_ferry', label: 'Rail/Ferry' },
   { key: 'ground_transport', label: 'Transport' },
 ];
 
@@ -91,7 +105,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     return candidates.filter(c => c.reservation_data?.type === activeFilter);
   }, [candidates, activeFilter]);
 
-  // Only count tabs with at least one candidate
+  // Only show tabs that have at least one candidate
   const tabsWithData = useMemo(() => {
     const typeSet = new Set(candidates.map(c => c.reservation_data?.type));
     return filterTabs.filter(t => t.key === 'all' || typeSet.has(t.key));
@@ -155,7 +169,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
         failedCount = ingestResults.filter(r => r.status === 'rejected').length;
 
         // Mark accepted candidates (best-effort — don't fail the whole accept if this errors)
-        await (supabase as any)
+        await supabase
           .from('smart_import_candidates')
           .update({ status: 'accepted' })
           .in(
@@ -166,7 +180,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
 
       // Mark rejected candidates (regardless of whether tripId is present)
       if (rejected.length > 0) {
-        await (supabase as any)
+        await supabase
           .from('smart_import_candidates')
           .update({ status: 'rejected' })
           .in(
@@ -284,11 +298,13 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
 
       <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
         {visibleCandidates.map(candidate => {
-          const type = candidate.reservation_data?.type || 'unknown';
+          const type = (candidate.reservation_data?.type as string) || 'unknown';
           const config = typeConfig[type] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
 
-          const data = candidate.reservation_data;
+          // intentional: reservation_data is dynamic JSON from Gmail import — shape varies by type
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = (candidate.reservation_data || {}) as any;
 
           let title = 'Unknown Reservation';
           let subtitle = '';
@@ -307,12 +323,21 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           } else if (type === 'event_ticket') {
             title = data.event_name || 'Event Ticket';
             subtitle = data.venue_name || data.city || '';
-          } else if (type === 'dining_reservation') {
-            title = data.restaurant_name || 'Dining Reservation';
-            subtitle = data.city || data.address || '';
-          } else if (type === 'rail_ticket') {
-            title = `${data.operator_name || 'Train'} ${data.train_number || ''}`.trim();
-            subtitle = `${data.departure_station || ''} → ${data.arrival_station || ''}`;
+          } else if (type === 'sports_ticket') {
+            title = data.event_name || 'Sports Ticket';
+            subtitle = data.venue_name || data.city || '';
+          } else if (type === 'restaurant_reservation') {
+            title = data.restaurant_name || 'Restaurant Reservation';
+            subtitle = data.city || '';
+          } else if (type === 'rail_bus_ferry') {
+            title = data.provider_name || 'Rail/Bus/Ferry';
+            subtitle = `${data.departure_location || ''} to ${data.arrival_location || ''}`;
+          } else if (type === 'conference_registration') {
+            title = data.event_name || 'Conference Registration';
+            subtitle = data.venue_name || data.city || '';
+          } else if (type === 'generic_itinerary_item') {
+            title = data.item_label || 'Itinerary Item';
+            subtitle = data.location || data.provider_name || '';
           }
 
           const isSelected = selectedIds.has(candidate.id);
@@ -369,9 +394,9 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                       {data._email_subject}
                     </p>
                   )}
-                  {data.confirmation_code && (
+                  {(data as Record<string, unknown>).confirmation_code && (
                     <p className="text-xs font-mono mt-1 text-muted-foreground/80">
-                      Ref: {data.confirmation_code}
+                      Ref: {String((data as Record<string, unknown>).confirmation_code)}
                     </p>
                   )}
                   {relevanceScore !== undefined && (

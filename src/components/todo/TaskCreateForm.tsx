@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar as CalendarComponent } from '../ui/calendar';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { TripTask } from '../../types/tasks';
-import { useTripVariant } from '../../contexts/TripVariantContext';
+
 import { CollaboratorSelector } from './CollaboratorSelector';
 import { format } from 'date-fns';
 
@@ -41,7 +41,6 @@ export const TaskCreateForm = ({
   );
 
   const { createTaskMutation, updateTaskMutation } = useTripTasks(tripId);
-  const { accentColors } = useTripVariant();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,7 +212,7 @@ export const TaskCreateForm = ({
           <Button
             type="submit"
             disabled={!title.trim() || createTaskMutation.isPending || updateTaskMutation.isPending}
-            className={`flex-1 bg-gradient-to-r ${accentColors.gradient} hover:opacity-90`}
+            className="flex-1"
           >
             {isEditMode
               ? updateTaskMutation.isPending

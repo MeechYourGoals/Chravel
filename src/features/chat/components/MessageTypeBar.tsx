@@ -63,7 +63,7 @@ export const MessageTypeBar = ({
               'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
               activeFilter === 'all'
-                ? 'bg-blue-600 text-white shadow-md'
+                ? 'bg-gold-primary text-black shadow-md'
                 : 'text-white/70 hover:text-white hover:bg-white/5',
             )}
             aria-pressed={activeFilter === 'all'}
@@ -71,7 +71,7 @@ export const MessageTypeBar = ({
             <MessageCircle className="w-4 h-4" />
             <span>Messages</span>
             {unreadCount > 0 && activeFilter !== 'all' && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-blue-500 text-white font-semibold">
+              <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-gold-primary text-black font-semibold">
                 {unreadCount}
               </span>
             )}
@@ -150,7 +150,7 @@ export const MessageTypeBar = ({
                       className={cn(
                         'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                         !activeChannel
-                          ? 'bg-blue-500 text-white shadow-md'
+                          ? 'bg-gold-primary text-black shadow-md'
                           : 'text-white/70 hover:text-white hover:bg-white/10',
                       )}
                     >

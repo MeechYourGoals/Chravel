@@ -260,14 +260,22 @@ export const ChatMessages = ({
               </div>
             )}
 
-            {/* Render Maps widget for gmp-place-contextual context tokens */}
+            {/* Render Maps widget for gmp-place-contextual context tokens.
+                Prefer googleMapsWidgetContextToken (from maps grounding) over
+                googleMapsWidget (from searchEntryPoint). */}
             {showMapWidgets &&
-              messageWithGrounding.googleMapsWidget &&
-              !messageWithGrounding.googleMapsWidget.trimStart().startsWith('<') && (
+              (messageWithGrounding.googleMapsWidgetContextToken ||
+                (messageWithGrounding.googleMapsWidget &&
+                  !messageWithGrounding.googleMapsWidget.trimStart().startsWith('<'))) && (
                 <div
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <GoogleMapsWidget widgetToken={messageWithGrounding.googleMapsWidget} />
+                  <GoogleMapsWidget
+                    widgetToken={
+                      messageWithGrounding.googleMapsWidgetContextToken ||
+                      messageWithGrounding.googleMapsWidget!
+                    }
+                  />
                 </div>
               )}
 

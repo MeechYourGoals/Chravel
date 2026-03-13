@@ -595,7 +595,11 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
           <button
             onClick={openCapture}
             disabled={isUploading}
-            className="native-button flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-white px-4 py-3 rounded-xl font-medium shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+            className={`native-button flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium disabled:opacity-70 disabled:cursor-not-allowed ${
+              selectedTab === 'urls'
+                ? 'bg-primary text-primary-foreground shadow-primary-glow'
+                : 'bg-secondary text-secondary-foreground shadow-md'
+            }`}
           >
             {isUploading ? (
               <Loader2 size={20} className="animate-spin" />
@@ -608,7 +612,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
             <button
               onClick={openLibrary}
               disabled={isUploading}
-              className="native-button flex items-center justify-center gap-2 bg-white/10 text-white px-4 py-3 rounded-xl font-medium backdrop-blur-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              className="native-button flex items-center justify-center gap-2 bg-secondary text-secondary-foreground px-4 py-3 rounded-xl font-medium shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isUploading ? (
                 <Loader2 size={20} className="animate-spin" />
@@ -647,14 +651,14 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
               native-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex-shrink-0
               ${
                 selectedTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-gold-primary text-black shadow-md'
                   : 'bg-white/10 text-gray-300'
               }
             `}
           >
             {tab.label}{' '}
             {tab.count > 0 && (
-              <span className={selectedTab === tab.id ? 'text-blue-200' : 'text-gray-500'}>
+              <span className={selectedTab === tab.id ? 'text-black/60' : 'text-gray-500'}>
                 ({tab.count})
               </span>
             )}
