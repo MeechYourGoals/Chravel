@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, ImagePlus, X, Sparkles } from 'lucide-react';
+import { Search, ImagePlus, Sparkles } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -28,8 +28,7 @@ import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { ToolCallResult } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
-import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
-import { VoiceActiveBar } from '@/features/chat/components/VoiceActiveBar';
+import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -597,23 +596,10 @@ export const AIConciergeChat = ({
   // Voice state for VoiceButton — dictation only (Live is separate button now)
   const convoVoiceState: VoiceState = dictationState;
 
-  // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
+  // Whether Gemini Live session is active (for Live button + inline voice UI)
   const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
-  // Overlay visibility — shown by default when live is active, can be minimized
-  const [liveOverlayVisible, setLiveOverlayVisible] = useState(false);
-
-  // Auto-show overlay when live session starts, auto-hide when it ends
-  useEffect(() => {
-    if (isLiveSessionActive) {
-      setLiveOverlayVisible(true);
-    } else {
-      setLiveOverlayVisible(false);
-    }
-  }, [isLiveSessionActive]);
-
   const handleEndLiveSession = useCallback(async () => {
-    setLiveOverlayVisible(false);
     await endLiveSession();
   }, [endLiveSession]);
 
@@ -1917,15 +1903,6 @@ export const AIConciergeChat = ({
           }}
         />
 
-        {/* Voice Active Bar — compact indicator when overlay is minimized */}
-        {isLiveSessionActive && !liveOverlayVisible && (
-          <VoiceActiveBar
-            liveState={liveState}
-            onTap={() => setLiveOverlayVisible(true)}
-            onEnd={() => void handleEndLiveSession()}
-          />
-        )}
-
         {/* History loading skeleton — prevents flash of empty → populated */}
         {isHistoryLoading && messages.length === 0 && (
           <div className="flex flex-col gap-3 p-4 animate-pulse flex-shrink-0">
@@ -1958,64 +1935,73 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Chat Messages */}
-        <div
-          ref={chatScrollRef}
-          className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
-        >
-          {/* "Picked up where you left off" divider — shown once when server history hydrates */}
-          {historyLoadedFromServer && messages.length > 0 && (
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-xs text-gray-500 whitespace-nowrap">
-                ↩ Picked up where you left off
-              </span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-          )}
-          {/* Merge transient streaming bubbles into the message list so both the
-               user's live STT and the assistant's live TTS are visible in the
-               chat while Gemini Live is active.  Order: persisted messages →
-               user interim bubble (while listening) → assistant streaming bubble
-               (while playing).  handleLiveTurnComplete clears both transient
-               entries and appends the finalised messages, so there is no
-               duplication or flash. */}
-          {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
-            <ChatMessages
-              messages={[
-                ...messages,
-                ...(streamingUserMessage ? [streamingUserMessage] : []),
-                ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
-              ]}
-              isTyping={isTyping}
-              showMapWidgets={true}
-              onDeleteMessage={handleDeleteMessage}
-              onTabChange={onTabChange}
-              onSavePlace={savePlace}
-              onSaveFlight={saveFlight}
-              onSaveHotel={saveHotel}
-              isUrlSaved={isUrlSaved}
-              isSaving={isSaving}
-              onEditReservation={(prefill: string) => {
-                setInputMessage(prefill);
-              }}
-              onSmartImportConfirm={handleSmartImportConfirm}
-              onSmartImportDismiss={handleSmartImportDismiss}
-              smartImportStates={smartImportStates}
-              ttsPlaybackState={ttsPlaybackState}
-              ttsPlayingMessageId={ttsPlayingMessageId}
-              onTTSPlay={handleTTSPlay}
-              onTTSStop={ttsStop}
-            />
-          )}
-        </div>
+        {/* Chat area — shows inline live UI when active, otherwise normal messages */}
+        {isLiveSessionActive ? (
+          <VoiceLiveInline
+            liveState={liveState}
+            userTranscript={liveUserTranscript}
+            assistantTranscript={liveAssistantTranscript}
+            diagnostics={liveDiagnostics}
+            onEndSession={() => void handleEndLiveSession()}
+          />
+        ) : (
+          <div
+            ref={chatScrollRef}
+            className="flex-1 overflow-y-auto p-4 chat-scroll-container native-scroll min-h-0"
+          >
+            {/* "Picked up where you left off" divider — shown once when server history hydrates */}
+            {historyLoadedFromServer && messages.length > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  ↩ Picked up where you left off
+                </span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+            )}
+            {/* Merge transient streaming bubbles into the message list so both the
+                 user's live STT and the assistant's live TTS are visible in the
+                 chat while Gemini Live is active.  Order: persisted messages →
+                 user interim bubble (while listening) → assistant streaming bubble
+                 (while playing).  handleLiveTurnComplete clears both transient
+                 entries and appends the finalised messages, so there is no
+                 duplication or flash. */}
+            {(messages.length > 0 || !!streamingVoiceMessage || !!streamingUserMessage) && (
+              <ChatMessages
+                messages={[
+                  ...messages,
+                  ...(streamingUserMessage ? [streamingUserMessage] : []),
+                  ...(streamingVoiceMessage ? [streamingVoiceMessage] : []),
+                ]}
+                isTyping={isTyping}
+                showMapWidgets={true}
+                onDeleteMessage={handleDeleteMessage}
+                onTabChange={onTabChange}
+                onSavePlace={savePlace}
+                onSaveFlight={saveFlight}
+                onSaveHotel={saveHotel}
+                isUrlSaved={isUrlSaved}
+                isSaving={isSaving}
+                onEditReservation={(prefill: string) => {
+                  setInputMessage(prefill);
+                }}
+                onSmartImportConfirm={handleSmartImportConfirm}
+                onSmartImportDismiss={handleSmartImportDismiss}
+                smartImportStates={smartImportStates}
+                ttsPlaybackState={ttsPlaybackState}
+                ttsPlayingMessageId={ttsPlayingMessageId}
+                onTTSPlay={handleTTSPlay}
+                onTTSStop={ttsStop}
+              />
+            )}
+          </div>
+        )}
 
         {/* Input area — sticky bottom with inline voice banner above input */}
         <div
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
-          {/* Voice overlay rendered below as full-screen portal */}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
@@ -2056,18 +2042,6 @@ export const AIConciergeChat = ({
           />
         </div>
       </div>
-
-      {/* Immersive Voice Overlay — full-screen portal for Gemini Live */}
-      {isLiveSessionActive && liveOverlayVisible && (
-        <VoiceLiveOverlay
-          liveState={liveState}
-          userTranscript={liveUserTranscript}
-          assistantTranscript={liveAssistantTranscript}
-          diagnostics={liveDiagnostics}
-          onEndSession={() => void handleEndLiveSession()}
-          tripName={basecamp?.name}
-        />
-      )}
     </div>
   );
 };
