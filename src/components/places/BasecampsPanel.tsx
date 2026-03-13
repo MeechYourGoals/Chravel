@@ -317,14 +317,14 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
               <>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <MapPin size={16} className="text-sky-400 flex-shrink-0" />
+                    <MapPin size={16} className="text-gold-primary flex-shrink-0" />
                     <h3 className="text-white font-semibold text-sm md:text-base">
                       Trip Base Camp
                     </h3>
                   </div>
                   <button
                     onClick={() => setShowTripSelector(true)}
-                    className="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-3 py-2 rounded-lg transition-colors text-sm border border-sky-500/30 min-h-[44px] flex items-center"
+                    className="bg-white/10 hover:bg-white/15 text-gray-200 px-3 py-2 rounded-lg transition-colors text-sm border border-white/10 min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>
@@ -349,7 +349,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
             ) : (
               <>
                 <div className="flex items-center gap-2 mb-2">
-                  <MapPin size={16} className="text-sky-400 flex-shrink-0" />
+                  <MapPin size={16} className="text-gold-primary flex-shrink-0" />
                   <h3 className="text-white font-semibold text-sm md:text-base">Trip Base Camp</h3>
                 </div>
                 <p className="text-gray-400 text-xs mb-2">
@@ -357,7 +357,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 </p>
                 <button
                   onClick={() => setShowTripSelector(true)}
-                  className="w-full bg-sky-600 hover:bg-sky-700 text-white py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs"
+                  className="w-full bg-gold-primary hover:bg-gold-mid text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
                 >
                   <Plus size={12} />
                   Set Trip Base Camp
@@ -390,7 +390,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowPersonalSelector(true)}
-                    className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 px-3 py-2 rounded-lg transition-colors text-sm border border-emerald-500/30 min-h-[44px] flex items-center"
+                    className="bg-white/10 hover:bg-white/15 text-gray-200 px-3 py-2 rounded-lg transition-colors text-sm border border-white/10 min-h-[44px] flex items-center"
                   >
                     Edit
                   </button>
@@ -429,7 +429,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 </p>
                 <button
                   onClick={() => setShowPersonalSelector(true)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs"
+                  className="w-full bg-white/10 hover:bg-white/15 text-white py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs border border-white/10"
                 >
                   <Plus size={12} />
                   Set Your Location

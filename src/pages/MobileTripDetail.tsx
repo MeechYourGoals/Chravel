@@ -361,7 +361,7 @@ export const MobileTripDetail = () => {
                 hapticService.light();
                 navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`);
               }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors active:scale-95 font-medium"
             >
               Sign In
             </button>
@@ -405,7 +405,7 @@ export const MobileTripDetail = () => {
                   hapticService.light();
                   navigate(`/trip/${tripId}/preview`);
                 }}
-                className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+                className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors active:scale-95 font-medium"
               >
                 View Trip Preview
               </button>
@@ -438,7 +438,7 @@ export const MobileTripDetail = () => {
                 queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId!) });
                 queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId!) });
               }}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+              className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors active:scale-95 font-medium"
             >
               Try Again
             </button>
@@ -488,7 +488,7 @@ export const MobileTripDetail = () => {
                   hapticService.light();
                   navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`);
                 }}
-                className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+                className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors active:scale-95 font-medium"
               >
                 Sign In
               </button>
@@ -520,7 +520,7 @@ export const MobileTripDetail = () => {
               hapticService.light();
               navigate('/');
             }}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors active:scale-95 font-medium"
           >
             Back to My Trips
           </button>
