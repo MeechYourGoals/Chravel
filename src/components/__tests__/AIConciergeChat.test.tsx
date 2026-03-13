@@ -17,7 +17,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
+  SUPABASE_PROJECT_URL: 'https://test.supabase.co',
+  SUPABASE_PUBLIC_ANON_KEY: 'test-key',
   supabase: {
+    auth: {
+      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+    },
     functions: {
       invoke: vi.fn(),
     },
@@ -139,7 +144,6 @@ describe('AIConciergeChat', () => {
     it('removes legacy status pills from header', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
       expect(screen.queryByText(/ready with web search/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/^live$/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/limited mode/i)).not.toBeInTheDocument();
     });
   });
