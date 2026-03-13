@@ -250,7 +250,7 @@ export const TripDetailDesktop = () => {
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+              className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors font-medium"
             >
               Sign In
             </button>
@@ -287,7 +287,7 @@ export const TripDetailDesktop = () => {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => navigate(`/trip/${tripId}/preview`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+                className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors font-medium"
               >
                 View Trip Preview
               </button>
@@ -316,7 +316,7 @@ export const TripDetailDesktop = () => {
                 queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId!) });
                 queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId!) });
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+              className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors font-medium"
             >
               Try Again
             </button>
@@ -351,7 +351,7 @@ export const TripDetailDesktop = () => {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => navigate(`/auth?mode=signin&returnTo=/trip/${tripId}`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+                className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors font-medium"
               >
                 Sign In
               </button>
@@ -377,7 +377,7 @@ export const TripDetailDesktop = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+            className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors font-medium"
           >
             Back to My Trips
           </button>

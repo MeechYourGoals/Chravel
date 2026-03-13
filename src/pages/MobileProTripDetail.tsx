@@ -358,7 +358,7 @@ export const MobileProTripDetail = () => {
               hapticService.light();
               navigate('/');
             }}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors active:scale-95 font-medium"
           >
             Back to My Trips
           </button>
@@ -390,7 +390,7 @@ export const MobileProTripDetail = () => {
               hapticService.light();
               navigate('/');
             }}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors active:scale-95"
+            className="bg-gold-primary hover:bg-gold-mid text-black px-6 py-3 rounded-xl transition-colors active:scale-95 font-medium"
           >
             Back to My Trips
           </button>
