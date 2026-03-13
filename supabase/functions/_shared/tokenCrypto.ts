@@ -78,6 +78,10 @@ export async function decryptToken(stored: string, keyHex: string): Promise<stri
   const ciphertext = base64urlDecode(payload.substring(dotIndex + 1));
 
   const key = await importKey(keyHex);
-  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  const decrypted = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: iv.buffer as ArrayBuffer },
+    key,
+    ciphertext.buffer as ArrayBuffer,
+  );
   return new TextDecoder().decode(decrypted);
 }

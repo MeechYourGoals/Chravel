@@ -137,33 +137,39 @@ export const restoreTrip = async (
   tripType: TripType,
   userId?: string,
 ): Promise<void> => {
-  // Check if user has reached their active trip limit
+  // Check if user has reached their active trip limit (super admins bypass)
   if (userId) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_status, subscription_product_id')
-      .eq('user_id', userId)
-      .single();
+    // Get user email for super admin check
+    const { data: userData } = await supabase.auth.getUser();
+    const userEmail = userData?.user?.email;
 
-    const tier =
-      profile?.subscription_status === 'active'
-        ? profile.subscription_product_id?.includes('explorer')
-          ? 'explorer'
-          : 'frequent-chraveler'
-        : 'free';
+    if (!isSuperAdminEmail(userEmail)) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status, subscription_product_id')
+        .eq('user_id', userId)
+        .single();
 
-    // Count current active trips
-    const { count, error: countError } = await supabase
-      .from('trips')
-      .select('*', { count: 'exact', head: true })
-      .eq('created_by', userId)
-      .eq('is_archived', false);
+      const tier =
+        profile?.subscription_status === 'active'
+          ? profile.subscription_product_id?.includes('explorer')
+            ? 'explorer'
+            : 'frequent-chraveler'
+          : 'free';
 
-    if (countError) throw countError;
+      // Count current active trips
+      const { count, error: countError } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .eq('created_by', userId)
+        .eq('is_archived', false);
 
-    const activeTripsLimit = tier === 'free' ? 3 : -1;
-    if (activeTripsLimit !== -1 && (count || 0) >= activeTripsLimit) {
-      throw new Error('TRIP_LIMIT_REACHED');
+      if (countError) throw countError;
+
+      const activeTripsLimit = tier === 'free' ? 3 : -1;
+      if (activeTripsLimit !== -1 && (count || 0) >= activeTripsLimit) {
+        throw new Error('TRIP_LIMIT_REACHED');
+      }
     }
   }
 

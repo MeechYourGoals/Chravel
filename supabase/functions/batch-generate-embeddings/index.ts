@@ -148,8 +148,9 @@ interface SourceItem {
   metadata: Record<string, unknown>;
 }
 
+// intentional: using `any` to bypass deep Supabase generic inference that causes `never` type errors
 async function collectTripData(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tripId: string,
 ): Promise<SourceItem[]> {
   const items: SourceItem[] = [];

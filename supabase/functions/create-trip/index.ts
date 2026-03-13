@@ -71,13 +71,21 @@ serve(async req => {
       .eq('user_id', user.id)
       .single();
 
-    // Super admin bypass - configured via environment variable for security
-    const superAdminEmails = (Deno.env.get('SUPER_ADMIN_EMAILS') || '')
+    // Super admin bypass - hardcoded founders + env var extension
+    const FOUNDER_EMAILS = [
+      'ccamechi@gmail.com',
+      'christian@chravelapp.com',
+      'demo@chravelapp.com',
+      'phil@philquist.com',
+      'darren.hartgee@gmail.com',
+    ];
+    const envAdminEmails = (Deno.env.get('SUPER_ADMIN_EMAILS') || '')
       .split(',')
       .map(e => e.trim().toLowerCase())
       .filter(Boolean);
+    const allSuperAdmins = [...new Set([...FOUNDER_EMAILS, ...envAdminEmails])];
     const authEmail = user.email?.toLowerCase();
-    const isSuperAdmin = authEmail ? superAdminEmails.includes(authEmail) : false;
+    const isSuperAdmin = authEmail ? allSuperAdmins.includes(authEmail) : false;
 
     if (!isSuperAdmin) {
       const subscriptionStatus = profile?.subscription_status;

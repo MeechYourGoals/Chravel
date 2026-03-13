@@ -79,6 +79,8 @@ serve(async req => {
       'ccamechi@gmail.com',
       'christian@chravelapp.com',
       'demo@chravelapp.com',
+      'phil@philquist.com',
+      'darren.hartgee@gmail.com',
     ];
     if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
       logStep('Super admin detected - bypassing Stripe check', { email: user.email });
