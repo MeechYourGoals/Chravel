@@ -17,7 +17,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
+  SUPABASE_PROJECT_URL: 'https://test.supabase.co',
   supabase: {
+    auth: {
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'test' } } }),
+    },
     functions: {
       invoke: vi.fn(),
     },

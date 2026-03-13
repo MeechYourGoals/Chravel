@@ -90,12 +90,15 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // Mock demo mode store
-vi.mock('@/store/demoModeStore', () => ({
-  useDemoModeStore: vi.fn(selector => {
+vi.mock('@/store/demoModeStore', () => {
+  const mockStore = vi.fn(selector => {
     const state = { demoView: 'off', isDemoMode: false, setDemoView: vi.fn() };
     return selector ? selector(state) : state;
-  }),
-}));
+  });
+  // attach getState to the mock function so zustand calls work
+  (mockStore as any).getState = () => ({ demoView: 'off', isDemoMode: false, setDemoView: vi.fn() });
+  return { useDemoModeStore: mockStore };
+});
 
 const createWrapper = () => {
   const queryClient = new QueryClient({

@@ -88,21 +88,46 @@ async function _executeImpl(
     }
 
     case 'createTask': {
-      const { title, notes, dueDate, assignee } = args;
+      const { title, notes, dueDate, assignee, idempotency_key } = args;
       const taskTitle = String(title || '').trim();
       if (!taskTitle) return { error: 'Task title is required' };
-      const { data, error } = await supabase
-        .from('trip_tasks')
-        .insert({
+
+      const payload: Record<string, unknown> = {
           trip_id: tripId,
           title: taskTitle,
           description: notes || null,
           creator_id: userId || '',
           due_at: dueDate || null,
-        })
+      };
+
+      if (idempotency_key) {
+         payload.idempotency_key = idempotency_key;
+      }
+
+      const { data, error } = await supabase
+        .from('trip_tasks')
+        .insert(payload)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+         if (error.code === '23505' && idempotency_key) {
+             const { data: existing } = await supabase
+                 .from('trip_tasks')
+                 .select()
+                 .eq('trip_id', tripId)
+                 .eq('idempotency_key', idempotency_key)
+                 .maybeSingle();
+             if (existing) {
+                return {
+                  success: true,
+                  task: existing,
+                  actionType: 'create_task',
+                  message: `Task already exists: "${taskTitle}"`,
+                };
+             }
+         }
+         throw error;
+      }
       return {
         success: true,
         task: data,
