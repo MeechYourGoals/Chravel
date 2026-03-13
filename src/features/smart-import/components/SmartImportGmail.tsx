@@ -12,11 +12,12 @@ import {
 import { toast } from 'sonner';
 import { fetchGmailAccounts, GmailAccount } from '../api/gmailAuth';
 import { supabase } from '@/integrations/supabase/client';
+import type { SmartImportCandidate } from '../types';
 
 export interface SmartImportGmailProps {
   tripId: string;
   onImportStarted?: () => void;
-  onImportComplete?: (candidates: any[]) => void;
+  onImportComplete?: (candidates: SmartImportCandidate[]) => void;
   onImportError?: (error: Error) => void;
 }
 
@@ -89,8 +90,8 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
         <Mail className="h-6 w-6 text-muted-foreground" />
         <p className="text-sm font-medium">No Gmail account connected.</p>
         <p className="text-xs text-muted-foreground max-w-sm">
-          Connect your Gmail in Settings to magically find flights, hotels, and event tickets for
-          this trip.
+          Connect your Gmail in Settings to find flights, hotels, transport, dining, and ticketed
+          events for this trip.
         </p>
         <Button
           variant="outline"

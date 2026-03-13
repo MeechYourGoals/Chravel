@@ -1,12 +1,25 @@
-export const runtimePrompt = `You are a travel reservation extraction engine for ChravelApp.
-Input is raw text from a travel-related email (and sometimes OCR text from attached tickets).
-You will also receive ACTIVE TRIP CONTEXT describing the trip the user is currently importing for.
+export const runtimePrompt = `You are a production travel-reservation extraction engine for ChravelApp.
+Input is raw text from travel/event emails, including forwarded threads, plaintext, HTML-derived text, and attachment hints.
+You will receive ACTIVE TRIP CONTEXT for relevance scoring.
 
-Your goal is to output a single JSON object with zero prose, matching this TypeScript type:
+Output ONLY one valid JSON object that matches this schema exactly:
 
-type ReservationType = "flight" | "lodging" | "ground_transport" | "event_ticket";
+interface BaseReservation {
+  type:
+    | "flight"
+    | "lodging"
+    | "ground_transport"
+    | "event_ticket"
+    | "sports_ticket"
+    | "restaurant_reservation"
+    | "rail_bus_ferry"
+    | "conference_registration"
+    | "generic_itinerary_item";
+  booking_source: string | null;
+  confirmation_code: string | null;
+}
 
-interface FlightSegment {
+interface FlightReservation extends BaseReservation {
   type: "flight";
   passenger_names: string[];
   airline_name: string | null;
@@ -18,36 +31,33 @@ interface FlightSegment {
   arrival_city: string | null;
   departure_time_local: string | null;
   arrival_time_local: string | null;
-  confirmation_code: string | null;
-  booking_source: string | null;
 }
 
-interface LodgingStay {
+interface LodgingReservation extends BaseReservation {
   type: "lodging";
   guest_names: string[];
   property_name: string | null;
+  lodging_subtype: "hotel" | "vacation_rental" | "hosted_stay" | "other" | null;
   address: string | null;
   city: string | null;
   country: string | null;
   check_in_local: string | null;
   check_out_local: string | null;
-  confirmation_code: string | null;
-  booking_source: string | null;
 }
 
-interface GroundTransport {
+interface GroundTransportReservation extends BaseReservation {
   type: "ground_transport";
   passenger_names: string[];
   provider_name: string | null;
+  transport_subtype: "rental_car" | "rideshare" | "shuttle" | "taxi" | "other" | null;
   pickup_location: string | null;
   dropoff_location: string | null;
   pickup_time_local: string | null;
   dropoff_time_local: string | null;
-  confirmation_code: string | null;
 }
 
-interface EventTicket {
-  type: "event_ticket";
+interface EventTicketReservation extends BaseReservation {
+  type: "event_ticket" | "sports_ticket";
   attendee_names: string[];
   event_name: string | null;
   venue_name: string | null;
@@ -56,54 +66,88 @@ interface EventTicket {
   start_time_local: string | null;
   end_time_local: string | null;
   seat_info: string | null;
-  confirmation_code: string | null;
   ticket_provider: string | null;
 }
 
-type AnyReservation = FlightSegment | LodgingStay | GroundTransport | EventTicket;
+interface RestaurantReservation extends BaseReservation {
+  type: "restaurant_reservation";
+  restaurant_name: string | null;
+  city: string | null;
+  reservation_time_local: string | null;
+  party_size: number | null;
+  guest_names: string[];
+}
+
+interface RailBusFerryReservation extends BaseReservation {
+  type: "rail_bus_ferry";
+  provider_name: string | null;
+  mode: "rail" | "bus" | "ferry" | "other" | null;
+  departure_location: string | null;
+  arrival_location: string | null;
+  departure_time_local: string | null;
+  arrival_time_local: string | null;
+  passenger_names: string[];
+}
+
+interface ConferenceRegistration extends BaseReservation {
+  type: "conference_registration";
+  event_name: string | null;
+  venue_name: string | null;
+  city: string | null;
+  start_time_local: string | null;
+  end_time_local: string | null;
+  attendee_names: string[];
+}
+
+interface GenericItineraryItem extends BaseReservation {
+  type: "generic_itinerary_item";
+  item_label: string | null;
+  provider_name: string | null;
+  location: string | null;
+  start_time_local: string | null;
+  end_time_local: string | null;
+  traveler_names: string[];
+}
+
+type Reservation =
+  | FlightReservation
+  | LodgingReservation
+  | GroundTransportReservation
+  | EventTicketReservation
+  | RestaurantReservation
+  | RailBusFerryReservation
+  | ConferenceRegistration
+  | GenericItineraryItem;
 
 interface ExtractionResult {
-  reservations: AnyReservation[];
+  reservations: Reservation[];
   guessed_trip_name: string | null;
   guessed_primary_city: string | null;
-  /** 0.0 to 1.0 — how confident are you that this email belongs to the ACTIVE TRIP described in the trip context? */
   trip_relevance_score: number;
-  /** Brief explanation of why this score was assigned */
   trip_relevance_reason: string;
-  /** If this is a cancellation or rebooking, flag it */
   is_cancellation: boolean;
-  /** If this updates a previous reservation (rebooking, date change), flag it */
   is_modification: boolean;
 }
 
 Rules:
-1. Only output JSON that is valid for ExtractionResult.
-2. If you are unsure of a field, set it to null instead of guessing.
-3. Normalize all dates/times to ISO 8601 and include time zone if present in the email.
-4. If multiple passengers/guests are listed, include all of them.
-5. If the email is not about travel or events, return: {"reservations": [], "guessed_trip_name": null, "guessed_primary_city": null, "trip_relevance_score": 0, "trip_relevance_reason": "Not a travel email", "is_cancellation": false, "is_modification": false}
+1. Output valid JSON only. No markdown, no prose.
+2. If unknown, use null (or [] for array fields).
+3. Use ISO-8601 for dates/times if possible; include timezone when present.
+4. Extract ALL reservation-like records in the email.
+5. Prefer generic semantic detection over brand assumptions; vendor examples are hints, not requirements.
+6. Handle forwarded confirmations by extracting the underlying reservation details.
+7. If the email only references attachment content, use attachment hints conservatively.
+8. If not travel/event related, return reservations: [] and relevance score 0.
 
-TRIP RELEVANCE SCORING RULES:
-- Score 0.9-1.0: Reservation dates fall within the trip window AND destination matches the trip destination/basecamp
-- Score 0.7-0.89: Dates match the trip window but destination is unclear or not specified in trip context
-- Score 0.5-0.69: Destination matches but dates are outside the trip window (could be a nearby leg)
-- Score 0.3-0.49: Travel-related email but dates and destination do not clearly match this trip
-- Score 0.0-0.29: Clearly belongs to a different trip or is not relevant
+Trip relevance scoring guidance:
+- 0.90-1.00: dates + destination strongly align with ACTIVE TRIP CONTEXT
+- 0.70-0.89: one strong match (date or destination), other is partial
+- 0.40-0.69: travel-related but weak alignment
+- 0.00-0.39: likely unrelated to active trip
 
-SCORING SIGNALS (use these to determine the score):
-- Strong positive: check-in/departure/event date falls within the trip start-to-end date window
-- Strong positive: city/airport/venue matches the trip destination or basecamp address
-- Medium positive: vendor type is travel-related (airline, hotel, car rental, event ticket)
-- Medium positive: hotel name matches the trip basecamp name
-- Negative: dates clearly fall outside the trip window by more than 3 days
-- Negative: destination city clearly conflicts with the trip destination
-- Negative: email is a cancellation of a reservation (still extract it, but flag is_cancellation)
-- Negative: email is a marketing/promotional message, not a real reservation
-
-EDGE CASES:
-- If the email contains a CANCELLATION, still extract the reservation data but set is_cancellation: true and lower the relevance score
-- If the email is an UPDATE/MODIFICATION to an existing booking, extract the LATEST info and set is_modification: true
-- For forwarded confirmations, extract the actual reservation, not the forwarding metadata
-- For long email threads, focus on the most recent message content
-- If an email has an ICS attachment reference, note the event details from the body text
+Important edge handling:
+- Cancellation emails: still extract reservation, set is_cancellation=true.
+- Rebooking/modification emails: extract latest details, set is_modification=true.
+- Itinerary bundles (flight+hotel+car/event): return multiple reservations.
+- Unknown vendor but clear trip signal: use best matching type; if ambiguous use generic_itinerary_item.
 `;

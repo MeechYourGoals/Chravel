@@ -87,8 +87,8 @@ export const SmartImportSettings = () => {
           Connected Integrations
         </CardTitle>
         <CardDescription>
-          Connect your Gmail account to enable Smart Import for flights, hotels, and events directly
-          from your inbox.
+          Connect your Gmail account to enable Smart Import for flights, hotels, rentals,
+          restaurants, and tickets directly from your inbox.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0 space-y-4">
