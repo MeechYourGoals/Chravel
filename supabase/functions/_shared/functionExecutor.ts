@@ -99,6 +99,7 @@ async function _executeImpl(
           description: notes || null,
           creator_id: userId || '',
           due_at: dueDate || null,
+          idempotency_key: args.idempotency_key || undefined,
         })
         .select()
         .single();

@@ -77,6 +77,7 @@ function makeSupabaseChain(overrides: SupabaseChainOverrides = {}) {
     return chain;
   });
   chain.insert = vi.fn(() => chain);
+  chain.upsert = vi.fn(() => chain);
   chain.update = vi.fn(() => chain);
   chain.delete = vi.fn(() => chain);
   chain.in = vi.fn(() => chain);

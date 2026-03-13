@@ -221,7 +221,7 @@ const MUTATION_TOOLS = [
 
 describe('AI concierge tool parity', () => {
   const textSource = readRepoFile('supabase/functions/lovable-concierge/index.ts');
-  const voiceSource = readRepoFile('supabase/functions/gemini-voice-session/index.ts');
+  const voiceSource = readRepoFile('supabase/functions/_shared/voiceToolDeclarations.ts');
 
   const textDeclarationBlock = extractBlock(textSource, /const\s+functionDeclarations\s*=\s*\[/);
   const voiceDeclarationBlock = extractBlock(

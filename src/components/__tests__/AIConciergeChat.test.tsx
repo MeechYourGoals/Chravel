@@ -17,7 +17,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
+  SUPABASE_PROJECT_URL: 'http://mock-supabase-url',
   supabase: {
+    auth: {
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
+    },
     functions: {
       invoke: vi.fn(),
     },
@@ -139,7 +144,7 @@ describe('AIConciergeChat', () => {
     it('removes legacy status pills from header', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
       expect(screen.queryByText(/ready with web search/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/^live$/i)).not.toBeInTheDocument();
+      // 'Live' button is now back in the header if DUPLEX_VOICE_ENABLED is true, but legacy 'Ready' pills are gone.
       expect(screen.queryByText(/limited mode/i)).not.toBeInTheDocument();
     });
   });
