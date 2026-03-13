@@ -60,12 +60,6 @@ export const BasecampSelector = ({
 
     setIsLoading(true);
 
-    // Safety timeout - reset loading state after 15 seconds if save hangs
-    const safetyTimeout = setTimeout(() => {
-      setIsLoading(false);
-      toast.error('Save timed out. Please try again.');
-    }, 15000);
-
     try {
       // Simple text save - no geocoding, no Google Places API validation
       // Users can enter any text: "Grandma's house", "Hotel lobby", etc.
@@ -80,13 +74,23 @@ export const BasecampSelector = ({
         coordinates: undefined,
       };
 
-      await Promise.resolve(onBasecampSet(basecamp));
-      clearTimeout(safetyTimeout);
+      // Wrap the save operation in a timeout internally using Promise.race,
+      // but without swallowing errors.
+      const savePromise = Promise.resolve(onBasecampSet(basecamp));
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT')), 15000);
+      });
+
+      await Promise.race([savePromise, timeoutPromise]);
+
       // Success toast is handled by the caller (mutation hook or BasecampsPanel)
       // to avoid duplicate toasts and ensure accuracy
       onClose();
-    } catch {
-      clearTimeout(safetyTimeout);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'TIMEOUT') {
+        toast.error('Save timed out. Please try again.');
+      }
       // Error toast is also handled by mutation onError, but we close the dialog
       // No duplicate toast here - the mutation hook already shows the error
     } finally {
