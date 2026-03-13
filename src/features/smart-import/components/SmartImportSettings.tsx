@@ -132,8 +132,14 @@ export const SmartImportSettings = () => {
                   </div>
                   <div>
                     <p className="font-medium text-sm">{account.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Connected {new Date(account.created_at).toLocaleDateString()}
+                    <p className="text-xs text-muted-foreground flex gap-2">
+                      <span>Connected {new Date(account.created_at).toLocaleDateString()}</span>
+                      {account.last_synced_at && (
+                        <>
+                           <span>&bull;</span>
+                           <span>Last scanned: {new Date(account.last_synced_at).toLocaleDateString()}</span>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

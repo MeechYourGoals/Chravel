@@ -120,6 +120,14 @@ export const SmartImport = ({
         }
       } catch (error) {
         console.error('Import error:', error);
+        import('@/utils/errorTracking').then(({ errorTracking }) => {
+            errorTracking.addBreadcrumb({
+                category: 'smart_import',
+                message: 'File Import Error',
+                data: { error: error instanceof Error ? error.message : 'Unknown' },
+                level: 'error'
+            });
+        });
         setLastResult({ success: false, count: 0 });
         toast({
           title: 'Import Failed',
@@ -189,6 +197,14 @@ export const SmartImport = ({
       }
     } catch (error) {
       console.error('URL import error:', error);
+      import('@/utils/errorTracking').then(({ errorTracking }) => {
+          errorTracking.addBreadcrumb({
+              category: 'smart_import',
+              message: 'URL Import Error',
+              data: { error: error instanceof Error ? error.message : 'Unknown' },
+              level: 'error'
+          });
+      });
       setLastResult({ success: false, count: 0 });
       toast({
         title: 'Import Failed',

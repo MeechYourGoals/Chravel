@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck — Mock types are intentionally loose in tests
 /**
  * Tests for OpenStreetMap Fallback Service

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plane, Hotel, Car, Ticket, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Plane, Hotel, Car, Ticket, Loader2, AlertTriangle, RefreshCw, Train, Utensils, Anchor, FileText, Edit2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 export interface ReviewCandidatesProps {
@@ -16,6 +18,10 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string; label
   lodging: { icon: Hotel, color: 'text-indigo-500', label: 'Lodging' },
   ground_transport: { icon: Car, color: 'text-orange-500', label: 'Transport' },
   event_ticket: { icon: Ticket, color: 'text-pink-500', label: 'Event' },
+  rail_bus_ferry: { icon: Train, color: 'text-teal-500', label: 'Transit' },
+  dining: { icon: Utensils, color: 'text-red-500', label: 'Dining' },
+  cruise: { icon: Anchor, color: 'text-cyan-500', label: 'Cruise' },
+  generic_itinerary: { icon: FileText, color: 'text-gray-500', label: 'Generic Booking' },
 };
 
 export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
@@ -23,6 +29,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   onAccept,
   onCancel,
 }) => {
+  const [localCandidates, setLocalCandidates] = useState(candidates);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
     // Pre-select only candidates that are likely relevant and not cancelled
     return new Set(
@@ -41,6 +48,30 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Edit Modal State
+  const [editingCandidateId, setEditingCandidateId] = useState<string | null>(null);
+  const [editingJsonText, setEditingJsonText] = useState('');
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  const handleEditClick = (e: React.MouseEvent, candidate: any) => {
+      e.stopPropagation();
+      setEditingCandidateId(candidate.id);
+      setEditingJsonText(JSON.stringify(candidate.reservation_data, null, 2));
+      setJsonError(null);
+  };
+
+  const saveEditedCandidate = () => {
+      try {
+          const parsed = JSON.parse(editingJsonText);
+          setLocalCandidates(prev =>
+              prev.map(c => c.id === editingCandidateId ? { ...c, reservation_data: parsed } : c)
+          );
+          setEditingCandidateId(null);
+      } catch (err: any) {
+          setJsonError(err.message || 'Invalid JSON format');
+      }
+  };
+
   const toggleSelection = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
@@ -51,7 +82,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   const handleAccept = async () => {
     setIsSubmitting(true);
     try {
-      const accepted = candidates.filter(c => selectedIds.has(c.id));
+      const accepted = localCandidates.filter(c => selectedIds.has(c.id));
       await onAccept(accepted);
     } catch (error: unknown) {
       toast.error('Failed to save imported items', { description: (error as Error)?.message });
@@ -60,7 +91,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     }
   };
 
-  if (!candidates || candidates.length === 0) {
+  if (!localCandidates || localCandidates.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
@@ -90,12 +121,12 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           </p>
         </div>
         <div className="text-sm font-medium">
-          {selectedIds.size} of {candidates.length} selected
+          {selectedIds.size} of {localCandidates.length} selected
         </div>
       </div>
 
       <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-        {candidates.map(candidate => {
+        {localCandidates.map(candidate => {
           const type = candidate.reservation_data?.type || 'unknown';
           const config = typeConfig[type] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
@@ -117,6 +148,18 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           } else if (type === 'event_ticket') {
             title = data.event_name || 'Event Ticket';
             subtitle = data.venue_name || data.city || '';
+          } else if (type === 'rail_bus_ferry') {
+            title = `${data.carrier_name || 'Transit'} ${data.train_bus_vessel_number || ''}`;
+            subtitle = `${data.departure_station || 'Origin'} to ${data.arrival_station || 'Destination'}`;
+          } else if (type === 'dining') {
+            title = data.restaurant_name || 'Dining Reservation';
+            subtitle = `Table for ${data.party_size || '?'} at ${data.reservation_time_local || ''}`;
+          } else if (type === 'cruise') {
+            title = `${data.cruise_line || 'Cruise'} - ${data.ship_name || ''}`;
+            subtitle = `${data.departure_port || 'Port'}`;
+          } else if (type === 'generic_itinerary') {
+            title = data.title || 'Generic Booking';
+            subtitle = data.description || '';
           }
 
           const isSelected = selectedIds.has(candidate.id);
@@ -170,11 +213,16 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
                   )}
-                  {data.confirmation_code && (
-                    <p className="text-xs font-mono mt-1 text-muted-foreground/80">
-                      Ref: {data.confirmation_code}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-4 mt-1">
+                      {data.confirmation_code && (
+                        <p className="text-xs font-mono text-muted-foreground/80 flex-1">
+                          Ref: {data.confirmation_code}
+                        </p>
+                      )}
+                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-muted-foreground" onClick={(e) => handleEditClick(e, candidate)}>
+                          <Edit2 className="h-3 w-3 mr-1" /> Edit
+                      </Button>
+                  </div>
                   {relevanceScore !== undefined && (
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden max-w-[80px]">
@@ -222,6 +270,31 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           )}
         </Button>
       </div>
+
+      <Dialog open={!!editingCandidateId} onOpenChange={(open) => !open && setEditingCandidateId(null)}>
+          <DialogContent className="max-w-xl">
+              <DialogHeader>
+                  <DialogTitle>Edit Extracted Data</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <p className="text-sm text-muted-foreground">
+                      Make any manual corrections to the raw JSON payload before adding it to your trip.
+                  </p>
+                  <Textarea
+                      value={editingJsonText}
+                      onChange={(e) => setEditingJsonText(e.target.value)}
+                      className={`font-mono text-xs min-h-[300px] ${jsonError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  />
+                  {jsonError && (
+                      <p className="text-xs text-red-500 font-medium">{jsonError}</p>
+                  )}
+                  <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setEditingCandidateId(null)}>Cancel</Button>
+                      <Button onClick={saveEditedCandidate}>Save Changes</Button>
+                  </div>
+              </div>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 };

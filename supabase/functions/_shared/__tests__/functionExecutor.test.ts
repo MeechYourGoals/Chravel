@@ -40,8 +40,9 @@ describe('functionExecutor idempotency', () => {
   });
 
   it('should handle unique constraint violation and fetch existing task by idempotency_key', async () => {
+    const mockMaybeSingleLookup = vi.fn().mockResolvedValue({ data: { id: 'task-1-existing' }, error: null });
     const mockSingle = vi.fn().mockResolvedValue({ data: { id: 'task-1-existing' }, error: null });
-    const mockEqIdemp = vi.fn().mockReturnValue({ single: mockSingle });
+    const mockEqIdemp = vi.fn().mockReturnValue({ single: mockSingle, maybeSingle: mockMaybeSingleLookup });
     const mockEqTrip = vi.fn().mockReturnValue({ eq: mockEqIdemp });
     const mockSelectLookup = vi.fn().mockReturnValue({ eq: mockEqTrip });
 

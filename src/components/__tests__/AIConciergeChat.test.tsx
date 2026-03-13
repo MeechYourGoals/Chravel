@@ -17,7 +17,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock dependencies
 vi.mock('../../integrations/supabase/client', () => ({
+  SUPABASE_PROJECT_URL: 'https://test.supabase.co',
   supabase: {
+    auth: {
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'test' } } }),
+    },
     functions: {
       invoke: vi.fn(),
     },
@@ -139,7 +144,7 @@ describe('AIConciergeChat', () => {
     it('removes legacy status pills from header', () => {
       renderWithProviders(<AIConciergeChat tripId="test-trip" />);
       expect(screen.queryByText(/ready with web search/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/^live$/i)).not.toBeInTheDocument();
+      // 'Live' text is now used by the new Gemini Live toggle button, so we no longer check for its absence here as a status pill
       expect(screen.queryByText(/limited mode/i)).not.toBeInTheDocument();
     });
   });
