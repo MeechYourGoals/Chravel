@@ -122,7 +122,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           const config = typeConfig[type as string] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
 
-          const data = candidate.reservation_data;
+          const data = candidate.reservation_data as Record<string, string>;
 
           let title = 'Unknown Reservation';
           let subtitle = '';
