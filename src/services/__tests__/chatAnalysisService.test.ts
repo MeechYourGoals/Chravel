@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck — Supabase mock chain types are intentionally loose in tests
 /**
  * Tests for Chat Analysis Service - Payment Participant Detection

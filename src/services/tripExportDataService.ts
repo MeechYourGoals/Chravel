@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck — Supabase generated types have deep mismatches with runtime shapes
 /**
  * Trip Export Data Service
