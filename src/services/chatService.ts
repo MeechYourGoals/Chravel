@@ -167,7 +167,7 @@ export async function toggleMessageReaction(
       throw new Error(`Unsupported reaction type: ${reactionType}`);
     }
 
-    const { data, error } = await supabase.rpc('toggle_reaction', {
+    const { data, error } = await (supabase as any).rpc('toggle_reaction', {
       p_message_id: messageId,
       p_user_id: userId,
       p_reaction_type: reactionType,
