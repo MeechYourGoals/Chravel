@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Mail, Loader2, Sparkles } from 'lucide-react';
+import { Mail, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -32,6 +32,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [tokenExpired, setTokenExpired] = useState(false);
 
   useEffect(() => {
     loadAccounts();
@@ -56,6 +57,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
     if (!selectedAccountId) return;
 
     setImporting(true);
+    setTokenExpired(false);
     onImportStarted?.();
 
     try {
@@ -65,11 +67,23 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
 
       if (error) throw new Error(error.message);
 
+      // Detect token expired error returned as a 401 payload
+      if (data?.error && /token expired|reconnect/i.test(data.error)) {
+        setTokenExpired(true);
+        onImportError?.(new Error(data.error));
+        return;
+      }
+
       toast.success('Successfully scanned inbox');
       onImportComplete?.(data.candidates || []);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : 'Unknown error';
-      toast.error('Failed to import from Gmail', { description: errMsg });
+      const isTokenError = /token expired|reconnect|unauthorized/i.test(errMsg);
+      if (isTokenError) {
+        setTokenExpired(true);
+      } else {
+        toast.error('Failed to import from Gmail', { description: errMsg });
+      }
       onImportError?.(error instanceof Error ? error : new Error(errMsg));
     } finally {
       setImporting(false);
@@ -99,6 +113,26 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
           onClick={() => navigate('/settings', { state: { section: 'integrations' } })}
         >
           Go to Settings
+        </Button>
+      </div>
+    );
+  }
+
+  // Token expired — show reconnect prompt instead of the scan UI
+  if (tokenExpired) {
+    return (
+      <div className="flex flex-col items-center justify-center p-4 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 text-center space-y-3">
+        <AlertTriangle className="h-6 w-6 text-amber-500" />
+        <p className="text-sm font-medium">Gmail connection expired</p>
+        <p className="text-xs text-muted-foreground max-w-sm">
+          Your Gmail access has expired or been revoked. Reconnect to continue scanning your inbox.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/settings', { state: { section: 'integrations' } })}
+        >
+          Reconnect Gmail
         </Button>
       </div>
     );

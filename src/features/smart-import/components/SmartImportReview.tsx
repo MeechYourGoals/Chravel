@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,10 +16,28 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import type { SmartImportCandidate } from '../types';
+
+// Map Gmail extraction types → artifact-ingest artifact_type overrides
+const RESERVATION_TO_ARTIFACT_TYPE: Record<string, string> = {
+  flight: 'flight',
+  lodging: 'hotel',
+  ground_transport: 'generic_document',
+  event_ticket: 'event_ticket',
+  sports_ticket: 'event_ticket',
+  restaurant_reservation: 'restaurant_reservation',
+  rail_bus_ferry: 'generic_document',
+  conference_registration: 'generic_document',
+  generic_itinerary_item: 'generic_document',
+  // Legacy aliases (pre-normalization)
+  dining_reservation: 'restaurant_reservation',
+  rail_ticket: 'generic_document',
+};
 
 export interface ReviewCandidatesProps {
   candidates: SmartImportCandidate[];
+  tripId?: string;
   onAccept: (acceptedCandidates: SmartImportCandidate[]) => void;
   onCancel: () => void;
 }
@@ -32,16 +50,34 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string; label
   sports_ticket: { icon: Ticket, color: 'text-red-500', label: 'Sports' },
   restaurant_reservation: { icon: Utensils, color: 'text-emerald-500', label: 'Restaurant' },
   rail_bus_ferry: { icon: Train, color: 'text-cyan-500', label: 'Rail/Bus/Ferry' },
-  conference_registration: {
-    icon: CalendarCheck,
-    color: 'text-violet-500',
-    label: 'Conference',
-  },
+  conference_registration: { icon: CalendarCheck, color: 'text-violet-500', label: 'Conference' },
   generic_itinerary_item: { icon: Map, color: 'text-slate-500', label: 'Itinerary' },
 };
 
+type FilterTab =
+  | 'all'
+  | 'flight'
+  | 'lodging'
+  | 'event_ticket'
+  | 'sports_ticket'
+  | 'restaurant_reservation'
+  | 'rail_bus_ferry'
+  | 'ground_transport';
+
+const filterTabs: { key: FilterTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'flight', label: 'Flights' },
+  { key: 'lodging', label: 'Lodging' },
+  { key: 'event_ticket', label: 'Events' },
+  { key: 'sports_ticket', label: 'Sports' },
+  { key: 'restaurant_reservation', label: 'Dining' },
+  { key: 'rail_bus_ferry', label: 'Rail/Ferry' },
+  { key: 'ground_transport', label: 'Transport' },
+];
+
 export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   candidates,
+  tripId,
   onAccept,
   onCancel,
 }) => {
@@ -62,6 +98,18 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     );
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+
+  const visibleCandidates = useMemo(() => {
+    if (activeFilter === 'all') return candidates;
+    return candidates.filter(c => c.reservation_data?.type === activeFilter);
+  }, [candidates, activeFilter]);
+
+  // Only show tabs that have at least one candidate
+  const tabsWithData = useMemo(() => {
+    const typeSet = new Set(candidates.map(c => c.reservation_data?.type));
+    return filterTabs.filter(t => t.key === 'all' || typeSet.has(t.key));
+  }, [candidates]);
 
   const toggleSelection = (id: string) => {
     const next = new Set(selectedIds);
@@ -70,10 +118,90 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     setSelectedIds(next);
   };
 
+  const selectAllVisible = () => {
+    const next = new Set(selectedIds);
+    visibleCandidates.forEach(c => next.add(c.id));
+    setSelectedIds(next);
+  };
+
+  const deselectAllVisible = () => {
+    const next = new Set(selectedIds);
+    visibleCandidates.forEach(c => next.delete(c.id));
+    setSelectedIds(next);
+  };
+
   const handleAccept = async () => {
     setIsSubmitting(true);
     try {
       const accepted = candidates.filter(c => selectedIds.has(c.id));
+      const rejected = candidates.filter(c => !selectedIds.has(c.id));
+
+      // Persist accepted candidates as trip artifacts
+      let persistedCount = 0;
+      let failedCount = 0;
+
+      if (tripId && accepted.length > 0) {
+        const ingestResults = await Promise.allSettled(
+          accepted.map(async candidate => {
+            const resData = candidate.reservation_data || {};
+            const reservationType = resData.type as string | undefined;
+            const artifactTypeOverride = reservationType
+              ? RESERVATION_TO_ARTIFACT_TYPE[reservationType]
+              : undefined;
+
+            await supabase.functions.invoke('artifact-ingest', {
+              body: {
+                tripId,
+                sourceType: 'gmail_import',
+                text: JSON.stringify(resData),
+                artifactTypeOverride,
+                metadata: {
+                  gmail_message_id: resData._gmail_message_id,
+                  email_subject: resData._email_subject,
+                  smart_import_candidate_id: candidate.id,
+                },
+              },
+            });
+          }),
+        );
+
+        persistedCount = ingestResults.filter(r => r.status === 'fulfilled').length;
+        failedCount = ingestResults.filter(r => r.status === 'rejected').length;
+
+        // Mark accepted candidates (best-effort — don't fail the whole accept if this errors)
+        await supabase
+          .from('smart_import_candidates')
+          .update({ status: 'accepted' })
+          .in(
+            'id',
+            accepted.map(c => c.id),
+          );
+      }
+
+      // Mark rejected candidates (regardless of whether tripId is present)
+      if (rejected.length > 0) {
+        await supabase
+          .from('smart_import_candidates')
+          .update({ status: 'rejected' })
+          .in(
+            'id',
+            rejected.map(c => c.id),
+          );
+      }
+
+      if (failedCount > 0) {
+        toast.warning(
+          `${persistedCount} of ${accepted.length} item${accepted.length !== 1 ? 's' : ''} saved.`,
+          {
+            description: `${failedCount} item${failedCount !== 1 ? 's' : ''} may not have been fully indexed.`,
+          },
+        );
+      } else if (accepted.length > 0) {
+        toast.success(
+          `Added ${accepted.length} item${accepted.length !== 1 ? 's' : ''} to your trip`,
+        );
+      }
+
       await onAccept(accepted);
     } catch (error: unknown) {
       toast.error('Failed to save imported items', { description: (error as Error)?.message });
@@ -102,6 +230,8 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     );
   }
 
+  const visibleSelectedCount = visibleCandidates.filter(c => selectedIds.has(c.id)).length;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b pb-4">
@@ -111,15 +241,65 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
             Select the reservations you want to add to your trip.
           </p>
         </div>
-        <div className="text-sm font-medium">
-          {selectedIds.size} of {candidates.length} selected
+        <div className="text-sm font-medium text-right">
+          <span>
+            {selectedIds.size} of {candidates.length} selected
+          </span>
         </div>
       </div>
 
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-        {candidates.map(candidate => {
+      {/* Type filter tabs */}
+      {tabsWithData.length > 2 && (
+        <div className="flex gap-1 flex-wrap">
+          {tabsWithData.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                activeFilter === tab.key
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {tab.label}
+              {tab.key !== 'all' && (
+                <span className="ml-1 opacity-60">
+                  {candidates.filter(c => c.reservation_data?.type === tab.key).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Bulk action row */}
+      <div className="flex items-center gap-2 text-xs">
+        <button
+          onClick={selectAllVisible}
+          className="text-primary hover:underline"
+          disabled={visibleSelectedCount === visibleCandidates.length}
+        >
+          Select All{activeFilter !== 'all' ? ' Visible' : ''}
+        </button>
+        <span className="text-muted-foreground">·</span>
+        <button
+          onClick={deselectAllVisible}
+          className="text-muted-foreground hover:underline"
+          disabled={visibleSelectedCount === 0}
+        >
+          Deselect All{activeFilter !== 'all' ? ' Visible' : ''}
+        </button>
+        {activeFilter !== 'all' && (
+          <span className="text-muted-foreground ml-1">
+            ({visibleSelectedCount} of {visibleCandidates.length} visible selected)
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+        {visibleCandidates.map(candidate => {
           const type = (candidate.reservation_data?.type as string) || 'unknown';
-          const config = typeConfig[type as string] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
+          const config = typeConfig[type] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
 
           // intentional: reservation_data is dynamic JSON from Gmail import — shape varies by type
@@ -130,14 +310,16 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           let subtitle = '';
 
           if (type === 'flight') {
-            title = `${data.airline_name || data.airline_code} Flight ${data.flight_number || ''}`;
-            subtitle = `${data.departure_city || data.departure_airport_code} to ${data.arrival_city || data.arrival_airport_code}`;
+            const operatorName = data.airline_name || data.booking_source || data.airline_code;
+            const flightId = data.flight_number || data.tail_number || '';
+            title = `${operatorName || 'Flight'} ${flightId}`.trim();
+            subtitle = `${data.departure_city || data.departure_airport_code || ''} → ${data.arrival_city || data.arrival_airport_code || ''}`;
           } else if (type === 'lodging') {
-            title = data.property_name || 'Hotel Stay';
+            title = data.property_name || 'Stay';
             subtitle = data.city || data.address || '';
           } else if (type === 'ground_transport') {
             title = data.provider_name || 'Ground Transport';
-            subtitle = `${data.pickup_location} to ${data.dropoff_location}`;
+            subtitle = `${data.pickup_location || ''} to ${data.dropoff_location || ''}`;
           } else if (type === 'event_ticket') {
             title = data.event_name || 'Event Ticket';
             subtitle = data.venue_name || data.city || '';
@@ -181,9 +363,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                   />
                 </div>
 
-                <div
-                  className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 bg-background border`}
-                >
+                <div className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 bg-background border">
                   <Icon className={`h-5 w-5 ${config.color}`} />
                 </div>
 
@@ -208,6 +388,11 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                   </div>
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
+                  )}
+                  {data._email_subject && (
+                    <p className="text-xs text-muted-foreground/60 truncate mt-0.5 italic">
+                      {data._email_subject}
+                    </p>
                   )}
                   {(data as Record<string, unknown>).confirmation_code && (
                     <p className="text-xs font-mono mt-1 text-muted-foreground/80">

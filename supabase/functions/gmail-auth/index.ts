@@ -1,12 +1,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
-import { decryptToken, encryptToken } from '../_shared/gmailTokenCrypto.ts';
+import { encryptToken, decryptToken } from '../_shared/gmailTokenCrypto.ts';
 
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 const GMAIL_TOKEN_ENCRYPTION_KEY = Deno.env.get('GMAIL_TOKEN_ENCRYPTION_KEY') ?? '';
 const OAUTH_STATE_SIGNING_SECRET = Deno.env.get('OAUTH_STATE_SIGNING_SECRET') ?? '';
+const MAX_GMAIL_ACCOUNTS = 5;
+
 const REDIRECT_URI =
   Deno.env.get('GOOGLE_REDIRECT_URI') || 'http://localhost:5173/api/gmail/oauth/callback';
 
@@ -58,7 +60,6 @@ async function verifyState(payload: string, signature: string): Promise<boolean>
     false,
     ['verify'],
   );
-
   return await crypto.subtle.verify(
     'HMAC',
     key,
@@ -104,12 +105,40 @@ serve(async req => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // ── CONNECT: initiate Google OAuth flow ──
     if (action === 'connect') {
+      // Enforce per-user account cap before issuing OAuth URL
+      const { count } = await adminClient
+        .from('gmail_accounts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if ((count ?? 0) >= MAX_GMAIL_ACCOUNTS) {
+        return errorResponse(
+          `You can connect up to ${MAX_GMAIL_ACCOUNTS} Gmail accounts. Remove one before adding another.`,
+          400,
+        );
+      }
+
+      // Generate PKCE code_verifier (32 random bytes, base64url)
+      const verifierBytes = new Uint8Array(32);
+      crypto.getRandomValues(verifierBytes);
+      const codeVerifier = bytesToBase64Url(verifierBytes);
+
+      // Compute code_challenge = base64url(SHA256(code_verifier))
+      const challengeBytes = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(codeVerifier),
+      );
+      const codeChallenge = bytesToBase64Url(new Uint8Array(challengeBytes));
+
+      // Build signed state payload (includes code_verifier for PKCE + expiry for replay protection)
       const nonce = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(32)));
       const payloadObj = {
         uid: user.id,
         nonce,
-        exp: Date.now() + 10 * 60 * 1000,
+        exp: Date.now() + 10 * 60 * 1000, // 10 min expiry
+        code_verifier: codeVerifier,
       };
       const payload = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(payloadObj)));
       const signature = await signState(payload);
@@ -125,36 +154,57 @@ serve(async req => {
       oauthUrl.searchParams.set('access_type', 'offline');
       oauthUrl.searchParams.set('prompt', 'consent');
       oauthUrl.searchParams.set('state', `${payload}.${signature}`);
+      oauthUrl.searchParams.set('code_challenge', codeChallenge);
+      oauthUrl.searchParams.set('code_challenge_method', 'S256');
+
+      console.log(
+        `[gmail-auth] Connect initiated for user ${user.id}, redirect_uri=${REDIRECT_URI}`,
+      );
 
       return new Response(JSON.stringify({ url: oauthUrl.toString() }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // ── CALLBACK: exchange code for tokens ──
     if (action === 'callback') {
       const { code, state } = await req.json();
       if (!code || !state || typeof state !== 'string' || !state.includes('.')) {
         return errorResponse('Missing code or state', 400);
       }
 
-      const [payload, signature] = state.split('.');
-      const signatureValid = await verifyState(payload, signature);
+      // Verify HMAC signature + extract state payload (includes code_verifier + expiry)
+      const dotIndex = state.lastIndexOf('.');
+      const payloadB64 = state.substring(0, dotIndex);
+      const signature = state.substring(dotIndex + 1);
+
+      const signatureValid = await verifyState(payloadB64, signature);
       if (!signatureValid) return errorResponse('Invalid state signature', 403);
 
-      const decodedState = JSON.parse(new TextDecoder().decode(base64UrlToBytes(payload)));
+      let decodedState: { uid: string; exp: number; code_verifier?: string };
+      try {
+        decodedState = JSON.parse(new TextDecoder().decode(base64UrlToBytes(payloadB64)));
+      } catch {
+        return errorResponse('Invalid state payload', 403);
+      }
+
       if (decodedState.uid !== user.id) return errorResponse('State UID mismatch', 403);
       if (Date.now() > decodedState.exp) return errorResponse('OAuth state expired', 403);
+
+      // Exchange code for tokens — include PKCE verifier if present
+      const tokenParams: Record<string, string> = {
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI,
+        grant_type: 'authorization_code',
+      };
+      if (decodedState.code_verifier) tokenParams.code_verifier = decodedState.code_verifier;
 
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          code,
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: GOOGLE_CLIENT_SECRET,
-          redirect_uri: REDIRECT_URI,
-          grant_type: 'authorization_code',
-        }),
+        body: new URLSearchParams(tokenParams),
       });
 
       if (!tokenResponse.ok) {
@@ -172,6 +222,8 @@ serve(async req => {
       }
 
       const userInfo = await userInfoResponse.json();
+
+      // Encrypt tokens at rest using AES-GCM
       const encryptedAccessToken = await encryptToken(
         tokenData.access_token,
         GMAIL_TOKEN_ENCRYPTION_KEY,
@@ -181,6 +233,7 @@ serve(async req => {
         ? await encryptToken(refreshTokenRaw, GMAIL_TOKEN_ENCRYPTION_KEY)
         : null;
 
+      // Preserve existing refresh_token if Google doesn't return a new one (re-connect case)
       const { data: existing } = await adminClient
         .from('gmail_accounts')
         .select('refresh_token')
@@ -200,7 +253,7 @@ serve(async req => {
           scopes: tokenData.scope ? tokenData.scope.split(' ') : [],
           token_expires_at:
             typeof tokenData.expires_in === 'number'
-              ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+              ? new Date(Date.now() + (tokenData.expires_in - 60) * 1000).toISOString()
               : null,
           updated_at: new Date().toISOString(),
         },
@@ -224,11 +277,13 @@ serve(async req => {
         action: 'oauth_connect',
       });
 
+      console.log(`[gmail-auth] Successfully connected ${userInfo.email} for user ${user.id}`);
       return new Response(JSON.stringify({ success: true, email: userInfo.email }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // ── DISCONNECT: revoke tokens and remove account ──
     if (action === 'disconnect') {
       const { accountId } = await req.json();
       if (!accountId) return errorResponse('Missing accountId', 400);
@@ -277,6 +332,7 @@ serve(async req => {
         action: 'oauth_disconnect',
       });
 
+      console.log(`[gmail-auth] Disconnected account ${accountId} for user ${user.id}`);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
