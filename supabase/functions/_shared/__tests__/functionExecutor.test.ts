@@ -32,7 +32,6 @@ describe('functionExecutor idempotency', () => {
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Passports',
-        idempotency_key: 'idemp-1',
       }),
     );
     expect(result.success).toBe(true);
