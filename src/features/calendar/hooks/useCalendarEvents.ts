@@ -46,7 +46,7 @@ export const useCalendarEvents = (tripId?: string) => {
       try {
         const result = await withTimeout(
           calendarService.getTripEvents(tripId!),
-          10000,
+          15000,
           'Failed to load calendar events: Timeout',
         );
 
