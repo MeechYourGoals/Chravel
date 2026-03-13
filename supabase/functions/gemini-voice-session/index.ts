@@ -114,6 +114,31 @@ const VOICE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'searchTripArtifacts',
+    description:
+      'Search uploaded trip artifacts — screenshots, PDFs, images, documents, receipts, tickets, itineraries, and other files. Use when user asks "find the boarding pass", "show me the hotel confirmation", "where is the PDF with the schedule?", "find the receipt", or any question about uploaded files and documents.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Semantic search query describing what artifact to find',
+        },
+        artifact_types: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Filter by artifact type: flight, hotel, restaurant_reservation, event_ticket, itinerary, schedule, place_recommendation, payment_proof, roster, credential, generic_document, generic_image',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results to return (default 5)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'getPaymentSummary',
     description: 'Get a summary of who owes money to whom in the trip',
     parameters: { type: 'object', properties: {} },
