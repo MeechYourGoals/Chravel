@@ -22,7 +22,13 @@ type TripDetailResponse =
       error_code: TripDetailErrorCode;
     };
 
-const SUPER_ADMIN_EMAILS = ['ccamechi@gmail.com'];
+const SUPER_ADMIN_EMAILS = [
+  'ccamechi@gmail.com',
+  'christian@chravelapp.com',
+  'demo@chravelapp.com',
+  'phil@philquist.com',
+  'darren.hartgee@gmail.com',
+];
 
 const buildResponse = (
   payload: TripDetailResponse,
