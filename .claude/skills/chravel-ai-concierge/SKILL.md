@@ -10,8 +10,29 @@ The AI Concierge is Chravel's AI travel assistant. It helps users plan trips, fi
 ## Architecture
 
 ### Components
-- `src/components/ai/` — Concierge UI (chat interface, suggestion cards, action confirmations)
+- `src/components/AIConciergeChat.tsx` — Main concierge chat UI (SSE streaming, metadata handling)
+- `src/services/conciergeGateway.ts` — Client gateway (SSE stream parsing, type-safe metadata events)
+- `src/features/chat/components/` — Chat rendering (MessageBubble, ChatMessages, GroundingCitationCard, GoogleMapsWidget)
 - `src/hooks/useAIConciergePreferences.ts` — User preferences for concierge behavior
+- `src/hooks/useConciergeHistory.ts` — Chat history persistence and restoration
+- `src/store/conciergeSessionStore.ts` — Session state (messages, metadata, grounding data)
+- `src/types/grounding.ts` — Grounding type definitions
+
+### Backend (Edge Functions)
+- `supabase/functions/lovable-concierge/index.ts` — Main concierge edge function (Gemini API calls, streaming, tool execution)
+- `supabase/functions/_shared/gemini.ts` — Model alias table (`gemini-3-flash-preview`, `gemini-3.1-pro-preview`)
+- `supabase/functions/_shared/promptBuilder.ts` — PLAN→EXECUTE→RESPOND system prompt construction
+- `supabase/functions/_shared/functionExecutor.ts` — 40+ tool implementations
+- `supabase/functions/_shared/security/toolRouter.ts` — Capability token enforcement
+- `supabase/functions/_shared/aiUtils.ts` — Query complexity analysis, model selection
+
+### Gemini Config (production)
+The concierge uses raw HTTP fetch to Gemini API (NOT `@google/genai` SDK). Key config:
+- **Thought signatures**: `thinkingConfig: { thinkingLevel }` in `generationConfig` (env: `ENABLE_THINKING_CONFIG`, default ON)
+- **Streaming function args**: `toolConfig: { functionCallingConfig: { streamFunctionCallArguments: true } }` for trip queries
+- **Combined grounding**: `googleSearch` + `functionDeclarations` as separate tool objects (env: `ENABLE_COMBINED_GROUNDING`, default OFF)
+- **Maps grounding**: `googleMaps` tool (env: `ENABLE_MAPS_GROUNDING`, default OFF, Gemini 2.5 models only)
+- **API key isolation**: Server-side `GEMINI_API_KEY` validated against client-side `VITE_GOOGLE_MAPS_API_KEY`
 
 ### Capabilities
 The concierge can:

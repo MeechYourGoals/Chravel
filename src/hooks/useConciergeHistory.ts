@@ -146,6 +146,8 @@ export function useConciergeHistory(tripId: string): {
                 meta.functionCallHotels as ConciergeChatMessage['functionCallHotels'];
             if (typeof meta.googleMapsWidget === 'string')
               assistantMsg.googleMapsWidget = meta.googleMapsWidget;
+            if (typeof meta.googleMapsWidgetContextToken === 'string')
+              assistantMsg.googleMapsWidgetContextToken = meta.googleMapsWidgetContextToken;
             if (Array.isArray(meta.conciergeActions))
               assistantMsg.conciergeActions =
                 meta.conciergeActions as ConciergeChatMessage['conciergeActions'];

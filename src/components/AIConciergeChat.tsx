@@ -26,7 +26,10 @@ import { toast } from 'sonner';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
 import { useGeminiLive } from '@/hooks/useGeminiLive';
+import type { ToolCallResult } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
+import { VoiceLiveOverlay } from '@/features/chat/components/VoiceLiveOverlay';
+import { VoiceActiveBar } from '@/features/chat/components/VoiceActiveBar';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -81,6 +84,7 @@ export interface ChatMessage {
     source?: string;
   }>;
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
   /** Rich place results from searchPlaces / getPlaceDetails tool calls */
   functionCallPlaces?: Array<{
     placeId?: string | null;
@@ -149,6 +153,7 @@ interface ConciergeInvokePayload {
   sources?: ChatMessage['sources'];
   citations?: ChatMessage['sources'];
   googleMapsWidget?: string;
+  googleMapsWidgetContextToken?: string;
   success?: boolean;
   error?: string;
 }
@@ -455,7 +460,7 @@ export const AIConciergeChat = ({
   });
 
   const handleLiveTurnComplete = useCallback(
-    async (userText: string, assistantText: string) => {
+    async (userText: string, assistantText: string, toolResults?: ToolCallResult[]) => {
       const now = new Date().toISOString();
       const newMessages: ChatMessage[] = [];
       if (userText) {
@@ -467,12 +472,59 @@ export const AIConciergeChat = ({
         });
       }
       if (assistantText) {
-        newMessages.push({
+        // Build rich card metadata from voice tool results
+        const assistantMsg: ChatMessage = {
           id: `voice-assistant-${Date.now()}`,
           type: 'assistant',
           content: assistantText,
           timestamp: now,
-        });
+        };
+
+        // Map tool results to rich card fields on the assistant message
+        if (toolResults && toolResults.length > 0) {
+          for (const tr of toolResults) {
+            if (
+              (tr.name === 'searchPlaces' || tr.name === 'getPlaceDetails') &&
+              tr.result?.success
+            ) {
+              const places = tr.result.places ?? (tr.result.place ? [tr.result.place] : []);
+              if (Array.isArray(places) && places.length > 0) {
+                assistantMsg.functionCallPlaces = places as ChatMessage['functionCallPlaces'];
+              }
+            }
+            if (tr.name === 'searchFlights' && tr.result?.success && tr.result.flights) {
+              assistantMsg.functionCallFlights = tr.result
+                .flights as ChatMessage['functionCallFlights'];
+            }
+            if (
+              (tr.name === 'searchWeb' || tr.name === 'searchImages') &&
+              tr.result?.success &&
+              tr.result.results
+            ) {
+              assistantMsg.sources = (
+                tr.result.results as Array<{ title: string; url: string; snippet: string }>
+              ).map(r => ({
+                title: r.title || '',
+                url: r.url || '',
+                snippet: r.snippet || '',
+              }));
+            }
+            if (
+              (tr.name === 'addToCalendar' ||
+                tr.name === 'createTask' ||
+                tr.name === 'createPoll') &&
+              tr.result?.success
+            ) {
+              if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
+              assistantMsg.conciergeActions.push({
+                actionType: (tr.result.actionType as string) || tr.name,
+                message: (tr.result.message as string) || '',
+              } as any);
+            }
+          }
+        }
+
+        newMessages.push(assistantMsg);
       }
       if (newMessages.length > 0) {
         // Immediate in-memory update — keeps the UI responsive.
@@ -532,6 +584,7 @@ export const AIConciergeChat = ({
     state: liveState,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
+    diagnostics: liveDiagnostics,
     startSession: startLiveSession,
     endSession: endLiveSession,
   } = useGeminiLive({
@@ -547,13 +600,30 @@ export const AIConciergeChat = ({
   // Whether Gemini Live session is active (for Live button + VoiceActiveBar)
   const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
+  // Overlay visibility — shown by default when live is active, can be minimized
+  const [liveOverlayVisible, setLiveOverlayVisible] = useState(false);
+
+  // Auto-show overlay when live session starts, auto-hide when it ends
+  useEffect(() => {
+    if (isLiveSessionActive) {
+      setLiveOverlayVisible(true);
+    } else {
+      setLiveOverlayVisible(false);
+    }
+  }, [isLiveSessionActive]);
+
+  const handleEndLiveSession = useCallback(async () => {
+    setLiveOverlayVisible(false);
+    await endLiveSession();
+  }, [endLiveSession]);
+
   // Waveform button — dictation only. Stops Live if active first.
   const handleConvoToggle = useCallback(() => {
     if (isLiveSessionActive) {
-      void endLiveSession();
+      void handleEndLiveSession();
     }
     toggleDictation();
-  }, [isLiveSessionActive, endLiveSession, toggleDictation]);
+  }, [isLiveSessionActive, handleEndLiveSession, toggleDictation]);
 
   // Live button — Gemini Live toggle. Stops dictation if active first.
   const handleLiveToggle = useCallback(async () => {
@@ -566,13 +636,13 @@ export const AIConciergeChat = ({
 
     // If Live is already active, stop it
     if (isLiveSessionActive) {
-      await endLiveSession();
+      await handleEndLiveSession();
       return;
     }
 
     // If previous session errored, clean up before retrying
     if (liveState === 'error') {
-      await endLiveSession();
+      await handleEndLiveSession();
     }
 
     // Check plan limits
@@ -601,7 +671,7 @@ export const AIConciergeChat = ({
     isDictationActive,
     toggleDictation,
     isLiveSessionActive,
-    endLiveSession,
+    handleEndLiveSession,
     startLiveSession,
     isLimitedPlan,
     incrementUsageOnSuccess,
@@ -1478,6 +1548,7 @@ export const AIConciergeChat = ({
                 usage: metadata.usage,
                 sources: metadata.sources as ChatMessage['sources'],
                 googleMapsWidget: metadata.googleMapsWidget ?? undefined,
+                googleMapsWidgetContextToken: metadata.googleMapsWidgetContextToken ?? undefined,
               }));
             },
             onError: (errorMsg: string) => {
@@ -1846,6 +1917,15 @@ export const AIConciergeChat = ({
           }}
         />
 
+        {/* Voice Active Bar — compact indicator when overlay is minimized */}
+        {isLiveSessionActive && !liveOverlayVisible && (
+          <VoiceActiveBar
+            liveState={liveState}
+            onTap={() => setLiveOverlayVisible(true)}
+            onEnd={() => void handleEndLiveSession()}
+          />
+        )}
+
         {/* History loading skeleton — prevents flash of empty → populated */}
         {isHistoryLoading && messages.length === 0 && (
           <div className="flex flex-col gap-3 p-4 animate-pulse flex-shrink-0">
@@ -1977,8 +2057,17 @@ export const AIConciergeChat = ({
         </div>
       </div>
 
-      {/* Inline voice bar — compact status indicator at top of chat */}
-      {/* (positioned absolutely so it overlays the top of chat scroll area) */}
+      {/* Immersive Voice Overlay — full-screen portal for Gemini Live */}
+      {isLiveSessionActive && liveOverlayVisible && (
+        <VoiceLiveOverlay
+          liveState={liveState}
+          userTranscript={liveUserTranscript}
+          assistantTranscript={liveAssistantTranscript}
+          diagnostics={liveDiagnostics}
+          onEndSession={() => void handleEndLiveSession()}
+          tripName={basecamp?.name}
+        />
+      )}
     </div>
   );
 };

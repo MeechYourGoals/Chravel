@@ -415,6 +415,11 @@ async function _executeImpl(
           imageUrl: item.link || '',
           sourceDomain: item.displayLink || '',
         })),
+        results: (csData.items || []).map((item: any) => ({
+          title: item.title || '',
+          url: item.link || '',
+          snippet: item.title || '',
+        })),
       };
     }
 

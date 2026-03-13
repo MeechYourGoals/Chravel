@@ -57,6 +57,7 @@ export interface StreamMetadataEvent {
   usage?: ConciergeInvokeResponse['usage'];
   sources?: ConciergeInvokeResponse['sources'];
   googleMapsWidget?: string | null;
+  googleMapsWidgetContextToken?: string | null;
   model?: string;
   functionCalls?: string[];
   keepAlive?: boolean;
