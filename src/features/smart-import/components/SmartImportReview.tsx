@@ -122,7 +122,9 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           const config = typeConfig[type as string] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
 
-          const data = candidate.reservation_data || {} as Record<string, unknown>;
+          // intentional: reservation_data is dynamic JSON from Gmail import — shape varies by type
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = (candidate.reservation_data || {}) as any;
 
           let title = 'Unknown Reservation';
           let subtitle = '';
