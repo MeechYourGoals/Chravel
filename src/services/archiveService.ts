@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 
 type TripType = 'consumer' | 'pro' | 'event';
 
