@@ -52,29 +52,17 @@ function decodeBase64Url(data: string): string {
   }
 }
 
-interface EmailAttachment {
-  mimeType: string;
-  data: string; // Base64 encoded
-}
-
-/** Decode the text body and extract small attachments from a Gmail message payload */
-function extractEmailContent(payload: Record<string, unknown>): {
-  bodyText: string;
-  attachments: EmailAttachment[];
-  attachmentRefs: { attachmentId: string, mimeType: string, filename: string }[];
-} {
-  const result = { bodyText: '', attachments: [] as EmailAttachment[], attachmentRefs: [] as any[] };
-
+/** Decode the text body from a Gmail message payload (handles multipart, base64url) */
+function extractEmailBody(payload: Record<string, unknown>): string {
   // Direct body (non-multipart)
   const body = payload.body as Record<string, unknown> | undefined;
   if (body && typeof body.data === 'string' && body.data.length > 0) {
-    result.bodyText = decodeBase64Url(body.data);
-    return result;
+    return decodeBase64Url(body.data);
   }
 
   // Multipart — recurse into parts, prefer text/plain, fall back to text/html
   const parts = payload.parts as Array<Record<string, unknown>> | undefined;
-  if (!parts || parts.length === 0) return result;
+  if (!parts || parts.length === 0) return '';
 
   let plainText = '';
   let htmlText = '';
@@ -82,44 +70,23 @@ function extractEmailContent(payload: Record<string, unknown>): {
   for (const part of parts) {
     const mimeType = part.mimeType as string;
     const partBody = part.body as Record<string, unknown> | undefined;
-    const filename = part.filename as string | undefined;
 
-    // Handle text parts
     if (mimeType === 'text/plain' && partBody && typeof partBody.data === 'string') {
       plainText += decodeBase64Url(partBody.data);
     } else if (mimeType === 'text/html' && partBody && typeof partBody.data === 'string') {
       htmlText += decodeBase64Url(partBody.data);
     } else if (mimeType?.startsWith('multipart/') && part.parts) {
       // Nested multipart (e.g., multipart/alternative inside multipart/mixed)
-      const nested = extractEmailContent(part);
-      if (nested.bodyText) plainText += nested.bodyText;
-      result.attachments.push(...nested.attachments);
-      result.attachmentRefs.push(...nested.attachmentRefs);
-    } else if (filename && partBody && typeof partBody.attachmentId === 'string') {
-      // It's a true attachment needing a secondary fetch
-      if (mimeType === 'application/pdf' || mimeType.includes('calendar')) {
-        result.attachmentRefs.push({
-           attachmentId: partBody.attachmentId,
-           mimeType: mimeType === 'application/pdf' ? 'application/pdf' : 'text/calendar',
-           filename: filename
-        });
-      }
-    } else if (filename && partBody && typeof partBody.data === 'string') {
-       // Inline attachment data (base64url)
-       if (mimeType === 'application/pdf' || mimeType.includes('calendar')) {
-        result.attachments.push({
-           mimeType: mimeType === 'application/pdf' ? 'application/pdf' : 'text/calendar',
-           data: partBody.data,
-        });
-      }
+      const nested = extractEmailBody(part);
+      if (nested) plainText += nested;
     }
   }
 
-  if (plainText) {
-    result.bodyText = plainText;
-  } else if (htmlText) {
-    // Strip HTML tags as a fallback — the LLM can handle messy text
-    result.bodyText = htmlText
+  if (plainText) return plainText;
+
+  // Strip HTML tags as a fallback — the LLM can handle messy text
+  if (htmlText) {
+    return htmlText
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<[^>]+>/g, ' ')
@@ -128,7 +95,7 @@ function extractEmailContent(payload: Record<string, unknown>): {
       .trim();
   }
 
-  return result;
+  return '';
 }
 
 interface TripContext {
@@ -145,12 +112,12 @@ interface TripContext {
 function buildTripScopedGmailQuery(trip: TripContext): string {
   const queryParts: string[] = [];
 
-  // Date window: expand by 30 days before and 14 days after trip dates for pre-trip confirmations
+  // Date window: expand by 14 days before and 7 days after trip dates for pre-trip confirmations
   if (trip.startDate) {
     const before = new Date(trip.startDate);
-    before.setDate(before.getDate() - 30); // Expanded buffer for early bookings
+    before.setDate(before.getDate() - 14);
     const afterDate = trip.endDate ? new Date(trip.endDate) : new Date(trip.startDate);
-    afterDate.setDate(afterDate.getDate() + 14);
+    afterDate.setDate(afterDate.getDate() + 7);
 
     const formatGmailDate = (d: Date) =>
       `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
@@ -158,13 +125,13 @@ function buildTripScopedGmailQuery(trip: TripContext): string {
     queryParts.push(`after:${formatGmailDate(before)}`);
     queryParts.push(`before:${formatGmailDate(afterDate)}`);
   } else {
-    // Fallback: if no trip dates, search last 6 months
-    queryParts.push('newer_than:6m');
+    // Fallback: if no trip dates, search last 3 months (narrower than original 6m)
+    queryParts.push('newer_than:3m');
   }
 
-  // Broad semantic keyword search, removing rigid domain constraints
+  // Travel-related content filter
   queryParts.push(
-    '(subject:(reservation OR itinerary OR confirmation OR booking OR ticket OR e-ticket OR "check-in" OR "boarding pass" OR receipt OR trip) OR label:travel OR "booking reference" OR "confirmation number" OR "reservation number")',
+    '(subject:(itinerary OR reservation OR booking OR confirmation OR ticket OR e-ticket OR "check-in" OR "boarding pass") OR from:(booking.com OR airbnb.com OR hotels.com OR expedia.com OR united.com OR delta.com OR aa.com OR southwest.com OR jetblue.com OR kayak.com OR tripadvisor.com OR vrbo.com OR ticketmaster.com OR eventbrite.com OR stubhub.com OR lyft.com OR uber.com OR amtrak.com OR hertz.com OR avis.com OR enterprise.com OR marriott.com OR hilton.com OR hyatt.com OR ihg.com) OR label:travel)',
   );
 
   return queryParts.join(' ');
@@ -318,40 +285,23 @@ serve(async req => {
       basecampAddress: trip.basecamp_address,
     };
 
-    // 5. Search Gmail with trip-scoped query (Paginated to limit)
+    // 5. Search Gmail with trip-scoped query
     const gmailQuery = buildTripScopedGmailQuery(tripContext);
-    let messages: any[] = [];
-    let nextPageToken: string | undefined = undefined;
-    let pageCount = 0;
-    const MAX_PAGES = 1; // Kept at 1 page (up to 100 messages) to prevent Edge Function timeout
+    const searchUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
+    searchUrl.searchParams.set('q', gmailQuery);
+    searchUrl.searchParams.set('maxResults', '30');
 
-    do {
-      const searchUrl = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
-      searchUrl.searchParams.set('q', gmailQuery);
-      searchUrl.searchParams.set('maxResults', '100'); // Maximize single page recall
-      if (nextPageToken) {
-        searchUrl.searchParams.set('pageToken', nextPageToken);
-      }
+    const searchResponse = await fetch(searchUrl.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-      const searchResponse = await fetch(searchUrl.toString(), {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+    if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
+      throw new Error(`Gmail API search error: ${errorText}`);
+    }
 
-      if (!searchResponse.ok) {
-        if (searchResponse.status === 401) {
-             return errorResponse('Gmail token expired. Please reconnect your account.', 401, 'Token expired during pagination');
-        }
-        const errorText = await searchResponse.text();
-        throw new Error(`Gmail API search error: ${errorText}`);
-      }
-
-      const searchData = await searchResponse.json();
-      if (searchData.messages) {
-        messages = messages.concat(searchData.messages);
-      }
-      nextPageToken = searchData.nextPageToken;
-      pageCount++;
-    } while (nextPageToken && pageCount < MAX_PAGES);
+    const searchData = await searchResponse.json();
+    const messages = searchData.messages || [];
 
     if (messages.length === 0) {
       return new Response(
@@ -381,248 +331,172 @@ serve(async req => {
     const stats = { scanned: messages.length, parsed: 0, skipped: 0, errors: 0 };
     const tripContextStr = buildTripContextForPrompt(tripContext);
 
-    // Concurrency helper function
-    async function processMessage(msg: any) {
-        try {
-          let msgData: any = null;
-          let retryCount = 0;
-          const MAX_RETRIES = 2;
+    // 7. Process each message
+    for (const msg of messages) {
+      try {
+        const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
+        const msgResponse = await fetch(msgUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
 
-          while (retryCount <= MAX_RETRIES) {
-              const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
-              const msgResponse = await fetch(msgUrl, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-              });
+        if (!msgResponse.ok) {
+          stats.errors++;
+          await logMessage(supabaseClient, job.id, msg.id, 'error', `HTTP ${msgResponse.status}`);
+          continue;
+        }
 
-              if (!msgResponse.ok) {
-                if (msgResponse.status === 429 && retryCount < MAX_RETRIES) {
-                    // Rate limit, backoff and retry
-                    await new Promise(res => setTimeout(res, 1000 * (retryCount + 1)));
-                    retryCount++;
-                    continue;
-                }
-                throw new Error(`HTTP ${msgResponse.status}`);
-              }
-              msgData = await msgResponse.json();
-              break;
-          }
+        const msgData = await msgResponse.json();
 
-          if (!msgData) {
-              stats.errors++;
-              await logMessage(supabaseClient, job.id, msg.id, 'error', 'Failed to fetch after retries');
-              return;
-          }
+        // Extract subject and sender from headers
+        const headers = msgData.payload?.headers || [];
+        const subjectHeader = headers.find(
+          (h: Record<string, string>) => h.name?.toLowerCase() === 'subject',
+        );
+        const subject = subjectHeader?.value || '';
+        const fromHeader = headers.find(
+          (h: Record<string, string>) => h.name?.toLowerCase() === 'from',
+        );
+        const from = fromHeader?.value || '';
 
-          // Extract subject and sender from headers
-          const headers = msgData.payload?.headers || [];
-          const subjectHeader = headers.find(
-            (h: Record<string, string>) => h.name?.toLowerCase() === 'subject',
-          );
-          const subject = subjectHeader?.value || '';
-          const fromHeader = headers.find(
-            (h: Record<string, string>) => h.name?.toLowerCase() === 'from',
-          );
-          const from = fromHeader?.value || '';
+        // Decode full email body (not just snippet)
+        const bodyText = extractEmailBody(msgData.payload || {});
+        const snippet = msgData.snippet || '';
+        const emailContent = bodyText.length > snippet.length ? bodyText : snippet;
 
-          // Decode full email body and extract attachments (not just snippet)
-          const contentData = extractEmailContent(msgData.payload || {});
-          const bodyText = contentData.bodyText;
-          const snippet = msgData.snippet || '';
-          const emailContent = bodyText.length > snippet.length ? bodyText : snippet;
+        // Skip very short emails that are unlikely to contain reservation data
+        if (emailContent.length < 50) {
+          stats.skipped++;
+          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'Email too short');
+          continue;
+        }
 
-          // Fetch up to 2 attachment references if they exist
-          for (const ref of contentData.attachmentRefs.slice(0, 2)) {
-              try {
-                 const attUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}/attachments/${ref.attachmentId}`;
-                 const attRes = await fetch(attUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-                 if (attRes.ok) {
-                     const attData = await attRes.json();
-                     if (attData.data) {
-                         contentData.attachments.push({
-                             mimeType: ref.mimeType,
-                             data: attData.data // base64url encoded
-                         });
-                     }
-                 }
-              } catch (err) {
-                 console.warn(`Failed to fetch attachment ${ref.attachmentId} for message ${msg.id}`, err);
-              }
-          }
+        // Truncate very long emails to stay within LLM context limits
+        const truncatedContent =
+          emailContent.length > 12000
+            ? emailContent.substring(0, 12000) + '\n[...truncated]'
+            : emailContent;
 
-          const hasAttachments = contentData.attachments.length > 0;
+        // 8. Send to LLM with trip context (geminiApiKey validated at function start)
+        const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n\nEmail Body:\n${truncatedContent}`;
 
-          // Skip very short emails that are unlikely to contain reservation data, unless there's an attachment
-          if (emailContent.length < 50 && !hasAttachments) {
-            stats.skipped++;
-            await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'Email too short and no inline attachments');
-            return;
-          }
+        const aiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: fullPrompt }] }],
+              generationConfig: { responseMimeType: 'application/json' },
+            }),
+          },
+        );
 
-          // Truncate very long emails to stay within LLM context limits
-          const truncatedContent =
-            emailContent.length > 12000
-              ? emailContent.substring(0, 12000) + '\n[...truncated]'
-              : emailContent;
-
-          // Check if any attachments are plain text/calendar format
-          // Gemini does not support text/calendar as inlineData
-          // so we decode it and append to the body
-          let calendarText = '';
-          contentData.attachments.forEach(att => {
-              if (att.mimeType.includes('calendar')) {
-                  calendarText += `\n\n--- CALENDAR ATTACHMENT ---\n${decodeBase64Url(att.data)}`;
-              }
-          });
-
-          // 8. Send to LLM with trip context (geminiApiKey validated at function start)
-          const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n\nEmail Body:\n${truncatedContent}${calendarText}`;
-
-          const parts: any[] = [{ text: fullPrompt }];
-
-          // Add valid attachments as inlineData so Gemini can parse PDFs
-          contentData.attachments.forEach(att => {
-              if (att.mimeType === 'application/pdf') {
-                 parts.push({
-                     inlineData: {
-                         mimeType: att.mimeType,
-                         data: att.data
-                     }
-                 });
-              }
-          });
-
-          const aiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts }],
-                generationConfig: { responseMimeType: 'application/json' },
-              }),
-            },
-          );
-
-          if (!aiResponse.ok) {
-            stats.errors++;
-            await logMessage(
-              supabaseClient,
-              job.id,
-              msg.id,
-              'error',
-              `AI API error: ${aiResponse.status}`,
-            );
-            return;
-          }
-
-          const aiData = await aiResponse.json();
-          const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (!resultText) {
-            stats.skipped++;
-            await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No AI output');
-            return;
-          }
-
-          let parsedJSON: Record<string, unknown>;
-          try {
-            parsedJSON = JSON.parse(resultText);
-          } catch {
-            stats.errors++;
-            await logMessage(supabaseClient, job.id, msg.id, 'error', 'Failed to parse AI JSON');
-            return;
-          }
-
-          const reservations = parsedJSON.reservations as Array<Record<string, unknown>> | undefined;
-          const relevanceScore = (parsedJSON.trip_relevance_score as number) ?? 0;
-          const relevanceReason = (parsedJSON.trip_relevance_reason as string) ?? '';
-
-          if (!reservations || reservations.length === 0) {
-            stats.skipped++;
-            await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No reservations found');
-            return;
-          }
-
-          for (const res of reservations) {
-            const dedupe_key = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}`;
-
-            // Check for existing duplicates
-            const { data: existing } = await supabaseClient
-              .from('smart_import_candidates')
-              .select('id')
-              .eq('trip_id', tripId)
-              .eq('dedupe_key', dedupe_key)
-              .limit(1);
-
-            if (existing && existing.length > 0) {
-              stats.skipped++;
-              continue;
-            }
-
-            // All items go to review (pending). Relevance score helps user prioritize.
-            const { data: candidate, error: candidateError } = await supabaseClient
-              .from('smart_import_candidates')
-              .insert({
-                job_id: job.id,
-                user_id: user.id,
-                trip_id: tripId,
-                reservation_data: {
-                  ...res,
-                  _relevance_score: relevanceScore,
-                  _relevance_reason: relevanceReason,
-                  _gmail_message_id: msg.id,
-                  _email_subject: subject,
-                },
-                status: 'pending',
-                dedupe_key,
-              })
-              .select()
-              .single();
-
-            if (!candidateError && candidate) {
-              allCandidates.push(candidate);
-              stats.parsed++;
-            }
-          }
-
-          const logKey = reservations.map(r => `${r.type}_${r.confirmation_code || ''}`).join(',');
-          await logMessage(supabaseClient, job.id, msg.id, 'parsed', logKey);
-        } catch (err) {
-          console.error(`Error processing message ${msg.id}:`, err);
+        if (!aiResponse.ok) {
           stats.errors++;
           await logMessage(
             supabaseClient,
             job.id,
             msg.id,
             'error',
-            err instanceof Error ? err.message : 'Unknown error',
+            `AI API error: ${aiResponse.status}`,
           );
+          continue;
         }
+
+        const aiData = await aiResponse.json();
+        const resultText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!resultText) {
+          stats.skipped++;
+          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No AI output');
+          continue;
+        }
+
+        let parsedJSON: Record<string, unknown>;
+        try {
+          parsedJSON = JSON.parse(resultText);
+        } catch {
+          stats.errors++;
+          await logMessage(supabaseClient, job.id, msg.id, 'error', 'Failed to parse AI JSON');
+          continue;
+        }
+
+        const reservations = parsedJSON.reservations as Array<Record<string, unknown>> | undefined;
+        const relevanceScore = (parsedJSON.trip_relevance_score as number) ?? 0;
+        const relevanceReason = (parsedJSON.trip_relevance_reason as string) ?? '';
+
+        if (!reservations || reservations.length === 0) {
+          stats.skipped++;
+          await logMessage(supabaseClient, job.id, msg.id, 'skipped', 'No reservations found');
+          continue;
+        }
+
+        for (const res of reservations) {
+          const dedupe_key = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}`;
+
+          // Check for existing duplicates
+          const { data: existing } = await supabaseClient
+            .from('smart_import_candidates')
+            .select('id')
+            .eq('trip_id', tripId)
+            .eq('dedupe_key', dedupe_key)
+            .limit(1);
+
+          if (existing && existing.length > 0) {
+            stats.skipped++;
+            continue;
+          }
+
+          // All items go to review (pending). Relevance score helps user prioritize.
+          const { data: candidate, error: candidateError } = await supabaseClient
+            .from('smart_import_candidates')
+            .insert({
+              job_id: job.id,
+              user_id: user.id,
+              trip_id: tripId,
+              reservation_data: {
+                ...res,
+                _relevance_score: relevanceScore,
+                _relevance_reason: relevanceReason,
+                _gmail_message_id: msg.id,
+                _email_subject: subject,
+              },
+              status: 'pending',
+              dedupe_key,
+            })
+            .select()
+            .single();
+
+          if (!candidateError && candidate) {
+            allCandidates.push(candidate);
+            stats.parsed++;
+          }
+        }
+
+        const logKey = reservations.map(r => `${r.type}_${r.confirmation_code || ''}`).join(',');
+        await logMessage(supabaseClient, job.id, msg.id, 'parsed', logKey);
+      } catch (err) {
+        console.error(`Error processing message ${msg.id}:`, err);
+        stats.errors++;
+        await logMessage(
+          supabaseClient,
+          job.id,
+          msg.id,
+          'error',
+          err instanceof Error ? err.message : 'Unknown error',
+        );
+      }
     }
 
-    // 7. Process messages concurrently in batches to avoid Edge Function timeout (150s limit)
-    const CONCURRENCY_LIMIT = 5; // Process 5 messages at a time safely
-    for (let i = 0; i < messages.length; i += CONCURRENCY_LIMIT) {
-       const batch = messages.slice(i, i + CONCURRENCY_LIMIT);
-       await Promise.all(batch.map(msg => processMessage(msg)));
-    }
-
-    // 9. Mark job complete and update account last_synced_at
-    const nowIso = new Date().toISOString();
+    // 9. Mark job complete
     await supabaseClient
       .from('gmail_import_jobs')
       .update({
         status: 'completed',
-        finished_at: nowIso,
+        finished_at: new Date().toISOString(),
         stats: stats,
       })
       .eq('id', job.id);
-
-    // Update last_synced_at using service role to bypass RLS limitations
-    await adminClient
-      .from('gmail_accounts')
-      .update({ last_synced_at: nowIso })
-      .eq('id', accountId);
 
     // Sort candidates by relevance score (highest first)
     allCandidates.sort((a, b) => {
