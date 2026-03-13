@@ -118,11 +118,13 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
 
       <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
         {candidates.map(candidate => {
-          const type = candidate.reservation_data?.type || 'unknown';
-          const config = typeConfig[type] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
+          const type = (candidate.reservation_data?.type as string) || 'unknown';
+          const config = typeConfig[type as string] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
 
-          const data = candidate.reservation_data;
+          // intentional: reservation_data is dynamic JSON from Gmail import — shape varies by type
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = (candidate.reservation_data || {}) as any;
 
           let title = 'Unknown Reservation';
           let subtitle = '';
@@ -207,9 +209,9 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
                   )}
-                  {data.confirmation_code && (
+                  {(data as Record<string, unknown>).confirmation_code && (
                     <p className="text-xs font-mono mt-1 text-muted-foreground/80">
-                      Ref: {data.confirmation_code}
+                      Ref: {String((data as Record<string, unknown>).confirmation_code)}
                     </p>
                   )}
                   {relevanceScore !== undefined && (
