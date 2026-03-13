@@ -118,8 +118,8 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
 
       <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
         {candidates.map(candidate => {
-          const type = candidate.reservation_data?.type || 'unknown';
-          const config = typeConfig[type] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
+          const type = (candidate.reservation_data?.type as string) || 'unknown';
+          const config = typeConfig[type as string] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
 
           const data = candidate.reservation_data;
