@@ -38,6 +38,7 @@ import { tripKeys } from '@/lib/queryKeys';
 import { useSmartImportDropzone } from '@/hooks/useSmartImportDropzone';
 import { SmartImportGmail } from '@/features/smart-import/components/SmartImportGmail';
 import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
+import type { SmartImportCandidate } from '@/features/smart-import/types';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CalendarImportModalProps {
