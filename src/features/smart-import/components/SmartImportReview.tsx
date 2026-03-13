@@ -2,12 +2,25 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plane, Hotel, Car, Ticket, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import {
+  Plane,
+  Hotel,
+  Car,
+  Ticket,
+  Utensils,
+  Train,
+  CalendarCheck,
+  Map,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import type { SmartImportCandidate } from '../types';
 
 export interface ReviewCandidatesProps {
-  candidates: any[];
-  onAccept: (acceptedCandidates: any[]) => void;
+  candidates: SmartImportCandidate[];
+  onAccept: (acceptedCandidates: SmartImportCandidate[]) => void;
   onCancel: () => void;
 }
 
@@ -16,6 +29,15 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string; label
   lodging: { icon: Hotel, color: 'text-indigo-500', label: 'Lodging' },
   ground_transport: { icon: Car, color: 'text-orange-500', label: 'Transport' },
   event_ticket: { icon: Ticket, color: 'text-pink-500', label: 'Event' },
+  sports_ticket: { icon: Ticket, color: 'text-red-500', label: 'Sports' },
+  restaurant_reservation: { icon: Utensils, color: 'text-emerald-500', label: 'Restaurant' },
+  rail_bus_ferry: { icon: Train, color: 'text-cyan-500', label: 'Rail/Bus/Ferry' },
+  conference_registration: {
+    icon: CalendarCheck,
+    color: 'text-violet-500',
+    label: 'Conference',
+  },
+  generic_itinerary_item: { icon: Map, color: 'text-slate-500', label: 'Itinerary' },
 };
 
 export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
@@ -117,6 +139,21 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           } else if (type === 'event_ticket') {
             title = data.event_name || 'Event Ticket';
             subtitle = data.venue_name || data.city || '';
+          } else if (type === 'sports_ticket') {
+            title = data.event_name || 'Sports Ticket';
+            subtitle = data.venue_name || data.city || '';
+          } else if (type === 'restaurant_reservation') {
+            title = data.restaurant_name || 'Restaurant Reservation';
+            subtitle = data.city || '';
+          } else if (type === 'rail_bus_ferry') {
+            title = data.provider_name || 'Rail/Bus/Ferry';
+            subtitle = `${data.departure_location || ''} to ${data.arrival_location || ''}`;
+          } else if (type === 'conference_registration') {
+            title = data.event_name || 'Conference Registration';
+            subtitle = data.venue_name || data.city || '';
+          } else if (type === 'generic_itinerary_item') {
+            title = data.item_label || 'Itinerary Item';
+            subtitle = data.location || data.provider_name || '';
           }
 
           const isSelected = selectedIds.has(candidate.id);

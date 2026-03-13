@@ -487,6 +487,31 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                       startTime = data.start_time_local as string | null;
                       endTime = data.end_time_local as string | null;
                       location = (data.venue_name as string) || (data.city as string) || null;
+                    } else if (type === 'sports_ticket') {
+                      title = (data.event_name as string) || 'Sports Event';
+                      startTime = data.start_time_local as string | null;
+                      endTime = data.end_time_local as string | null;
+                      location = (data.venue_name as string) || (data.city as string) || null;
+                    } else if (type === 'restaurant_reservation') {
+                      title = (data.restaurant_name as string) || 'Restaurant Reservation';
+                      startTime = data.reservation_time_local as string | null;
+                      endTime = null;
+                      location = (data.city as string) || null;
+                    } else if (type === 'rail_bus_ferry') {
+                      title = (data.provider_name as string) || 'Rail/Bus/Ferry';
+                      startTime = data.departure_time_local as string | null;
+                      endTime = data.arrival_time_local as string | null;
+                      location = `${data.departure_location || ''} → ${data.arrival_location || ''}`;
+                    } else if (type === 'conference_registration') {
+                      title = (data.event_name as string) || 'Conference Registration';
+                      startTime = data.start_time_local as string | null;
+                      endTime = data.end_time_local as string | null;
+                      location = (data.venue_name as string) || (data.city as string) || null;
+                    } else if (type === 'generic_itinerary_item') {
+                      title = (data.item_label as string) || 'Itinerary Item';
+                      startTime = data.start_time_local as string | null;
+                      endTime = data.end_time_local as string | null;
+                      location = (data.location as string) || null;
                     }
 
                     if (!startTime) return null;
