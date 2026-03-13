@@ -84,7 +84,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   const [pasteText, setPasteText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [parsingSource, setParsingSource] = useState<'file' | 'text' | 'url'>('file');
-  const [gmailCandidates, setGmailCandidates] = useState<Record<string, unknown>[]>([]);
+  const [gmailCandidates, setGmailCandidates] = useState<SmartImportCandidate[]>([]);
   const queryClient = useQueryClient();
 
   const processParseResult = useCallback(
