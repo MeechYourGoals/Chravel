@@ -652,6 +652,33 @@
     pointer-events: none;
   }
 
+  /* Muted gold ring — dimmed version for inactive/empty states */
+  .cta-gold-ring-muted {
+    position: relative;
+    border: 1.5px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 4px rgba(196, 151, 70, 0.06);
+  }
+  .cta-gold-ring-muted::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: linear-gradient(135deg, #533517 0%, #c49746 40%, #feeaa5 70%, #c49746 100%);
+    opacity: 0.3;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
   /* Gold gradient spinner — brighter metallic gold */
   .gold-gradient-spinner {
     border: 2.5px solid transparent;

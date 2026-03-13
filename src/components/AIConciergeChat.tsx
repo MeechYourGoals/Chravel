@@ -1855,15 +1855,15 @@ export const AIConciergeChat = ({
                   onClick={handleLiveToggle}
                   className={`relative h-7 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
                     isLiveSessionActive
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 border-transparent'
-                      : 'bg-gray-800/80 text-white/50 hover:text-white/80 hover:bg-gray-700/80'
+                      ? 'bg-gradient-to-br from-[#533517] to-[#c49746] text-white shadow-md shadow-[#c49746]/25 border-transparent'
+                      : 'bg-gray-800/80 text-white hover:bg-gray-700/80'
                   }`}
                   aria-label={isLiveSessionActive ? 'Stop live voice' : 'Start live voice'}
                 >
                   {isLiveSessionActive && (
                     <span
                       aria-hidden
-                      className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-emerald-400/30 to-teal-400/20 blur-sm"
+                      className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#c49746]/30 to-[#feeaa5]/20 blur-sm"
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-1">
@@ -1951,7 +1951,7 @@ export const AIConciergeChat = ({
                   &bull; &ldquo;Create a poll: Saturday night plans with 4 options near us&rdquo;
                 </p>
               </div>
-              <div className="mt-2 text-xs text-green-400 bg-green-500/10 rounded px-2.5 py-1 inline-block">
+              <div className="mt-2 text-xs text-amber-400 bg-amber-500/10 rounded px-2.5 py-1 inline-block">
                 Chravel Agent can search, display info cards, and add things directly your trip
               </div>
             </div>
