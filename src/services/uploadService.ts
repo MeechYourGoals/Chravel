@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import imageCompression from 'browser-image-compression';
 import { getUploadContentType } from '@/utils/mime';
 
 // Generate UUID using crypto API
@@ -15,16 +14,50 @@ export async function uploadToStorage(
 ) {
   let fileToUpload: File | Blob = file;
 
-  // Compress images before upload
+  // Compress images before upload using Canvas to avoid WebWorker issues and ensure fast execution
   if (subdir === 'images' && file.type.startsWith('image/') && file.type !== 'image/gif') {
     try {
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-        fileType: file.type,
-      };
-      fileToUpload = await imageCompression(file, options);
+      fileToUpload = await new Promise<File>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            const maxWidthOrHeight = 1920;
+
+            if (width > maxWidthOrHeight || height > maxWidthOrHeight) {
+              if (width > height) {
+                height = Math.round((height *= maxWidthOrHeight / width));
+                width = maxWidthOrHeight;
+              } else {
+                width = Math.round((width *= maxWidthOrHeight / height));
+                height = maxWidthOrHeight;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return reject(new Error('Canvas ctx null'));
+
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) return reject(new Error('Canvas toBlob null'));
+                resolve(new File([blob], file.name, { type: file.type === 'image/png' ? 'image/png' : 'image/jpeg' }));
+              },
+              file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+              0.8 // 80% quality
+            );
+          };
+          img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
+      });
       console.log('Image compressed:', {
         original: (file.size / 1024 / 1024).toFixed(2) + 'MB',
         compressed: (fileToUpload.size / 1024 / 1024).toFixed(2) + 'MB',
