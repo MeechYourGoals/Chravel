@@ -1,32 +1,64 @@
 
 
-## Problem
+# Calendar Timeout: Root Cause Analysis & Fix Plan
 
-The Team tab's admin action buttons (Create Role, Manage Roles, Assign Role, Requests) overlap because "Assign Role" and "Requests" are both mapped to the same grid column (`PRO_PARITY_COL_START.places`). The 9-column parity grid is also too tight for these buttons, causing text to bleed outside pills.
+## The Problem
+The Calendar tab shows "Couldn't load calendar — Failed to load calendar events: Timeout" after 10 seconds. This is one of the most critical features.
 
-## Changes
+## Root Cause Analysis
 
-### `src/components/pro/team/RolesView.tsx` (lines 202-262)
+The timeout chain in `getTripEvents()` (calendarService.ts:340-421) executes **4 sequential async operations** before the actual Supabase query even runs:
 
-Replace the `PRO_PARITY_ROW_CLASS` (9-col grid) with a simple **4-column grid** layout with adequate gap for these 4 action buttons:
-
-**Desktop container:**
-```tsx
-// Before
-className={`${isMobile ? 'flex flex-col gap-2' : PRO_PARITY_ROW_CLASS} mb-3`}
-
-// After
-className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3'} mb-3`}
+```text
+1. demoModeService.isDemoModeEnabled()     — async localStorage + secureStorage read
+2. offlineSyncService.getCachedEntities()  — IndexedDB open + full scan + filter
+3. supabase.auth.getUser()                 — network round-trip to Supabase auth
+4. supabase.from('trip_events').select()   — actual data query
 ```
 
-**Each button:** Remove the `PRO_PARITY_COL_START.*` and `PARITY_ACTION_BUTTON_SIZE_CLASS` classes. Use consistent sizing:
-```tsx
-className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 
-  hover:border-amber-400/50 text-white border-white/20 transition-colors 
-  min-h-[42px] justify-center text-xs lg:text-sm font-medium px-3 whitespace-nowrap"
-```
+All 4 are sequential, and all 4 must complete within the **10-second `withTimeout`** wrapper in `useCalendarEvents.ts:47-51`.
 
-**Mobile:** Switch from single-column flex to a **2x2 grid** (`grid grid-cols-2 gap-2`) so all 4 buttons are visible without excessive scrolling, with `min-h-[44px]` for tap targets.
+### Why it times out:
+- **`getUser()` is the bottleneck.** On cold start or flaky connections, `supabase.auth.getUser()` makes a network call to validate the JWT. If Supabase auth is slow or the device has marginal connectivity, this alone can take 5-8 seconds.
+- **IndexedDB `getCachedEntities`** does a full table scan with `getAllFromIndex` then filters in JS — adds 100-500ms on mobile.
+- **`isDemoModeEnabled`** cascades through localStorage → secureStorageService (another IndexedDB read) — adds 50-200ms.
+- **Only 1 retry** (`retry: 1` in useCalendarEvents.ts:97), so after the first timeout + 1 retry = 2 failures = permanent error state.
+- **The catch block returns `[]` (empty array)** on failure (line 419), but the `withTimeout` wrapper **throws** before that catch runs, so the graceful fallback never executes.
 
-**Button labels stay the same:** Create Role, Manage Roles, Assign Role, Requests — all 4 fit cleanly in equal-width columns with `whitespace-nowrap` and proper padding.
+### Critical design flaw:
+The `withTimeout` wraps the entire `calendarService.getTripEvents()` call, but `getTripEvents` has its own internal try/catch that returns `[]` on failure with cached data fallback. **The timeout kills the promise before the fallback logic can execute.**
+
+## Fix Plan
+
+### 1. Decouple auth from the query path (calendarService.ts)
+Move `getUser()` out of the hot path. Use `supabase.auth.getSession()` (synchronous/cached) instead of `getUser()` (network call). The session JWT is already validated client-side and is sufficient for RLS queries.
+
+### 2. Parallelize pre-query checks (calendarService.ts)
+Run `isDemoModeEnabled()` and `getCachedEntities()` in parallel with `Promise.all` instead of sequentially.
+
+### 3. Increase timeout + add progressive strategy (useCalendarEvents.ts)
+- Increase timeout from 10s → 15s
+- Add `retry: 2` with exponential backoff (`retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000)`)
+- Show cached/stale data immediately while refetching in background
+
+### 4. Fix the fallback short-circuit (useCalendarEvents.ts + calendarService.ts)
+The `withTimeout` wrapper prevents the internal catch block from returning cached data. Fix by:
+- Moving the cache read **before** the timeout wrapper
+- If cache exists, return it immediately and refetch in background
+- Only apply timeout to the network fetch, not the full function
+
+### 5. Skip IndexedDB cache read when online (calendarService.ts)
+Follow the pattern already used in `useTripPolls.ts:162-163`: only read from IndexedDB when `navigator.onLine === false`. This eliminates 100-500ms of unnecessary I/O on the happy path.
+
+## Files to Edit
+
+| File | Change |
+|------|--------|
+| `src/services/calendarService.ts` | Replace `getUser()` with `getSession()`, parallelize checks, skip cache when online |
+| `src/features/calendar/hooks/useCalendarEvents.ts` | Increase timeout to 15s, retry 2x with backoff, serve stale data during refetch |
+
+## Expected Impact
+- **Happy path**: ~200ms faster (skip IndexedDB + use cached session)
+- **Degraded network**: Shows cached data immediately instead of timeout error
+- **Retry resilience**: 3 total attempts (initial + 2 retries) with backoff instead of 2
 
