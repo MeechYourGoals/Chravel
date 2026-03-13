@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
@@ -79,6 +80,7 @@ const JoinTrip = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [inviteData, setInviteData] = useState<InvitePreviewData | null>(null);
@@ -357,6 +359,8 @@ const JoinTrip = () => {
         setJoinSuccessType('request');
         setJoinSuccess(true);
         setJoining(false);
+        // Invalidate trips cache so dashboard shows the new pending request
+        queryClient.invalidateQueries({ queryKey: ['trips'] });
         // Redirect to home page after 2 seconds to show pending trip card
         setTimeout(() => {
           navigate('/', { replace: true });
