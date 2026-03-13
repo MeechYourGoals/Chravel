@@ -342,8 +342,16 @@ export const calendarService = {
     let cachedEvents: Array<{ data: unknown }> = [];
 
     try {
-      // Check if in demo mode
-      const isDemoMode = await demoModeService.isDemoModeEnabled();
+      // ⚡ Parallelize demo-mode check + offline cache read (previously sequential)
+      // Skip IndexedDB cache read when online to save 100-500ms of I/O
+      const [isDemoMode, offlineCached] = await Promise.all([
+        demoModeService.isDemoModeEnabled(),
+        navigator.onLine
+          ? Promise.resolve([])
+          : offlineSyncService.getCachedEntities(tripId, 'calendar_event'),
+      ]);
+
+      cachedEvents = offlineCached;
 
       if (isDemoMode) {
         const storedEvents = await calendarStorageService.getEvents(tripId);
@@ -357,15 +365,14 @@ export const calendarService = {
         return storedEvents;
       }
 
-      // Try to load from cache first for instant display
-      cachedEvents = await offlineSyncService.getCachedEntities(tripId, 'calendar_event');
-
-      // Use Supabase with timezone-aware function for authenticated users
+      // ⚡ Use getSession() (cached/synchronous) instead of getUser() (network call)
+      // getUser() makes a network round-trip to validate the JWT and can take 5-8s
+      // on cold start or flaky connections. getSession() returns the cached session.
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        // Fallback to direct query if no user
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
+        // Fallback to direct query if no session
         const { data, error } = await supabase
           .from('trip_events')
           .select('*')
@@ -391,16 +398,20 @@ export const calendarService = {
         return [];
       }
 
-      // Cache events for offline access
-      for (const event of events) {
-        await offlineSyncService.cacheEntity(
-          'calendar_event',
-          event.id,
-          event.trip_id,
-          event,
-          event.version || 1,
-        );
-      }
+      // Cache events for offline access (fire-and-forget to avoid blocking return)
+      Promise.all(
+        events.map(event =>
+          offlineSyncService.cacheEntity(
+            'calendar_event',
+            event.id,
+            event.trip_id,
+            event,
+            event.version || 1,
+          ),
+        ),
+      ).catch(() => {
+        // Swallow cache write errors — non-critical
+      });
 
       return events;
     } catch (error) {
