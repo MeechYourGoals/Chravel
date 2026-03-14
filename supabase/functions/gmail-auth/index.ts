@@ -63,7 +63,7 @@ async function verifyState(payload: string, signature: string): Promise<boolean>
   return await crypto.subtle.verify(
     'HMAC',
     key,
-    base64UrlToBytes(signature),
+    base64UrlToBytes(signature).buffer as ArrayBuffer,
     new TextEncoder().encode(payload),
   );
 }

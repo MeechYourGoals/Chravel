@@ -306,7 +306,7 @@ function normalizeParsedResult(raw: unknown): ParsedResult {
 }
 
 async function logMessage(
-  client: ReturnType<typeof createClient>,
+  client: any, // intentional: bypass deep Supabase generic inference
   jobId: string,
   messageId: string,
   outcome: 'parsed' | 'skipped' | 'error',
