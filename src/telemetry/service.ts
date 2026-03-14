@@ -18,6 +18,7 @@ import type {
   TelemetryEventMap,
 } from './types';
 import { ConsoleProvider } from './providers/console';
+import { PostHogProvider } from './providers/posthog';
 import { Capacitor } from '@capacitor/core';
 
 // ============================================================================
@@ -87,8 +88,12 @@ class TelemetryService {
       this.providers.push(consoleProvider);
     }
 
-    // PostHog and Sentry providers removed — no active integrations.
-    // Re-add dynamic imports here when provider packages are installed.
+    // PostHog — enabled when VITE_POSTHOG_API_KEY is set
+    if (this.config.posthog?.apiKey) {
+      const posthogProvider = new PostHogProvider();
+      await posthogProvider.init(this.config);
+      this.providers.push(posthogProvider);
+    }
 
     this.initialized = true;
 
