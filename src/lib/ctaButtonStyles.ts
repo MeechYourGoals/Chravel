@@ -22,5 +22,11 @@ export const CTA_DISABLED = 'disabled:pointer-events-none disabled:cursor-not-al
 /** Fully composed CTA button (round, 44px, centered icon) */
 export const CTA_BUTTON = `size-11 min-w-[44px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
 
+/** Smaller CTA button for secondary actions (round, 36px, centered icon) */
+export const CTA_BUTTON_SM = `size-9 min-w-[36px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
+
 /** CTA icon size — consistent across all primary buttons */
 export const CTA_ICON_SIZE = 18;
+
+/** Smaller icon size for secondary CTA buttons */
+export const CTA_ICON_SIZE_SM = 16;

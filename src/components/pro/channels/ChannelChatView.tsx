@@ -6,6 +6,8 @@ import { getDemoChannelsForTrip } from '../../../data/demoChannelData';
 import { VirtualizedMessageContainer } from '@/features/chat/components/VirtualizedMessageContainer';
 import { MessageItem } from '@/features/chat/components/MessageItem';
 import { ChatInput } from '@/features/chat/components/ChatInput';
+import { InlineReplyComponent } from '@/features/chat/components/InlineReplyComponent';
+import { useLinkPreviews } from '@/features/chat/hooks/useLinkPreviews';
 import { useAuth } from '@/hooks/useAuth';
 import { getMockAvatar } from '@/utils/mockAvatars';
 import { useRoleAssignments } from '@/hooks/useRoleAssignments';
@@ -64,6 +66,11 @@ export const ChannelChatView = ({
   >({});
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{
+    id: string;
+    text: string;
+    senderName: string;
+  } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { canPerformAction } = useRolePermissions(channel.tripId);
@@ -112,22 +119,57 @@ export const ChannelChatView = ({
     }
   };
 
+  // Handle opening a reply
+  const handleOpenReply = useCallback(
+    (messageId: string) => {
+      const msg = messages.find(m => m.id === messageId);
+      if (!msg) return;
+      setReplyingTo({
+        id: msg.id,
+        text: msg.content,
+        senderName: msg.senderName,
+      });
+    },
+    [messages],
+  );
+
+  const clearReply = useCallback(() => {
+    setReplyingTo(null);
+  }, []);
+
   // Transform ChannelMessage to ChatMessage format for MessageItem
   const formattedMessages = useMemo(() => {
-    return messages.map(msg => ({
-      id: msg.id,
-      text: msg.content,
-      sender: {
-        id: msg.senderId,
-        name: msg.senderName,
-        avatar: getMockAvatar(msg.senderName),
-      },
-      createdAt: msg.createdAt,
-      isBroadcast: msg.metadata?.isBroadcast || msg.messageType === 'system',
-      isPayment: false,
-      tags: [] as string[],
-    }));
+    return messages.map(msg => {
+      const metadata = msg.metadata as Record<string, unknown> | null;
+      const replyTo = metadata?.replyTo as { id: string; text: string; sender: string } | undefined;
+
+      return {
+        id: msg.id,
+        text: msg.content,
+        sender: {
+          id: msg.senderId,
+          name: msg.senderName,
+          avatar: getMockAvatar(msg.senderName),
+        },
+        createdAt: msg.createdAt,
+        isBroadcast: metadata?.isBroadcast || msg.messageType === 'system',
+        isPayment: false,
+        tags: [] as string[],
+        replyTo: replyTo || undefined,
+      };
+    });
   }, [messages]);
+
+  // Client-side link preview enrichment for channel messages
+  const linkPreviews = useLinkPreviews(formattedMessages);
+
+  // Merge link previews into formatted messages
+  const messagesWithPreviews = useMemo(() => {
+    return formattedMessages.map(msg => ({
+      ...msg,
+      linkPreview: linkPreviews[msg.id] || undefined,
+    }));
+  }, [formattedMessages, linkPreviews]);
 
   useEffect(() => {
     loadMessages();
@@ -210,6 +252,16 @@ export const ChannelChatView = ({
     ];
     if (DEMO_TRIP_IDS.includes(channel.tripId)) {
       // For demo channels, just add the message locally
+      const demoMetadata: Record<string, unknown> = {};
+      if (isBroadcast) demoMetadata.isBroadcast = true;
+      if (replyingTo) {
+        demoMetadata.replyTo = {
+          id: replyingTo.id,
+          text: replyingTo.text,
+          sender: replyingTo.senderName,
+        };
+      }
+
       const newMsg: ChannelMessage = {
         id: `demo-msg-${Date.now()}`,
         channelId: channel.id,
@@ -217,26 +269,35 @@ export const ChannelChatView = ({
         senderName: user?.displayName || 'You',
         content: inputMessage.trim(),
         messageType: isBroadcast ? 'system' : 'text',
-        metadata: isBroadcast
-          ? {
-              isBroadcast: true,
-            }
-          : undefined,
+        metadata: Object.keys(demoMetadata).length > 0 ? demoMetadata : undefined,
         createdAt: new Date().toISOString(),
       };
       setMessages(prev => [...prev, newMsg]);
       setInputMessage('');
+      clearReply();
       setSending(false);
       return;
     }
 
     try {
+      const replyMetadata = replyingTo
+        ? {
+            replyTo: {
+              id: replyingTo.id,
+              text: replyingTo.text,
+              sender: replyingTo.senderName,
+            },
+          }
+        : undefined;
+
       await channelService.sendMessage({
         channelId: channel.id,
         content: inputMessage.trim(),
         messageType: isBroadcast ? 'broadcast' : 'regular',
+        metadata: replyMetadata,
       });
       setInputMessage('');
+      clearReply();
     } catch (error) {
       console.error('[ChannelChatView] Send failed:', error);
       const mapped = mapChannelSendError(error);
@@ -490,12 +551,13 @@ export const ChannelChatView = ({
           </div>
         ) : (
           <VirtualizedMessageContainer
-            messages={formattedMessages as any}
+            messages={messagesWithPreviews as any}
             renderMessage={(message: any) => (
               <MessageItem
                 message={message}
                 reactions={reactions[message.id]}
                 onReaction={handleReaction}
+                onReply={handleOpenReply}
               />
             )}
             onLoadMore={() => {}} // Add pagination later
@@ -509,6 +571,16 @@ export const ChannelChatView = ({
 
       {/* Reuse ChatInput with permission check */}
       <div className="bg-black/30 p-3 pb-[env(safe-area-inset-bottom)] md:pb-3">
+        {replyingTo && (
+          <InlineReplyComponent
+            replyTo={{
+              id: replyingTo.id,
+              text: replyingTo.text,
+              senderName: replyingTo.senderName,
+            }}
+            onCancel={clearReply}
+          />
+        )}
         {canPerformAction('channels', 'can_post') ? (
           <ChatInput
             inputMessage={inputMessage}

@@ -29,7 +29,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fetchOGMetadata } from '@/services/ogMetadataService';
 import { cn } from '@/lib/utils';
-import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
+import { CTA_BUTTON, CTA_BUTTON_SM, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import * as haptics from '@/native/haptics';
 import { MentionPicker, TripMember } from './MentionPicker';
 
@@ -478,11 +478,8 @@ export const ChatInput = ({
             }}
           >
             <PopoverTrigger asChild>
-              <button
-                className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full bg-neutral-900 hover:bg-neutral-800 transition-all"
-                aria-label="Insert emoji"
-              >
-                <Smile className="w-5 h-5 text-neutral-300" />
+              <button className={cn('hidden sm:flex', CTA_BUTTON_SM)} aria-label="Insert emoji">
+                <Smile size={18} className="text-white" />
               </button>
             </PopoverTrigger>
             <PopoverContent
@@ -509,11 +506,8 @@ export const ChatInput = ({
           {/* + Button with Dropdown Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-neutral-900 hover:bg-neutral-800 transition-all"
-                aria-label="Message options"
-              >
-                <Plus className="w-5 h-5 text-neutral-300" />
+              <button className={CTA_BUTTON_SM} aria-label="Message options">
+                <Plus size={18} className="text-white" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
