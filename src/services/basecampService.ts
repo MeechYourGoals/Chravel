@@ -19,6 +19,7 @@ export interface PersonalBasecamp {
   address?: string;
   latitude?: number;
   longitude?: number;
+  type?: 'hotel' | 'short-term' | 'other';
   confirmation_number?: string;
   created_at: string;
   updated_at: string;
@@ -657,6 +658,7 @@ class BasecampService {
       address: string;
       latitude?: number;
       longitude?: number;
+      type?: 'hotel' | 'short-term' | 'other';
       confirmation_number?: string;
     },
     options?: { skipHistory?: boolean },
@@ -713,6 +715,7 @@ class BasecampService {
             address: payload.address,
             latitude: finalLatitude,
             longitude: finalLongitude,
+            type: payload.type || 'hotel',
             confirmation_number: payload.confirmation_number || null,
           },
           {
@@ -948,7 +951,7 @@ class BasecampService {
     return {
       address: basecamp.address || '',
       name: basecamp.name,
-      type: 'other',
+      type: basecamp.type || 'hotel',
       coordinates:
         basecamp.latitude && basecamp.longitude
           ? { lat: basecamp.latitude, lng: basecamp.longitude }

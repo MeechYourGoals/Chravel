@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, User, Lock, Plus } from 'lucide-react';
+import { MapPin, User, Lock, Plus, Building2, Home, HelpCircle } from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
 import { BasecampSelector } from '../BasecampSelector';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
@@ -251,6 +251,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           address: location.address,
           latitude: undefined,
           longitude: undefined,
+          type: location.type,
           confirmation_number: location.confirmationNumber,
         });
       }
@@ -302,7 +303,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const toBasecampLocation = (pb: PersonalBasecamp): BasecampLocation => ({
     address: pb.address || '',
     name: pb.name,
-    type: 'other',
+    type: pb.type || 'hotel',
     coordinates: pb.latitude && pb.longitude ? { lat: pb.latitude, lng: pb.longitude } : undefined,
     confirmationNumber: pb.confirmation_number || undefined,
   });
@@ -408,6 +409,21 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                       <p className="text-gray-300 text-base md:text-lg break-words">
                         {personalBasecamp.address}
                       </p>
+                      <span className="inline-flex items-center gap-1 mt-1 text-xs text-gray-400">
+                        {personalBasecamp.type === 'hotel' ? (
+                          <>
+                            <Building2 size={10} /> Hotel
+                          </>
+                        ) : personalBasecamp.type === 'short-term' ? (
+                          <>
+                            <Home size={10} /> Short-term Rental
+                          </>
+                        ) : (
+                          <>
+                            <HelpCircle size={10} /> Other
+                          </>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>

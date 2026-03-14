@@ -72,6 +72,7 @@ export const BasecampSelector = ({
         type,
         // No coordinates - basecamp is just a text reference now
         coordinates: undefined,
+        confirmationNumber: confirmationNumber.trim() || undefined,
       };
 
       // Wrap the save operation in a timeout internally using Promise.race,
