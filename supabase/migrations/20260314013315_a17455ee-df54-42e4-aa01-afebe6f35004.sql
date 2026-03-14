@@ -1,0 +1,1 @@
+ALTER TABLE public.trip_join_requests REPLICA IDENTITY FULL;
