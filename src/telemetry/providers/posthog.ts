@@ -79,7 +79,6 @@ export class PostHogProvider implements TelemetryProvider {
 
   async shutdown(): Promise<void> {
     if (!this.ready) return;
-    posthog.shutdown();
     this.ready = false;
   }
 }
