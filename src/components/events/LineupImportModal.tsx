@@ -340,11 +340,14 @@ export const LineupImportModal: React.FC<LineupImportModalProps> = ({
                 candidates={gmailCandidates}
                 onAccept={async accepted => {
                   // For Lineup, we are extracting names from reservations (typically attendees or artists from event tickets)
-                   const namesToImport = accepted
+                  const namesToImport = accepted
                     .flatMap(c => {
                       const data = c.reservation_data as Record<string, unknown>;
                       if (data.type === 'event_ticket' || data.type === 'sports_ticket') {
-                        return [...((data.attendee_names as string[]) || []), data.event_name as string];
+                        return [
+                          ...((data.attendee_names as string[]) || []),
+                          data.event_name as string,
+                        ];
                       } else if (data.passenger_names) {
                         return data.passenger_names as string[];
                       } else if (data.guest_names) {

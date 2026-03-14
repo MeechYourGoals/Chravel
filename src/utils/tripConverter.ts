@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck — Trip type conversions use loose casts between mock/supabase shapes
 import { Trip as MockTrip } from '@/data/tripsData';
 import { Trip as SupabaseTrip } from '@/services/tripService';

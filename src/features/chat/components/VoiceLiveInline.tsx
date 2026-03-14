@@ -106,11 +106,11 @@ export function VoiceLiveInline({
   const barMode = getBarMode(liveState);
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 min-h-0 px-4 py-6 select-none">
+    <div className="flex flex-col items-center justify-center flex-1 min-h-0 px-4 pb-4 pt-2 select-none">
       {/* AI transcript — above bar, scrollable, bright white */}
       <div
         ref={assistantScrollRef}
-        className="flex-1 w-full max-w-lg overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
+        className="flex-1 w-full max-w-[90%] sm:max-w-lg overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
       >
         {assistantTranscript ? (
           <p className="text-white/90 text-base leading-relaxed text-center whitespace-pre-wrap">
@@ -126,19 +126,19 @@ export function VoiceLiveInline({
       </div>
 
       {/* Gold gradient bar — centerpiece */}
-      <div className="w-full max-w-lg flex-shrink-0">
+      <div className="w-full max-w-[90%] sm:max-w-lg flex-shrink-0">
         <div
           ref={barRef}
           className={`
             relative w-full h-2 rounded-full overflow-hidden
-            ${barMode === 'connecting' || barMode === 'thinking' ? 'animate-[bar-shimmer_8s_linear_infinite]' : 'animate-[bar-glow-pulse_6s_ease-in-out_infinite]'}
+            ${barMode === 'connecting' || barMode === 'thinking' ? 'animate-[bar-shimmer_12s_linear_infinite]' : 'animate-[bar-glow-pulse_8s_ease-in-out_infinite]'}
           `}
           style={{
             ['--bar-glow' as string]: '0',
-            background: 'linear-gradient(90deg, #92400e, #d97706, #fbbf24, #d97706, #92400e)',
+            background: 'linear-gradient(90deg, #533517, #c49746, #feeaa5, #c49746, #533517)',
             backgroundSize: '200% 100%',
-            boxShadow: `0 0 calc(8px + 20px * var(--bar-glow)) rgba(251, 191, 36, calc(0.3 + var(--bar-glow) * 0.5)),
-                         0 0 calc(2px + 8px * var(--bar-glow)) rgba(245, 158, 11, calc(0.2 + var(--bar-glow) * 0.4))`,
+            boxShadow: `0 0 calc(8px + 20px * var(--bar-glow)) rgba(196, 151, 70, calc(0.25 + var(--bar-glow) * 0.4)),
+                         0 0 calc(2px + 8px * var(--bar-glow)) rgba(254, 234, 165, calc(0.15 + var(--bar-glow) * 0.3))`,
           }}
         />
 

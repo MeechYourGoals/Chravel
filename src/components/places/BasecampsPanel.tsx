@@ -429,7 +429,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 </p>
                 <button
                   onClick={() => setShowPersonalSelector(true)}
-                  className="w-full bg-white/10 hover:bg-white/15 text-white py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs border border-white/10"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
                 >
                   <Plus size={12} />
                   Set Your Location

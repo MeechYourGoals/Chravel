@@ -27,6 +27,10 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
   useEffect(() => {
     if (isDemoMode || !userId) return;
 
+    const invalidateTrips = () => {
+      queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+    };
+
     const channel = supabase
       .channel(`user_trips:${userId}`)
       .on(
@@ -37,13 +41,7 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
           table: 'trip_join_requests',
           filter: `user_id=eq.${userId}`,
         },
-        payload => {
-          const newStatus = (payload.new as Record<string, unknown>).status;
-          const oldStatus = (payload.old as Record<string, unknown>)?.status;
-          if (oldStatus === 'pending' && (newStatus === 'approved' || newStatus === 'rejected')) {
-            queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
-          }
-        },
+        invalidateTrips,
       )
       .on(
         'postgres_changes',
@@ -51,12 +49,14 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
           event: '*',
           schema: 'public',
           table: 'trip_members',
+          filter: `user_id=eq.${userId}`,
         },
         payload => {
           if (shouldInvalidateTripsForMemberChange(payload as MemberChangePayload, userId)) {
             queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
           }
         },
+        invalidateTrips,
       )
       .subscribe();
 

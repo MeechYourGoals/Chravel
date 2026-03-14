@@ -195,10 +195,10 @@ function buildTripScopedGmailQueries(trip: TripContext): string[] {
     .join(' OR ');
 
   const lexical =
-    '(subject:(itinerary OR reservation OR booking OR confirmation OR ticket OR e-ticket OR "check-in" OR "boarding" OR "train" OR "ferry" OR "restaurant" OR "openTable" OR "resy") OR "record locator" OR "confirmation number" OR "trip is booked")';
+    '(subject:(itinerary OR reservation OR booking OR confirmation OR ticket OR e-ticket OR "check-in" OR "boarding" OR "train" OR "ferry" OR "restaurant" OR "openTable" OR "resy" OR "charter confirmation" OR "flight manifest" OR "passenger manifest" OR "tail number" OR "departure briefing" OR "group charter") OR "record locator" OR "confirmation number" OR "trip is booked")';
 
   const vendor =
-    '(from:(booking.com OR expedia.com OR hotels.com OR priceline.com OR airbnb.com OR vrbo.com OR marriott.com OR hilton.com OR hyatt.com OR united.com OR delta.com OR aa.com OR southwest.com OR jetblue.com OR alaskaair.com OR ticketmaster.com OR axs.com OR seatgeek.com OR stubhub.com OR gametime.co OR eventbrite.com OR opentable.com OR resy.com OR tockhq.com OR amtrak.com OR eurostar.com OR flixbus.com OR hertz.com OR avis.com OR enterprise.com OR turo.com OR uber.com OR lyft.com))';
+    '(from:(booking.com OR expedia.com OR hotels.com OR priceline.com OR kayak.com OR tripadvisor.com OR travelocity.com OR orbitz.com OR airbnb.com OR vrbo.com OR marriott.com OR hilton.com OR hyatt.com OR ihg.com OR wyndham.com OR fourseasons.com OR ritzcarlton.com OR accor.com OR united.com OR delta.com OR aa.com OR southwest.com OR jetblue.com OR alaskaair.com OR frontier.com OR spirit.com OR allegiant.com OR lufthansa.com OR ba.com OR airfrance.com OR emirates.com OR qatarairways.com OR singaporeair.com OR klm.com OR turkish.com OR iberia.com OR netjets.com OR wheelsup.com OR flexjet.com OR planesense.com OR airshare.com OR sentientjet.com OR vistajet.com OR xo.com OR flyexclusive.com OR jsx.com OR blade.com OR signatureaviation.com OR jetaviation.com OR atlanticaviation.com OR hipcamp.com OR tentrr.com OR koa.com OR outdoorsy.com OR rvshare.com OR sonder.com OR blueground.com OR vacasa.com OR hostelworld.com OR selina.com OR ticketmaster.com OR axs.com OR seatgeek.com OR stubhub.com OR gametime.co OR eventbrite.com OR opentable.com OR resy.com OR tockhq.com OR yelp.com OR tock.com OR amtrak.com OR eurostar.com OR flixbus.com OR trainline.com OR renfe.com OR trenitalia.com OR hertz.com OR avis.com OR enterprise.com OR budget.com OR alamo.com OR nationalcar.com OR turo.com OR uber.com OR lyft.com))';
 
   const queries = [
     `${dateFilter} ${lexical}`,
@@ -237,6 +237,8 @@ function normalizeReservationType(rawType: unknown): string {
     sports_ticket: 'sports_ticket',
     conference_registration: 'conference_registration',
     restaurant: 'restaurant_reservation',
+    dining_reservation: 'restaurant_reservation',
+    rail_ticket: 'rail_bus_ferry',
     itinerary: 'generic_itinerary_item',
   };
 
@@ -304,7 +306,7 @@ function normalizeParsedResult(raw: unknown): ParsedResult {
 }
 
 async function logMessage(
-  client: ReturnType<typeof createClient>,
+  client: any, // intentional: bypass deep Supabase generic inference
   jobId: string,
   messageId: string,
   outcome: 'parsed' | 'skipped' | 'error',
@@ -413,7 +415,7 @@ serve(async req => {
 
     const { data: account, error: accountError } = await adminClient
       .from('gmail_accounts')
-      .select('email, access_token, refresh_token')
+      .select('email, access_token, refresh_token, token_expires_at')
       .eq('id', accountId)
       .eq('user_id', user.id)
       .single();
@@ -454,7 +456,7 @@ serve(async req => {
         .update({
           access_token: await encryptToken(accessToken, GMAIL_TOKEN_ENCRYPTION_KEY),
           token_expires_at: refreshed.expiresIn
-            ? new Date(Date.now() + refreshed.expiresIn * 1000).toISOString()
+            ? new Date(Date.now() + (refreshed.expiresIn - 60) * 1000).toISOString()
             : null,
           updated_at: new Date().toISOString(),
         })
@@ -559,6 +561,22 @@ serve(async req => {
           headers.find((h: Record<string, string>) => h.name?.toLowerCase() === 'from')?.value ||
           '';
 
+        // Extract email sent date for trip relevance scoring
+        const dateHeaderValue = headers.find(
+          (h: Record<string, string>) => h.name?.toLowerCase() === 'date',
+        )?.value;
+        let emailDate: string | null = null;
+        if (dateHeaderValue) {
+          try {
+            const parsedDate = new Date(dateHeaderValue);
+            if (!isNaN(parsedDate.getTime())) {
+              emailDate = parsedDate.toISOString().substring(0, 10);
+            }
+          } catch {
+            // Unparseable date header — leave null
+          }
+        }
+
         const bodyText = extractEmailBody(msgData.payload || {});
         const snippet = msgData.snippet || '';
         const attachmentHints = extractAttachmentHints(msgData.payload || {});
@@ -575,20 +593,28 @@ serve(async req => {
             ? `${emailContent.substring(0, 15000)}\n[...truncated]`
             : emailContent;
 
-        const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\nAttachment Hints: ${attachmentHints.join(', ') || 'none'}\n\nEmail Body:\n${truncatedContent}`;
+        const emailDateLine = emailDate ? `Email Sent Date: ${emailDate}\n` : '';
+        const fullPrompt = `${runtimePrompt}\n\n--- ACTIVE TRIP CONTEXT ---\n${tripContextStr}\n--- END TRIP CONTEXT ---\n\nEmail Subject: ${subject}\nEmail From: ${from}\n${emailDateLine}Attachment Hints: ${attachmentHints.join(', ') || 'none'}\n\nEmail Body:\n${truncatedContent}`;
 
-        const aiResponse = await fetchWithRetry(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: fullPrompt }] }],
-              generationConfig: { responseMimeType: 'application/json' },
-            }),
-          },
-          2,
+        const geminiTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Gemini request timed out after 25s')), 25000),
         );
+
+        const aiResponse = await Promise.race([
+          fetchWithRetry(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                generationConfig: { responseMimeType: 'application/json' },
+              }),
+            },
+            2,
+          ),
+          geminiTimeout,
+        ]);
 
         if (!aiResponse.ok) {
           stats.errors++;
@@ -627,7 +653,29 @@ serve(async req => {
         }
 
         for (const res of parsed.reservations) {
-          const dedupeKey = `${res.type}_${res.confirmation_code || ''}_${res.booking_source || ''}_${messageId}`;
+          // Hardened dedupe key: includes date component to prevent key collapse
+          // when confirmation_code and booking_source are both absent
+          const dateSignal = (
+            (res.departure_time_local as string | undefined) ||
+            (res.check_in_local as string | undefined) ||
+            (res.reservation_time_local as string | undefined) ||
+            (res.start_time_local as string | undefined) ||
+            (res.pickup_time_local as string | undefined) ||
+            ''
+          ).substring(0, 10);
+
+          const dedupeKey = [
+            res.type,
+            (res.confirmation_code as string | undefined) ||
+              (res.flight_number as string | undefined) ||
+              (res.train_number as string | undefined) ||
+              '',
+            (res.booking_source as string | undefined) ||
+              (res.airline_code as string | undefined) ||
+              (res.ticket_provider as string | undefined) ||
+              '',
+            dateSignal,
+          ].join('_');
 
           const { data: existing } = await supabaseClient
             .from('smart_import_candidates')
@@ -695,6 +743,12 @@ serve(async req => {
         stats,
       })
       .eq('id', job.id);
+
+    // Update last_synced_at on the gmail account — visible in Settings
+    await adminClient
+      .from('gmail_accounts')
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq('id', accountId);
 
     allCandidates.sort((a, b) => {
       const scoreA =

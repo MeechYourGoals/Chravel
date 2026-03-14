@@ -26,7 +26,14 @@ const _envAdmins = (Deno.env.get('SUPER_ADMIN_EMAILS') || '')
   .split(',')
   .map((e: string) => e.trim().toLowerCase())
   .filter(Boolean);
-const SUPER_ADMIN_EMAILS = new Set(['ccamechi@gmail.com', ..._envAdmins]);
+const SUPER_ADMIN_EMAILS = new Set([
+  'ccamechi@gmail.com',
+  'christian@chravelapp.com',
+  'demo@chravelapp.com',
+  'phil@philquist.com',
+  'darren.hartgee@gmail.com',
+  ..._envAdmins,
+]);
 
 async function isSmsEntitled(userId: string, userEmail?: string): Promise<boolean> {
   // Super-admin email allowlist bypass (matches is_super_admin() and client)

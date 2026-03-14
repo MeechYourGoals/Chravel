@@ -43,6 +43,7 @@ serve(async req => {
       name: string;
       status: string;
       count?: number;
+      sourceCount?: number;
       error?: string;
     }[] = [];
 
@@ -147,10 +148,8 @@ interface SourceItem {
   metadata: Record<string, unknown>;
 }
 
-async function collectTripData(
-  supabase: ReturnType<typeof createClient>,
-  tripId: string,
-): Promise<SourceItem[]> {
+// intentional: using `any` to bypass deep Supabase generic inference that causes `never` type errors
+async function collectTripData(supabase: any, tripId: string): Promise<SourceItem[]> {
   const items: SourceItem[] = [];
 
   // Chat messages
