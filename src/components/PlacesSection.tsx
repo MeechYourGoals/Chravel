@@ -87,19 +87,6 @@ export const PlacesSection = ({
   // Use query data directly — no sync useEffect needed
   const places = fetchedPlaces;
 
-  // ⚡ PERFORMANCE: Prefetch Explore links in parallel so tab switch is instant
-  useEffect(() => {
-    if (!tripId) return;
-    queryClient.prefetchQuery({
-      queryKey: tripKeys.tripLinks(tripId, isDemoMode),
-      queryFn: async () => {
-        const { getTripLinks } = await import('@/services/tripLinksService');
-        return getTripLinks(tripId, isDemoMode);
-      },
-      staleTime: 2 * 60 * 1000, // match TripLinksDisplay config
-    });
-  }, [tripId, isDemoMode, queryClient]);
-
   // ⚡ PERFORMANCE: Sync personal basecamp from TanStack Query to local state
   // This replaces the sequential useEffect fetch with parallel query loading
   useEffect(() => {
@@ -235,8 +222,8 @@ export const PlacesSection = ({
           />
         </div>
 
-        {/* Explore — conditional render so tab-switch remounts & retries failed queries */}
-        {activeTab === 'links' && (
+        {/* Explore — display:none keeps mounted for instant tab switching (matches BasecampsPanel) */}
+        <div style={{ display: activeTab === 'links' ? 'block' : 'none' }}>
           <LinksPanel
             tripId={tripId}
             places={places}
@@ -258,7 +245,7 @@ export const PlacesSection = ({
               // Event added to calendar (reserved for future use)
             }}
           />
-        )}
+        </div>
       </div>
     </div>
   );

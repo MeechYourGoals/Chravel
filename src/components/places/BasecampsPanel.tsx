@@ -357,7 +357,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 </p>
                 <button
                   onClick={() => setShowTripSelector(true)}
-                  className="w-full bg-gold-primary hover:bg-gold-mid text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
                 >
                   <Plus size={12} />
                   Set Trip Base Camp
