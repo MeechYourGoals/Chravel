@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Send, X, CalendarPlus, Bookmark, ListChecks } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
-import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
+import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
 interface AiChatInputProps {
   inputMessage: string;
@@ -165,17 +165,13 @@ export const AiChatInput = ({
           />
         </div>
 
-        {/* Send button — icon always white; gold rim muted when input empty, bright when populated */}
+        {/* Send button — persistent gold rim; disabled state via opacity */}
         <button
           type="button"
           onClick={handleSendClick}
           disabled={(!inputMessage.trim() && attachedImages.length === 0) || isTyping || disabled}
           aria-label="Send message"
-          className={`size-11 rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation bg-gray-800/80 text-white ${
-            inputMessage.trim() || attachedImages.length > 0
-              ? 'cta-gold-ring'
-              : 'cta-gold-ring-muted'
-          } ${CTA_INTERACTIVE} ${CTA_DISABLED}`}
+          className={CTA_BUTTON}
         >
           <Send size={CTA_ICON_SIZE} />
         </button>
