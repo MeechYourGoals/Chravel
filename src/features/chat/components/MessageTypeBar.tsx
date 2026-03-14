@@ -62,8 +62,8 @@ export const MessageTypeBar = ({
             className={cn(
               'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
-              activeFilter === 'all'
-                ? 'bg-gold-primary text-black shadow-md'
+            activeFilter === 'all'
+                ? 'bg-[#007AFF] text-white shadow-md'
                 : 'text-white/70 hover:text-white hover:bg-white/5',
             )}
             aria-pressed={activeFilter === 'all'}

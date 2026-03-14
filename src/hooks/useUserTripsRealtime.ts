@@ -56,7 +56,6 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
             queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
           }
         },
-        invalidateTrips,
       )
       .subscribe();
 
