@@ -106,7 +106,7 @@ export function VoiceLiveInline({
   const barMode = getBarMode(liveState);
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 min-h-0 px-4 py-6 select-none">
+    <div className="flex flex-col items-center justify-center flex-1 min-h-0 px-4 pb-4 pt-2 select-none">
       {/* AI transcript — above bar, scrollable, bright white */}
       <div
         ref={assistantScrollRef}
