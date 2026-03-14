@@ -9,6 +9,18 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const TRIPS_QUERY_KEY = 'trips';
 
+type MemberChangePayload = {
+  new?: { user_id?: string | null } | null;
+  old?: { user_id?: string | null } | null;
+};
+
+export function shouldInvalidateTripsForMemberChange(
+  payload: MemberChangePayload,
+  userId: string,
+): boolean {
+  return payload.new?.user_id === userId || payload.old?.user_id === userId;
+}
+
 export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boolean) {
   const queryClient = useQueryClient();
 
@@ -39,7 +51,11 @@ export function useUserTripsRealtime(userId: string | undefined, isDemoMode: boo
           table: 'trip_members',
           filter: `user_id=eq.${userId}`,
         },
-        invalidateTrips,
+        payload => {
+          if (shouldInvalidateTripsForMemberChange(payload as MemberChangePayload, userId)) {
+            queryClient.invalidateQueries({ queryKey: [TRIPS_QUERY_KEY] });
+          }
+        },
       )
       .subscribe();
 

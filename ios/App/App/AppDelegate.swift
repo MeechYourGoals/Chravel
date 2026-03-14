@@ -2,6 +2,7 @@ import UIKit
 import Capacitor
 import WebKit
 import RevenueCat
+import PostHog
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -18,6 +19,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
+        // Configure PostHog analytics
+        configurePostHog()
+
         // Configure RevenueCat SDK
         configureRevenueCat()
         
@@ -28,6 +32,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
     
+    // MARK: - PostHog Setup
+
+    private func configurePostHog() {
+        let config = PostHogConfig(
+            apiKey: "phc_LAaRt5Owdkb7o9d2OIdkfCPxYPDXhgxskBx8oFeWqPo",
+            host: "https://us.i.posthog.com"
+        )
+        PostHogSDK.shared.setup(config)
+    }
+
     // MARK: - RevenueCat Setup
     
     private func configureRevenueCat() {
