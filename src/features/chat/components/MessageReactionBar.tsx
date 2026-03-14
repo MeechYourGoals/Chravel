@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Plus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Reaction {
@@ -26,7 +26,7 @@ interface MessageReactionBarProps {
   userNamesById?: Record<string, string>;
 }
 
-const REACTIONS: Reaction[] = [
+export const REACTIONS: Reaction[] = [
   { id: 'like', emoji: '\u{1F44D}', label: 'Like' },
   { id: 'love', emoji: '\u2764\uFE0F', label: 'Love' },
   { id: 'laugh', emoji: '\u{1F602}', label: 'Haha' },
@@ -39,6 +39,16 @@ const REACTIONS: Reaction[] = [
   { id: 'dislike', emoji: '\u{1F44E}', label: 'Dislike' },
   { id: 'important', emoji: '\u2757', label: 'Important' },
 ];
+
+/** Lookup map: reaction type ID → emoji character (e.g. 'like' → '👍') */
+export const REACTION_EMOJI_MAP: Record<string, string> = Object.fromEntries(
+  REACTIONS.map(r => [r.id, r.emoji]),
+);
+
+/** First 5 reactions shown by default in the quick tray */
+const QUICK_REACTIONS = REACTIONS.slice(0, 5);
+/** Remaining 6 reactions shown when "+" is clicked */
+const MORE_REACTIONS = REACTIONS.slice(5);
 
 export function getReactionTooltipText(
   users: string[] = [],
@@ -57,6 +67,7 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
   userNamesById = {},
 }) => {
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const isMobile = useIsMobile();
 
   const handleReaction = (reactionId: string) => {
@@ -115,51 +126,52 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
     </Button>
   );
 
+  const renderReactionItem = (reaction: Reaction) => {
+    const reactionData = reactions[reaction.id];
+    const count = reactionData?.count || 0;
+    const userReacted = reactionData?.userReacted || false;
+    const tooltipText = tooltipsByReaction[reaction.id];
+    const hasTooltip = count > 0 && tooltipText;
+
+    if (!hasTooltip || isMobile) {
+      return (
+        <React.Fragment key={reaction.id}>
+          {renderReactionButton(reaction, count, userReacted)}
+        </React.Fragment>
+      );
+    }
+
+    return (
+      <Tooltip key={reaction.id}>
+        <TooltipTrigger asChild>
+          {renderReactionButton(reaction, count, userReacted)}
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[240px] text-xs break-words">
+          {tooltipText}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
     <TooltipProvider>
       <div className={`flex flex-wrap items-center gap-1 mt-1 ${className}`}>
-        {REACTIONS.map(reaction => {
-          const reactionData = reactions[reaction.id];
-          const count = reactionData?.count || 0;
-          const userReacted = reactionData?.userReacted || false;
-          const tooltipText = tooltipsByReaction[reaction.id];
-          const hasTooltip = count > 0 && tooltipText;
+        {QUICK_REACTIONS.map(renderReactionItem)}
 
-          if (!hasTooltip) {
-            return (
-              <React.Fragment key={reaction.id}>
-                {renderReactionButton(reaction, count, userReacted)}
-              </React.Fragment>
-            );
-          }
+        {/* Expand/collapse toggle for remaining reactions */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowMore(prev => !prev)}
+          className="h-6 w-6 p-0 rounded-full border border-border/30 bg-background/20 text-muted-foreground hover:bg-background/40 hover:text-foreground transition-all duration-200"
+          title={showMore ? 'Show fewer reactions' : 'More reactions'}
+        >
+          <Plus
+            className={`h-3 w-3 transition-transform duration-200 ${showMore ? 'rotate-45' : ''}`}
+          />
+        </Button>
 
-          if (isMobile) {
-            return (
-              <Popover key={reaction.id}>
-                <PopoverTrigger asChild>
-                  {renderReactionButton(reaction, count, userReacted)}
-                </PopoverTrigger>
-                <PopoverContent
-                  side="top"
-                  className="w-auto max-w-[240px] px-3 py-1.5 text-xs break-words"
-                >
-                  {tooltipText}
-                </PopoverContent>
-              </Popover>
-            );
-          }
-
-          return (
-            <Tooltip key={reaction.id}>
-              <TooltipTrigger asChild>
-                {renderReactionButton(reaction, count, userReacted)}
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[240px] text-xs break-words">
-                {tooltipText}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+        {showMore && MORE_REACTIONS.map(renderReactionItem)}
       </div>
     </TooltipProvider>
   );

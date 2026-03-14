@@ -23,6 +23,14 @@
 - **Provenance:** AGENTS.md § 5.2 Field Name Mismatches
 - **Confidence:** high
 
+### When adding feature parity to a secondary surface, use the existing data layer before adding schema
+- **Tip:** When a feature exists in surface A (e.g., TripChat) and needs to be added to surface B (e.g., Channels), first check what shared components and data services already exist. Often the components are reusable but the data layer wiring is missing. Use JSON metadata fields for lightweight data (reply context, link previews) before resorting to schema migrations.
+- **Applies when:** Adding threading, link previews, or other chat features to Channels or Broadcasts
+- **Avoid when:** The feature requires foreign key integrity or complex queries
+- **Evidence:** Channel threading achieved via metadata JSON field instead of new reply_to_id column. Client-side link previews via existing fetch-og-metadata edge function instead of new DB column.
+- **Provenance:** Messaging upgrade March 2026 — ChannelChatView threading + link preview parity
+- **Confidence:** high
+
 ## Recovery Tips
 
 <!-- Add recovery tips here as they are discovered during debugging work -->

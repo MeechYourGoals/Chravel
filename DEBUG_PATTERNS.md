@@ -30,6 +30,28 @@ Known security anti-patterns discovered during audits. Reference this before int
 
 ---
 
+## 3. React Spread Props Silently Override Earlier Handlers
+
+**Symptom:** Event handlers appear wired but silently never fire. Clicks or touches do nothing despite correct-looking code.
+**Risk:** MEDIUM — broken interactivity with no error or warning.
+**Root Cause:** When JSX spreads an object of event handlers (`{...handlers}`) and THEN sets explicit props with the same names (e.g., `onTouchStart`, `onMouseLeave`), the explicit props override the spread. The overridden handlers silently disappear.
+**How to Confirm:** Check if the same element has both `{...handlerObject}` and explicit event props with overlapping keys. The later props win.
+**Smallest Safe Fix:** Merge conflicting handlers into combined callbacks that call both. Never rely on spread + explicit prop coexistence for the same event name.
+**Regression Surfaces:** Any component combining `useLongPress` handlers with custom touch/mouse handlers on the same element.
+**Fixed in:** `src/features/chat/components/MessageBubble.tsx` (March 2026 — merged longPress + swipe-to-reply handlers)
+
+---
+
+## 4. Radix PopoverTrigger Intercepts Child Button Clicks on Mobile
+
+**Symptom:** On mobile, clicking a button wrapped in `<PopoverTrigger asChild>` opens the popover but doesn't fire the button's onClick handler (or vice versa).
+**Risk:** LOW — broken mobile interactivity for tooltip/popover-wrapped buttons.
+**Root Cause:** Radix UI's `PopoverTrigger` with `asChild` composes event handlers with the child. On mobile, the popover toggle behavior can conflict with the child's onClick, especially when the click target needs to perform a data mutation.
+**Smallest Safe Fix:** For buttons that must always fire onClick, don't wrap in PopoverTrigger. Use the `title` attribute or a separate tooltip mechanism for mobile.
+**Fixed in:** `src/features/chat/components/MessageReactionBar.tsx` (March 2026 — removed PopoverTrigger on mobile, use title instead)
+
+---
+
 ## 3. Client-Side Super Admin Bypass (Misleading Dead Code)
 
 **Symptom:** Code appears to grant admin access based on client-side email comparison, but RLS actually blocks the operation.

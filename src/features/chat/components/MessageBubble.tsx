@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { MessageReactionBar } from './MessageReactionBar';
+import { MessageReactionBar, REACTION_EMOJI_MAP } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
 import { GoogleMapsWidget } from './GoogleMapsWidget';
 import { GroundingCitationCard } from './GroundingCitationCard';
@@ -416,16 +416,46 @@ export const MessageBubble = memo(
       swipeHapticFired.current = false;
     }, [swipeThresholdMet, onReply, id]);
 
+    // Merge longPress touch handlers with swipe-to-reply touch handlers
+    // so both systems fire (longPress overrides were silently dropped before)
+    const mergedTouchStart = useCallback(
+      (e: React.TouchEvent<HTMLDivElement>) => {
+        longPressHandlers.onTouchStart(e);
+        handleTouchStart(e);
+      },
+      [longPressHandlers, handleTouchStart],
+    );
+    const mergedTouchMove = useCallback(
+      (e: React.TouchEvent<HTMLDivElement>) => {
+        longPressHandlers.onTouchMove(e);
+        handleTouchMove(e);
+      },
+      [longPressHandlers, handleTouchMove],
+    );
+    const mergedTouchEnd = useCallback(
+      (e: React.TouchEvent<HTMLDivElement>) => {
+        longPressHandlers.onTouchEnd();
+        handleTouchEnd();
+      },
+      [longPressHandlers, handleTouchEnd],
+    );
+    const mergedMouseLeave = useCallback(() => {
+      longPressHandlers.onMouseLeave();
+      handleMouseLeave();
+    }, [longPressHandlers, handleMouseLeave]);
+
     return (
       <>
         <div
           className={cn('flex gap-2 group', isOwnMessage ? 'justify-end' : 'justify-start')}
-          {...longPressHandlers}
+          onMouseDown={longPressHandlers.onMouseDown}
+          onMouseMove={longPressHandlers.onMouseMove}
+          onMouseUp={longPressHandlers.onMouseUp}
           onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          onMouseLeave={mergedMouseLeave}
+          onTouchStart={mergedTouchStart}
+          onTouchMove={mergedTouchMove}
+          onTouchEnd={mergedTouchEnd}
         >
           {!isOwnMessage && showSenderInfo && (
             <Avatar className="w-8 h-8 md:w-10 md:h-10 border-2 border-border/50 flex-shrink-0">
@@ -606,10 +636,10 @@ export const MessageBubble = memo(
               >
                 {Object.entries(reactions)
                   .filter(([, data]) => data.count > 0)
-                  .map(([emoji, data]) => (
+                  .map(([reactionType, data]) => (
                     <button
-                      key={emoji}
-                      onClick={() => onReaction(id, emoji)}
+                      key={reactionType}
+                      onClick={() => onReaction(id, reactionType)}
                       className={cn(
                         'flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors',
                         data.userReacted
@@ -617,7 +647,7 @@ export const MessageBubble = memo(
                           : 'bg-muted/60 border border-white/10 text-white/70 hover:bg-muted/80',
                       )}
                     >
-                      <span>{emoji}</span>
+                      <span>{REACTION_EMOJI_MAP[reactionType] || reactionType}</span>
                       <span>{data.count}</span>
                     </button>
                   ))}
@@ -626,7 +656,11 @@ export const MessageBubble = memo(
 
             {/* Reaction picker — shown on hover (desktop) or long-press (mobile) */}
             {showReactions && (
-              <div className="mt-1">
+              <div
+                className="mt-1"
+                onMouseDown={e => e.stopPropagation()}
+                onTouchStart={e => e.stopPropagation()}
+              >
                 <MessageReactionBar
                   messageId={id}
                   reactions={reactions}
