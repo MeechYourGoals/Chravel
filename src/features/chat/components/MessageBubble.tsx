@@ -498,10 +498,8 @@ export const MessageBubble = memo(
               {replyTo && (
                 <div
                   className={cn(
-                    'mb-2 p-2 rounded-lg border-l-4 text-xs cursor-pointer',
-                    isOwnMessage
-                      ? 'bg-black/20 border-white/50 text-white/80'
-                      : 'bg-white/10 border-primary text-white/80',
+                    'mb-2 p-2 rounded-lg text-xs cursor-pointer',
+                    isOwnMessage ? 'bg-black/25 text-white/75' : 'bg-white/10 text-white/80',
                   )}
                   onClick={e => {
                     e.stopPropagation();
