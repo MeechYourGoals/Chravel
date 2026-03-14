@@ -29,6 +29,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { fetchOGMetadata } from '@/services/ogMetadataService';
 import { cn } from '@/lib/utils';
+import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import * as haptics from '@/native/haptics';
 import { MentionPicker, TripMember } from './MentionPicker';
 
@@ -596,7 +597,7 @@ export const ChatInput = ({
             )}
           />
 
-          {/* Send Button */}
+          {/* Send Button — persistent gold rim; broadcast mode keeps orange gradient */}
           <button
             onClick={handleSend}
             disabled={
@@ -605,17 +606,18 @@ export const ChatInput = ({
               isFetchingPreview ||
               isSendingMessage
             }
-            className={cn(
-              'size-10 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center',
+            className={
               isBroadcastMode
-                ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:opacity-90'
-                : 'bg-gradient-to-r from-primary to-primary/80 hover:opacity-90',
-            )}
+                ? cn(
+                    'size-11 min-w-[44px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-orange-600 to-red-600 hover:opacity-90',
+                  )
+                : CTA_BUTTON
+            }
           >
             {isFetchingPreview ? (
-              <Loader2 size={18} className="text-white animate-spin" />
+              <Loader2 size={CTA_ICON_SIZE} className="text-white animate-spin" />
             ) : (
-              <Send size={18} className="text-white" />
+              <Send size={CTA_ICON_SIZE} className="text-white" />
             )}
           </button>
 
