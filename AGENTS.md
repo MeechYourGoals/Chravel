@@ -14,6 +14,7 @@
 1. **Performance is a feature.** No heavy re-renders, excessive providers, chatty queries, or unnecessary component mounts.
 1. **Demo mode is sacred.** Mock data is NEVER modified. Authenticated mode uses parallel real data paths. This is a hard architectural invariant.
 1. **Anti-Goldfish Protocol.** Before coding: read `claude-progress.txt` + recent git log. Implement ONE feature → E2E test → commit → update breadcrumbs. Never multi-task features.
+1. **Learn from trajectories.** Before non-trivial tasks, read `DEBUG_PATTERNS.md` + `LESSONS.md`. After completing, update memory files with evidence-backed learnings. See CLAUDE.md § AGENT LEARNING PROTOCOL.
 
 -----
 
@@ -275,7 +276,26 @@ Based on recurring patterns in this project, the following should be templated (
 
 -----
 
-## 13. KEEP THIS FILE LEAN
+## 14. PERSISTENT MEMORY SYSTEM
+
+Chravel uses repo-level persistent memory files so all coding agents (Claude, Cursor, Codex) share the same debug playbook and learning history.
+
+| File | Purpose |
+|------|---------|
+| `DEBUG_PATTERNS.md` | Recurring bug signatures, root causes, proven fixes |
+| `LESSONS.md` | Reusable strategy / recovery / optimization tips |
+| `TEST_GAPS.md` | Missing test coverage discovered during work |
+| `agent_memory.jsonl` | Structured machine-readable memory entries |
+
+**Protocol:** Read before planning → Execute → Extract learnings → Write back. See `CLAUDE.md § AGENT LEARNING PROTOCOL` for full rules.
+
+**Memory file creation:** If a file doesn't exist and the current task generates information appropriate for it, create it using the schema defined in CLAUDE.md. Do not create empty placeholders.
+
+**Deduplication:** Before appending, check if an equivalent entry exists. Merge and refine rather than duplicate. Prefer improving specificity over adding volume.
+
+-----
+
+## 15. KEEP THIS FILE LEAN
 
 - Max target: ~8KB
 - If content exceeds ~30 lines on a topic → move to `/docs/<topic>.md` and link here
