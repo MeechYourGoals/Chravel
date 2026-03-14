@@ -331,7 +331,7 @@ async function fetchSourceData(
     return [];
   }
 
-  return data.map((item: Record<string, unknown>) => ({
+  return (data as Record<string, unknown>[]).map((item: Record<string, unknown>) => ({
     tripId,
     sourceType,
     sourceId: item.id as string,
