@@ -2,7 +2,6 @@
  * Stripe Webhook Handler
  *
  * Processes Stripe webhook events to sync subscription status with database.
- * Account: christian@chravelapp.com (TEST MODE)
  */
 
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';

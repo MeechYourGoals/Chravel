@@ -63,6 +63,7 @@ serve(async req => {
         'User-Agent': 'Mozilla/5.0 (compatible; ChravelBot/1.0; +https://chravel.com)',
       },
       signal: AbortSignal.timeout(10000), // 10 second timeout
+      redirect: 'error', // SECURITY: Prevent redirect-chain SSRF to internal hosts
     });
 
     if (!response.ok) {
@@ -111,7 +112,7 @@ serve(async req => {
     console.error('[fetch-og-metadata] Error:', error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to fetch metadata from the provided URL.',
       }),
       {
         status: 500,

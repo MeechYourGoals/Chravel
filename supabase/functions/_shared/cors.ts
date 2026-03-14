@@ -1,22 +1,21 @@
-// Allowed origins for CORS - restricts which domains can call Edge Functions
+// Allowed origins for CORS - restricts which domains can call Edge Functions.
+// SECURITY: Only list specific known origins. Wildcard subdomain matchers like
+// '.vercel.app' allow ANY project on that platform to call our edge functions.
+// Use ADDITIONAL_ALLOWED_ORIGINS env var for preview/staging URLs.
 const ALLOWED_ORIGINS = [
   // Production domains
   'https://chravel.app',
   'https://www.chravel.app',
   'https://app.chravel.com',
-  // Supabase hosted preview domains
-  '.supabase.co',
-  // Lovable preview domains
-  '.lovable.app',
-  '.lovable.dev',
-  '.lovableproject.com',
-  // Vercel preview / deployment domains
-  '.vercel.app',
+  // Specific Supabase project
+  'https://jmjiyekmxwsxkfnqwyaa.supabase.co',
   // Local development
   'http://localhost:5173',
   'http://localhost:3000',
+  'http://localhost:8080',
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
+  'http://127.0.0.1:8080',
   // Mobile app (Capacitor)
   'capacitor://localhost',
   'ionic://localhost',

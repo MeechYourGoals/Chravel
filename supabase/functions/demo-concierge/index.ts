@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { invokeChatModel, extractTextFromChatResponse } from '../_shared/gemini.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { getClientIp } from '../_shared/security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -9,15 +10,6 @@ const ENABLE_DEMO_CONCIERGE = Deno.env.get('ENABLE_DEMO_CONCIERGE') === 'true';
 const DEMO_MAX_REQUESTS_PER_MINUTE = Number(Deno.env.get('DEMO_CONCIERGE_RPM') ?? '3');
 const DEMO_MAX_REQUESTS_PER_HOUR = Number(Deno.env.get('DEMO_CONCIERGE_RPH') ?? '12');
 const MAX_MESSAGE_CHARS = 1200;
-
-function getClientIp(req: Request): string {
-  const forwardedFor = req.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    const firstIp = forwardedFor.split(',')[0]?.trim();
-    if (firstIp) return firstIp;
-  }
-  return req.headers.get('x-real-ip') ?? 'unknown';
-}
 
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
   const numeric = Number(value);
@@ -170,11 +162,12 @@ serve(async req => {
       },
     );
   } catch (error) {
+    // Log full error server-side for debugging, but never send internal details to client
     console.error('[demo-concierge] request failed', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'An internal error occurred. Please try again later.',
       }),
       {
         status: 500,

@@ -7,7 +7,13 @@ export interface CapabilityTokenPayload {
   exp?: number;
 }
 
-const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET') || 'default_secret_for_tests';
+const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET');
+if (!JWT_SECRET) {
+  throw new Error(
+    'SUPABASE_JWT_SECRET is required — capability tokens cannot be signed without it. ' +
+      'Set this secret in Supabase Dashboard > Edge Functions > Secrets.',
+  );
+}
 
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
