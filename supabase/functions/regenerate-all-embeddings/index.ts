@@ -129,7 +129,7 @@ serve(async req => {
         try {
           for (const type of sourceTypes) {
             try {
-              const sourceData = await fetchSourceData(supabase, trip.id, type);
+              const sourceData = await fetchSourceData(supabase as any, trip.id, type);
 
               if (sourceData.length === 0) {
                 tripResult.results[type] = 0;
