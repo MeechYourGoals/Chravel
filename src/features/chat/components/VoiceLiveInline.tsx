@@ -110,7 +110,7 @@ export function VoiceLiveInline({
       {/* AI transcript — above bar, scrollable, bright white */}
       <div
         ref={assistantScrollRef}
-        className="flex-1 w-full max-w-lg overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
+        className="flex-1 w-full max-w-[90%] sm:max-w-lg overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
       >
         {assistantTranscript ? (
           <p className="text-white/90 text-base leading-relaxed text-center whitespace-pre-wrap">
