@@ -9,7 +9,8 @@ import { calendarStorageService } from './calendarStorageService';
 import { calendarOfflineQueue } from './calendarOfflineQueue';
 import { offlineSyncService } from './offlineSyncService';
 import { retryWithBackoff } from '@/utils/retry';
-import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
+// SECURITY: Super admin access is now enforced entirely server-side via is_super_admin() RLS.
+// Client-side SUPER_ADMIN_EMAILS import removed to eliminate misleading bypass paths.
 import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 
 export interface TripEvent {
@@ -55,7 +56,8 @@ export const calendarService = {
   /**
    * Ensure user is a trip member before performing operations that require membership.
    * If user is the trip creator but not a member, automatically add them.
-   * Super admins are always added as admin members.
+   * SECURITY: Super admin access is enforced server-side via is_super_admin() RLS function.
+   * Client-side bypass removed to prevent misleading privilege escalation paths.
    */
   async ensureTripMembership(tripId: string, userId: string): Promise<boolean> {
     try {
@@ -71,12 +73,6 @@ export const calendarService = {
         return true; // Already a member
       }
 
-      // Get user email to check for super admin
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const isSuperAdmin = user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
-
       // Check if user is the trip creator
       const { data: trip } = await supabase
         .from('trips')
@@ -84,8 +80,8 @@ export const calendarService = {
         .eq('id', tripId)
         .single();
 
-      if (trip?.created_by === userId || isSuperAdmin) {
-        // User is the creator OR a super admin - add them as admin
+      if (trip?.created_by === userId) {
+        // User is the creator - add them as admin member
         const { error: insertError } = await supabase.from('trip_members').insert({
           trip_id: tripId,
           user_id: userId,
@@ -225,31 +221,19 @@ export const calendarService = {
         throw new Error('You must be logged in to create events. Please sign in and try again.');
       }
 
-      console.log(
-        '[calendarService] Creating event for trip:',
-        eventData.trip_id,
-        'by user:',
-        user.id,
-      );
-
-      // Check if user is super admin
-      const isSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
-
-      // Ensure trip membership for RLS policies (unless super admin)
-      if (!isSuperAdmin) {
-        const hasMembership = await this.ensureTripMembership(eventData.trip_id, user.id);
-        if (!hasMembership) {
+      // Ensure trip membership for RLS policies
+      // SECURITY: Super admin read access is enforced server-side via is_super_admin() RLS
+      // function (migration 20260125000000). No client-side bypass needed.
+      const hasMembership = await this.ensureTripMembership(eventData.trip_id, user.id);
+      if (!hasMembership) {
+        if (import.meta.env.DEV) {
           console.warn(
             '[calendarService] User not a trip member and could not be added. Trip ID:',
             eventData.trip_id,
           );
-          // Don't throw here - let the insert fail with a more descriptive RLS error
-          // The insert will fail if the user truly doesn't have access
         }
-      } else {
-        // Super admin: ensure they're a trip member with admin role
-        console.log('[calendarService] Super admin detected, ensuring membership');
-        await this.ensureTripMembership(eventData.trip_id, user.id);
+        // Don't throw here - let the insert fail with a more descriptive RLS error
+        // The insert will fail if the user truly doesn't have access
       }
 
       // Direct insert - simpler and more reliable than RPC
@@ -478,8 +462,6 @@ export const calendarService = {
       throw new Error('You must be logged in to update events. Please sign in and try again.');
     }
 
-    console.log('[calendarService] Updating event:', eventId, 'by user:', user.id);
-
     // Use Supabase for authenticated users - use .select() to verify update happened
     const { data, error } = await supabase
       .from('trip_events')
@@ -520,8 +502,6 @@ export const calendarService = {
         'Event update failed — no rows updated. You may not have permission to edit this event.',
       );
     }
-
-    console.log('[calendarService] Event updated successfully:', data.id);
 
     // Update cache with the returned data
     const cached = await offlineSyncService.getCachedEntity('calendar_event', eventId);

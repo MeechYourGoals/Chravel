@@ -1,9 +1,10 @@
 // Founder emails that always have full admin access.
 // These are verified against auth.users email (server-enforced, not client-spoofable).
+// SECURITY: Only include real founder/admin emails. Never include demo or test accounts.
+// Server-side enforcement is via is_super_admin() SQL function in RLS policies.
 const FOUNDER_EMAILS: string[] = [
   'ccamechi@gmail.com',
   'christian@chravelapp.com',
-  'demo@chravelapp.com',
   'phil@philquist.com',
   'darren.hartgee@gmail.com',
 ];

@@ -163,14 +163,12 @@ export const tripService = {
         .eq('user_id', user.id)
         .single();
 
-      // Super admin bypass - ccamechi@gmail.com has unlimited access
+      // Super admin bypass for trip creation limits (server-side is_super_admin() enforces RLS)
       const { SUPER_ADMIN_EMAILS } = await import('@/constants/admins');
       const authEmail = user.email?.toLowerCase().trim();
       const isSuperAdmin = authEmail ? SUPER_ADMIN_EMAILS.includes(authEmail) : false;
 
-      if (isSuperAdmin) {
-        console.log('[tripService] Super admin bypass for:', authEmail);
-      } else {
+      if (!isSuperAdmin) {
         const tier =
           profile?.subscription_status === 'active'
             ? profile.subscription_product_id?.includes('explorer')
@@ -197,13 +195,6 @@ export const tripService = {
       }
 
       // Dates already in ISO 8601 format from CreateTripModal - no normalization needed
-      console.log('[tripService] Creating trip:', {
-        name: tripData.name,
-        start_date: tripData.start_date,
-        end_date: tripData.end_date,
-        trip_type: tripData.trip_type,
-        user_id: user.id,
-      });
 
       // Use edge function for server-side validation and Pro tier enforcement
       const { data, error } = await supabase.functions.invoke('create-trip', {
@@ -223,8 +214,6 @@ export const tripService = {
           category: tripData.category, // Pro trip category enum value
         },
       });
-
-      console.log('[tripService] Edge function response:', { success: data?.success, error });
 
       if (error) {
         console.error('[tripService] Edge function error:', error);
@@ -268,7 +257,6 @@ export const tripService = {
         throw new Error(data?.error || 'Failed to create trip');
       }
 
-      console.log('[tripService] Trip created successfully:', data.trip.id);
       return data.trip;
     } catch (error) {
       if (import.meta.env.DEV) {

@@ -327,7 +327,10 @@ async function callGeminiChat(request: ChatModelRequest): Promise<ChatModelRespo
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errorText.substring(0, 800)}`);
+    // SECURITY: Log full error server-side but sanitize for propagation.
+    // Never include API keys or internal endpoint details in thrown errors.
+    console.error(`[Gemini] API error ${response.status}: ${errorText.substring(0, 800)}`);
+    throw new Error(`Gemini API error ${response.status}`);
   }
 
   const raw = await response.json();
@@ -375,7 +378,8 @@ async function callLovableChat(request: ChatModelRequest): Promise<ChatModelResp
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Lovable API error ${response.status}: ${errorText.substring(0, 800)}`);
+    console.error(`[Lovable] API error ${response.status}: ${errorText.substring(0, 800)}`);
+    throw new Error(`Lovable API error ${response.status}`);
   }
 
   const raw = await response.json();
@@ -465,9 +469,10 @@ async function embedWithGemini(
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(
-            `Gemini embeddings error ${response.status}: ${errorText.substring(0, 500)}`,
+          console.error(
+            `[Gemini] Embeddings error ${response.status}: ${errorText.substring(0, 500)}`,
           );
+          throw new Error(`Gemini embeddings error ${response.status}`);
         }
 
         const data = await response.json();
@@ -511,7 +516,8 @@ async function embedWithLovable(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Lovable embeddings error ${response.status}: ${errorText.substring(0, 500)}`);
+    console.error(`[Lovable] Embeddings error ${response.status}: ${errorText.substring(0, 500)}`);
+    throw new Error(`Lovable embeddings error ${response.status}`);
   }
 
   const raw = await response.json();
