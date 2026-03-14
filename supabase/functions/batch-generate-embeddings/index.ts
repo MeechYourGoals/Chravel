@@ -149,10 +149,7 @@ interface SourceItem {
 }
 
 // intentional: using `any` to bypass deep Supabase generic inference that causes `never` type errors
-async function collectTripData(
-  supabase: any,
-  tripId: string,
-): Promise<SourceItem[]> {
+async function collectTripData(supabase: any, tripId: string): Promise<SourceItem[]> {
   const items: SourceItem[] = [];
 
   // Chat messages
