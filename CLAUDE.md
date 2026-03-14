@@ -65,6 +65,44 @@
 
 ---
 
+## AGENT LEARNING PROTOCOL
+
+**Purpose:** Compound debugging and implementation knowledge across sessions and tools.
+
+**Memory files (repo root):**
+- `DEBUG_PATTERNS.md` — recurring bug signatures + proven fixes
+- `LESSONS.md` — reusable strategy / recovery / optimization tips
+- `TEST_GAPS.md` — missing coverage discovered during work
+- `agent_memory.jsonl` — structured machine-readable memory
+
+### Before every non-trivial task:
+1. Read relevant entries from `DEBUG_PATTERNS.md` and `LESSONS.md`
+2. Retrieve only what matches: this subsystem, error pattern, feature type, or framework
+3. State which prior learnings apply and how they change the plan
+
+### After every meaningful task:
+1. Extract up to 3 tips (strategy / recovery / optimization) — only if specific, reusable, and evidence-backed
+2. Update the appropriate memory file:
+   - Bug pattern discovered → `DEBUG_PATTERNS.md`
+   - Broader reusable lesson → `LESSONS.md`
+   - Missing test coverage found → `TEST_GAPS.md`
+   - High-value structured entry → `agent_memory.jsonl`
+3. Before writing: check for duplicates — merge and refine existing entries instead of appending copies
+4. Report: which memory files were read, which were updated, what was added or skipped
+
+### Quality gate for memory entries:
+- ✅ Specific and actionable (not "be careful with state")
+- ✅ Evidence-backed (tied to a real task or bug)
+- ✅ Reusable across future similar tasks
+- ❌ No vague advice, one-off trivia, or speculative entries
+- ❌ No duplicates of existing entries
+
+### Bad vs. good tip:
+- ❌ "Be careful with async state"
+- ✅ "When trip data shows briefly then disappears, check whether auth hydration completes before the data fetch guard — stale auth state triggers the Not Found path before the real user session resolves"
+
+---
+
 ## SUPABASE RULES
 
 1. Always handle `error` explicitly — never ignore it
