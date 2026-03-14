@@ -32,6 +32,7 @@ async function fetchToImageResponse(
   const upstream = await fetch(upstreamUrl, {
     headers: extraHeaders,
     signal: AbortSignal.timeout(12_000),
+    redirect: 'error', // SECURITY: Prevent redirect-chain SSRF to internal hosts
   });
 
   if (!upstream.ok) {

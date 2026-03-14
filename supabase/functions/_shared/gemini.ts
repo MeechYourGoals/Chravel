@@ -186,6 +186,7 @@ async function fetchUrlAsInlineData(
       headers: {
         'User-Agent': 'Chravel-AI/1.0',
       },
+      redirect: 'error', // SECURITY: Prevent redirect-chain SSRF to internal hosts
     });
 
     if (!response.ok) {

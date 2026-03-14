@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
 import { encryptToken, decryptToken } from '../_shared/gmailTokenCrypto.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
@@ -12,16 +13,15 @@ const MAX_GMAIL_ACCOUNTS = 5;
 const REDIRECT_URI =
   Deno.env.get('GOOGLE_REDIRECT_URI') || 'http://localhost:5173/api/gmail/oauth/callback';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// SECURITY: corsHeaders is computed per-request from the validated origin.
+// A module-level ref is kept so errorResponse can use it before the request handler sets it.
+let _corsHeaders: Record<string, string> = getCorsHeaders();
 
 function errorResponse(message: string, status: number, detail?: string): Response {
   console.error(`[gmail-auth] ${message}`, detail ? `| ${detail}` : '');
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ..._corsHeaders, 'Content-Type': 'application/json' },
   });
 }
 
@@ -77,8 +77,10 @@ function validateGoogleConfig(): string | null {
 }
 
 serve(async req => {
+  _corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: _corsHeaders });
   }
 
   try {
@@ -162,7 +164,7 @@ serve(async req => {
       );
 
       return new Response(JSON.stringify({ url: oauthUrl.toString() }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ..._corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -279,7 +281,7 @@ serve(async req => {
 
       console.log(`[gmail-auth] Successfully connected ${userInfo.email} for user ${user.id}`);
       return new Response(JSON.stringify({ success: true, email: userInfo.email }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ..._corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -334,17 +336,19 @@ serve(async req => {
 
       console.log(`[gmail-auth] Disconnected account ${accountId} for user ${user.id}`);
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ..._corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     return errorResponse('Not found', 404);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Internal server error';
     console.error('[gmail-auth] Unexpected error:', error);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'An internal error occurred. Please try again later.' }),
+      {
+        status: 500,
+        headers: { ..._corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
   }
 });
