@@ -43,6 +43,19 @@ Known security anti-patterns discovered during audits. Reference this before int
 
 ---
 
+## 4. CronGuard Fail-Open on Missing Secret
+
+**Symptom:** Cron-only edge functions (event-reminders, payment-reminders, send-scheduled-broadcasts, delete-stale-locations) are publicly callable without authentication.
+**Risk:** HIGH — unauthenticated users can trigger cron jobs, causing spam notifications, data mutations, or cost amplification.
+**Root Cause:** `verifyCronAuth()` returned `authorized: true` when `CRON_SECRET` env var was not set, as a "graceful degradation" during rollout.
+**How to Confirm:** Call any cron-protected edge function without headers. If it returns 200, the guard is failing open.
+**Smallest Safe Fix:** Return `authorized: false` with 503 when `CRON_SECRET` is missing. Never fail-open for auth guards.
+**Required Tests:** Verify that requests without valid cron secret or service role key are denied (401/503).
+**Regression Surfaces:** All cron-invoked edge functions. Ensure `CRON_SECRET` is set in all environments.
+**Fixed in:** `supabase/functions/_shared/cronGuard.ts` (March 2026 audit)
+
+---
+
 ## General Anti-Patterns to Avoid
 
 - **Never use `|| 'default'` for security-sensitive env vars** — fail loudly instead
@@ -50,3 +63,4 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Never rely on client-side email checks for authorization** — RLS is the enforcement layer
 - **Never return raw error messages to clients** — log server-side, return generic messages
 - **Never inject unsanitized user content into AI prompts** — use boundary markers and strip tags
+- **Never fail-open on missing auth secrets** — deny with 503, not allow with a warning log

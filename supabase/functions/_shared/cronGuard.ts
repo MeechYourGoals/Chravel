@@ -42,14 +42,20 @@ export function verifyCronAuth(req: Request, corsHeaders: Record<string, string>
     }
   }
 
-  // 3. If CRON_SECRET is not configured, log warning but allow
-  //    (graceful degradation during rollout — remove after CRON_SECRET is set in all envs)
+  // 3. If CRON_SECRET is not configured, deny and log error.
+  // SECURITY: Never fail-open — misconfigured secrets must block access, not bypass it.
   if (!CRON_SECRET) {
-    console.warn(
-      '[CronGuard] CRON_SECRET env var not configured — allowing request. ' +
-        'Set CRON_SECRET in production to secure cron endpoints.',
+    console.error(
+      '[CronGuard] CRON_SECRET env var not configured — denying request. ' +
+        'Set CRON_SECRET in Supabase Dashboard > Edge Functions > Secrets.',
     );
-    return { authorized: true };
+    return {
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Service misconfigured' }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    };
   }
 
   // Deny
