@@ -53,9 +53,8 @@ function getBarMode(state: GeminiLiveState): BarMode {
 /**
  * VoiceLiveInline — Inline live voice UI rendered inside the concierge chat area.
  *
- * Replaces the old fullscreen VoiceLiveOverlay. Renders a premium horizontal
- * gold gradient bar with AI transcript above (white) and user transcript below (gold).
- * Slow, elegant animation with RMS-responsive glow.
+ * Renders a premium gold waveform with AI transcript above (white) and user
+ * transcript below (gold). Subtle animation with RMS-responsive glow.
  */
 export function VoiceLiveInline({
   liveState,
@@ -64,7 +63,7 @@ export function VoiceLiveInline({
   diagnostics,
   onEndSession,
 }: VoiceLiveInlineProps) {
-  const barRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<SVGSVGElement>(null);
   const rafRef = useRef<number>(0);
   const assistantScrollRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +74,7 @@ export function VoiceLiveInline({
     }
   }, [assistantTranscript]);
 
-  // rAF loop: read RMS values and set CSS custom properties on the bar
+  // rAF loop: read RMS values and set CSS custom properties on the waveform
   const animateBar = useCallback(() => {
     const bar = barRef.current;
     if (!bar) {
@@ -106,11 +105,11 @@ export function VoiceLiveInline({
   const barMode = getBarMode(liveState);
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 min-h-0 px-4 pb-4 pt-2 select-none">
+    <div className="flex flex-col items-center flex-1 min-h-0 px-4 pb-4 pt-2 select-none">
       {/* AI transcript — above bar, scrollable, bright white */}
       <div
         ref={assistantScrollRef}
-        className="flex-1 w-full max-w-[90%] sm:max-w-lg overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
+        className="flex-1 w-full max-w-[90%] sm:max-w-2xl overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
       >
         {assistantTranscript ? (
           <p className="text-white/90 text-base leading-relaxed text-center whitespace-pre-wrap">
@@ -125,22 +124,37 @@ export function VoiceLiveInline({
         )}
       </div>
 
-      {/* Gold gradient bar — centerpiece */}
-      <div className="w-full max-w-[90%] sm:max-w-lg flex-shrink-0">
-        <div
+      {/* Gold waveform — centerpiece */}
+      <div className="w-full max-w-[90%] sm:max-w-2xl flex-shrink-0">
+        <svg
           ref={barRef}
-          className={`
-            relative w-full h-2 rounded-full overflow-hidden
-            ${barMode === 'connecting' || barMode === 'thinking' ? 'animate-[bar-shimmer_12s_linear_infinite]' : 'animate-[bar-glow-pulse_8s_ease-in-out_infinite]'}
-          `}
+          className={`w-full ${barMode === 'connecting' || barMode === 'thinking' ? 'animate-[wave-breathe_3s_ease-in-out_infinite]' : ''}`}
+          viewBox="0 0 200 20"
+          height="24"
+          preserveAspectRatio="none"
           style={{
             ['--bar-glow' as string]: '0',
-            background: 'linear-gradient(90deg, #533517, #c49746, #feeaa5, #c49746, #533517)',
-            backgroundSize: '200% 100%',
-            boxShadow: `0 0 calc(8px + 20px * var(--bar-glow)) rgba(196, 151, 70, calc(0.25 + var(--bar-glow) * 0.4)),
-                         0 0 calc(2px + 8px * var(--bar-glow)) rgba(254, 234, 165, calc(0.15 + var(--bar-glow) * 0.3))`,
+            filter: `drop-shadow(0 0 calc(4px + 10px * var(--bar-glow)) rgba(196, 151, 70, calc(0.3 + var(--bar-glow) * 0.4)))
+                     drop-shadow(0 0 calc(1px + 4px * var(--bar-glow)) rgba(254, 234, 165, calc(0.15 + var(--bar-glow) * 0.3)))`,
           }}
-        />
+        >
+          <defs>
+            <linearGradient id="gold-wave-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#533517" />
+              <stop offset="25%" stopColor="#c49746" />
+              <stop offset="50%" stopColor="#feeaa5" />
+              <stop offset="75%" stopColor="#c49746" />
+              <stop offset="100%" stopColor="#533517" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M 0 10 C 12.5 3, 25 3, 37.5 10 S 62.5 17, 75 10 S 100 3, 112.5 10 S 137.5 17, 150 10 S 175 3, 187.5 10 L 200 10"
+            stroke="url(#gold-wave-grad)"
+            strokeWidth="2.5"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </svg>
 
         {/* State label */}
         <p className="mt-3 text-xs font-medium text-white/40 tracking-wide text-center">
@@ -148,46 +162,39 @@ export function VoiceLiveInline({
         </p>
       </div>
 
-      {/* User transcript — below bar, premium gold */}
-      <div className="flex-shrink-0 w-full max-w-lg mt-4 min-h-[2.5rem]">
-        {userTranscript ? (
-          <p className="text-amber-400/90 text-sm leading-relaxed text-center whitespace-pre-wrap">
-            {userTranscript}
-          </p>
-        ) : (
-          barMode === 'listening' && (
-            <p className="text-amber-400/25 text-sm text-center italic">Speak now\u2026</p>
-          )
-        )}
-      </div>
+      {/* Bottom half — mirrors top flex-1 for true vertical centering */}
+      <div className="flex-1 min-h-0 flex flex-col items-center w-full">
+        {/* User transcript — below bar, premium gold */}
+        <div className="flex-shrink-0 w-full max-w-[90%] sm:max-w-2xl mt-4 min-h-[2.5rem]">
+          {userTranscript ? (
+            <p className="text-amber-400/90 text-sm leading-relaxed text-center whitespace-pre-wrap">
+              {userTranscript}
+            </p>
+          ) : (
+            barMode === 'listening' && (
+              <p className="text-amber-400/25 text-sm text-center italic">Speak now…</p>
+            )
+          )}
+        </div>
 
-      {/* End session button */}
-      <div className="flex-shrink-0 mt-4">
-        <button
-          type="button"
-          onClick={onEndSession}
-          className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all duration-150 flex items-center justify-center shadow-lg shadow-red-900/40"
-          aria-label="End voice session"
-        >
-          <PhoneOff size={18} className="text-white" />
-        </button>
+        {/* End session button */}
+        <div className="flex-shrink-0 mt-4">
+          <button
+            type="button"
+            onClick={onEndSession}
+            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all duration-150 flex items-center justify-center shadow-lg shadow-red-900/40"
+            aria-label="End voice session"
+          >
+            <PhoneOff size={18} className="text-white" />
+          </button>
+        </div>
       </div>
 
       {/* CSS keyframes */}
       <style>{`
-        @keyframes bar-shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-        @keyframes bar-glow-pulse {
-          0%, 100% {
-            transform: scaleX(1);
-            opacity: 0.85;
-          }
-          50% {
-            transform: scaleX(1.02);
-            opacity: 1;
-          }
+        @keyframes wave-breathe {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
         }
       `}</style>
     </div>
