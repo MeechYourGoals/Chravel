@@ -46,15 +46,36 @@ SET search_path = public
 AS $$
 DECLARE
   v_actual_version INTEGER;
+  v_trip_id UUID;
+  v_created_by UUID;
 BEGIN
-  -- Get current version with row lock
-  SELECT version INTO v_actual_version
+  -- Get current version, trip_id, and creator with row lock
+  SELECT version, trip_id, created_by
+  INTO v_actual_version, v_trip_id, v_created_by
   FROM trip_events
   WHERE id = p_event_id
   FOR UPDATE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Event not found' USING ERRCODE = 'P0002';
+  END IF;
+
+  -- Authorization: caller must be a trip member
+  IF NOT EXISTS (
+    SELECT 1 FROM trip_members
+    WHERE trip_id = v_trip_id AND user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Access denied: not a trip member' USING ERRCODE = '42501';
+  END IF;
+
+  -- Authorization: only the event creator or a trip admin can edit
+  IF v_created_by != auth.uid() THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM trip_members
+      WHERE trip_id = v_trip_id AND user_id = auth.uid() AND role = 'admin'
+    ) THEN
+      RAISE EXCEPTION 'Access denied: only the event creator or an admin can edit' USING ERRCODE = '42501';
+    END IF;
   END IF;
 
   -- Version check (treat NULL as version 1 for backward compat)
@@ -75,6 +96,8 @@ BEGIN
     location = COALESCE(p_location, location),
     event_category = COALESCE(p_event_category, event_category),
     include_in_itinerary = COALESCE(p_include_in_itinerary, include_in_itinerary),
+    is_all_day = COALESCE(p_is_all_day, is_all_day),
+    source_data = COALESCE(p_source_data, source_data),
     version = COALESCE(v_actual_version, 1) + 1,
     updated_at = NOW()
   WHERE id = p_event_id
@@ -82,7 +105,7 @@ BEGIN
 END;
 $$;
 
--- Grant to authenticated users (RLS on trip_events still enforces membership)
+-- Grant to authenticated users (function body enforces membership + creator/admin check)
 GRANT EXECUTE ON FUNCTION public.update_event_with_version(
   UUID, INTEGER, TEXT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT, BOOLEAN, BOOLEAN, JSONB
 ) TO authenticated;

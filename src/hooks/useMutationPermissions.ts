@@ -88,6 +88,26 @@ export function useMutationPermissions(tripId: string): MutationPermissions {
     };
   }
 
+  // While permissions load, default to permissive — RLS enforces server-side.
+  // This prevents flashing "Permission Denied" toasts for legitimate users.
+  if (isLoading) {
+    return {
+      isLoading: true,
+      tripType,
+      canCreateTask: true,
+      canEditTask: true,
+      canDeleteTask: true,
+      canCreatePoll: true,
+      canClosePoll: true,
+      canDeletePoll: true,
+      canCreateEvent: true,
+      canEditEvent: true,
+      canDeleteEvent: true,
+      canSetBasecamp: true,
+      canSaveLink: true,
+    };
+  }
+
   // Consumer trips: all members can do everything
   if (tripType === 'consumer') {
     return {

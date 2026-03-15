@@ -136,7 +136,7 @@ export function usePendingActions(tripId: string) {
           throw new Error(`Unknown tool: ${action.tool_name}`);
       }
 
-      // Mark as confirmed
+      // Mark as confirmed — re-check status to prevent TOCTOU race
       const { error: updateError } = await supabase
         .from('trip_pending_actions')
         .update({
@@ -144,9 +144,12 @@ export function usePendingActions(tripId: string) {
           resolved_at: new Date().toISOString(),
           resolved_by: user.id,
         })
-        .eq('id', actionId);
+        .eq('id', actionId)
+        .eq('status', 'pending')
+        .select()
+        .single();
 
-      if (updateError) throw updateError;
+      if (updateError) throw new Error('Action was already confirmed by someone else.');
 
       return action;
     },

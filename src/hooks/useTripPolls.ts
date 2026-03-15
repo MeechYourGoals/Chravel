@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
@@ -99,6 +99,7 @@ export const useTripPolls = (tripId: string) => {
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const permissions = useMutationPermissions(tripId);
+  const pendingIdempotencyKey = useRef<string>('');
 
   // Fetch polls from database or localStorage
   const { data: polls = [], isLoading } = useQuery({
@@ -258,6 +259,7 @@ export const useTripPolls = (tripId: string) => {
         ...(old || []),
       ]);
 
+      pendingIdempotencyKey.current = generateMutationId();
       return { previousPolls };
     },
     mutationFn: async (poll: CreatePollRequest) => {
@@ -291,8 +293,7 @@ export const useTripPolls = (tripId: string) => {
         voters: [],
       }));
 
-      // Idempotency key prevents duplicate polls on retry
-      const mutationId = generateMutationId();
+      // Idempotency key set in onMutate (once per user intent, stable across retries)
       const { data, error } = await supabase
         .from('trip_polls')
         .insert({
@@ -306,7 +307,7 @@ export const useTripPolls = (tripId: string) => {
           is_anonymous: poll.settings?.is_anonymous || false,
           allow_vote_change: poll.settings?.allow_vote_change !== false,
           deadline_at: poll.settings?.deadline_at || null,
-          idempotency_key: mutationId,
+          idempotency_key: pendingIdempotencyKey.current,
         })
         .select()
         .single();

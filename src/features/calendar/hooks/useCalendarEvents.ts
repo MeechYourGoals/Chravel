@@ -171,15 +171,6 @@ export const useCalendarEvents = (tripId?: string) => {
       if (!permissions.canEditEvent && !isDemoMode) {
         throw new Error("PERMISSION: You don't have permission to edit calendar events.");
       }
-      // B5: Client-side creator/admin check — prevents optimistic update flash + rollback
-      // RLS enforces this server-side, but this saves a wasted round-trip
-      if (user?.id && tripId) {
-        const cached = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId));
-        const existing = cached?.find(e => e.id === eventId);
-        if (existing && existing.created_by !== user.id && !permissions.canEditEvent) {
-          throw new Error('PERMISSION: Only the event creator or an admin can edit this event.');
-        }
-      }
       await calendarService.updateEvent(eventId, updates, currentVersion);
       return { eventId, updates };
     },
@@ -274,6 +265,11 @@ export const useCalendarEvents = (tripId?: string) => {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('PERMISSION:')) {
         toast.error(msg.replace('PERMISSION: ', ''));
+      } else if (msg.includes('CONFLICT:') || msg.includes('modified by another user')) {
+        toast.error('This event was modified by someone else. Please refresh and try again.');
+        if (tripId) {
+          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+        }
       }
       return false;
     }
