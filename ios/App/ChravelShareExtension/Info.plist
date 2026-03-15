@@ -38,8 +38,13 @@
 				<integer>1</integer>
 			</dict>
 		</dict>
-		<key>NSExtensionMainStoryboard</key>
-		<string>MainInterface</string>
+		<!--
+		Use NSExtensionPrincipalClass instead of NSExtensionMainStoryboard
+		so the SwiftUI-based ShareViewController is the entry point.
+		If Xcode auto-generates a MainInterface.storyboard, delete it.
+		-->
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.share-services</string>
 	</dict>
