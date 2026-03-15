@@ -31,8 +31,11 @@ export async function processSharedItem(
   }
 
   // Check for backend-level dedupe
+  // intentional: shared_inbound_items not yet in generated types
+  const sbAny = supabase as any;
+
   if (item.dedupeFingerprint) {
-    const { data: existing } = await supabase
+    const { data: existing } = await sbAny
       .from('shared_inbound_items')
       .select('id')
       .eq('dedupe_fingerprint', item.dedupeFingerprint)
@@ -46,7 +49,7 @@ export async function processSharedItem(
   }
 
   // Insert the shared inbound item record
-  const { data: savedItem, error: insertError } = await supabase
+  const { data: savedItem, error: insertError } = await sbAny
     .from('shared_inbound_items')
     .insert({
       id: item.id,
