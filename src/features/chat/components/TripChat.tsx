@@ -126,7 +126,7 @@ export const TripChat = React.memo(
       tripId: string;
     } | null>(null);
     const [failedMessages, setFailedMessages] = useState<
-      Array<{ id: string; text: string; authorName: string }>
+      Array<{ id: string; text: string; authorName: string; messageType?: 'text' | 'broadcast' | 'payment' | 'system' }>
     >([]);
 
     const { isOffline } = useOfflineStatus();
