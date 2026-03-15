@@ -105,6 +105,8 @@ export interface SessionPersonalBasecamp {
   address: string;
   latitude?: number;
   longitude?: number;
+  type?: 'hotel' | 'short-term' | 'other';
+  confirmation_number?: string;
   created_at: string;
   updated_at: string;
 }
@@ -897,6 +899,8 @@ class DemoModeService {
     address: string;
     latitude?: number;
     longitude?: number;
+    type?: 'hotel' | 'short-term' | 'other';
+    confirmation_number?: string;
   }): SessionPersonalBasecamp {
     const key = `${payload.trip_id}:${payload.user_id}`;
     const basecamp: SessionPersonalBasecamp = {
@@ -907,6 +911,8 @@ class DemoModeService {
       address: payload.address,
       latitude: payload.latitude,
       longitude: payload.longitude,
+      type: payload.type,
+      confirmation_number: payload.confirmation_number,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
