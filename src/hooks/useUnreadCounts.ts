@@ -17,7 +17,6 @@ interface UseUnreadCountsOptions {
 }
 
 interface UnreadCounts {
-  unreadCount: number;
   broadcastCount: number;
   messageUnreadCount: number;
 }
@@ -32,13 +31,11 @@ export function useUnreadCounts({
   userId,
   enabled = true,
 }: UseUnreadCountsOptions): UnreadCounts {
-  const [unreadCount, setUnreadCount] = useState(0);
   const [broadcastCount, setBroadcastCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!enabled || !userId || !tripId || messages.length === 0) {
-      setUnreadCount(0);
       setBroadcastCount(0);
       setMessageUnreadCount(0);
       return;
@@ -74,7 +71,6 @@ export function useUnreadCounts({
           msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
         ).length;
 
-        setUnreadCount(totalUnread);
         setBroadcastCount(unreadBroadcasts);
         setMessageUnreadCount(totalUnread - unreadBroadcasts);
       } catch (error) {
@@ -107,5 +103,5 @@ export function useUnreadCounts({
     };
   }, [tripId, userId, messages, enabled]);
 
-  return { unreadCount, broadcastCount, messageUnreadCount };
+  return { broadcastCount, messageUnreadCount };
 }
