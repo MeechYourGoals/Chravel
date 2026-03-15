@@ -14,6 +14,9 @@ interface UseUniversalSearchOptions {
   tripIds?: string[];
 }
 
+/** Max cached queries to prevent unbounded memory growth */
+const MAX_CACHE_SIZE = 20;
+
 export const useUniversalSearch = (query: string, options: UseUniversalSearchOptions = {}) => {
   const {
     contentTypes = ['trips', 'messages', 'calendar', 'task', 'poll', 'media'],
@@ -27,25 +30,41 @@ export const useUniversalSearch = (query: string, options: UseUniversalSearchOpt
   const { isDemoMode } = useDemoMode();
 
   const activeRequestRef = useRef<AbortController | null>(null);
+  const cacheRef = useRef<Map<string, UniversalSearchResult[]>>(new Map());
 
   useEffect(() => {
-    const search = async () => {
-      if (!query.trim() || query.length < 2) {
-        setResults([]);
-        return;
-      }
+    const trimmedQuery = query.trim();
 
+    if (!trimmedQuery || trimmedQuery.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const cacheKey = trimmedQuery.toLowerCase();
+
+    // Return cached results immediately to eliminate perceived latency
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      setResults(cached);
+      // Still refresh in background but don't show loading state
+    }
+
+    const search = async () => {
       if (activeRequestRef.current) {
         activeRequestRef.current.abort();
       }
 
       const abortController = new AbortController();
       activeRequestRef.current = abortController;
-      setIsLoading(true);
+
+      // Only show loading spinner if we have no cached results
+      if (!cached) {
+        setIsLoading(true);
+      }
 
       try {
         const searchResults = await performUniversalSearch({
-          query: query.trim(),
+          query: trimmedQuery,
           contentTypes,
           filters: { tripIds },
           searchMode,
@@ -54,18 +73,27 @@ export const useUniversalSearch = (query: string, options: UseUniversalSearchOpt
 
         if (!abortController.signal.aborted) {
           setResults(searchResults);
+
+          // Evict oldest entry if cache is full
+          if (cacheRef.current.size >= MAX_CACHE_SIZE) {
+            const firstKey = cacheRef.current.keys().next().value;
+            if (firstKey !== undefined) {
+              cacheRef.current.delete(firstKey);
+            }
+          }
+          cacheRef.current.set(cacheKey, searchResults);
         }
       } catch (error) {
-        // Check if this is an AbortError (user cancelled the search)
         const isAbortError = error instanceof Error && error.name === 'AbortError';
         if (!isAbortError) {
-          console.error('Search error:', error);
           toast({
             variant: 'destructive',
             title: 'Search failed',
             description: 'Unable to search. Please try again.',
           });
-          setResults([]);
+          if (!cached) {
+            setResults([]);
+          }
         }
       } finally {
         if (!abortController.signal.aborted) {

@@ -259,7 +259,7 @@ export const ChatSearchOverlay = ({
           {broadcasts.length > 0 && (
             <div>
               <div className="px-4 py-2 bg-white/5 flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-orange-400" />
+                <Megaphone className="w-4 h-4 text-[#B91C1C]" />
                 <span className="text-sm font-medium text-white/70">Broadcasts</span>
                 <span className="text-xs text-white/50">({broadcasts.length})</span>
               </div>
@@ -272,7 +272,7 @@ export const ChatSearchOverlay = ({
                     onClick={() => handleResultClick(globalIndex)}
                     className={cn(
                       'w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5',
-                      selectedIndex === globalIndex && 'bg-orange-500/20',
+                      selectedIndex === globalIndex && 'bg-[#B91C1C]/20',
                     )}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">

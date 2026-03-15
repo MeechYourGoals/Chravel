@@ -4,6 +4,27 @@ import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TripChannel } from '@/types/roleChannels';
 
+/** Centralized segment color map — single source of truth for all chat tab styling */
+const SEGMENT_COLORS = {
+  all: {
+    active: 'bg-[#007AFF] text-white shadow-md',
+    inactive: 'text-white/70 hover:text-white hover:bg-white/5',
+    badge: 'bg-gold-primary text-black',
+  },
+  broadcasts: {
+    active: 'bg-[#B91C1C] text-white shadow-md',
+    inactive: 'text-[#B91C1C]/70 hover:text-[#B91C1C] hover:bg-[#B91C1C]/10',
+    badge: 'bg-[#B91C1C] text-white',
+  },
+  channels: {
+    active: 'bg-[#059669] text-white shadow-md',
+    inactive: 'text-[#059669]/70 hover:text-[#059669] hover:bg-[#059669]/10',
+  },
+  search: {
+    inactive: 'text-[#1E40AF]/70 hover:text-[#1E40AF] hover:bg-[#1E40AF]/10',
+  },
+} as const;
+
 interface MessageTypeBarProps {
   activeFilter: 'all' | 'broadcasts' | 'channels';
   onFilterChange: (filter: 'all' | 'broadcasts' | 'channels') => void;
@@ -62,9 +83,7 @@ export const MessageTypeBar = ({
             className={cn(
               'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
-              activeFilter === 'all'
-                ? 'bg-[#007AFF] text-white shadow-md'
-                : 'text-white/70 hover:text-white hover:bg-white/5',
+              activeFilter === 'all' ? SEGMENT_COLORS.all.active : SEGMENT_COLORS.all.inactive,
             )}
             aria-pressed={activeFilter === 'all'}
           >
@@ -84,15 +103,20 @@ export const MessageTypeBar = ({
               'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
               activeFilter === 'broadcasts'
-                ? 'bg-orange-500 text-white shadow-md'
-                : 'text-orange-400/70 hover:text-orange-400 hover:bg-orange-500/10',
+                ? SEGMENT_COLORS.broadcasts.active
+                : SEGMENT_COLORS.broadcasts.inactive,
             )}
             aria-pressed={activeFilter === 'broadcasts'}
           >
             <Megaphone className="w-4 h-4" />
             <span>Broadcasts</span>
             {broadcastCount > 0 && activeFilter !== 'broadcasts' && (
-              <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-orange-500 text-white font-semibold">
+              <span
+                className={cn(
+                  'ml-1 px-1.5 py-0.5 text-xs rounded-full font-semibold',
+                  SEGMENT_COLORS.broadcasts.badge,
+                )}
+              >
                 {broadcastCount}
               </span>
             )}
@@ -114,8 +138,8 @@ export const MessageTypeBar = ({
                     'text-sm font-medium transition-all duration-200',
                     !hasChannels && 'opacity-40 cursor-not-allowed',
                     activeFilter === 'channels' && hasChannels
-                      ? 'bg-purple-500 text-white shadow-md'
-                      : 'text-purple-400/70 hover:text-purple-400 hover:bg-purple-500/10',
+                      ? SEGMENT_COLORS.channels.active
+                      : SEGMENT_COLORS.channels.inactive,
                     !hasChannels && 'hover:bg-transparent',
                   )}
                   aria-pressed={activeFilter === 'channels'}
@@ -169,7 +193,7 @@ export const MessageTypeBar = ({
                           className={cn(
                             'flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
                             activeChannel?.id === channel.id
-                              ? 'bg-purple-500 text-white shadow-md'
+                              ? SEGMENT_COLORS.channels.active
                               : 'text-white/70 hover:text-white hover:bg-white/10',
                           )}
                         >
@@ -194,7 +218,7 @@ export const MessageTypeBar = ({
             className={cn(
               'relative flex items-center gap-1.5 px-3 py-2 rounded-xl',
               'text-sm font-medium transition-all duration-200',
-              'text-cyan-400/70 hover:text-cyan-400 hover:bg-cyan-500/10',
+              SEGMENT_COLORS.search.inactive,
             )}
             title="Search messages and broadcasts"
           >
