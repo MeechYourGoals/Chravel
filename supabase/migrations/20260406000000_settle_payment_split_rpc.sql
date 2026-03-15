@@ -44,10 +44,10 @@ BEGIN
    WHERE id = p_split_id;
 
   -- Insert audit log entry using authenticated caller, not parameter
-  INSERT INTO payment_audit_log (payment_message_id, action, actor_user_id, details)
+  INSERT INTO payment_audit_log (payment_message_id, action, actor_user_id, metadata)
   VALUES (
     v_split.payment_message_id,
-    'split_settled',
+    'settled',
     v_caller,
     jsonb_build_object('split_id', p_split_id, 'method', p_method)
   );

@@ -129,6 +129,13 @@ export const archiveTrip = async (
     if (import.meta.env.DEV) console.error('Failed to archive trip:', error);
     throw error;
   }
+
+  // Best-effort storage cleanup — don't block the archive action
+  cleanupTripStorage(tripId).catch(cleanupErr => {
+    if (import.meta.env.DEV) {
+      console.error('Storage cleanup failed for trip:', tripId, cleanupErr);
+    }
+  });
 };
 
 // Restore (unarchive) a trip
