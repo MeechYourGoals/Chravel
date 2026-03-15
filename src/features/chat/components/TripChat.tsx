@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { demoModeService } from '@/services/demoModeService';
