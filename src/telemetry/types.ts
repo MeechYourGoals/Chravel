@@ -234,6 +234,42 @@ export interface RecommendationEvents {
   };
 }
 
+/**
+ * Voice / Gemini Live Events
+ */
+export interface VoiceEvents {
+  voice_session_started: {
+    trip_id: string;
+    voice: string;
+    auto_reconnect_attempt: number;
+  };
+  voice_session_ended: {
+    trip_id: string;
+    duration_ms: number;
+    turns: number;
+    tool_calls: number;
+    barge_ins: number;
+    reconnects: number;
+    close_code: number | null;
+    error: string | null;
+  };
+  voice_tool_executed: {
+    trip_id: string;
+    tool_name: string;
+    success: boolean;
+    deduplicated: boolean;
+    latency_ms: number;
+  };
+  voice_barge_in: {
+    trip_id: string;
+  };
+  voice_error: {
+    trip_id: string;
+    error: string;
+    phase: string;
+  };
+}
+
 // ============================================================================
 // Combined Event Map
 // ============================================================================
@@ -249,7 +285,8 @@ export type TelemetryEventMap = AuthEvents &
   ErrorEvents &
   OnboardingEvents &
   DemoEvents &
-  RecommendationEvents;
+  RecommendationEvents &
+  VoiceEvents;
 
 export type TelemetryEventName = keyof TelemetryEventMap;
 

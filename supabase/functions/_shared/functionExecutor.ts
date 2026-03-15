@@ -970,13 +970,21 @@ async function _executeImpl(
     // ========== UPDATE / DELETE TOOLS ==========
 
     case 'updateCalendarEvent': {
-      const { eventId, title, datetime, endDatetime, location, notes } = args;
+      const {
+        eventId,
+        title,
+        datetime,
+        endDatetime,
+        location,
+        notes,
+        version: expectedVersion,
+      } = args;
       if (!eventId) return { error: 'eventId is required' };
 
       // Verify event belongs to this trip before updating
       const { data: existing, error: fetchErr } = await supabase
         .from('trip_events')
-        .select('id, trip_id, created_by')
+        .select('id, trip_id, created_by, version')
         .eq('id', eventId)
         .eq('trip_id', tripId)
         .single();
@@ -999,14 +1007,28 @@ async function _executeImpl(
         return { error: 'No fields to update' };
       }
 
-      const { data, error } = await supabase
+      // OCC: increment version and guard on expected version if provided
+      updatePayload.version = (((existing as Record<string, unknown>).version as number) ?? 1) + 1;
+      let query = supabase
         .from('trip_events')
         .update(updatePayload)
         .eq('id', eventId)
-        .eq('trip_id', tripId)
-        .select()
-        .single();
-      if (error) throw error;
+        .eq('trip_id', tripId);
+      if (typeof expectedVersion === 'number') {
+        query = query.eq('version', expectedVersion);
+      }
+      const { data, error } = await query.select().single();
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return {
+            success: false,
+            error: 'conflict',
+            stale: true,
+            message: 'Event was modified by another user. Please try again.',
+          };
+        }
+        throw error;
+      }
       return {
         success: true,
         event: data,
@@ -1016,7 +1038,7 @@ async function _executeImpl(
     }
 
     case 'deleteCalendarEvent': {
-      const { eventId } = args;
+      const { eventId, version: expectedVersion } = args;
       if (!eventId) return { error: 'eventId is required' };
 
       // Verify event belongs to this trip
@@ -1030,12 +1052,25 @@ async function _executeImpl(
         return { error: 'Event not found in this trip' };
       }
 
-      const { error } = await supabase
+      // OCC: guard on expected version if provided
+      let deleteQuery = supabase
         .from('trip_events')
         .delete()
         .eq('id', eventId)
         .eq('trip_id', tripId);
+      if (typeof expectedVersion === 'number') {
+        deleteQuery = deleteQuery.eq('version', expectedVersion);
+      }
+      const { error, count } = await deleteQuery;
       if (error) throw error;
+      if (typeof expectedVersion === 'number' && count === 0) {
+        return {
+          success: false,
+          error: 'conflict',
+          stale: true,
+          message: 'Event was modified by another user. Please try again.',
+        };
+      }
       return {
         success: true,
         actionType: 'delete_calendar_event',
@@ -1044,13 +1079,21 @@ async function _executeImpl(
     }
 
     case 'updateTask': {
-      const { taskId, title, description, assignee, dueDate, completed } = args;
+      const {
+        taskId,
+        title,
+        description,
+        assignee,
+        dueDate,
+        completed,
+        version: expectedVersion,
+      } = args;
       if (!taskId) return { error: 'taskId is required' };
 
       // Verify task belongs to this trip
       const { data: existing, error: fetchErr } = await supabase
         .from('trip_tasks')
-        .select('id, trip_id, title')
+        .select('id, trip_id, title, version')
         .eq('id', taskId)
         .eq('trip_id', tripId)
         .single();
@@ -1071,14 +1114,28 @@ async function _executeImpl(
         return { error: 'No fields to update' };
       }
 
-      const { data, error } = await supabase
+      // OCC: increment version and guard on expected version if provided
+      updatePayload.version = (((existing as Record<string, unknown>).version as number) ?? 1) + 1;
+      let query = supabase
         .from('trip_tasks')
         .update(updatePayload)
         .eq('id', taskId)
-        .eq('trip_id', tripId)
-        .select()
-        .single();
-      if (error) throw error;
+        .eq('trip_id', tripId);
+      if (typeof expectedVersion === 'number') {
+        query = query.eq('version', expectedVersion);
+      }
+      const { data, error } = await query.select().single();
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return {
+            success: false,
+            error: 'conflict',
+            stale: true,
+            message: 'Task was modified by another user. Please try again.',
+          };
+        }
+        throw error;
+      }
       return {
         success: true,
         task: data,
@@ -1088,7 +1145,7 @@ async function _executeImpl(
     }
 
     case 'deleteTask': {
-      const { taskId } = args;
+      const { taskId, version: expectedVersion } = args;
       if (!taskId) return { error: 'taskId is required' };
 
       const { data: existing, error: fetchErr } = await supabase
@@ -1101,12 +1158,21 @@ async function _executeImpl(
         return { error: 'Task not found in this trip' };
       }
 
-      const { error } = await supabase
-        .from('trip_tasks')
-        .delete()
-        .eq('id', taskId)
-        .eq('trip_id', tripId);
+      // OCC: guard on expected version if provided
+      let deleteQuery = supabase.from('trip_tasks').delete().eq('id', taskId).eq('trip_id', tripId);
+      if (typeof expectedVersion === 'number') {
+        deleteQuery = deleteQuery.eq('version', expectedVersion);
+      }
+      const { error, count } = await deleteQuery;
       if (error) throw error;
+      if (typeof expectedVersion === 'number' && count === 0) {
+        return {
+          success: false,
+          error: 'conflict',
+          stale: true,
+          message: 'Task was modified by another user. Please try again.',
+        };
+      }
       return {
         success: true,
         actionType: 'delete_task',

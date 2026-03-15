@@ -30,6 +30,7 @@ import { useGeminiLive } from '@/hooks/useGeminiLive';
 import type { ToolCallResult } from '@/hooks/useGeminiLive';
 import { useVoiceToolHandler } from '@/hooks/useVoiceToolHandler';
 import { VoiceLiveInline } from '@/features/chat/components/VoiceLiveInline';
+import { FeatureErrorBoundary } from '@/components/FeatureErrorBoundary';
 import { CTA_BUTTON, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import { supabase } from '@/integrations/supabase/client';
 import { useConciergeSessionStore, type ConciergeSession } from '@/store/conciergeSessionStore';
@@ -1956,13 +1957,15 @@ export const AIConciergeChat = ({
 
         {/* Chat area — shows inline live UI when active, otherwise normal messages */}
         {isLiveSessionActive ? (
-          <VoiceLiveInline
-            liveState={liveState}
-            userTranscript={liveUserTranscript}
-            assistantTranscript={liveAssistantTranscript}
-            diagnostics={liveDiagnostics}
-            onEndSession={() => void handleEndLiveSession()}
-          />
+          <FeatureErrorBoundary featureName="voice-live">
+            <VoiceLiveInline
+              liveState={liveState}
+              userTranscript={liveUserTranscript}
+              assistantTranscript={liveAssistantTranscript}
+              diagnostics={liveDiagnostics}
+              onEndSession={() => void handleEndLiveSession()}
+            />
+          </FeatureErrorBoundary>
         ) : (
           <div
             ref={chatScrollRef}

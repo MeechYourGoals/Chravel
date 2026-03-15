@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { ToolCallRequest } from '@/hooks/useGeminiLive';
+import { telemetry } from '@/telemetry/service';
 
 interface UseVoiceToolHandlerOptions {
   tripId: string;
@@ -74,6 +75,7 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
       const { name, args } = call;
       const currentTripId = tripIdRef.current;
       const currentUserId = userIdRef.current;
+      const toolStartMs = performance.now();
 
       // Gate: refuse writes if auth context is missing
       if (!currentUserId || !currentTripId) {
@@ -85,6 +87,13 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
       if (idempotencyKey && MUTATING_CLIENT_TOOLS.has(name)) {
         const cached = idempotencyCacheRef.current.get(idempotencyKey);
         if (cached) {
+          telemetry.track('voice_tool_executed', {
+            trip_id: currentTripId,
+            tool_name: name,
+            success: true,
+            deduplicated: true,
+            latency_ms: Math.round(performance.now() - toolStartMs),
+          });
           return { ...cached, _deduplicated: true };
         }
       }
@@ -341,6 +350,13 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
         }
       } catch (validationError) {
         // Catch validation errors from requireString / validateDatetime
+        telemetry.track('voice_tool_executed', {
+          trip_id: currentTripId,
+          tool_name: name,
+          success: false,
+          deduplicated: false,
+          latency_ms: Math.round(performance.now() - toolStartMs),
+        });
         return {
           success: false,
           error:

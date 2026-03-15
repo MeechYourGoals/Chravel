@@ -14,6 +14,8 @@ function stateLabel(state: GeminiLiveState): string {
   switch (state) {
     case 'requesting_mic':
       return 'Connecting\u2026';
+    case 'reconnecting':
+      return 'Reconnecting\u2026';
     case 'ready':
       return 'Ready';
     case 'listening':
@@ -36,6 +38,7 @@ type BarMode = 'connecting' | 'listening' | 'speaking' | 'thinking';
 function getBarMode(state: GeminiLiveState): BarMode {
   switch (state) {
     case 'requesting_mic':
+    case 'reconnecting':
     case 'ready':
       return 'connecting';
     case 'listening':

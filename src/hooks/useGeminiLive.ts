@@ -15,10 +15,12 @@ import {
   checkCaptureSampleRate,
   AUDIO_CONTRACT,
 } from '@/voice/audioContract';
+import { telemetry } from '@/telemetry/service';
 
 export type GeminiLiveState =
   | 'idle'
   | 'requesting_mic'
+  | 'reconnecting'
   | 'ready'
   | 'listening'
   | 'sending'
@@ -287,6 +289,17 @@ export function useGeminiLive({
   // Sent on reconnect to resume the conversation without losing context.
   const resumptionTokenRef = useRef<string | null>(null);
 
+  /** Session-level metrics accumulated for telemetry emission on cleanup. */
+  const sessionMetricsRef = useRef({
+    startedAt: 0,
+    turnCount: 0,
+    toolCallCount: 0,
+    bargeInCount: 0,
+    reconnects: 0,
+    closeCode: null as number | null,
+    lastError: null as string | null,
+  });
+
   const userTranscriptAccRef = useRef('');
   const assistantTranscriptAccRef = useRef('');
   /** Accumulated tool call results for the current turn */
@@ -381,13 +394,18 @@ export function useGeminiLive({
     [debugLog],
   );
 
-  const recordVoiceFailure = useCallback((errMsg: string) => {
-    const justOpened = recordFailure(errMsg);
-    if (justOpened) {
-      setCircuitBreakerOpen(true);
-      onCircuitBreakerOpenRef.current?.();
-    }
-  }, []);
+  const recordVoiceFailure = useCallback(
+    (errMsg: string) => {
+      sessionMetricsRef.current.lastError = errMsg;
+      telemetry.track('voice_error', { trip_id: tripId, error: errMsg, phase: stateRef.current });
+      const justOpened = recordFailure(errMsg);
+      if (justOpened) {
+        setCircuitBreakerOpen(true);
+        onCircuitBreakerOpenRef.current?.();
+      }
+    },
+    [tripId],
+  );
 
   const clearThinkingTimer = useCallback(() => {
     if (thinkingTimerRef.current) {
@@ -475,8 +493,24 @@ export function useGeminiLive({
       substep: null,
     });
 
+    // Emit session-ended telemetry if a session was active
+    const sm = sessionMetricsRef.current;
+    if (sm.startedAt > 0) {
+      telemetry.track('voice_session_ended', {
+        trip_id: tripId,
+        duration_ms: Date.now() - sm.startedAt,
+        turns: sm.turnCount,
+        tool_calls: sm.toolCallCount,
+        barge_ins: sm.bargeInCount,
+        reconnects: sm.reconnects,
+        close_code: sm.closeCode,
+        error: sm.lastError,
+      });
+      sessionMetricsRef.current.startedAt = 0;
+    }
+
     isCleaningUpRef.current = false;
-  }, [clearThinkingTimer, patchDiagnostics, stopRmsFlush]);
+  }, [clearThinkingTimer, patchDiagnostics, stopRmsFlush, tripId]);
 
   useEffect(
     () => () => {
@@ -577,6 +611,7 @@ export function useGeminiLive({
             const result = await handler({ id: fc.id, name: fc.name, args: fc.args || {} });
             // Accumulate tool results for rich card rendering in chat
             turnToolResultsRef.current.push({ name: fc.name, result });
+            sessionMetricsRef.current.toolCallCount += 1;
             return { id: fc.id, name: fc.name, response: result };
           } catch (err) {
             return {
@@ -929,8 +964,10 @@ export function useGeminiLive({
                 attempt,
                 max: MAX_AUTO_RECONNECT_RETRIES,
               });
-              patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-              transition('requesting_mic', 'auto_reconnect_pending');
+              patchDiagnostics({
+                substep: `Reconnecting… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})`,
+              });
+              transition('reconnecting', 'auto_reconnect_pending');
               setError(null);
               void cleanup().then(() => {
                 autoReconnectTimerRef.current = setTimeout(() => {
@@ -1104,6 +1141,8 @@ export function useGeminiLive({
                       if (rms > BARGE_IN_RMS_THRESHOLD && modelRespondingRef.current) {
                         flushModelOutput();
                         sendCancelSignal();
+                        sessionMetricsRef.current.bargeInCount += 1;
+                        telemetry.track('voice_barge_in', { trip_id: tripId });
                         transition('interrupted', 'barge_in_detected');
                         transition('listening', 'resume_after_interrupt');
                       }
@@ -1114,6 +1153,20 @@ export function useGeminiLive({
                   recordCircuitBreakerSuccess();
                   hasHadSuccessfulSessionRef.current = true;
                   autoReconnectAllowedRef.current = true;
+                  sessionMetricsRef.current = {
+                    startedAt: Date.now(),
+                    turnCount: 0,
+                    toolCallCount: 0,
+                    bargeInCount: 0,
+                    reconnects: autoReconnectCountRef.current,
+                    closeCode: null,
+                    lastError: null,
+                  };
+                  telemetry.track('voice_session_started', {
+                    trip_id: tripId,
+                    voice,
+                    auto_reconnect_attempt: autoReconnectCountRef.current,
+                  });
                   autoReconnectCountRef.current = 0;
                   startRmsFlush();
                   transition('listening', 'capture_started');
@@ -1225,8 +1278,14 @@ export function useGeminiLive({
                 typeof inputTranscript === 'string' ? inputTranscript : inputTranscript?.text || '';
               if (transcript) {
                 userHasSpokenRef.current = true;
-                userTranscriptAccRef.current = transcript;
-                setUserTranscript(transcript);
+                // Smoothing: only update if new transcript adds content.
+                // Vertex AI may re-send a shorter correction mid-utterance;
+                // keep the longer version to avoid jarring text shrink.
+                const prev = userTranscriptAccRef.current;
+                if (transcript.length >= prev.length || !prev.startsWith(transcript)) {
+                  userTranscriptAccRef.current = transcript;
+                  setUserTranscript(transcript);
+                }
                 transition('listening', 'input_transcript');
                 thinkingTimerRef.current = setTimeout(() => {
                   if (stateRef.current === 'listening') transition('sending', 'thinking_timeout');
@@ -1262,6 +1321,7 @@ export function useGeminiLive({
                 userText: userTranscriptAccRef.current.slice(0, 50),
                 assistantText: assistantTranscriptAccRef.current.slice(0, 50),
               });
+              sessionMetricsRef.current.turnCount += 1;
 
               const finalUser = userTranscriptAccRef.current.trim();
               const finalAssistant = assistantTranscriptAccRef.current.trim();
@@ -1323,6 +1383,7 @@ export function useGeminiLive({
         });
         voiceLog('ws:closed', { code: event.code, reason: event.reason, wasClean: event.wasClean });
         clearSetupTimeout();
+        sessionMetricsRef.current.closeCode = event.code;
         const msg = mapWsCloseError(event.code, event.reason);
         patchDiagnostics({
           connectionStatus: 'closed',
@@ -1347,8 +1408,10 @@ export function useGeminiLive({
             autoReconnectCountRef.current += 1;
             const attempt = autoReconnectCountRef.current;
             voiceLog('auto_reconnect:scheduling', { attempt, max: MAX_AUTO_RECONNECT_RETRIES });
-            patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-            transition('requesting_mic', 'auto_reconnect_pending');
+            patchDiagnostics({
+              substep: `Reconnecting… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})`,
+            });
+            transition('reconnecting', 'auto_reconnect_pending');
             setError(null);
             void cleanup().then(() => {
               autoReconnectTimerRef.current = setTimeout(() => {
@@ -1386,8 +1449,8 @@ export function useGeminiLive({
           attempt,
           max: MAX_AUTO_RECONNECT_RETRIES,
         });
-        patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-        transition('requesting_mic', 'auto_reconnect_pending');
+        patchDiagnostics({ substep: `Reconnecting… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
+        transition('reconnecting', 'auto_reconnect_pending');
         setError(null);
         void cleanup().then(() => {
           autoReconnectTimerRef.current = setTimeout(() => {
