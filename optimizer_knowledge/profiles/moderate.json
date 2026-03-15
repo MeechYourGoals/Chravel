@@ -1,0 +1,11 @@
+{
+  "id": "moderate",
+  "name": "Moderate",
+  "description": "Formatting fixes + missing frontmatter fields + description prefix normalization",
+  "maxRisk": "medium",
+  "rules": [
+    "normalize-trailing-newline",
+    "add-missing-frontmatter-fields",
+    "fix-description-prefix"
+  ]
+}

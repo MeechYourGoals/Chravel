@@ -1,0 +1,38 @@
+# Structure Rules — Skill Optimizer
+# These rules define what a well-structured artifact looks like.
+
+skill:
+  required_frontmatter:
+    - name: 'kebab-case identifier'
+    - description: "Must start with 'Use when...' and be under 1024 chars"
+  optional_frontmatter:
+    - user-invocable: 'boolean, defaults to true'
+    - disable-model-invocation: 'boolean'
+  recommended_sections:
+    - 'Overview or purpose statement'
+    - 'When to Use'
+    - 'Core Pattern or Workflow'
+    - 'Common Mistakes (for complex skills)'
+
+command:
+  format: 'Plain markdown, no frontmatter required'
+  recommended:
+    - 'Clear numbered workflow steps'
+    - 'Produce/output section defining deliverables'
+
+plugin:
+  required_fields:
+    - name
+    - description
+    - version
+    - skills: 'array of skill directory names'
+  optional_fields:
+    - author
+    - license
+    - keywords
+
+output_style:
+  format: 'YAML frontmatter + markdown body'
+  required_frontmatter:
+    - name
+    - description
