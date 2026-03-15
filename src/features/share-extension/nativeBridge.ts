@@ -22,8 +22,9 @@ export async function syncTripCacheToNative(trips: TripInfoForCache[]): Promise<
   if (!Capacitor.isNativePlatform()) return;
 
   try {
-    const { Plugins } = await import('@capacitor/core');
-    const bridge = Plugins as Record<
+    const capacitorCore = await import('@capacitor/core');
+    // intentional: Capacitor plugin not in published typings
+    const bridge = (capacitorCore as any).Plugins as Record<
       string,
       {
         syncTripCache?: (opts: { trips: string }) => Promise<void>;
