@@ -45,7 +45,8 @@ export class RecommendationService {
    * Fetch organic recommendations from the recommendation_items table.
    */
   static async getOrganicItems(filters?: RecommendationFilters): Promise<Recommendation[]> {
-    let query = supabase
+    // intentional: recommendation_items not yet in generated types
+    let query = (supabase as any)
       .from('recommendation_items')
       .select('*')
       .eq('is_active', true)
@@ -134,7 +135,8 @@ export class RecommendationService {
    * Fails silently — tracking should never break the UX.
    */
   static async trackImpression(params: ImpressionParams): Promise<string | null> {
-    const { data, error } = await supabase
+    // intentional: recommendation tables not yet in generated types
+    const { data, error } = await (supabase as any)
       .from('recommendation_impressions')
       .insert({
         item_id: params.itemId,
@@ -160,7 +162,8 @@ export class RecommendationService {
    * Fails silently — tracking should never break the UX.
    */
   static async trackClick(params: ClickParams): Promise<void> {
-    const { error } = await supabase.from('recommendation_clicks').insert({
+    // intentional: recommendation tables not yet in generated types
+    const { error } = await (supabase as any).from('recommendation_clicks').insert({
       impression_id: params.impressionId,
       action: params.action,
     });
@@ -179,7 +182,8 @@ export class RecommendationService {
     itemType: 'organic' | 'sponsored';
     feedbackType: 'not_interested' | 'hide' | 'report' | 'save' | 'love';
   }): Promise<void> {
-    const { error } = await supabase.from('recommendation_feedback').insert({
+    // intentional: recommendation tables not yet in generated types
+    const { error } = await (supabase as any).from('recommendation_feedback').insert({
       user_id: params.userId,
       item_id: params.itemId,
       item_type: params.itemType,
@@ -196,7 +200,8 @@ export class RecommendationService {
    * Get items the user has hidden, so they can be filtered from the feed.
    */
   static async getHiddenItemIds(userId: string): Promise<string[]> {
-    const { data, error } = await supabase
+    // intentional: recommendation tables not yet in generated types
+    const { data, error } = await (supabase as any)
       .from('recommendation_feedback')
       .select('item_id')
       .eq('user_id', userId)
