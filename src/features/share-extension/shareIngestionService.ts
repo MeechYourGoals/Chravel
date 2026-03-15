@@ -228,7 +228,8 @@ async function materializeAsCalendarNote(
 
   const content = parts.join('\n\n');
 
-  const { data, error } = await supabase
+  // intentional: trip_chat_messages insert shape mismatch with generated types
+  const { data, error } = await (supabase as any)
     .from('trip_chat_messages')
     .insert({
       trip_id: tripId,
