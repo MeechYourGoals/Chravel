@@ -34,10 +34,10 @@ import { safeReload } from '@/utils/safeReload';
 import { parseJwtPayload } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 import { retryImport } from '@/lib/retryImport';
+import Index from './pages/Index';
 
 // Lazy load pages for better performance
 
-const Index = lazy(() => retryImport(() => import('./pages/Index')));
 const TripDetail = lazy(() => retryImport(() => import('./pages/TripDetail')));
 const DemoTripGate = lazy(() => retryImport(() => import('./pages/DemoTripGate')));
 
