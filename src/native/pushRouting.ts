@@ -85,3 +85,38 @@ export function handleNotificationNavigation(
 export function getTripIdFromPayload(payload: ChravelPushPayload | null): string | null {
   return payload?.tripId ?? null;
 }
+
+/**
+ * Build a route for a shared inbound item deep link.
+ * Used when the Share Extension's "Open in Chravel" action launches the app.
+ */
+export function buildRouteFromSharedItem(
+  tripId: string,
+  destination: string,
+  sharedItemId: string,
+): string {
+  const params = new URLSearchParams();
+
+  switch (destination) {
+    case 'explore_links':
+      params.set('tab', 'links');
+      break;
+    case 'chat':
+      params.set('tab', 'chat');
+      break;
+    case 'tasks':
+      params.set('tab', 'tasks');
+      break;
+    case 'calendar':
+      params.set('tab', 'calendar');
+      break;
+    case 'concierge':
+      params.set('tab', 'chat');
+      break;
+    default:
+      break;
+  }
+
+  params.set('shared_item', sharedItemId);
+  return `/trip/${tripId}?${params.toString()}`;
+}

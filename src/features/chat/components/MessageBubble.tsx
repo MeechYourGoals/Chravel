@@ -81,6 +81,8 @@ export interface MessageBubbleProps {
   // 🆕 Inline Reply Support
   replyTo?: { id: string; text: string; sender: string };
   reactionUserNamesById?: Record<string, string>;
+  /** Admins can delete any message (server-side RLS enforced) */
+  isAdmin?: boolean;
 }
 
 export const MessageBubble = memo(
@@ -116,6 +118,7 @@ export const MessageBubble = memo(
     currentUserId,
     replyTo,
     reactionUserNamesById,
+    isAdmin = false,
   }: MessageBubbleProps) => {
     const [showReactions, setShowReactions] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -502,6 +505,7 @@ export const MessageBubble = memo(
                 messageType={messageType}
                 isOwnMessage={isOwnMessage}
                 isDeleted={isDeleted}
+                isAdmin={isAdmin}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onReply={onReply}

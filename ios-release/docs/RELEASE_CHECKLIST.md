@@ -82,8 +82,21 @@ bundle exec fastlane release_testflight
 - [ ] Associated Domains configured (`applinks:chravel.app`)
 - [ ] Background Modes → Remote notifications enabled
 - [ ] Sign in with Apple capability (if using)
-- [ ] App Groups (if using shared data)
+- [ ] App Groups enabled (`group.com.chravel.app`) — required for Share Extension
 - [ ] Keychain Sharing (if needed)
+
+#### Share Extension Target
+- [ ] Share Extension target added in Xcode (`com.chravel.app.share-extension`)
+- [ ] App Group `group.com.chravel.app` registered in Apple Developer Portal
+- [ ] Extension App ID registered (`com.chravel.app.share-extension`)
+- [ ] Extension provisioning profile created (Distribution)
+- [ ] SharedModels files added to both targets (App + Extension)
+- [ ] Extension entry point configured (principal class or storyboard)
+- [ ] CryptoKit framework linked to extension target
+- [ ] Extension embedded in main app target
+- [ ] Supabase migration applied (`shared_inbound_items` table)
+- [ ] Share Extension tested from Safari, Photos, Notes, Maps
+- [ ] See full setup guide: `docs/ACTIVE/SHARE_EXTENSION_SETUP.md`
 
 #### Info.plist
 - [ ] `NSCameraUsageDescription` - Explains camera use

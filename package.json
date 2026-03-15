@@ -32,7 +32,8 @@
     "prepare": "husky install",
     "doctor": "bash scripts/doctor.sh",
     "validate-env": "npx tsx scripts/validate-env.ts",
-    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts"
+    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts",
+    "optimize": "npx tsx optimizer/cli/index.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",

@@ -15,6 +15,7 @@ import type {
   TaskEvents,
   ExportEvents,
   RecommendationEvents,
+  ShareExtensionEvents,
 } from './types';
 
 // ============================================================================
@@ -330,5 +331,55 @@ export const demoEvents = {
     } catch {
       // sessionStorage not available
     }
+  },
+};
+
+// ============================================================================
+// Share Extension Events
+// ============================================================================
+
+export const shareExtensionEvents = {
+  opened: (params: ShareExtensionEvents['share_extension_opened']) => {
+    telemetry.track('share_extension_opened', params);
+  },
+
+  contentReceived: (params: ShareExtensionEvents['share_content_received']) => {
+    telemetry.track('share_content_received', params);
+  },
+
+  tripSelected: (tripId: string) => {
+    telemetry.track('share_trip_selected', { trip_id: tripId });
+  },
+
+  destinationSuggested: (params: ShareExtensionEvents['share_destination_suggested']) => {
+    telemetry.track('share_destination_suggested', params);
+  },
+
+  destinationOverridden: (params: ShareExtensionEvents['share_destination_overridden']) => {
+    telemetry.track('share_destination_overridden', params);
+  },
+
+  saveStarted: (params: ShareExtensionEvents['share_save_started']) => {
+    telemetry.track('share_save_started', params);
+  },
+
+  saveSucceeded: (params: ShareExtensionEvents['share_save_succeeded']) => {
+    telemetry.track('share_save_succeeded', params);
+  },
+
+  saveFailed: (params: ShareExtensionEvents['share_save_failed']) => {
+    telemetry.track('share_save_failed', params);
+  },
+
+  openInApp: (tripId: string, destination: string) => {
+    telemetry.track('share_open_in_app', { trip_id: tripId, destination });
+  },
+
+  duplicateDetected: (contentType: string, fingerprint: string) => {
+    telemetry.track('share_duplicate_detected', { content_type: contentType, fingerprint });
+  },
+
+  unsupportedType: (typeIdentifier: string) => {
+    telemetry.track('share_unsupported_type', { type_identifier: typeIdentifier });
   },
 };

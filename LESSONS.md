@@ -53,4 +53,24 @@
 
 ## Optimization Tips
 
-<!-- Add optimization tips here as they are discovered during implementation work -->
+### useEffect dependencies on array state cause O(N) re-execution storms
+- **Tip:** When a useEffect depends on a TanStack Query array (like `liveMessages`), it fires on every cache update. If the effect does work proportional to array length (fetching reactions for all messages, marking all as read), it creates O(N) work on every INSERT. Use a ref to track what's already been processed and only handle new items.
+- **Applies when:** Any useEffect that processes a growing array of messages, notifications, or list items
+- **Avoid when:** The effect truly needs to reprocess all items (e.g., full re-render)
+- **Evidence:** Chat reaction refetch + read receipt storms both caused by this pattern
+- **Provenance:** March 2026 chat reliability audit
+- **Confidence:** high
+
+### Supabase realtime subscriptions without table-column filters receive ALL events globally
+- **Tip:** `postgres_changes` subscriptions with no `filter` parameter on tables like `message_read_receipts` (which lack a `trip_id` column) receive INSERT events for ALL rows across ALL trips. This is invisible at low scale but becomes a bandwidth/CPU problem. Either add a filterable column to the table or use client-side filtering with a Set of known IDs.
+- **Applies when:** Subscribing to any table that doesn't have the scoping column (trip_id) needed for a filter
+- **Evidence:** read_receipts and reactions subscriptions both had this issue
+- **Provenance:** March 2026 chat reliability audit
+- **Confidence:** high
+
+### Always backfill on realtime channel reconnect — Supabase does not replay missed events
+- **Tip:** Supabase realtime `postgres_changes` does NOT buffer or replay events missed during a websocket disconnection. On reconnect (channel status returns to SUBSCRIBED), you must fetch the gap yourself using the last known server timestamp. Also handle `visibilitychange` for mobile background/foreground transitions.
+- **Applies when:** Any feature using Supabase realtime where data loss during connectivity gaps is unacceptable
+- **Evidence:** Chat messages were silently lost during websocket drops with no user-visible indication
+- **Provenance:** March 2026 chat reliability audit
+- **Confidence:** high
