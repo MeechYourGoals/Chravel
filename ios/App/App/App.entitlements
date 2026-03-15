@@ -39,5 +39,15 @@
 	<array>
 		<string>merchant.com.chravel.app</string>
 	</array>
+
+	<!--
+	App Group for Share Extension
+	Enables data sharing between the main app and the Chravel Share Extension.
+	Both targets must declare this same group identifier.
+	-->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.chravel.app</string>
+	</array>
 </dict>
 </plist>
