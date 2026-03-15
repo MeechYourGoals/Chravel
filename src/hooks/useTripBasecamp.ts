@@ -12,11 +12,13 @@
  * - Cross-device synchronization via refetch
  */
 
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { basecampService } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { BasecampLocation } from '@/types/basecamp';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { withTimeout } from '@/utils/timeout';
 
@@ -29,28 +31,59 @@ export const tripBasecampKeys = {
 // Audit log prefix for debugging
 const LOG_PREFIX = '[TripBasecamp]';
 
+/** Internal type that carries version alongside location */
+interface BasecampWithVersion extends BasecampLocation {
+  _version?: number;
+}
+
 /**
  * Hook to get trip basecamp with proper caching
  */
 export function useTripBasecamp(tripId: string | undefined) {
   const { isDemoMode } = useDemoMode();
+  const queryClient = useQueryClient();
+
+  // Realtime subscription — invalidate cache when another user changes basecamp
+  useEffect(() => {
+    if (!tripId || isDemoMode) return;
+
+    const channel = supabase
+      .channel(`trip_basecamp:${tripId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'trips',
+          filter: `id=eq.${tripId}`,
+        },
+        payload => {
+          const newRow = payload.new as Record<string, unknown> | undefined;
+          // Only invalidate if basecamp columns actually changed
+          if (newRow && ('basecamp_address' in newRow || 'basecamp_name' in newRow)) {
+            queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tripId, isDemoMode, queryClient]);
 
   return useQuery({
     queryKey: tripBasecampKeys.trip(tripId || 'unknown'),
     queryFn: () =>
       withTimeout(
-        (async (): Promise<BasecampLocation | null> => {
+        (async (): Promise<BasecampWithVersion | null> => {
           if (!tripId) {
             console.warn(LOG_PREFIX, 'No tripId provided');
             return null;
           }
 
-          console.log(LOG_PREFIX, 'Fetching basecamp for trip:', tripId, 'isDemoMode:', isDemoMode);
-
           if (isDemoMode) {
-            // Demo mode: use in-memory session storage (NOT localStorage)
             const sessionBasecamp = demoModeService.getSessionTripBasecamp(tripId);
-            console.log(LOG_PREFIX, 'Demo mode result:', sessionBasecamp);
 
             if (sessionBasecamp) {
               return {
@@ -63,19 +96,23 @@ export function useTripBasecamp(tripId: string | undefined) {
             return null;
           }
 
-          // Authenticated mode: fetch from database
+          // Authenticated mode: fetch basecamp + version together
           const dbBasecamp = await basecampService.getTripBasecamp(tripId);
-          console.log(LOG_PREFIX, 'DB result:', dbBasecamp);
-          return dbBasecamp;
+          if (!dbBasecamp) return null;
+
+          // Fetch version separately (basecampService doesn't return it)
+          const version = await basecampService.getBasecampVersion(tripId);
+          return { ...dbBasecamp, _version: version };
         })(),
         10000,
         'Failed to load trip basecamp: Timeout',
       ),
     enabled: !!tripId,
-    staleTime: 30_000, // Consider fresh for 30 seconds
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-    refetchOnMount: true, // Always refetch on mount for cross-device sync
+    staleTime: 30_000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 }
 
@@ -108,33 +145,39 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
         throw new Error('OFFLINE: Trip Base Camp updates require an internet connection.');
       }
 
-      console.log(LOG_PREFIX, 'Updating basecamp:', {
-        tripId,
-        isDemoMode,
-        newAddress: newBasecamp.address,
-        timestamp: new Date().toISOString(),
-      });
-
       if (isDemoMode) {
-        // Demo mode: save to in-memory session storage
         demoModeService.setSessionTripBasecamp(tripId, {
           name: newBasecamp.name,
           address: newBasecamp.address,
         });
-        console.log(LOG_PREFIX, 'Demo mode save complete');
         return { success: true, address: newBasecamp.address, name: newBasecamp.name };
       }
 
-      // Authenticated mode: save to database
-      const result = await basecampService.setTripBasecamp(tripId, newBasecamp);
+      // Read current version from cache for optimistic locking
+      const cached = queryClient.getQueryData<BasecampWithVersion | null>(
+        tripBasecampKeys.trip(tripId),
+      );
+      const currentVersion = cached?._version ?? undefined;
 
-      console.log(LOG_PREFIX, 'DB update result:', result);
+      // Get previous address for system message
+      const previousAddress = cached?.address ?? undefined;
+
+      // Authenticated mode: save to database with version check
+      const result = await basecampService.setTripBasecamp(tripId, newBasecamp, {
+        currentVersion,
+        previousAddress,
+      });
+
+      if (result.conflict) {
+        throw new Error(
+          'CONFLICT: Basecamp was modified by another user. Please refresh and try again.',
+        );
+      }
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update basecamp');
       }
 
-      // Return the saved values so onSuccess can use them to update cache directly
       return {
         ...result,
         address: newBasecamp.address,
@@ -167,16 +210,11 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
 
       queryClient.setQueryData(tripBasecampKeys.trip(tripId), optimisticValue);
 
-      console.log(LOG_PREFIX, 'Optimistic update applied:', optimisticValue.address);
-
-      // Return context with previous value for rollback
       return { previousBasecamp, optimisticValue };
     },
 
     // Rollback on error
     onError: (error, _newBasecamp, context) => {
-      console.error(LOG_PREFIX, 'Update failed, rolling back:', error);
-
       if (tripId && context?.previousBasecamp !== undefined) {
         queryClient.setQueryData(tripBasecampKeys.trip(tripId), context.previousBasecamp);
       }
@@ -184,37 +222,36 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
       const msg = error instanceof Error ? error.message : '';
       if (msg.includes('OFFLINE:')) {
         toast.error('Trip Base Camp requires an internet connection.');
+      } else if (msg.includes('CONFLICT:')) {
+        toast.error('Basecamp was updated by someone else. Refreshing...');
+        // Re-fetch to get latest version
+        if (tripId) {
+          queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
+        }
       } else {
         toast.error('Failed to save basecamp. Please try again.');
       }
     },
 
-    // On success: confirm the optimistic value is correct, then schedule a delayed refetch
-    onSuccess: (data, _variables, context) => {
-      console.log(LOG_PREFIX, 'Update successful, confirming cache value');
+    onSuccess: (_data, _variables, context) => {
       toast.success('Basecamp saved!');
 
       if (tripId && context?.optimisticValue) {
-        // The optimistic update should already have the correct value
-        // Re-set it to ensure it wasn't overwritten by any concurrent operations
         queryClient.setQueryData(tripBasecampKeys.trip(tripId), context.optimisticValue);
       }
 
-      // Schedule a delayed refetch to sync with server (after DB write is fully committed)
-      // This is a background operation - the UI already shows the correct value
+      // Reconcile with server after a short delay to let DB commit propagate.
+      // Realtime subscription handles multi-user sync; this is for self-consistency.
       if (tripId) {
         setTimeout(() => {
-          console.log(LOG_PREFIX, 'Performing delayed background refetch for consistency');
           queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
-        }, 2000); // 2 second delay to ensure DB replication
+        }, 1000);
       }
     },
 
-    // onSettled is now a no-op - we handle cache updates in onSuccess and onError
     onSettled: () => {
-      // Do NOT invalidate immediately - this causes the race condition
-      // where refetch returns stale data and overwrites the optimistic update
-      console.log(LOG_PREFIX, 'Mutation settled');
+      // Immediate invalidation skipped to avoid race condition where refetch
+      // returns stale data and overwrites the optimistic update.
     },
   });
 }
@@ -234,8 +271,6 @@ export function useClearTripBasecamp(tripId: string | undefined) {
       if (!tripId) {
         throw new Error('No tripId provided');
       }
-
-      console.log(LOG_PREFIX, 'Clearing basecamp for trip:', tripId);
 
       if (isDemoMode) {
         demoModeService.clearSessionTripBasecamp(tripId);
@@ -271,9 +306,7 @@ export function useClearTripBasecamp(tripId: string | undefined) {
       return { previousBasecamp };
     },
 
-    onError: (error, _vars, context) => {
-      console.error(LOG_PREFIX, 'Clear failed:', error);
-
+    onError: (_error, _vars, context) => {
       if (tripId && context?.previousBasecamp) {
         queryClient.setQueryData(tripBasecampKeys.trip(tripId), context.previousBasecamp);
       }
@@ -282,26 +315,18 @@ export function useClearTripBasecamp(tripId: string | undefined) {
     },
 
     onSuccess: () => {
-      console.log(LOG_PREFIX, 'Basecamp cleared');
       toast.success('Basecamp cleared');
 
-      // Confirm the null value in cache
       if (tripId) {
         queryClient.setQueryData(tripBasecampKeys.trip(tripId), null);
-      }
-
-      // Schedule a delayed refetch for consistency (same pattern as update)
-      if (tripId) {
         setTimeout(() => {
-          console.log(LOG_PREFIX, 'Clear: delayed background refetch');
           queryClient.invalidateQueries({ queryKey: tripBasecampKeys.trip(tripId) });
-        }, 2000);
+        }, 1000);
       }
     },
 
-    // onSettled: no immediate invalidation (avoid race condition, same as update)
     onSettled: () => {
-      console.log(LOG_PREFIX, 'Clear mutation settled');
+      // No immediate invalidation — same pattern as update mutation.
     },
   });
 }

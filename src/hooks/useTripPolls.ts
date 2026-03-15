@@ -9,6 +9,7 @@ import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
+import { generateMutationId } from '@/utils/concurrencyUtils';
 import * as haptics from '@/native/haptics';
 
 interface TripPoll {
@@ -283,6 +284,8 @@ export const useTripPolls = (tripId: string) => {
         voters: [],
       }));
 
+      // Idempotency key prevents duplicate polls on retry
+      const mutationId = generateMutationId();
       const { data, error } = await supabase
         .from('trip_polls')
         .insert({
@@ -296,6 +299,7 @@ export const useTripPolls = (tripId: string) => {
           is_anonymous: poll.settings?.is_anonymous || false,
           allow_vote_change: poll.settings?.allow_vote_change !== false,
           deadline_at: poll.settings?.deadline_at || null,
+          idempotency_key: mutationId,
         })
         .select()
         .single();

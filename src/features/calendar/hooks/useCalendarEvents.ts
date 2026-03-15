@@ -147,10 +147,18 @@ export const useCalendarEvents = (tripId?: string) => {
     },
   });
 
-  // Update event with optimistic update
+  // Update event with optimistic update and version-based conflict detection
   const updateEventMutation = useMutation({
-    mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<TripEvent> }) => {
-      await calendarService.updateEvent(eventId, updates);
+    mutationFn: async ({
+      eventId,
+      updates,
+      currentVersion,
+    }: {
+      eventId: string;
+      updates: Partial<TripEvent>;
+      currentVersion?: number;
+    }) => {
+      await calendarService.updateEvent(eventId, updates, currentVersion);
       return { eventId, updates };
     },
     onMutate: async ({ eventId, updates }) => {
@@ -168,6 +176,11 @@ export const useCalendarEvents = (tripId?: string) => {
     onError: (_err, _vars, context) => {
       if (context?.previousEvents && tripId) {
         queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
+      }
+    },
+    onSettled: () => {
+      if (tripId) {
+        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
       }
     },
   });
@@ -215,9 +228,21 @@ export const useCalendarEvents = (tripId?: string) => {
     return createEvent(eventData);
   };
 
-  const updateEvent = async (eventId: string, updates: Partial<TripEvent>): Promise<boolean> => {
+  const updateEvent = async (
+    eventId: string,
+    updates: Partial<TripEvent>,
+    currentVersion?: number,
+  ): Promise<boolean> => {
+    // If no version provided, look it up from the current cache
+    let version = currentVersion;
+    if (version == null && tripId) {
+      const cached = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId));
+      const existing = cached?.find(e => e.id === eventId);
+      version = existing?.version ?? undefined;
+    }
+
     try {
-      await updateEventMutation.mutateAsync({ eventId, updates });
+      await updateEventMutation.mutateAsync({ eventId, updates, currentVersion: version });
       return true;
     } catch {
       return false;

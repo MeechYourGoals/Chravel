@@ -168,6 +168,17 @@ export function useSaveToTripPlaces({
         .single();
 
       if (error) {
+        // Handle server-side duplicate URL constraint (race condition between two users)
+        if (error.code === '23505' && error.message?.includes('normalized_url')) {
+          // Fetch the existing link to return it as a duplicate
+          const existingLinks = await getTripLinks(tripId, isDemoMode);
+          const existing = existingLinks.find(
+            link => dedupeKey(link.url) === dedupeKey(payload.url),
+          );
+          if (existing) {
+            return { link: existing, wasDuplicate: true };
+          }
+        }
         throw error;
       }
 

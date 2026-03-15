@@ -8,6 +8,7 @@ import { useAuth } from './useAuth';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
+import { generateMutationId } from '@/utils/concurrencyUtils';
 
 // Task form management types
 export interface TaskFormData {
@@ -611,7 +612,8 @@ export const useTripTasks = (
 
       const userProfile = profileResult.data;
 
-      // Create the task in database
+      // Create the task with idempotency key to prevent duplicate creation on retry
+      const mutationId = generateMutationId();
       const { data: newTask, error } = await supabase
         .from('trip_tasks')
         .insert({
@@ -621,6 +623,7 @@ export const useTripTasks = (
           description: task.description,
           due_at: task.due_at,
           is_poll: task.is_poll,
+          idempotency_key: mutationId,
         })
         .select()
         .single();
@@ -787,21 +790,71 @@ export const useTripTasks = (
         return updated;
       }
 
-      const { data: updatedTask, error } = await supabase
-        .from('trip_tasks')
-        .update({
-          title: title.trim(),
-          description: description?.trim() || null,
-          due_at: due_at || null,
-          is_poll,
-        })
-        .eq('id', taskId)
-        .eq('creator_id', user.id)
-        .select()
-        .single();
+      // Read current version from cache for optimistic locking
+      const cachedTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+      const cachedTask = cachedTasks?.find(t => t.id === taskId);
+      const currentVersion = (cachedTask as TripTask & { version?: number })?.version ?? undefined;
 
-      if (error) throw error;
+      // Try versioned RPC first for concurrent edit protection
+      let updatedTask: unknown = null;
+      if (currentVersion != null) {
+        const { data: rpcResult, error: rpcError } = await supabase.rpc(
+          'update_task_with_version',
+          {
+            p_task_id: taskId,
+            p_current_version: currentVersion,
+            p_creator_id: user.id,
+            p_title: title.trim(),
+            p_description: description?.trim() || null,
+            p_due_at: due_at || null,
+            p_is_poll: is_poll,
+          },
+        );
 
+        if (rpcError) {
+          // Version conflict
+          if (rpcError.message?.includes('modified by another user') || rpcError.code === 'P0001') {
+            throw new Error(
+              'CONFLICT: This task was modified by another user. Please refresh and try again.',
+            );
+          }
+          // Creator mismatch
+          if (rpcError.code === '42501') {
+            throw new Error('Only the task creator can edit this task.');
+          }
+          // RPC not found — fall through to direct UPDATE
+          const missingFn =
+            rpcError.message?.toLowerCase().includes('does not exist') || rpcError.code === '42883';
+          if (!missingFn) {
+            throw rpcError;
+          }
+        } else {
+          // RPC succeeded — extract result
+          const resultArr = rpcResult as unknown[];
+          updatedTask = Array.isArray(resultArr) && resultArr.length > 0 ? resultArr[0] : rpcResult;
+        }
+      }
+
+      // Fallback: direct UPDATE (no version check — backward compat)
+      if (!updatedTask) {
+        const { data, error } = await supabase
+          .from('trip_tasks')
+          .update({
+            title: title.trim(),
+            description: description?.trim() || null,
+            due_at: due_at || null,
+            is_poll,
+          })
+          .eq('id', taskId)
+          .eq('creator_id', user.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        updatedTask = data;
+      }
+
+      // Handle assignment updates (only after task update succeeds)
       if (Array.isArray(assignedTo) && assignedTo.length > 0) {
         const uniqueAssignees = Array.from(new Set(assignedTo));
 
@@ -834,15 +887,26 @@ export const useTripTasks = (
       toast({ title: 'Task updated', description: 'Your changes have been saved.' });
     },
     onError: (error: Error, _variables, context) => {
-      // Rollback optimistic update if we have a snapshot
       if (context?.previousTasks) {
         queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
       }
-      toast({
-        title: 'Error Updating Task',
-        description: error.message || 'Failed to update task.',
-        variant: 'destructive',
-      });
+
+      const errMsg = error.message || '';
+      if (errMsg.includes('CONFLICT:')) {
+        toast({
+          title: 'Conflict Detected',
+          description: errMsg.replace('CONFLICT: ', ''),
+          variant: 'destructive',
+        });
+        // Refetch to get latest version
+        queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      } else {
+        toast({
+          title: 'Error Updating Task',
+          description: errMsg || 'Failed to update task.',
+          variant: 'destructive',
+        });
+      }
     },
     onSettled: () => {
       // Reconcile with server truth (same pattern as toggleTaskMutation)
