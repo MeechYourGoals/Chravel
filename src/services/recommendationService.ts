@@ -182,7 +182,8 @@ export class RecommendationService {
     itemType: 'organic' | 'sponsored';
     feedbackType: 'not_interested' | 'hide' | 'report' | 'save' | 'love';
   }): Promise<void> {
-    const { error } = await supabase.from('recommendation_feedback').insert({
+    // intentional: recommendation tables not yet in generated types
+    const { error } = await (supabase as any).from('recommendation_feedback').insert({
       user_id: params.userId,
       item_id: params.itemId,
       item_type: params.itemType,
