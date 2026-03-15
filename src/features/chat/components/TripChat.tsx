@@ -383,7 +383,7 @@ export const TripChat = React.memo(
       if (ownMessageIds.length === 0) return;
 
       getMessagesReadStatus(ownMessageIds)
-        .then(statuses => setReadStatusesByMessage(statuses))
+        .then(statuses => setReadStatusesByMessage(prev => ({ ...prev, ...statuses })))
         .catch(e => {
           if (import.meta.env.DEV) {
             console.error('Failed to fetch read statuses', e);
