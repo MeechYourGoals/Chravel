@@ -135,7 +135,8 @@ export class RecommendationService {
    * Fails silently — tracking should never break the UX.
    */
   static async trackImpression(params: ImpressionParams): Promise<string | null> {
-    const { data, error } = await supabase
+    // intentional: recommendation tables not yet in generated types
+    const { data, error } = await (supabase as any)
       .from('recommendation_impressions')
       .insert({
         item_id: params.itemId,
