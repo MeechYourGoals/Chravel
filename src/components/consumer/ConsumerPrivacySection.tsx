@@ -78,9 +78,12 @@ function AccountSecuritySection({
         return;
       }
 
+      // Invalidate all other sessions so compromised devices are signed out
+      await supabase.auth.signOut({ scope: 'others' });
+
       toast({
         title: 'Password Changed',
-        description: 'Your password has been updated successfully.',
+        description: 'Your password has been updated and all other sessions have been signed out.',
       });
       resetForm();
     } catch (err) {

@@ -24,6 +24,8 @@ export const ConsumerGeneralSettings = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [reAuthPassword, setReAuthPassword] = useState('');
+  const [reAuthError, setReAuthError] = useState('');
   const [deletionScheduledFor, setDeletionScheduledFor] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -93,6 +95,26 @@ export const ConsumerGeneralSettings = () => {
     if (!user || confirmText !== 'DELETE') return;
 
     setIsDeleting(true);
+    setReAuthError('');
+
+    // Re-authenticate to confirm the user's identity before account deletion
+    if (user.email && reAuthPassword) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: reAuthPassword,
+      });
+
+      if (signInError) {
+        setReAuthError('Incorrect password. Please try again.');
+        setIsDeleting(false);
+        return;
+      }
+    } else if (!reAuthPassword) {
+      setReAuthError('Please enter your password to confirm deletion.');
+      setIsDeleting(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.rpc('request_account_deletion' as never);
 
@@ -124,8 +146,10 @@ export const ConsumerGeneralSettings = () => {
       setIsDeleting(false);
       setShowDeleteDialog(false);
       setConfirmText('');
+      setReAuthPassword('');
+      setReAuthError('');
     }
-  }, [user, confirmText, signOut]);
+  }, [user, confirmText, reAuthPassword, signOut]);
 
   const handleShowSystemMessagesChange = (value: boolean) => {
     if (showDemoContent) {
@@ -261,7 +285,16 @@ export const ConsumerGeneralSettings = () => {
       </div>
 
       {/* Account Deletion Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog
+        open={showDeleteDialog}
+        onOpenChange={open => {
+          setShowDeleteDialog(open);
+          if (!open) {
+            setReAuthPassword('');
+            setReAuthError('');
+          }
+        }}
+      >
         <AlertDialogContent className="bg-gray-900 border border-red-500/30">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-400">Delete Your Account?</AlertDialogTitle>
@@ -290,6 +323,19 @@ export const ConsumerGeneralSettings = () => {
                 className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 disabled={isDeleting}
               />
+              <p className="pt-2">Enter your password to verify your identity:</p>
+              <input
+                type="password"
+                value={reAuthPassword}
+                onChange={e => {
+                  setReAuthPassword(e.target.value);
+                  setReAuthError('');
+                }}
+                placeholder="Enter your password"
+                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                disabled={isDeleting}
+              />
+              {reAuthError && <p className="text-red-400 text-sm">{reAuthError}</p>}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -301,7 +347,7 @@ export const ConsumerGeneralSettings = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAccount}
-              disabled={confirmText !== 'DELETE' || isDeleting}
+              disabled={confirmText !== 'DELETE' || !reAuthPassword || isDeleting}
               className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
             >
               {isDeleting ? 'Submitting...' : 'Schedule Account Deletion'}

@@ -15,6 +15,7 @@ import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
+import { toast } from '@/hooks/use-toast';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -663,6 +664,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (demoStore.isDemoMode || demoStore.demoView === 'app-preview') {
             demoStore.setDemoView('off');
           }
+
+          // 🔒 Detect potential duplicate provider account: if a brand-new Google OAuth
+          // user's email already has a profile under a different user_id, warn the user
+          // so they know to use their original sign-in method instead.
+          const signedInUser = session.user;
+          const provider = signedInUser.app_metadata?.provider;
+          const createdAt = new Date(signedInUser.created_at).getTime();
+          const isNewAccount = Date.now() - createdAt < 60_000;
+
+          if (provider === 'google' && isNewAccount && signedInUser.email) {
+            setTimeout(async () => {
+              try {
+                const { data: existingProfiles } = await supabase
+                  .from('profiles')
+                  .select('user_id')
+                  .eq('email', signedInUser.email!)
+                  .neq('user_id', signedInUser.id)
+                  .limit(1);
+
+                if (existingProfiles && existingProfiles.length > 0) {
+                  toast({
+                    title: 'Possible Duplicate Account',
+                    description:
+                      'An account with this email already exists. To avoid split data, sign out and use your original sign-in method (email/password).',
+                    variant: 'destructive',
+                  });
+                }
+              } catch {
+                // Non-critical — silently ignore detection failures
+              }
+            }, 500);
+          }
         }
 
         // Defer async work with setTimeout(0) to avoid Supabase auth deadlock
@@ -800,6 +833,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
+          // Force account picker so users don't accidentally sign in with the wrong Google account,
+          // which could create a duplicate profile if the email differs from their email/password account.
+          // NOTE: Enable "Automatic Linking" in Supabase Dashboard (Auth > Providers) to prevent
+          // duplicate auth.users entries when the same email is used across providers.
+          queryParams: { prompt: 'select_account' },
         },
       });
 
@@ -896,7 +934,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Provide more specific error messages
         if (error.message.includes('already registered')) {
-          return { error: 'This email is already registered. Please sign in instead.' };
+          return {
+            error:
+              'Unable to create account with this email. If you already have an account, try signing in or resetting your password.',
+          };
         }
         if (error.message.includes('password')) {
           return { error: 'Password must be at least 6 characters long.' };
