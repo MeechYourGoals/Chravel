@@ -23,7 +23,16 @@ const AuthPage = () => {
     const fromQuery = searchParams.get('returnTo');
     // If caller used state, prefer it (more trustworthy).
     const fromState = (location.state as { returnTo?: string } | null)?.returnTo ?? null;
-    return getSafeReturnTo(fromState ?? fromQuery, '/');
+    const baseReturn = getSafeReturnTo(fromState ?? fromQuery, '/');
+
+    // If an invite code was passed (e.g., from OAuth redirect), ensure returnTo
+    // points to the join page so the invite flow completes after auth
+    const inviteCode = searchParams.get('invite');
+    if (inviteCode && !baseReturn.includes('/join/')) {
+      return `/join/${inviteCode}`;
+    }
+
+    return baseReturn;
   }, [location.state, searchParams]);
 
   const mode = useMemo<AuthMode>(() => {

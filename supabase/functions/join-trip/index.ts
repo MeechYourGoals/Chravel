@@ -146,6 +146,20 @@ serve(async req => {
       );
     }
 
+    // Validate invite code format (alphanumeric, hyphens, underscores only)
+    const INVITE_CODE_PATTERN = /^[a-zA-Z0-9_-]+$/;
+    if (!INVITE_CODE_PATTERN.test(normalizedInviteCode)) {
+      logStep('ERROR: Invalid invite code format', {
+        inviteCode: redactSensitiveToken(normalizedInviteCode),
+      });
+      return errorResponse(
+        'This invite link contains invalid characters.',
+        400,
+        corsHeaders,
+        'INVALID_LINK',
+      );
+    }
+
     logStep('Processing invite code', { inviteCode: redactSensitiveToken(normalizedInviteCode) });
 
     // Fetch invite data from database
@@ -428,7 +442,26 @@ serve(async req => {
         }
 
         joinRequestId = joinRequest?.id;
-        logStep('Join request created successfully', { requestId: joinRequestId });
+        logStep('JOIN_REQUEST_CREATED', {
+          requestId: joinRequestId,
+          tripId: invite.trip_id,
+          userId: user.id,
+          tripType: trip.trip_type || 'consumer',
+          inviteCode: redactSensitiveToken(normalizedInviteCode),
+        });
+
+        // Increment current_uses atomically to enforce max_uses limit
+        const { error: usesError } = await supabaseClient
+          .from('trip_invites')
+          .update({ current_uses: invite.current_uses + 1 })
+          .eq('id', invite.id)
+          .eq('current_uses', invite.current_uses); // Optimistic concurrency check
+
+        if (usesError) {
+          logStep('WARNING: Failed to increment current_uses (non-critical)', {
+            error: usesError.message,
+          });
+        }
       }
 
       // Note: requesterName and requesterEmail were already captured above

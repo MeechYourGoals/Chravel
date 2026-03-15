@@ -306,30 +306,32 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!invite) {
       logStep('Invite not found', { code: inviteCode });
-      // Return a generic "invite not found" page with OG tags
+      // Return a proper 404 page — prevents social platforms from caching wrong metadata
       const notFoundHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trip Invite | ChravelApp</title>
-  <meta property="og:title" content="You're Invited! | ChravelApp">
-  <meta property="og:description" content="Join a trip on ChravelApp - The Group Chat Travel App">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Invite Not Found | ChravelApp</title>
+  <meta property="og:title" content="Invite Not Found | ChravelApp">
+  <meta property="og:description" content="This invite link is invalid or has expired.">
   <meta property="og:image" content="${OG_FALLBACK_IMAGE}">
   <meta property="og:site_name" content="ChravelApp">
-  <meta name="twitter:card" content="summary_large_image">
-
+  <meta name="twitter:card" content="summary">
+  <meta http-equiv="refresh" content="0; url=${baseUrl}/join/${encodeURIComponent(inviteCode)}">
 </head>
 <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a2e; color: white;">
   <p>Redirecting to ChravelApp...</p>
 </body>
 </html>`;
       return new Response(notFoundHtml, {
-        status: 200,
+        status: 404,
         headers: {
           ...corsHeaders,
           ...getOgSecurityHeaders(),
           'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       });
     }
