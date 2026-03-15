@@ -50,8 +50,49 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { TripRole } from '@/types/roleChannels';
+import { TripRole, PermissionLevel } from '@/types/roleChannels';
 import { MAX_ROLES_PER_TRIP } from '@/utils/roleUtils';
+
+/** Compute granular feature permissions from a permission level. Mirrors CreateRoleDialog logic. */
+const getFeaturePermissions = (level: PermissionLevel, hasChannel: boolean) => {
+  const isViewOnly = level === 'view';
+  const isAdmin = level === 'admin';
+
+  return {
+    media: {
+      can_view: true,
+      can_upload: !isViewOnly,
+      can_delete_own: !isViewOnly,
+      can_delete_any: isAdmin,
+    },
+    tasks: {
+      can_view: true,
+      can_create: !isViewOnly,
+      can_assign: isAdmin,
+      can_complete: !isViewOnly,
+      can_delete: isAdmin,
+    },
+    calendar: {
+      can_view: true,
+      can_create_events: !isViewOnly,
+      can_edit_events: isAdmin,
+      can_delete_events: isAdmin,
+    },
+    channels: {
+      can_view: true,
+      can_post: !isViewOnly,
+      can_edit_messages: isAdmin,
+      can_delete_messages: isAdmin,
+      can_manage_members: isAdmin,
+      has_channel: hasChannel,
+    },
+    payments: {
+      can_view: true,
+      can_create: isAdmin,
+      can_approve: isAdmin,
+    },
+  };
+};
 
 interface RoleManagerProps {
   tripId: string;
@@ -141,7 +182,8 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
     if (!newRoleName.trim()) return;
 
     try {
-      await createRole(newRoleName, newRolePermission);
+      const featurePermissions = getFeaturePermissions(newRolePermission, true);
+      await createRole(newRoleName, newRolePermission, featurePermissions);
       setShowCreateDialog(false);
       setNewRoleName('');
       setNewRolePermission('edit');

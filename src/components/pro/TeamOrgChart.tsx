@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { Button } from '../ui/button';
 import { ZoomIn, ZoomOut, Maximize2, Download, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -25,6 +25,11 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
 
   // Flat layout when all members are root nodes (no reporting relationships)
   const isFlat = rootNodes.length === roster.length && totalLevels <= 1;
+
+  // Reset pagination when roster changes (e.g., filter applied, members removed)
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [roster.length]);
 
   const totalPages = Math.ceil(roster.length / ITEMS_PER_PAGE);
   const paginatedMembers = useMemo(() => {
