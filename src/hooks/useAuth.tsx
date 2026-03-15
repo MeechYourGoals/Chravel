@@ -791,10 +791,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
       // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-      const redirectUrl = returnTo
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnTo = searchParams.get('returnTo');
+      // Also preserve pending invite code through OAuth redirect
+      const pendingInvite = localStorage.getItem('chravel_pending_invite_code');
+      let redirectUrl = returnTo
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
         : `${window.location.origin}/`;
+      if (pendingInvite && redirectUrl.includes('/auth')) {
+        redirectUrl += `&invite=${encodeURIComponent(pendingInvite)}`;
+      }
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -870,10 +876,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
 
       // Preserve returnTo so email confirmation lands back in the right place
-      const signUpReturnTo = new URLSearchParams(window.location.search).get('returnTo');
-      const emailRedirectUrl = signUpReturnTo
+      const signUpSearchParams = new URLSearchParams(window.location.search);
+      const signUpReturnTo = signUpSearchParams.get('returnTo');
+      const pendingSignUpInvite = localStorage.getItem('chravel_pending_invite_code');
+      let emailRedirectUrl = signUpReturnTo
         ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(signUpReturnTo)}`
         : `${window.location.origin}/`;
+      if (pendingSignUpInvite && emailRedirectUrl.includes('/auth')) {
+        emailRedirectUrl += `&invite=${encodeURIComponent(pendingSignUpInvite)}`;
+      }
 
       const { data, error } = await supabase.auth.signUp({
         email,
