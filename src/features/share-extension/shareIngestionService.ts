@@ -83,7 +83,7 @@ export async function processSharedItem(
 
   // Update ingestion status
   const finalStatus = result.success ? 'completed' : 'failed';
-  await supabase
+  await sbAny
     .from('shared_inbound_items')
     .update({
       ingestion_status: finalStatus,
