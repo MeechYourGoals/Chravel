@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { Button } from '../ui/button';
-import { ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { useOrgChartData } from '../../hooks/useOrgChartData';
 import { OrgChartNodeComponent } from './OrgChartNode';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { getInitials } from '../../utils/avatarUtils';
+import { getRoleColorClass } from '../../utils/roleUtils';
 
 interface TeamOrgChartProps {
   roster: ProParticipant[];
@@ -13,21 +16,26 @@ interface TeamOrgChartProps {
   onMemberClick?: (memberId: string) => void;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartProps) => {
   const [zoom, setZoom] = useState(100);
+  const [currentPage, setCurrentPage] = useState(0);
   const { rootNodes, totalLevels } = useOrgChartData(roster);
 
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 10, 150));
-  };
+  // Flat layout when all members are root nodes (no reporting relationships)
+  const isFlat = rootNodes.length === roster.length && totalLevels <= 1;
 
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 10, 50));
-  };
+  const totalPages = Math.ceil(roster.length / ITEMS_PER_PAGE);
+  const paginatedMembers = useMemo(() => {
+    if (!isFlat) return [];
+    const start = currentPage * ITEMS_PER_PAGE;
+    return roster.slice(start, start + ITEMS_PER_PAGE);
+  }, [isFlat, roster, currentPage]);
 
-  const handleResetZoom = () => {
-    setZoom(100);
-  };
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 10, 150));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 10, 50));
+  const handleResetZoom = () => setZoom(100);
 
   const handleExportChart = () => {
     const chartEl = document.querySelector('[data-org-chart-container]');
@@ -49,29 +57,95 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
     return (
       <div className="text-center py-12">
         <div className="bg-white/5 rounded-lg p-8 max-w-md mx-auto">
-          <h3 className="text-lg font-medium text-white mb-2">No Hierarchy Defined</h3>
-          <p className="text-gray-400 text-sm mb-4">
-            To create an org chart, team members need to be assigned reporting relationships. Use
-            Grid View to manage your team in the meantime.
-          </p>
-          <p className="text-gray-500 text-xs">
-            For now, use Grid View to see all team members and their roles.
+          <h3 className="text-lg font-medium text-white mb-2">No Members</h3>
+          <p className="text-muted-foreground text-sm">
+            Team members will appear here once added to the trip.
           </p>
         </div>
       </div>
     );
   }
 
+  // Flat layout — horizontal wrapped cards, no tree connectors
+  if (isFlat) {
+    return (
+      <div className="space-y-4">
+        {/* Controls */}
+        <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-3">
+          <span className="text-sm text-muted-foreground">
+            {roster.length} Member{roster.length !== 1 ? 's' : ''}
+          </span>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 0}
+                className="border-white/10 h-8 w-8 p-0"
+              >
+                <ChevronLeft size={16} />
+              </Button>
+              <span className="text-sm text-muted-foreground min-w-[60px] text-center">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <Button
+                onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages - 1}
+                className="border-white/10 h-8 w-8 p-0"
+              >
+                <ChevronRight size={16} />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Flat card grid */}
+        <div data-org-chart-container className="bg-white/5 border border-white/10 rounded-lg p-4">
+          <div className="flex flex-wrap gap-4 justify-center">
+            {paginatedMembers.map(member => (
+              <div
+                key={member.id}
+                className="bg-white/5 border border-white/10 rounded-lg p-3 min-w-[200px] max-w-[240px] hover:bg-white/10 transition-colors cursor-pointer"
+                onClick={() => onMemberClick?.(member.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10 border-2 border-white/10 flex-shrink-0">
+                    <AvatarImage src={member.avatar} alt={member.name} />
+                    <AvatarFallback className="bg-muted text-muted-foreground text-xs font-semibold">
+                      {getInitials(member.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-white text-sm truncate">{member.name}</h3>
+                    {member.role && member.role !== 'Member' && member.role !== 'Participant' && (
+                      <span
+                        className={`${getRoleColorClass(member.role, category)} px-2 py-0.5 rounded text-xs font-medium inline-block mt-1`}
+                      >
+                        {member.role}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Hierarchical layout — tree with connectors
   return (
     <div className="space-y-4">
       {/* Controls */}
-      <div className="flex items-center justify-between bg-white/5 border border-gray-700 rounded-lg p-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">
-            {totalLevels} Level{totalLevels !== 1 ? 's' : ''} • {roster.length} Member
-            {roster.length !== 1 ? 's' : ''}
-          </span>
-        </div>
+      <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-3">
+        <span className="text-sm text-muted-foreground">
+          {totalLevels} Level{totalLevels !== 1 ? 's' : ''} &bull; {roster.length} Member
+          {roster.length !== 1 ? 's' : ''}
+        </span>
 
         <div className="flex items-center gap-2">
           <Button
@@ -79,28 +153,28 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
             variant="outline"
             size="sm"
             disabled={zoom <= 50}
-            className="border-gray-600"
+            className="border-white/10"
           >
             <ZoomOut size={16} />
           </Button>
-          <span className="text-sm text-gray-400 min-w-[60px] text-center">{zoom}%</span>
+          <span className="text-sm text-muted-foreground min-w-[60px] text-center">{zoom}%</span>
           <Button
             onClick={handleZoomIn}
             variant="outline"
             size="sm"
             disabled={zoom >= 150}
-            className="border-gray-600"
+            className="border-white/10"
           >
             <ZoomIn size={16} />
           </Button>
-          <Button onClick={handleResetZoom} variant="outline" size="sm" className="border-gray-600">
+          <Button onClick={handleResetZoom} variant="outline" size="sm" className="border-white/10">
             <Maximize2 size={16} />
           </Button>
           <Button
             onClick={handleExportChart}
             variant="outline"
             size="sm"
-            className="border-gray-600"
+            className="border-white/10"
           >
             <Download size={16} className="mr-2" />
             Export
@@ -111,7 +185,7 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
       {/* Org Chart Container */}
       <div
         data-org-chart-container
-        className="bg-white/5 border border-gray-700 rounded-lg p-8 overflow-auto min-h-[500px]"
+        className="bg-white/5 border border-white/10 rounded-lg p-8 overflow-auto"
       >
         <div
           className="flex flex-col items-center justify-start transition-transform"
@@ -131,17 +205,6 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Legend */}
-      <div className="bg-white/5 border border-gray-700 rounded-lg p-4">
-        <p className="text-sm text-gray-400 mb-2">Tips:</p>
-        <ul className="text-xs text-gray-500 space-y-1">
-          <li>• Click on any member to view their details</li>
-          <li>• Use zoom controls to adjust the view</li>
-          <li>• Hierarchy levels are auto-calculated based on reporting structure</li>
-          <li>• Use Grid View to manage member roles and reporting structure</li>
-        </ul>
       </div>
     </div>
   );

@@ -144,7 +144,7 @@ export const BulkRoleAssignmentModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users size={20} />
@@ -155,11 +155,11 @@ export const BulkRoleAssignmentModal = ({
         {/* Progress Steps */}
         <div className="flex items-center justify-between mb-6">
           <div
-            className={`flex items-center gap-2 ${step === 'select' ? 'text-red-400' : 'text-gray-400'}`}
+            className={`flex items-center gap-2 ${step === 'select' ? 'text-amber-400' : 'text-gray-400'}`}
           >
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                step !== 'select' ? 'bg-red-600' : 'bg-red-600/20'
+                step !== 'select' ? 'bg-amber-500' : 'bg-amber-500/20'
               }`}
             >
               {step !== 'select' ? <Check size={16} /> : '1'}
@@ -168,14 +168,14 @@ export const BulkRoleAssignmentModal = ({
           </div>
           <ChevronRight size={20} className="text-gray-600" />
           <div
-            className={`flex items-center gap-2 ${step === 'assign' ? 'text-red-400' : 'text-gray-400'}`}
+            className={`flex items-center gap-2 ${step === 'assign' ? 'text-amber-400' : 'text-gray-400'}`}
           >
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 step === 'confirm'
-                  ? 'bg-red-600'
+                  ? 'bg-amber-500'
                   : step === 'assign'
-                    ? 'bg-red-600/20'
+                    ? 'bg-amber-500/20'
                     : 'bg-gray-700'
               }`}
             >
@@ -185,11 +185,11 @@ export const BulkRoleAssignmentModal = ({
           </div>
           <ChevronRight size={20} className="text-gray-600" />
           <div
-            className={`flex items-center gap-2 ${step === 'confirm' ? 'text-red-400' : 'text-gray-400'}`}
+            className={`flex items-center gap-2 ${step === 'confirm' ? 'text-amber-400' : 'text-gray-400'}`}
           >
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                step === 'confirm' ? 'bg-red-600/20' : 'bg-gray-700'
+                step === 'confirm' ? 'bg-amber-500/20' : 'bg-gray-700'
               }`}
             >
               3
@@ -249,8 +249,8 @@ export const BulkRoleAssignmentModal = ({
 
             {/* Selected Count */}
             {selectedMembers.length > 0 && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                <p className="text-red-400 text-sm font-medium">
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                <p className="text-amber-400 text-sm font-medium">
                   {selectedMembers.length} member{selectedMembers.length !== 1 ? 's' : ''} selected
                 </p>
               </div>
@@ -263,7 +263,7 @@ export const BulkRoleAssignmentModal = ({
                   key={member.id}
                   className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                     selectedMembers.includes(member.id)
-                      ? 'bg-red-500/10 border-red-500/30'
+                      ? 'bg-amber-500/10 border-amber-500/30'
                       : 'bg-white/5 border-gray-700 hover:bg-white/10'
                   }`}
                 >
@@ -358,7 +358,7 @@ export const BulkRoleAssignmentModal = ({
                 </SelectContent>
               </Select>
             ) : !isCustomRole && tripRoleNames.length === 0 ? (
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                 <p className="text-yellow-400 text-sm">
                   No roles exist yet. Use the "Custom" option to create a new role, or create roles
                   first using the "Create Role" button.
@@ -378,7 +378,7 @@ export const BulkRoleAssignmentModal = ({
         {/* Step 3: Confirm */}
         {step === 'confirm' && !result && (
           <div className="space-y-4">
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <AlertCircle className="text-yellow-400 flex-shrink-0 mt-0.5" size={20} />
                 <div>
@@ -415,7 +415,7 @@ export const BulkRoleAssignmentModal = ({
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-gray-400">{member.role}</span>
                     <span className="text-gray-600">→</span>
-                    <span className="text-red-400 font-medium">{selectedRole}</span>
+                    <span className="text-amber-400 font-medium">{selectedRole}</span>
                   </div>
                 </div>
               ))}
@@ -429,17 +429,19 @@ export const BulkRoleAssignmentModal = ({
             className={`rounded-lg p-4 ${
               result.success
                 ? 'bg-green-500/10 border border-green-500/20'
-                : 'bg-red-500/10 border border-red-500/20'
+                : 'bg-amber-500/10 border border-amber-500/20'
             }`}
           >
             <div className="flex items-center gap-3">
               {result.success ? (
                 <CheckCircle2 className="text-green-400" size={24} />
               ) : (
-                <AlertCircle className="text-red-400" size={24} />
+                <AlertCircle className="text-amber-400" size={24} />
               )}
               <div>
-                <p className={`font-medium ${result.success ? 'text-green-400' : 'text-red-400'}`}>
+                <p
+                  className={`font-medium ${result.success ? 'text-green-400' : 'text-amber-400'}`}
+                >
                   {result.success ? 'Assignment Complete!' : 'Assignment Partially Complete'}
                 </p>
                 <p className="text-sm text-gray-300 mt-1">
@@ -472,7 +474,7 @@ export const BulkRoleAssignmentModal = ({
               <Button
                 onClick={handleAssign}
                 disabled={isAssigning || !selectedRole.trim()}
-                className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold shadow-lg hover:shadow-yellow-500/25"
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold"
               >
                 {isAssigning ? (
                   <>Assigning...</>
@@ -490,7 +492,7 @@ export const BulkRoleAssignmentModal = ({
                   (step === 'select' && selectedMembers.length === 0) ||
                   (step === 'assign' && !selectedRole.trim())
                 }
-                className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold shadow-lg hover:shadow-yellow-500/25"
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold"
               >
                 Next
                 <ChevronRight size={16} className="ml-1" />

@@ -63,7 +63,7 @@ export const RoleContactSheet = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users size={20} />
@@ -93,7 +93,7 @@ export const RoleContactSheet = ({
 
         {/* Group Message Composer */}
         {onSendGroupMessage && (
-          <div className="space-y-3 border-t border-gray-700 pt-4">
+          <div className="space-y-3 border-t border-white/10 pt-4">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Send Message to All {role}</label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -155,13 +155,13 @@ export const RoleContactSheet = ({
         )}
 
         {/* Member List */}
-        <div className="space-y-3 border-t border-gray-700 pt-4">
+        <div className="space-y-3 border-t border-white/10 pt-4">
           <h3 className="text-sm font-medium text-gray-400">All {role} Members:</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {members.map(member => (
               <div
                 key={member.id}
-                className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-gray-700"
+                className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10 flex-shrink-0">
@@ -200,7 +200,7 @@ export const RoleContactSheet = ({
         </div>
 
         {/* Close Button */}
-        <div className="flex justify-end pt-4 border-t border-gray-700">
+        <div className="flex justify-end pt-4 border-t border-white/10">
           <Button onClick={onClose} variant="outline">
             <X size={16} className="mr-2" />
             Close

@@ -34,7 +34,7 @@ export const JoinRequestsDialog = ({ open, onOpenChange, tripId }: JoinRequestsD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gray-900/95 backdrop-blur-md border-white/20">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <Clock className="w-5 h-5 text-amber-400" />

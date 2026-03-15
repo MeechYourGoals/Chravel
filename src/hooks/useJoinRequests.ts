@@ -68,8 +68,6 @@ export const useJoinRequests = ({
 
       if (error) throw error;
 
-      console.log('[useJoinRequests] Fetched raw requests:', data?.length);
-
       // Fetch profiles for user info (use public view for co-member data)
       const requestsWithProfiles = await Promise.all(
         (data || []).map(async request => {
@@ -128,11 +126,6 @@ export const useJoinRequests = ({
             },
           };
         }),
-      );
-
-      console.log(
-        '[useJoinRequests] Processed requests with profiles:',
-        requestsWithProfiles.length,
       );
 
       setRequests(requestsWithProfiles as JoinRequest[]);
