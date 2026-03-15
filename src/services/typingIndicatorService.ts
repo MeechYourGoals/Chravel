@@ -21,6 +21,9 @@ export class TypingIndicatorService {
   private userName: string;
   private typingTimeout: NodeJS.Timeout | null = null;
   private isTyping = false;
+  /** Timestamp of last presence track() call — used for 300ms throttle. */
+  private lastTrackTimestamp = 0;
+  private static readonly TRACK_THROTTLE_MS = 300;
 
   constructor(tripId: string, userId: string, userName: string) {
     this.tripId = tripId;
@@ -68,26 +71,34 @@ export class TypingIndicatorService {
   }
 
   /**
-   * Signal that user is typing
+   * Signal that user is typing.
+   * Throttled to at most one presence track() call per 300ms to reduce
+   * excessive Realtime events during rapid keystroke sequences.
    */
   async startTyping(): Promise<void> {
-    if (this.isTyping) return;
+    const now = Date.now();
 
-    this.isTyping = true;
-    await this.channel?.track({
-      userId: this.userId,
-      userName: this.userName,
-      typing: true,
-      timestamp: Date.now(),
-    });
-
-    // Auto-stop typing after 3 seconds of inactivity
+    // Always reset the auto-stop timer on every keystroke
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
     }
     this.typingTimeout = setTimeout(() => {
       this.stopTyping();
     }, 3000);
+
+    // Throttle: skip the track() call if we already sent one recently
+    if (this.isTyping && now - this.lastTrackTimestamp < TypingIndicatorService.TRACK_THROTTLE_MS) {
+      return;
+    }
+
+    this.isTyping = true;
+    this.lastTrackTimestamp = now;
+    await this.channel?.track({
+      userId: this.userId,
+      userName: this.userName,
+      typing: true,
+      timestamp: now,
+    });
   }
 
   /**
