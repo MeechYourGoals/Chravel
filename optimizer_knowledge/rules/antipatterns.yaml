@@ -1,0 +1,70 @@
+# Anti-Pattern Definitions — Skill Optimizer
+# Each entry describes a detectable anti-pattern in prompt artifacts.
+
+vague_instructions:
+  description: 'Instructions using non-specific language'
+  severity: minor
+  indicators:
+    - 'handle appropriately'
+    - 'as needed'
+    - 'if necessary'
+    - 'be careful'
+    - 'properly'
+    - 'correctly'
+  fix: 'Replace with specific, deterministic instructions'
+
+missing_triggers:
+  description: 'Skill has no clear activation conditions'
+  severity: major
+  indicators:
+    - "No 'Use when' prefix in description"
+    - 'No trigger keywords in frontmatter'
+  fix: "Add explicit 'Use when [symptoms/conditions]' description"
+
+conflicting_instructions:
+  description: 'Artifact contains contradictory directions'
+  severity: critical
+  indicators:
+    - 'Opposing instructions in different sections'
+    - 'Examples that contradict written rules'
+  fix: 'Identify conflicts and resolve with single source of truth'
+
+overlong_context:
+  description: 'Artifact is too long, diluting core task'
+  severity: minor
+  indicators:
+    - 'More than 500 lines without clear structure'
+    - 'Repeated content across sections'
+  fix: 'Split into focused sub-skills or consolidate'
+
+missing_output_contract:
+  description: 'No defined deliverables or output format'
+  severity: major
+  indicators:
+    - "No 'produce', 'output', 'deliver' keywords"
+    - 'No format/template specification'
+  fix: 'Add explicit output section with format'
+
+bloated_persona:
+  description: 'Excessive tone/persona instructions override task'
+  severity: minor
+  indicators:
+    - 'Long persona paragraphs before actual instructions'
+    - 'Tone instructions > 20% of total content'
+  fix: 'Move persona to 1-2 lines max, prioritize task'
+
+dead_references:
+  description: "References to tools, files, or functions that don't exist"
+  severity: major
+  indicators:
+    - 'File paths that resolve to nothing'
+    - 'Tool names not in the available tool set'
+  fix: 'Remove or update references'
+
+missing_guardrails:
+  description: 'No safety constraints or do-not rules'
+  severity: major
+  indicators:
+    - "No 'do not', 'never', 'must not' phrases"
+    - 'No constraints section'
+  fix: 'Add explicit safety guardrails'
