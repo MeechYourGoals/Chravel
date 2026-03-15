@@ -45,7 +45,8 @@ export class RecommendationService {
    * Fetch organic recommendations from the recommendation_items table.
    */
   static async getOrganicItems(filters?: RecommendationFilters): Promise<Recommendation[]> {
-    let query = supabase
+    // intentional: recommendation_items not yet in generated types
+    let query = (supabase as any)
       .from('recommendation_items')
       .select('*')
       .eq('is_active', true)
