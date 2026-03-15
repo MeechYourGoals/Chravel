@@ -40,6 +40,8 @@ export interface MessageActionsProps {
   messageType: 'channel' | 'trip';
   isOwnMessage: boolean;
   isDeleted?: boolean;
+  /** Admins can delete any message (server-side RLS enforced via migration 20260315000002) */
+  isAdmin?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onDelete?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
@@ -51,6 +53,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   messageType,
   isOwnMessage,
   isDeleted = false,
+  isAdmin = false,
   onEdit,
   onDelete,
   onReply,
@@ -159,7 +162,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
             <Copy className="mr-2 h-4 w-4" />
             Copy
           </DropdownMenuItem>
-          {/* Own-message-only actions */}
+          {/* Own-message actions: edit + delete */}
           {isOwnMessage && (
             <>
               <DropdownMenuSeparator />
@@ -172,6 +175,19 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </>
+          )}
+          {/* Admin-only delete for other users' messages */}
+          {!isOwnMessage && isAdmin && (
+            <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setShowDeleteDialog(true)}
                 className="text-red-600 focus:text-red-600"

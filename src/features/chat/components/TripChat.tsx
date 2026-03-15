@@ -44,6 +44,7 @@ import {
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
+import { useTripChatMode } from '@/hooks/useTripChatMode';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -137,6 +138,19 @@ export const TripChat = React.memo(
     const demoMode = useDemoMode();
     const { user } = useAuth();
     const queryClient = useQueryClient();
+
+    // Chat mode enforcement — UI layer (server-side RLS is authoritative)
+    const {
+      chatMode,
+      canPost: canPostToChat,
+      isLoading: chatModeLoading,
+      userRole: chatModeUserRole,
+    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
+
+    const isUserAdmin =
+      chatModeUserRole === 'admin' ||
+      chatModeUserRole === 'organizer' ||
+      chatModeUserRole === 'owner';
 
     // Optimistic cache updates for edit/delete (MessageActions does the API call)
     const handleMessageEdit = useCallback(
@@ -264,12 +278,19 @@ export const TripChat = React.memo(
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
 
-    // Initialize typing indicators
+    // Initialize typing indicators — disabled for restricted chat modes or large groups
+    const shouldEnableTyping =
+      !demoMode.isDemoMode &&
+      !!user?.id &&
+      !!resolvedTripId &&
+      (!chatMode || chatMode === 'everyone') &&
+      tripMembers.length <= 50;
+
     useEffect(() => {
-      if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
+      if (!shouldEnableTyping) return;
 
       const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
-      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
+      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user!.id, userName);
 
       typingServiceRef.current.initialize(setTypingUsers).catch(error => {
         if (import.meta.env.DEV) {
@@ -284,7 +305,7 @@ export const TripChat = React.memo(
           }
         });
       };
-    }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
+    }, [shouldEnableTyping, resolvedTripId]);
 
     // Mark messages as read when they come into view AND fetch read statuses
     useEffect(() => {
@@ -873,10 +894,11 @@ export const TripChat = React.memo(
                           onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                           onRetry={handleRetryFailedMessage}
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-                          tripMembers={tripMembers} // Pass trip members
-                          readStatuses={readStatusesByMessage[message.id]} // Pass read statuses for this message
+                          tripMembers={tripMembers}
+                          readStatuses={readStatusesByMessage[message.id]}
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
+                          isAdmin={isUserAdmin}
                         />
                       </div>
                     )}
@@ -914,8 +936,8 @@ export const TripChat = React.memo(
           </div>
         </div>
 
-        {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
-        {messageFilter !== 'channels' && (
+        {/* Persistent Chat Input - Hidden when in Channels mode or user cannot post */}
+        {messageFilter !== 'channels' && canPostToChat && (
           <div className="chat-input-persistent w-full pb-[env(safe-area-inset-bottom)]">
             <div className="w-full">
               <ChatInput
@@ -948,6 +970,19 @@ export const TripChat = React.memo(
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {/* Chat mode restriction banner */}
+        {messageFilter !== 'channels' && !canPostToChat && !chatModeLoading && (
+          <div className="w-full border-t border-white/10 bg-black/40 px-4 py-3 text-center">
+            <p className="text-sm text-white/60">
+              {chatMode === 'broadcasts'
+                ? 'This chat is in announcements-only mode. Only admins can post.'
+                : chatMode === 'admin_only'
+                  ? 'This chat is in admin-only mode. Only admins can post.'
+                  : 'You do not have permission to post in this chat.'}
+            </p>
           </div>
         )}
 
