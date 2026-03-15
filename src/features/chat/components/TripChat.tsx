@@ -289,6 +289,17 @@ export const TripChat = React.memo(
     // Refs for incremental read receipt tracking (declared before effects that use them)
     const markedMessageIdsRef = useRef<Set<string>>(new Set());
     const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Track own message IDs so the read receipt subscription accepts receipts for them
+    const ownMessageIdsRef = useRef<Set<string>>(new Set());
+
+    // Keep ownMessageIdsRef in sync with liveMessages so the read receipt
+    // subscription can accept receipts for freshly sent own messages.
+    useEffect(() => {
+      if (!user?.id) return;
+      ownMessageIdsRef.current = new Set(
+        liveMessages.filter(msg => msg.user_id === user.id).map(msg => msg.id),
+      );
+    }, [liveMessages, user?.id]);
 
     // Realtime subscription for read receipts (stable — does NOT depend on liveMessages).
     // NOTE: message_read_receipts has no trip_id column, so the Supabase realtime
@@ -301,9 +312,15 @@ export const TripChat = React.memo(
       const subscription = subscribeToReadReceipts(resolvedTripId, newStatus => {
         setReadStatusesByMessage(prev => {
           const msgId = newStatus.message_id;
-          // Only track receipts for messages we already know about (own messages)
-          // This prevents accumulating state for unrelated trips
-          if (!prev[msgId] && !markedMessageIdsRef.current.has(msgId)) return prev;
+          // Only track receipts for messages we already know about.
+          // Accept if: already in state, OR we marked it as read, OR it's our own message.
+          // This prevents accumulating state for unrelated trips.
+          if (
+            !prev[msgId] &&
+            !markedMessageIdsRef.current.has(msgId) &&
+            !ownMessageIdsRef.current.has(msgId)
+          )
+            return prev;
           const currentStatuses = prev[msgId] || [];
           if (currentStatuses.some((s: any) => s.user_id === newStatus.user_id)) {
             return prev;
@@ -428,18 +445,25 @@ export const TripChat = React.memo(
       });
     }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
-    // Fetch reactions once on initial load (not on every message count change).
-    // Subsequent updates come via the realtime reaction subscription below.
-    const reactionsLoadedRef = useRef(false);
+    // Fetch reactions for messages whose reactions haven't been loaded yet.
+    // Handles both initial load and pagination (loadMore adds older messages).
+    // Realtime subscription below handles incremental INSERT/DELETE for new reactions.
+    const reactionsFetchedIdsRef = useRef<Set<string>>(new Set());
     useEffect(() => {
       if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
-      if (reactionsLoadedRef.current) return;
-      reactionsLoadedRef.current = true;
+
+      // Only fetch for messages we haven't fetched reactions for yet
+      const unfetchedIds = liveMessages
+        .map(m => m.id)
+        .filter(id => !reactionsFetchedIdsRef.current.has(id));
+
+      if (unfetchedIds.length === 0) return;
 
       const fetchReactions = async () => {
-        const messageIds = liveMessages.map(m => m.id);
         try {
-          const data = await getMessagesReactions(messageIds, user.id);
+          const data = await getMessagesReactions(unfetchedIds, user.id);
+          // Mark as fetched before updating state
+          unfetchedIds.forEach(id => reactionsFetchedIdsRef.current.add(id));
           const formatted: Record<
             string,
             Record<string, { count: number; userReacted: boolean; users: string[] }>
@@ -454,7 +478,9 @@ export const TripChat = React.memo(
               };
             }
           }
-          setReactions(formatted);
+          // Merge with existing reactions (don't replace — preserves data for
+          // already-loaded messages and any realtime updates that arrived since)
+          setReactions(prev => ({ ...prev, ...formatted }));
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('[TripChat] Failed to fetch reactions:', error);
