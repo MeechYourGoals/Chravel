@@ -560,7 +560,13 @@ export const TripChat = React.memo(
       };
     }, [resolvedTripId, user?.id, liveMessages, demoMode.isDemoMode]);
 
-    const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
+    const handleSendMessage = async (
+      isBroadcast = false,
+      isPayment = false,
+      paymentData?: any,
+      linkPreview?: any,
+      mentionedUserIds?: string[],
+    ) => {
       // Transform paymentData if needed to match useChatComposer expectations
       let transformedPaymentData;
       if (isPayment && paymentData) {
@@ -594,9 +600,8 @@ export const TripChat = React.memo(
       }
 
       const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
+      const messageType = isBroadcast ? 'broadcast' : isPayment ? 'payment' : 'text';
       try {
-        // Determine message type based on flags
-        const messageType = isBroadcast ? 'broadcast' : isPayment ? 'payment' : 'text';
         // Use actual privacy mode from trip config
         const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
 
@@ -607,7 +612,7 @@ export const TripChat = React.memo(
           undefined,
           user?.id,
           effectivePrivacyMode,
-          messageType,
+          messageType as 'text' | 'broadcast' | 'payment' | 'system',
           replyingTo?.id,
         );
 
@@ -622,13 +627,17 @@ export const TripChat = React.memo(
           }
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to send message';
         setFailedMessages(prev => [
           ...prev,
-          { id: `failed-${Date.now()}`, text: message.text, authorName },
+          { id: `failed-${Date.now()}`, text: message.text, authorName, messageType: messageType as 'text' | 'broadcast' | 'payment' | 'system' },
         ]);
-        if (import.meta.env.DEV) {
-          console.error('Failed to send chat message:', error);
-        }
+        toast({
+          title: isBroadcast ? 'Broadcast failed' : 'Message failed',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+        console.error('[TripChat] Failed to send message:', error);
       }
     };
 
