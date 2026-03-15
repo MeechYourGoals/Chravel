@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -130,6 +130,65 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
+  // Ref tracking the newest known server timestamp for reconnect backfill.
+  // Updated on every INSERT and on initial/pagination fetches.
+  const lastKnownTimestampRef = useRef<string | null>(null);
+
+  // Keep the ref in sync with the latest message in the TQ cache.
+  useEffect(() => {
+    if (messages.length > 0) {
+      const newest = messages[messages.length - 1]?.created_at;
+      if (newest) lastKnownTimestampRef.current = newest;
+    }
+  }, [messages]);
+
+  // Backfill: fetch messages newer than our last known timestamp and merge into cache.
+  const backfillGap = useCallback(async () => {
+    if (!tripId || !lastKnownTimestampRef.current) return;
+    try {
+      const { data, error } = await supabase
+        .from('trip_chat_messages')
+        .select('*')
+        .eq('trip_id', tripId)
+        .eq('is_deleted', false)
+        .gt('created_at', lastKnownTimestampRef.current)
+        .order('created_at', { ascending: true })
+        .limit(100);
+
+      if (error || !data || data.length === 0) return;
+
+      // Decrypt if needed
+      const decrypted = await Promise.all(
+        data.map(async msg => {
+          if (msg.privacy_encrypted && msg.content) {
+            try {
+              const d = await privacyService.prepareMessageForDisplay(msg.content, tripId, true);
+              return { ...msg, content: d };
+            } catch {
+              return { ...msg, content: '[Unable to decrypt message]' };
+            }
+          }
+          return msg;
+        }),
+      );
+
+      queryClient.setQueryData(['tripChat', tripId], (old: TripChatMessage[] = []) => {
+        const existingIds = new Set(old.map(m => m.id));
+        const newMsgs = decrypted.filter(m => !existingIds.has(m.id));
+        if (newMsgs.length === 0) return old;
+        return [...old, ...(newMsgs as TripChatMessage[])].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
+      });
+
+      // Update the ref to the newest backfilled message
+      const newestBackfilled = decrypted[decrypted.length - 1]?.created_at;
+      if (newestBackfilled) lastKnownTimestampRef.current = newestBackfilled;
+    } catch {
+      // Backfill is best-effort; swallow errors
+    }
+  }, [tripId, queryClient]);
+
   // ⚡ PERFORMANCE: Skip real-time subscription if not enabled (lazy loading)
   // ⚡ Batching: Collect rapid INSERTs and apply in one update per frame
   useEffect(() => {
@@ -143,6 +202,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     let flushScheduled = false;
     // Throttle "Connection interrupted" toast — at most once per 60 s to avoid spam
     let lastConnectionErrorToast = 0;
+    // Track whether channel has been SUBSCRIBED at least once (for reconnect detection)
+    let hasBeenSubscribed = false;
 
     const flushPendingInserts = () => {
       if (pendingInserts.length === 0) {
@@ -168,6 +229,10 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           });
           if (!isDuplicate) {
             result = [...result, newMessage];
+            // Update the last-known timestamp ref as we receive new messages
+            if (newMessage.created_at) {
+              lastKnownTimestampRef.current = newMessage.created_at;
+            }
             if (newMessage.privacy_encrypted && newMessage.content) {
               privacyService
                 .prepareMessageForDisplay(newMessage.content, tripId!, true)
@@ -293,6 +358,13 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         if (import.meta.env.DEV) {
           console.log('[CHAT REALTIME] Subscription status:', status);
         }
+        if (status === 'SUBSCRIBED') {
+          // On reconnect (not initial subscribe), backfill any missed messages
+          if (hasBeenSubscribed) {
+            backfillGap();
+          }
+          hasBeenSubscribed = true;
+        }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           const now = Date.now();
           // Throttle: show at most once per 60 s so rapid reconnect cycles don't spam
@@ -307,13 +379,22 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         }
       });
 
+    // Visibility change handler: backfill missed messages when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        backfillGap();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       if (import.meta.env.DEV) {
         console.log('[CHAT REALTIME] Unsubscribing from channel:', `trip_chat_${tripId}`);
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(channel);
     };
-  }, [tripId, queryClient, isEnabled, toast]);
+  }, [tripId, queryClient, isEnabled, toast, backfillGap]);
 
   // Process offline queue when connection is restored
   // Note: Global sync processor in App.tsx handles all entity types.
@@ -364,13 +445,16 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       }
 
       const sanitizedAuthorName = InputValidator.sanitizeText(message.author_name);
+      // Always generate client_message_id for idempotent sends (online and offline)
+      const clientMessageId = createClientMessageId();
+
       const messageData = {
         trip_id: tripId,
         content: sanitizedContent,
         author_name: sanitizedAuthorName,
         sender_display_name: sanitizedAuthorName,
         user_id: message.userId,
-        client_message_id: undefined as string | undefined,
+        client_message_id: clientMessageId,
         privacy_mode: message.privacyMode || 'standard',
         message_type: message.messageType || 'text',
         media_type: message.media_type,
@@ -380,10 +464,6 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
 
       // If offline, queue the message using unified sync service
       if (isOffline) {
-        // Stable client-side ID for dedupe on reconnect retries.
-        const clientMessageId = createClientMessageId();
-        messageData.client_message_id = clientMessageId;
-
         const queueId = await offlineSyncService.queueOperation(
           'chat_message',
           'create',

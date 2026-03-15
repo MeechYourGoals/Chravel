@@ -286,17 +286,43 @@ export const TripChat = React.memo(
       };
     }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
 
-    // Mark messages as read when they come into view AND fetch read statuses
+    // Refs for incremental read receipt tracking (declared before effects that use them)
+    const markedMessageIdsRef = useRef<Set<string>>(new Set());
+    const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Track own message IDs so the read receipt subscription accepts receipts for them
+    const ownMessageIdsRef = useRef<Set<string>>(new Set());
+
+    // Keep ownMessageIdsRef in sync with liveMessages so the read receipt
+    // subscription can accept receipts for freshly sent own messages.
+    useEffect(() => {
+      if (!user?.id) return;
+      ownMessageIdsRef.current = new Set(
+        liveMessages.filter(msg => msg.user_id === user.id).map(msg => msg.id),
+      );
+    }, [liveMessages, user?.id]);
+
+    // Realtime subscription for read receipts (stable — does NOT depend on liveMessages).
+    // NOTE: message_read_receipts has no trip_id column, so the Supabase realtime
+    // subscription receives ALL inserts globally. We filter client-side below using
+    // readStatusesByMessage keys (only own-message IDs are displayed). At Stage B,
+    // consider adding trip_id to message_read_receipts for server-side filtering.
     useEffect(() => {
       if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
-      // Realtime subscription for read receipts (updates UI)
       const subscription = subscribeToReadReceipts(resolvedTripId, newStatus => {
         setReadStatusesByMessage(prev => {
           const msgId = newStatus.message_id;
+          // Only track receipts for messages we already know about.
+          // Accept if: already in state, OR we marked it as read, OR it's our own message.
+          // This prevents accumulating state for unrelated trips.
+          if (
+            !prev[msgId] &&
+            !markedMessageIdsRef.current.has(msgId) &&
+            !ownMessageIdsRef.current.has(msgId)
+          )
+            return prev;
           const currentStatuses = prev[msgId] || [];
-          // Check if status already exists to avoid dupes
-          if (currentStatuses.some(s => s.user_id === newStatus.user_id)) {
+          if (currentStatuses.some((s: any) => s.user_id === newStatus.user_id)) {
             return prev;
           }
           return {
@@ -306,38 +332,6 @@ export const TripChat = React.memo(
         });
       });
 
-      // Mark all messages from other users as read
-      const markVisibleAsRead = async () => {
-        // Get all message IDs from other users that need to be marked as read
-        const messageIdsToMark = liveMessages
-          .filter(msg => msg.user_id !== user.id)
-          .map(msg => msg.id);
-
-        if (messageIdsToMark.length > 0) {
-          await markMessagesAsRead(messageIdsToMark, resolvedTripId, user.id).catch(error => {
-            if (import.meta.env.DEV) {
-              console.error(error);
-            }
-          });
-        }
-
-        // Also fetch read statuses for OWN messages to display receipts
-        const ownMessageIds = liveMessages
-          .filter(msg => msg.user_id === user.id)
-          .map(msg => msg.id);
-
-        if (ownMessageIds.length > 0) {
-          try {
-            const statuses = await getMessagesReadStatus(ownMessageIds);
-            setReadStatusesByMessage(statuses);
-          } catch (e) {
-            console.error('Failed to fetch read statuses', e);
-          }
-        }
-      };
-
-      markVisibleAsRead();
-
       return () => {
         supabase.removeChannel(subscription).catch(error => {
           if (import.meta.env.DEV) {
@@ -345,7 +339,57 @@ export const TripChat = React.memo(
           }
         });
       };
+    }, [user?.id, resolvedTripId, demoMode.isDemoMode]);
+
+    // Mark NEW messages as read (debounced, incremental — not all messages every time).
+    // Uses markedMessageIdsRef to track already-marked IDs so we never re-mark the same message.
+    // The 1s debounce batches rapid incoming messages into a single upsert call.
+    useEffect(() => {
+      if (demoMode.isDemoMode || !user?.id || !resolvedTripId || liveMessages.length === 0) return;
+
+      const newUnmarkedIds = liveMessages
+        .filter(msg => msg.user_id !== user.id && !markedMessageIdsRef.current.has(msg.id))
+        .map(msg => msg.id);
+
+      if (newUnmarkedIds.length === 0) return;
+
+      if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
+      markReadTimerRef.current = setTimeout(async () => {
+        try {
+          await markMessagesAsRead(newUnmarkedIds, resolvedTripId, user.id);
+          newUnmarkedIds.forEach(id => markedMessageIdsRef.current.add(id));
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error(error);
+          }
+        }
+      }, 1000);
+
+      return () => {
+        if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
+      };
     }, [liveMessages, user?.id, resolvedTripId, demoMode.isDemoMode]);
+
+    // Fetch read statuses for own messages (only when own message count changes)
+    const ownMessageCountRef = useRef(0);
+    useEffect(() => {
+      if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
+
+      const ownMessages = liveMessages.filter(msg => msg.user_id === user.id);
+      if (ownMessages.length === ownMessageCountRef.current) return;
+      ownMessageCountRef.current = ownMessages.length;
+
+      const ownMessageIds = ownMessages.map(msg => msg.id);
+      if (ownMessageIds.length === 0) return;
+
+      getMessagesReadStatus(ownMessageIds)
+        .then(statuses => setReadStatusesByMessage(prev => ({ ...prev, ...statuses })))
+        .catch(e => {
+          if (import.meta.env.DEV) {
+            console.error('Failed to fetch read statuses', e);
+          }
+        });
+    }, [liveMessages, user?.id, demoMode.isDemoMode]);
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
@@ -401,14 +445,25 @@ export const TripChat = React.memo(
       });
     }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
-    // Fetch initial reactions for messages
+    // Fetch reactions for messages whose reactions haven't been loaded yet.
+    // Handles both initial load and pagination (loadMore adds older messages).
+    // Realtime subscription below handles incremental INSERT/DELETE for new reactions.
+    const reactionsFetchedIdsRef = useRef<Set<string>>(new Set());
     useEffect(() => {
       if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
 
+      // Only fetch for messages we haven't fetched reactions for yet
+      const unfetchedIds = liveMessages
+        .map(m => m.id)
+        .filter(id => !reactionsFetchedIdsRef.current.has(id));
+
+      if (unfetchedIds.length === 0) return;
+
       const fetchReactions = async () => {
-        const messageIds = liveMessages.map(m => m.id);
         try {
-          const data = await getMessagesReactions(messageIds, user.id);
+          const data = await getMessagesReactions(unfetchedIds, user.id);
+          // Mark as fetched before updating state
+          unfetchedIds.forEach(id => reactionsFetchedIdsRef.current.add(id));
           const formatted: Record<
             string,
             Record<string, { count: number; userReacted: boolean; users: string[] }>
@@ -423,7 +478,9 @@ export const TripChat = React.memo(
               };
             }
           }
-          setReactions(formatted);
+          // Merge with existing reactions (don't replace — preserves data for
+          // already-loaded messages and any realtime updates that arrived since)
+          setReactions(prev => ({ ...prev, ...formatted }));
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('[TripChat] Failed to fetch reactions:', error);
