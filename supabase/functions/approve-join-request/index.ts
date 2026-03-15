@@ -178,46 +178,23 @@ serve(async req => {
       });
     }
 
-    // If approved, add user to trip_members (with duplicate prevention)
+    // If approved, add user to trip_members
     if (action === 'approve') {
-      // Check if user is already a member to prevent duplicates
-      const { data: existingMember } = await supabaseClient
-        .from('trip_members')
-        .select('id')
-        .eq('trip_id', joinRequest.trip_id)
-        .eq('user_id', joinRequest.user_id)
-        .maybeSingle();
+      const { error: memberError } = await supabaseClient.from('trip_members').insert({
+        trip_id: joinRequest.trip_id,
+        user_id: joinRequest.user_id,
+        role: 'member',
+      });
 
-      if (existingMember) {
-        logStep('User already a member, skipping insert', {
-          tripId: joinRequest.trip_id,
-          userId: joinRequest.user_id,
-        });
-      } else {
-        const { error: memberError } = await supabaseClient.from('trip_members').insert({
-          trip_id: joinRequest.trip_id,
-          user_id: joinRequest.user_id,
-          role: 'member',
-        });
-
-        if (memberError) {
-          // Handle unique constraint violation gracefully (race condition)
-          if (memberError.code === '23505') {
-            logStep('Member already exists (race condition), continuing', {
-              tripId: joinRequest.trip_id,
-              userId: joinRequest.user_id,
-            });
-          } else {
-            logStep('ERROR: Failed to add member', { error: memberError.message });
-            return new Response(
-              JSON.stringify({ success: false, message: 'Failed to add member to trip' }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-            );
-          }
-        } else {
-          logStep('Member added successfully');
-        }
+      if (memberError) {
+        logStep('ERROR: Failed to add member', { error: memberError.message });
+        return new Response(
+          JSON.stringify({ success: false, message: 'Failed to add member to trip' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
       }
+
+      logStep('Member added successfully');
     }
 
     // Create notification for the requester
@@ -246,14 +223,7 @@ serve(async req => {
       logStep('Notification created for requester');
     }
 
-    logStep('JOIN_REQUEST_RESOLVED', {
-      action,
-      requestId,
-      tripId: joinRequest.trip_id,
-      requesterId: joinRequest.user_id,
-      resolvedBy: user.id,
-      tripType: tripType || 'consumer',
-    });
+    logStep('Request processed successfully', { action, requestId });
 
     return new Response(
       JSON.stringify({

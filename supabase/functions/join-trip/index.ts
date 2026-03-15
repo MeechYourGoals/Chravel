@@ -146,20 +146,6 @@ serve(async req => {
       );
     }
 
-    // Validate invite code format (alphanumeric, hyphens, underscores only)
-    const INVITE_CODE_PATTERN = /^[a-zA-Z0-9_-]+$/;
-    if (!INVITE_CODE_PATTERN.test(normalizedInviteCode)) {
-      logStep('ERROR: Invalid invite code format', {
-        inviteCode: redactSensitiveToken(normalizedInviteCode),
-      });
-      return errorResponse(
-        'This invite link contains invalid characters.',
-        400,
-        corsHeaders,
-        'INVALID_LINK',
-      );
-    }
-
     logStep('Processing invite code', { inviteCode: redactSensitiveToken(normalizedInviteCode) });
 
     // Fetch invite data from database
@@ -442,25 +428,21 @@ serve(async req => {
         }
 
         joinRequestId = joinRequest?.id;
-        logStep('JOIN_REQUEST_CREATED', {
-          requestId: joinRequestId,
-          tripId: invite.trip_id,
-          userId: user.id,
-          tripType: trip.trip_type || 'consumer',
-          inviteCode: redactSensitiveToken(normalizedInviteCode),
-        });
+        logStep('Join request created successfully', { requestId: joinRequestId });
 
-        // Increment current_uses atomically to enforce max_uses limit
-        const { error: usesError } = await supabaseClient
+        // Increment current_uses on the invite with optimistic concurrency
+        const currentUses = invite.current_uses ?? 0;
+        const { error: incrementError } = await supabaseClient
           .from('trip_invites')
-          .update({ current_uses: invite.current_uses + 1 })
-          .eq('id', invite.id)
-          .eq('current_uses', invite.current_uses); // Optimistic concurrency check
+          .update({ current_uses: currentUses + 1 })
+          .eq('code', normalizedInviteCode)
+          .eq('current_uses', currentUses); // optimistic lock
 
-        if (usesError) {
-          logStep('WARNING: Failed to increment current_uses (non-critical)', {
-            error: usesError.message,
-          });
+        if (incrementError) {
+          // Non-fatal: log but don't fail the join request
+          logStep('WARNING: Failed to increment current_uses', { error: incrementError.message });
+        } else {
+          logStep('Incremented current_uses', { from: currentUses, to: currentUses + 1 });
         }
       }
 

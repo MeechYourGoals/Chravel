@@ -144,23 +144,6 @@ serve(async (req): Promise<Response> => {
       });
     }
 
-    // Validate invite code format (alphanumeric, hyphens, underscores only)
-    const INVITE_CODE_PATTERN = /^[a-zA-Z0-9_-]+$/;
-    if (!INVITE_CODE_PATTERN.test(normalizedInviteCode)) {
-      logStep('ERROR: Invalid invite code format', {
-        code: redactSensitiveToken(normalizedInviteCode),
-      });
-      const response: InvitePreviewResponse = {
-        success: false,
-        error: 'This invite link contains invalid characters.',
-        error_code: 'INVALID_LINK',
-      };
-      return new Response(JSON.stringify(response), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     logStep('Looking up invite', { code: redactSensitiveToken(normalizedInviteCode), clientIp });
 
     // Fetch invite data
