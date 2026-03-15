@@ -351,6 +351,71 @@ export const getArchiveAnalytics = async (userId?: string) => {
   };
 };
 
+/**
+ * Clean up storage objects for an archived trip.
+ * Removes files from the trip-media bucket in batches.
+ * Safe to call multiple times (idempotent — skips already-deleted files).
+ */
+export const cleanupTripStorage = async (
+  tripId: string,
+): Promise<{ deleted: number; errors: number }> => {
+  let deleted = 0;
+  let errors = 0;
+
+  // Get all media index entries for this trip to find storage paths
+  const { data: mediaEntries, error: queryError } = await supabase
+    .from('trip_media_index')
+    .select('id, metadata')
+    .eq('trip_id', tripId);
+
+  if (queryError || !mediaEntries?.length) {
+    return { deleted: 0, errors: queryError ? 1 : 0 };
+  }
+
+  // Extract upload paths from metadata
+  const paths: string[] = [];
+  for (const entry of mediaEntries) {
+    const meta = entry.metadata as Record<string, unknown> | null;
+    if (meta?.upload_path && typeof meta.upload_path === 'string') {
+      paths.push(meta.upload_path);
+    }
+  }
+
+  // Also try the standard path pattern: tripId/subdir/*
+  const subdirs = ['images', 'videos', 'files'];
+  for (const subdir of subdirs) {
+    const { data: files } = await supabase.storage
+      .from('trip-media')
+      .list(`${tripId}/${subdir}`, { limit: 1000 });
+
+    if (files) {
+      for (const file of files) {
+        paths.push(`${tripId}/${subdir}/${file.name}`);
+      }
+    }
+  }
+
+  // Delete in batches of 50
+  const batchSize = 50;
+  for (let i = 0; i < paths.length; i += batchSize) {
+    const batch = paths.slice(i, i + batchSize);
+    const { error: deleteError } = await supabase.storage.from('trip-media').remove(batch);
+
+    if (deleteError) {
+      errors++;
+    } else {
+      deleted += batch.length;
+    }
+  }
+
+  // Clean up media index entries
+  if (deleted > 0) {
+    await supabase.from('trip_media_index').delete().eq('trip_id', tripId);
+  }
+
+  return { deleted, errors };
+};
+
 export const archiveService = {
   deleteTripForMe,
   hideTrip,
@@ -368,4 +433,5 @@ export const archiveService = {
   bulkRestoreTrips,
   clearAllArchivedTrips,
   getArchiveAnalytics,
+  cleanupTripStorage,
 };

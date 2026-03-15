@@ -47,6 +47,40 @@ const TRIP_CONTEXT_KEYWORDS =
   /\b(calendar|event|task|payment|expense|poll|hotel|flight|itinerary|schedule|basecamp|who|member|going|reservation|book|checkin|checkout|cost|budget|owe|paid)\b/i;
 
 class ConciergeCacheService {
+  /**
+   * In-flight request deduplication map.
+   * Key = tripId + normalized query hash. If an identical request is already in-flight,
+   * subsequent callers get the same promise instead of hitting Gemini again.
+   */
+  private inFlightRequests = new Map<string, Promise<ChatMessage>>();
+
+  /** Build a dedup key for in-flight tracking. */
+  private buildDedupKey(tripId: string, query: string): string {
+    return `${tripId}::${query.toLowerCase().trim()}`;
+  }
+
+  /**
+   * Wrap an async AI request with in-flight deduplication.
+   * If an identical request (same trip + query) is already pending,
+   * the existing promise is returned instead of spawning a new request.
+   */
+  deduplicateRequest(
+    tripId: string,
+    query: string,
+    requestFn: () => Promise<ChatMessage>,
+  ): Promise<ChatMessage> {
+    const key = this.buildDedupKey(tripId, query);
+    const existing = this.inFlightRequests.get(key);
+    if (existing) return existing;
+
+    const promise = requestFn().finally(() => {
+      this.inFlightRequests.delete(key);
+    });
+
+    this.inFlightRequests.set(key, promise);
+    return promise;
+  }
+
   /** Returns true if the query touches live trip data (short TTL applies). */
   private isContextualQuery(query: string): boolean {
     return TRIP_CONTEXT_KEYWORDS.test(query);

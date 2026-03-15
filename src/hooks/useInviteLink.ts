@@ -31,11 +31,13 @@ interface InviteLinkResult {
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Generate a short branded invite code (e.g., "chravel7x9k2m")
+// Uses crypto.getRandomValues() for cryptographically secure randomness
 const generateBrandedCode = (): string => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const randomBytes = crypto.getRandomValues(new Uint8Array(8));
   let randomPart = '';
   for (let i = 0; i < 8; i++) {
-    randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    randomPart += chars.charAt(randomBytes[i] % chars.length);
   }
   return `chravel${randomPart}`;
 };

@@ -31,13 +31,46 @@ type MessageInsert = Database['public']['Tables']['trip_chat_messages']['Insert'
 // ─── Send messages ──────────────────────────────────────────────────────────
 
 /**
+ * Resolve the display name for the authenticated user from their profile.
+ * Falls back to email prefix, then to the client-supplied name.
+ */
+async function resolveAuthorName(clientSuppliedName: string): Promise<string> {
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
+    if (!user) return clientSuppliedName;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (profile?.display_name) return profile.display_name;
+
+    // Fall back to email prefix
+    if (user.email) return user.email.split('@')[0];
+
+    return clientSuppliedName;
+  } catch {
+    return clientSuppliedName;
+  }
+}
+
+/**
  * Send a chat message. Accepts any fields matching the trip_chat_messages Insert type.
+ * The author_name is resolved server-side from the authenticated user's profile
+ * to prevent spoofing — the client-supplied value is used only as a fallback.
  */
 export async function sendChatMessage(data: Record<string, unknown>): Promise<MessageRow> {
+  const clientName = (data.author_name || data.sender_display_name || 'Unknown') as string;
+  // Derive author_name from the authenticated user's profile, not from the client
+  const authorName = await resolveAuthorName(clientName);
+
   // Extract only known insert fields
   const insertData: MessageInsert = {
     trip_id: data.trip_id as string,
-    author_name: (data.author_name || data.sender_display_name || 'Unknown') as string,
+    author_name: authorName,
     content: data.content as string,
     user_id: data.user_id as string | undefined,
     message_type: data.message_type as string | undefined,

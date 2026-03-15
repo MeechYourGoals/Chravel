@@ -143,6 +143,9 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     let flushScheduled = false;
     // Throttle "Connection interrupted" toast — at most once per 60 s to avoid spam
     let lastConnectionErrorToast = 0;
+    // Track last received message time for reconnect gap backfill
+    let lastReceivedAt: string | null = null;
+    let wasDisconnected = false;
 
     const flushPendingInserts = () => {
       if (pendingInserts.length === 0) {
@@ -245,7 +248,13 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           }
           messageCount++;
 
-          pendingInserts.push(payload.new as Record<string, unknown>);
+          const newMsg = payload.new as Record<string, unknown>;
+          // Track the latest received message timestamp for reconnect backfill
+          const msgCreatedAt = newMsg.created_at as string | undefined;
+          if (msgCreatedAt && (!lastReceivedAt || msgCreatedAt > lastReceivedAt)) {
+            lastReceivedAt = msgCreatedAt;
+          }
+          pendingInserts.push(newMsg);
           scheduleFlush();
         },
       )
@@ -294,6 +303,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           console.log('[CHAT REALTIME] Subscription status:', status);
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          wasDisconnected = true;
           const now = Date.now();
           // Throttle: show at most once per 60 s so rapid reconnect cycles don't spam
           if (now - lastConnectionErrorToast > 60_000) {
@@ -304,6 +314,30 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
               variant: 'destructive',
             });
           }
+        }
+
+        // Backfill any messages missed during the disconnect gap
+        if (status === 'SUBSCRIBED' && wasDisconnected && lastReceivedAt) {
+          wasDisconnected = false;
+          supabase
+            .from('trip_chat_messages')
+            .select('*')
+            .eq('trip_id', tripId)
+            .eq('is_deleted', false)
+            .gt('created_at', lastReceivedAt)
+            .order('created_at', { ascending: true })
+            .limit(100)
+            .then(({ data: gapMessages }) => {
+              if (gapMessages && gapMessages.length > 0) {
+                if (import.meta.env.DEV) {
+                  console.log('[CHAT REALTIME] Backfilling', gapMessages.length, 'missed messages');
+                }
+                for (const msg of gapMessages) {
+                  pendingInserts.push(msg as Record<string, unknown>);
+                }
+                scheduleFlush();
+              }
+            });
         }
       });
 
