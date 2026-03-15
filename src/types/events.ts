@@ -195,6 +195,8 @@ export interface EventData {
 
   // Supabase-derived count of calendar events with locations
   placesCount?: number;
+  // Supabase-derived count of trip members (including creator)
+  peopleCount?: number;
 
   // Analytics
   checkedInCount: number;
