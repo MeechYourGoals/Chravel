@@ -34,11 +34,26 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 // Uses crypto.getRandomValues() for cryptographically secure randomness
 const generateBrandedCode = (): string => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  const randomBytes = crypto.getRandomValues(new Uint8Array(8));
+  const codeLength = 8;
+  const charsetLength = chars.length;
+  const maxUnbiased = Math.floor(256 / charsetLength) * charsetLength; // 252 for 36 chars
+
   let randomPart = '';
-  for (let i = 0; i < 8; i++) {
-    randomPart += chars.charAt(randomBytes[i] % chars.length);
+  const buffer = new Uint8Array(codeLength * 2); // extra space to reduce refills
+
+  while (randomPart.length < codeLength) {
+    crypto.getRandomValues(buffer);
+
+    for (let i = 0; i < buffer.length && randomPart.length < codeLength; i++) {
+      const byte = buffer[i];
+      if (byte >= maxUnbiased) {
+        continue; // reject to avoid modulo bias
+      }
+      const index = byte % charsetLength;
+      randomPart += chars.charAt(index);
+    }
   }
+
   return `chravel${randomPart}`;
 };
 
