@@ -257,7 +257,7 @@ export const TripChat = React.memo(
     });
 
     // Track unread counts with real-time updates
-    const { unreadCount, broadcastCount } = useUnreadCounts({
+    const { broadcastCount, messageUnreadCount } = useUnreadCounts({
       tripId: resolvedTripId,
       messages: liveMessages,
       userId: user?.id || null,
@@ -837,7 +837,7 @@ export const TripChat = React.memo(
               onSearchClick={() => setShowSearchOverlay(true)}
               isPro={isPro}
               broadcastCount={broadcastCount}
-              unreadCount={unreadCount}
+              unreadCount={messageUnreadCount}
               availableChannels={availableChannels}
               activeChannel={activeChannel}
               onChannelSelect={channel => {

@@ -436,6 +436,8 @@ export interface ProTripData {
   sponsors: SponsorActivation[];
   // Supabase-derived count of calendar events with locations
   placesCount?: number;
+  // Supabase-derived count of trip members (including creator)
+  peopleCount?: number;
 }
 
 export const SUBSCRIPTION_TIERS = {

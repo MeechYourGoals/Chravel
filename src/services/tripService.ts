@@ -384,7 +384,7 @@ export const tripService = {
       const tripIds = allTrips.map(t => t.id);
 
       const [membersResult, eventsResult] = await Promise.all([
-        supabase.from('trip_members').select('trip_id').in('trip_id', tripIds),
+        supabase.from('trip_members').select('trip_id, user_id').in('trip_id', tripIds),
         supabase
           .from('trip_events')
           .select('trip_id, location')
@@ -393,10 +393,13 @@ export const tripService = {
           .neq('location', ''),
       ]);
 
-      // Count members per trip
+      // Count members per trip and track user_ids for creator check
       const memberCountMap = new Map<string, number>();
+      const memberUserSets = new Map<string, Set<string>>();
       membersResult.data?.forEach(m => {
         memberCountMap.set(m.trip_id, (memberCountMap.get(m.trip_id) || 0) + 1);
+        if (!memberUserSets.has(m.trip_id)) memberUserSets.set(m.trip_id, new Set());
+        memberUserSets.get(m.trip_id)!.add(m.user_id);
       });
 
       // Count distinct locations per trip (unique places)
@@ -420,11 +423,19 @@ export const tripService = {
       });
 
       // Attach counts to trips in the format expected by tripConverter
-      return allTrips.map(trip => ({
-        ...trip,
-        trip_members: [{ count: memberCountMap.get(trip.id) || 0 }],
-        trip_events_places: [{ count: placesCountMap.get(trip.id) || 0 }],
-      }));
+      // Include trip creator in count if they're not already in trip_members
+      return allTrips.map(trip => {
+        let count = memberCountMap.get(trip.id) || 0;
+        const memberSet = memberUserSets.get(trip.id);
+        if (trip.created_by && (!memberSet || !memberSet.has(trip.created_by))) {
+          count += 1;
+        }
+        return {
+          ...trip,
+          trip_members: [{ count }],
+          trip_events_places: [{ count: placesCountMap.get(trip.id) || 0 }],
+        };
+      });
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching trips:', error);

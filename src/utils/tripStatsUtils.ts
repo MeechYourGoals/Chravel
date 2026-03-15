@@ -12,6 +12,11 @@ interface GenericTrip {
 
 // Get raw people count number
 export const getPeopleCountValue = (trip: GenericTrip | ProTripData | EventData): number => {
+  // Use explicit peopleCount from DB converter if available (most accurate)
+  if ('peopleCount' in trip && typeof trip.peopleCount === 'number' && trip.peopleCount > 0) {
+    return trip.peopleCount;
+  }
+
   // For EventData, prioritize attendanceExpected over participants count
   if ('attendanceExpected' in trip && trip.attendanceExpected && trip.attendanceExpected > 0) {
     return trip.attendanceExpected;
