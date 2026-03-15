@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Search,
   X,
@@ -10,11 +10,14 @@ import {
   MapPin,
   Link,
   Image,
+  ChevronDown,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-// import { useDebounce } from '@/hooks/useDebounce'; // Unused
 import { useUniversalSearch } from '@/hooks/useUniversalSearch';
 import { ContentType, UniversalSearchResult } from '@/services/universalSearchService';
+
+/** Initial number of results shown per category before "Show more" */
+const INITIAL_RESULTS_LIMIT = 5;
 
 interface ConciergeSearchModalProps {
   open: boolean;
@@ -30,6 +33,7 @@ export const ConciergeSearchModal = ({
   onNavigate,
 }: ConciergeSearchModalProps) => {
   const [query, setQuery] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState<Set<ContentType>>(new Set());
 
   const contentTypes: ContentType[] = useMemo(
     () => ['concierge', 'calendar', 'task', 'poll', 'payment', 'place', 'link', 'media'],
@@ -43,8 +47,6 @@ export const ConciergeSearchModal = ({
 
   const groupedResults = useMemo(() => {
     const groups: Partial<Record<ContentType, UniversalSearchResult[]>> = {};
-
-    // Initialize groups in specific order if needed, or just let them be created
     results.forEach(result => {
       if (!groups[result.contentType]) {
         groups[result.contentType] = [];
@@ -55,7 +57,6 @@ export const ConciergeSearchModal = ({
   }, [results]);
 
   const handleSelect = (result: UniversalSearchResult) => {
-    // Map contentType to tab ID
     let tab = '';
     switch (result.contentType) {
       case 'concierge':
@@ -77,7 +78,6 @@ export const ConciergeSearchModal = ({
         tab = 'places';
         break;
       case 'link':
-        // Links might be in Places or Basecamp tab.
         tab = 'places';
         break;
       case 'media':
@@ -91,30 +91,35 @@ export const ConciergeSearchModal = ({
     onOpenChange(false);
   };
 
-  const highlight = (text: string, q: string) => {
-    if (!q || q.length < 2) return text;
-    const idx = text.toLowerCase().indexOf(q.toLowerCase());
-    if (idx === -1) return text;
+  /** Memoized highlight with cached regex to avoid recompilation per render */
+  const highlight = useCallback(
+    (text: string, q: string) => {
+      if (!q || q.length < 2) return text;
+      const idx = text.toLowerCase().indexOf(q.toLowerCase());
+      if (idx === -1) return text;
 
-    // Create snippet if text is long
-    let display = text;
-    if (text.length > 100) {
-      const start = Math.max(0, idx - 40);
-      const end = Math.min(text.length, idx + q.length + 60);
-      display = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
-    }
+      let display = text;
+      if (text.length > 100) {
+        const start = Math.max(0, idx - 40);
+        const end = Math.min(text.length, idx + q.length + 60);
+        display = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+      }
 
-    const parts = display.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
-    return parts.map((part, i) =>
-      part.toLowerCase() === q.toLowerCase() ? (
-        <mark key={i} className="bg-emerald-500/30 text-white rounded px-0.5">
-          {part}
-        </mark>
-      ) : (
-        part
-      ),
-    );
-  };
+      const parts = display.split(
+        new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+      );
+      return parts.map((part, i) =>
+        part.toLowerCase() === q.toLowerCase() ? (
+          <mark key={i} className="bg-emerald-500/30 text-white rounded px-0.5">
+            {part}
+          </mark>
+        ) : (
+          part
+        ),
+      );
+    },
+    [], // stable — only depends on closure, regex is derived from q param
+  );
 
   const getIcon = (type: ContentType) => {
     switch (type) {
@@ -162,7 +167,6 @@ export const ConciergeSearchModal = ({
     }
   };
 
-  // Order of categories to display
   const categoryOrder: ContentType[] = [
     'concierge',
     'calendar',
@@ -173,6 +177,18 @@ export const ConciergeSearchModal = ({
     'link',
     'media',
   ];
+
+  const toggleCategory = (type: ContentType) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -207,7 +223,7 @@ export const ConciergeSearchModal = ({
 
         {/* Results */}
         <div className="max-h-[60vh] overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent bg-neutral-900/95">
-          {isLoading && (
+          {isLoading && results.length === 0 && (
             <div className="py-12 text-center text-neutral-500 text-sm animate-pulse flex flex-col items-center gap-2">
               <div className="w-6 h-6 gold-gradient-spinner animate-spin"></div>
               <span>Searching trip...</span>
@@ -216,18 +232,24 @@ export const ConciergeSearchModal = ({
 
           {!isLoading && query.trim().length >= 2 && results.length === 0 && (
             <div className="py-12 text-center text-neutral-500 text-sm">
-              <p className="text-neutral-400 font-medium">No results found for "{query}"</p>
+              <p className="text-neutral-400 font-medium">
+                No results found for &quot;{query}&quot;
+              </p>
               <p className="text-xs mt-2 text-neutral-600">
                 Try searching tasks, events, places...
               </p>
             </div>
           )}
 
-          {!isLoading && results.length > 0 && (
+          {results.length > 0 && (
             <div className="py-2 space-y-4">
               {categoryOrder.map(type => {
                 const items = groupedResults[type];
                 if (!items || items.length === 0) return null;
+
+                const isExpanded = expandedCategories.has(type);
+                const visibleItems = isExpanded ? items : items.slice(0, INITIAL_RESULTS_LIMIT);
+                const hasMore = items.length > INITIAL_RESULTS_LIMIT;
 
                 return (
                   <div key={type} className="space-y-1">
@@ -239,7 +261,7 @@ export const ConciergeSearchModal = ({
                       </span>
                     </div>
                     <div className="space-y-0.5 px-2">
-                      {items.map(item => (
+                      {visibleItems.map(item => (
                         <button
                           key={item.id}
                           onClick={() => handleSelect(item)}
@@ -268,6 +290,15 @@ export const ConciergeSearchModal = ({
                           </div>
                         </button>
                       ))}
+                      {hasMore && !isExpanded && (
+                        <button
+                          onClick={() => toggleCategory(type)}
+                          className="w-full text-center py-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <ChevronDown size={12} />
+                          Show {items.length - INITIAL_RESULTS_LIMIT} more
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

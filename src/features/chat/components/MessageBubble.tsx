@@ -516,7 +516,7 @@ export const MessageBubble = memo(
                   : !isBroadcast
                     ? 'bg-muted/80 text-white'
                     : '',
-                isBroadcast && 'bg-orange-500 text-white',
+                isBroadcast && 'bg-[#B91C1C] text-white',
                 isPayment && 'border-2 border-green-500/50',
                 status === 'failed' && 'opacity-70 border-2 border-destructive/50',
                 status === 'sending' && 'opacity-80',
