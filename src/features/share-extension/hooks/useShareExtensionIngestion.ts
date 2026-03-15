@@ -108,9 +108,10 @@ export function useShareExtensionIngestion({
  */
 async function readPendingSharesFromNative(): Promise<SharedInboundItem[]> {
   try {
-    const { Plugins } = await import('@capacitor/core');
+    const capacitorCore = await import('@capacitor/core');
+    // intentional: Capacitor plugin not in published typings
     const result = await (
-      Plugins as Record<string, { getPendingShares?: () => Promise<{ items: string }> }>
+      (capacitorCore as any).Plugins as Record<string, { getPendingShares?: () => Promise<{ items: string }> }>
     ).ChravelShareBridge?.getPendingShares?.();
     if (result?.items) {
       return JSON.parse(result.items) as SharedInboundItem[];
