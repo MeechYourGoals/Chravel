@@ -102,7 +102,6 @@ export class NotificationService {
         // Wait for service worker to be ready
         this.serviceWorker = await navigator.serviceWorker.ready;
         this.isInitialized = true;
-        console.log('[NotificationService] Initialized successfully');
       } catch (error) {
         if (import.meta.env.DEV) {
           console.error('[NotificationService] Service Worker registration failed:', error);
@@ -199,7 +198,7 @@ export class NotificationService {
         return null;
       }
 
-      console.log('[NotificationService] Subscription saved successfully');
+      // Subscription saved successfully
       return JSON.stringify(subscriptionJSON);
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -434,7 +433,7 @@ export class NotificationService {
         return false;
       }
 
-      console.log('[NotificationService] Push notification sent:', data);
+      // Push notification sent successfully
       return data?.success ?? false;
     } catch (error) {
       if (import.meta.env.DEV) {
