@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { errorTracking } from '@/services/errorTracking';
+import { telemetry } from '@/telemetry/service';
 
 interface Props {
   children: ReactNode;
@@ -54,6 +55,13 @@ export class FeatureErrorBoundary extends Component<Props, State> {
         componentStack: errorInfo.componentStack,
         errorCount: this.state.errorCount + 1,
       },
+    });
+
+    // Send to telemetry pipeline (PostHog $exception)
+    telemetry.captureError(error, {
+      context: `FeatureErrorBoundary:${featureName}`,
+      component_stack: errorInfo.componentStack?.substring(0, 500),
+      error_count: this.state.errorCount + 1,
     });
 
     // Call custom error handler if provided

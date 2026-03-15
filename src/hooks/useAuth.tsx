@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { invalidateAuthCache } from '@/lib/authCache';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
+import { telemetry } from '@/telemetry/service';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 
@@ -672,6 +673,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               authDebug('onAuthStateChange:transformUser:success');
               setUser(transformedUser);
               setIsLoading(false);
+
+              // Identify user in analytics (no email for privacy)
+              telemetry.identify({
+                id: transformedUser.id,
+                display_name: transformedUser.display_name ?? undefined,
+                is_pro: transformedUser.is_pro ?? undefined,
+                organization_id: transformedUser.organization_id ?? undefined,
+                created_at: transformedUser.created_at ?? undefined,
+              });
             })
             .catch(err => {
               authDebug('onAuthStateChange:transformUser:error', { error: String(err) });
@@ -688,6 +698,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // App-preview: keep demo user when logged out.
         setUser(shouldUseDemoUserRef.current ? demoUser : null);
         setIsLoading(false);
+
+        // Reset analytics identity on sign-out
+        telemetry.reset();
       }
     });
 

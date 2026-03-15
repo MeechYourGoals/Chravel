@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 import { safeReload } from '@/utils/safeReload';
+import { telemetry } from '@/telemetry/service';
 
 interface Props {
   children: ReactNode;
@@ -60,6 +61,13 @@ export class ErrorBoundary extends Component<Props, State> {
     if (import.meta.env.DEV) {
       console.error('Error caught by boundary:', error, errorInfo);
     }
+
+    // Send error to telemetry service (PostHog $exception)
+    telemetry.captureError(error, {
+      context: 'ErrorBoundary',
+      component_stack: errorInfo.componentStack?.substring(0, 500),
+      is_chunk_error: isChunkError(error),
+    });
 
     // Send error to monitoring service
     if (window.gtag) {

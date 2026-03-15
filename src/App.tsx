@@ -13,6 +13,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { pageView } from '@/telemetry/events';
 import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -177,6 +178,27 @@ const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
       unsubBadge();
     };
   }, [refreshCriticalData, syncBadgeCount]);
+
+  return null;
+};
+
+/** Tracks page views on route changes via the telemetry service. */
+const PageViewTracker = () => {
+  const { pathname } = useLocation();
+  const prevPathRef = React.useRef(pathname);
+
+  useEffect(() => {
+    if (pathname !== prevPathRef.current) {
+      prevPathRef.current = pathname;
+      pageView(pathname);
+    }
+  }, [pathname]);
+
+  // Also fire on initial mount
+  useEffect(() => {
+    pageView(pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null;
 };
@@ -487,6 +509,7 @@ const App = () => {
 
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
+                  <PageViewTracker />
                   <ExitDemoButtonWithNav />
                   <NativeLifecycleBridge client={queryClient} />
                   <OfflineIndicatorGate />

@@ -8,6 +8,7 @@ import { processQueue } from '@/services/offlineMessageQueue';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
+import { messageEvents } from '@/telemetry/events';
 import { sendChatMessage } from '@/services/chatService';
 import { privacyService } from '@/services/privacyService';
 
@@ -499,9 +500,20 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       // Cache the new message
       await saveMessagesToCache(tripId, [data]);
 
+      messageEvents.sent({
+        trip_id: tripId,
+        message_type:
+          (messageData.message_type as 'text' | 'media' | 'broadcast' | 'payment' | 'system') ||
+          'text',
+        has_media: Boolean(messageData.media_url),
+        character_count: sanitizedContent.length,
+        is_offline_queued: false,
+      });
+
       return data;
     },
     onError: (error: unknown) => {
+      messageEvents.sendFailed(tripId, (error as Error)?.message || 'Unknown error');
       if (import.meta.env.DEV) {
         console.error('[useTripChat] Message creation error:', error);
       }

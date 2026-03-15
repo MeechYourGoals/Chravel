@@ -1,14 +1,22 @@
 /**
  * Error Tracking Utility
- * Placeholder for Sentry or other error tracking service
- * Configure with SENTRY_DSN in production
+ *
+ * Delegates error reporting to the telemetry service (PostHog $exception).
+ * Retains a local breadcrumb buffer for debugging context.
+ *
+ * To add Sentry or another crash reporter, implement a new TelemetryProvider
+ * in src/telemetry/providers/ — all call sites route through the telemetry service.
  */
+
+import { telemetry } from '@/telemetry/service';
 
 interface ErrorContext {
   userId?: string;
   tripId?: string;
   action?: string;
   metadata?: Record<string, unknown>;
+  additionalData?: Record<string, unknown>;
+  context?: string;
 }
 
 interface Breadcrumb {
@@ -25,14 +33,12 @@ class ErrorTrackingService {
   private maxBreadcrumbs = 50;
 
   init(_config?: { dsn?: string; environment?: string }) {
-    // In production, initialize Sentry here
-    // Sentry.init({ dsn: config?.dsn, environment: config?.environment });
     this.isInitialized = true;
   }
 
   /**
-   * Add a breadcrumb for debugging slow loads and tracing user paths
-   * Used for mobile/PWA performance diagnostics
+   * Add a breadcrumb for debugging slow loads and tracing user paths.
+   * Breadcrumbs are attached to error reports for context.
    */
   addBreadcrumb(breadcrumb: Breadcrumb) {
     const timestamped = {
@@ -42,42 +48,33 @@ class ErrorTrackingService {
 
     this.breadcrumbs.push(timestamped);
 
-    // Keep breadcrumb buffer bounded
     if (this.breadcrumbs.length > this.maxBreadcrumbs) {
       this.breadcrumbs.shift();
     }
-
-    // In production, send to Sentry
-    // Sentry.addBreadcrumb({ category, message, level, data });
 
     if (import.meta.env.DEV) {
       console.log(`[Breadcrumb] ${breadcrumb.category}: ${breadcrumb.message}`, breadcrumb.data);
     }
   }
 
-  /**
-   * Get all breadcrumbs for debugging
-   */
   getBreadcrumbs(): Breadcrumb[] {
     return [...this.breadcrumbs];
   }
 
-  /**
-   * Clear breadcrumbs (e.g., on page navigation)
-   */
   clearBreadcrumbs() {
     this.breadcrumbs = [];
   }
 
   captureException(error: Error, context?: ErrorContext) {
-    if (!this.isInitialized) {
-      console.error('[ErrorTracking] Not initialized');
+    // Delegate to telemetry service with recent breadcrumbs for debugging context
+    telemetry.captureError(error, {
+      ...context,
+      breadcrumbs: this.breadcrumbs.slice(-10),
+    });
+
+    if (import.meta.env.DEV) {
+      console.error('[ErrorTracking] Exception:', error.message, context);
     }
-
-    // In production, send to Sentry
-    // Sentry.captureException(error, { contexts: { custom: context } });
-
-    console.error('[ErrorTracking] Exception:', error.message, context);
   }
 
   captureMessage(
@@ -85,22 +82,16 @@ class ErrorTrackingService {
     _level: 'info' | 'warning' | 'error' = 'info',
     _context?: ErrorContext,
   ) {
-    if (!this.isInitialized) {
-      console.warn('[ErrorTracking] Not initialized');
-    }
-
-    // In production, send to Sentry
-    // Sentry.captureMessage(message, { level, contexts: { custom: context } });
+    if (!this.isInitialized) return;
+    // Messages routed through telemetry if needed in future
   }
 
   setUser(_userId: string, _userData?: Record<string, unknown>) {
-    // In production, set Sentry user context
-    // Sentry.setUser({ id: userId, ...userData });
+    // User identity managed by telemetry.identify() in useAuth
   }
 
   clearUser() {
-    // In production, clear Sentry user context
-    // Sentry.setUser(null);
+    // User identity managed by telemetry.reset() in useAuth
   }
 }
 
