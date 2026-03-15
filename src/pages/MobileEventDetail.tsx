@@ -340,13 +340,18 @@ export const MobileEventDetail = () => {
     );
   }
 
+  // Get actual creator ID from Supabase trip data in authenticated mode
+  const eventTrip = userTrips?.find(t => t.id === eventId);
+  const actualCreatorId = isDemoMode ? 'demo-user' : eventTrip?.created_by || user?.id || '';
+
   // 🔄 MOBILE FIX: Merge real trip members for authenticated trips (matching desktop behavior)
   const trip = {
-    id: parseInt(eventId.replace(/\D/g, '') || '1'),
+    id: eventId,
     title: eventData.title,
     location: eventData.location,
     dateRange: eventData.dateRange,
     description: tripDescription || eventData.description || '',
+    created_by: actualCreatorId,
     trip_type: 'event' as const,
     card_color: (eventData as any).card_color,
     coverPhoto: eventData.coverPhoto,
