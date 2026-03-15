@@ -296,7 +296,8 @@ async function materializeAsConciergeItem(
  * Get all pending shared items for the current user.
  */
 export async function getPendingSharedItems(userId: string): Promise<SharedInboundItemRow[]> {
-  const { data, error } = await supabase
+  // intentional: shared_inbound_items not yet in generated types
+  const { data, error } = await (supabase as any)
     .from('shared_inbound_items')
     .select('*')
     .eq('user_id', userId)
