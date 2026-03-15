@@ -234,6 +234,63 @@ export interface RecommendationEvents {
   };
 }
 
+/**
+ * Share Extension Events
+ */
+export interface ShareExtensionEvents {
+  share_extension_opened: {
+    content_type: string;
+    source_app: string | null;
+  };
+  share_content_received: {
+    content_type: string;
+    attachment_count: number;
+    has_url: boolean;
+    has_text: boolean;
+  };
+  share_trip_selected: {
+    trip_id: string;
+  };
+  share_destination_suggested: {
+    destination: string;
+    confidence: string;
+    content_type: string;
+  };
+  share_destination_overridden: {
+    from_destination: string;
+    to_destination: string;
+    trip_id: string;
+  };
+  share_save_started: {
+    trip_id: string;
+    destination: string;
+    content_type: string;
+    has_note: boolean;
+  };
+  share_save_succeeded: {
+    trip_id: string;
+    destination: string;
+    content_type: string;
+    materialized_id: string | null;
+  };
+  share_save_failed: {
+    trip_id: string;
+    destination: string;
+    error: string;
+  };
+  share_open_in_app: {
+    trip_id: string;
+    destination: string;
+  };
+  share_duplicate_detected: {
+    content_type: string;
+    fingerprint: string;
+  };
+  share_unsupported_type: {
+    type_identifier: string;
+  };
+}
+
 // ============================================================================
 // Combined Event Map
 // ============================================================================
@@ -249,7 +306,8 @@ export type TelemetryEventMap = AuthEvents &
   ErrorEvents &
   OnboardingEvents &
   DemoEvents &
-  RecommendationEvents;
+  RecommendationEvents &
+  ShareExtensionEvents;
 
 export type TelemetryEventName = keyof TelemetryEventMap;
 
