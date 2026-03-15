@@ -117,9 +117,6 @@ verify_jwt = false
 [functions.image-proxy]
 verify_jwt = false
 
-[functions.gemini-voice-proxy]
-verify_jwt = false
-
 [functions.concierge-tts]
 verify_jwt = false
 

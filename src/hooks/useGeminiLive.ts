@@ -16,6 +16,22 @@ import {
   AUDIO_CONTRACT,
 } from '@/voice/audioContract';
 import { telemetry } from '@/telemetry/service';
+import {
+  LIVE_INPUT_MIME,
+  WEBSOCKET_SETUP_TIMEOUT_MS,
+  THINKING_DELAY_MS,
+  BARGE_IN_RMS_THRESHOLD,
+  WS_KEEPALIVE_INTERVAL_MS,
+  AUTO_RECONNECT_DELAY_MS,
+  MAX_AUTO_RECONNECT_RETRIES,
+  SILENT_KEEPALIVE_FRAME,
+  SafeAudioContext,
+  voiceLog,
+  uniqueId,
+  mapSessionError,
+  mapWsCloseError,
+} from '@/voice/liveConstants';
+import { useVoiceDiagnostics, initialDiagnostics } from '@/hooks/useVoiceDiagnostics';
 
 export type GeminiLiveState =
   | 'idle'
@@ -99,121 +115,6 @@ interface UseGeminiLiveReturn {
   resetCircuitBreaker: () => void;
 }
 
-const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
-const WEBSOCKET_SETUP_TIMEOUT_MS = 20_000; // Allow time for proxy → Vertex handshake
-const THINKING_DELAY_MS = 1_500;
-const BARGE_IN_RMS_THRESHOLD = 0.035;
-const WS_KEEPALIVE_INTERVAL_MS = 15_000;
-const AUTO_RECONNECT_DELAY_MS = 2_000;
-const MAX_AUTO_RECONNECT_RETRIES = 2; // Cap retries
-
-/** Structured debug logging — enabled in dev mode or when VITE_VOICE_DEBUG=true */
-const VOICE_DEBUG =
-  typeof import.meta !== 'undefined' &&
-  (import.meta.env?.DEV || import.meta.env?.VITE_VOICE_DEBUG === 'true');
-
-function voiceLog(event: string, data?: Record<string, unknown>): void {
-  if (!VOICE_DEBUG) return;
-  const ts = new Date().toISOString().slice(11, 23);
-  console.log(`[GeminiLive ${ts}] ${event}`, data ?? '');
-}
-
-// Safari < 14.5 exposes webkitAudioContext instead of AudioContext
-const SafeAudioContext: typeof AudioContext | undefined =
-  typeof window !== 'undefined'
-    ? (window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
-    : undefined;
-
-// Precomputed silent PCM16 frame for keepalive (320 samples = 20ms @ 16kHz).
-// Gemini may not recognize an empty mediaChunks array as valid data, so we send
-// real silence to keep the WebSocket alive and avoid server-side idle timeout.
-const SILENT_KEEPALIVE_FRAME = (() => {
-  const samples = 320;
-  const pcm16 = new Int16Array(samples); // All zeros = silence
-  const bytes = new Uint8Array(pcm16.buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-})();
-
-let idCounter = 0;
-function uniqueId(prefix: string): string {
-  idCounter += 1;
-  return `${prefix}-${Date.now()}-${idCounter}`;
-}
-
-function mapSessionError(raw: string): string {
-  const lower = raw.toLowerCase();
-  if (
-    lower.includes('unregistered callers') ||
-    lower.includes('callers without established identity')
-  ) {
-    return 'Voice failed: API key missing or restricted. Ensure GEMINI_API_KEY is set in Supabase Edge Function secrets.';
-  }
-  if (raw.includes('403') || lower.includes('not enabled')) {
-    return 'Voice is unavailable right now (API configuration issue). Please try again later.';
-  }
-  if (
-    lower.includes('gemini_api_key') ||
-    lower.includes('api key') ||
-    lower.includes('not configured')
-  ) {
-    return 'Voice AI is not configured. Please contact support.';
-  }
-  if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('authentication')) {
-    return 'Voice session authentication failed. Please refresh the page and try again.';
-  }
-  if (lower.includes('429') || lower.includes('rate limit') || lower.includes('quota')) {
-    return 'Voice service is busy right now. Please wait a moment and try again.';
-  }
-  if (lower.includes('503') || lower.includes('service unavailable')) {
-    return 'Voice service is temporarily unavailable. Please try again shortly.';
-  }
-  if (lower.includes('timed out') || lower.includes('timeout')) {
-    return 'Voice service is responding slowly. Check your connection and try again.';
-  }
-  return raw;
-}
-
-function mapWsCloseError(code: number, reason: string): string | null {
-  if (code === 1000 || code === 1005) return null;
-  if (reason) return `Voice disconnected: ${reason} (code ${code})`;
-  const MESSAGES: Record<number, string> = {
-    1001: 'Voice session ended (browser navigated away).',
-    1002: 'Voice connection protocol error — please try again.',
-    1006: 'Voice connection dropped — check your internet and try again.',
-    1011: 'Voice server error — please try again.',
-    4000: 'Voice session expired — please start a new session.',
-    4001: 'Voice session not authorized — please refresh and try again.',
-    4429: 'Voice rate limit reached — please wait a moment and try again.',
-  };
-  return MESSAGES[code] ?? `Voice disconnected unexpectedly (code ${code}).`;
-}
-
-const initialDiagnostics: VoiceDiagnostics = {
-  enabled: (import.meta.env.VITE_VOICE_DEBUG || '').toLowerCase() === 'true' || import.meta.env.DEV,
-  connectionStatus: 'idle',
-  audioContextState: 'unavailable',
-  audioSampleRate: null,
-  inputEncoding: LIVE_INPUT_MIME,
-  micPermission: 'unknown',
-  micDeviceLabel: null,
-  micRms: 0,
-  playbackRms: 0,
-  wsCloseCode: null,
-  wsCloseReason: null,
-  reconnectAttempts: 0,
-  lastError: null,
-  substep: null,
-  metrics: {
-    firstAudioChunkSentMs: null,
-    firstTokenReceivedMs: null,
-    firstAudioFramePlayedMs: null,
-    cancelLatencyMs: null,
-  },
-};
-
 export function useGeminiLive({
   tripId,
   voice = 'Charon',
@@ -227,10 +128,20 @@ export function useGeminiLive({
   const [userTranscript, setUserTranscript] = useState('');
   const [assistantTranscript, setAssistantTranscript] = useState('');
   const [conversationHistory, setConversationHistory] = useState<VoiceConversationTurn[]>([]);
-  const [diagnostics, setDiagnostics] = useState<VoiceDiagnostics>(initialDiagnostics);
   const stateRef = useRef<GeminiLiveState>('idle');
-  const diagnosticsRef = useRef<VoiceDiagnostics>(initialDiagnostics);
   const [circuitBreakerOpen, setCircuitBreakerOpen] = useState(false);
+
+  // ── Diagnostics subsystem (extracted hook) ──
+  const {
+    diagnostics,
+    diagnosticsRef,
+    patchDiagnostics,
+    patchMetrics,
+    micRmsRef,
+    playbackRmsRef,
+    startRmsFlush,
+    stopRmsFlush,
+  } = useVoiceDiagnostics();
 
   const onTurnCompleteRef = useRef(onTurnComplete);
   useEffect(() => {
@@ -250,10 +161,6 @@ export function useGeminiLive({
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-
-  useEffect(() => {
-    diagnosticsRef.current = diagnostics;
-  }, [diagnostics]);
 
   const onCircuitBreakerOpenRef = useRef(onCircuitBreakerOpen);
   useEffect(() => {
@@ -308,14 +215,6 @@ export function useGeminiLive({
   const turnCompleteReceivedRef = useRef(false);
   const drainTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userHasSpokenRef = useRef(false);
-  /**
-   * RMS values written at audio callback frequency (~60fps).
-   * Flushed into diagnostics state at ~15fps via rAF to avoid render storms.
-   */
-  const micRmsRef = useRef(0);
-  const playbackRmsRef = useRef(0);
-  const rmsFlushRafRef = useRef<number | null>(null);
-  const rmsFlushActiveRef = useRef(false);
 
   const isSupported =
     typeof window !== 'undefined' &&
@@ -323,63 +222,13 @@ export function useGeminiLive({
     SafeAudioContext !== undefined &&
     typeof navigator?.mediaDevices?.getUserMedia === 'function';
 
-  const patchDiagnostics = useCallback((patch: Partial<VoiceDiagnostics>) => {
-    setDiagnostics(prev => {
-      const next = { ...prev, ...patch };
-      diagnosticsRef.current = next;
-      return next;
-    });
-  }, []);
-
-  const patchMetrics = useCallback((patch: Partial<VoiceDiagnostics['metrics']>) => {
-    setDiagnostics(prev => {
-      const next = { ...prev, metrics: { ...prev.metrics, ...patch } };
-      diagnosticsRef.current = next;
-      return next;
-    });
-  }, []);
-
-  /**
-   * Start a throttled rAF loop that flushes micRms/playbackRms into state at ~15fps.
-   * This avoids 60+ re-renders/sec from raw audio callbacks while keeping
-   * barge-in detection (which reads micRmsRef directly) at full frequency.
-   */
-  const startRmsFlush = useCallback(() => {
-    if (rmsFlushActiveRef.current) return;
-    rmsFlushActiveRef.current = true;
-    let lastFlush = 0;
-    const RMS_FLUSH_INTERVAL_MS = 67; // ~15fps
-    const loop = () => {
-      if (!rmsFlushActiveRef.current) return;
-      const now = performance.now();
-      if (now - lastFlush >= RMS_FLUSH_INTERVAL_MS) {
-        lastFlush = now;
-        patchDiagnostics({ micRms: micRmsRef.current, playbackRms: playbackRmsRef.current });
-      }
-      rmsFlushRafRef.current = requestAnimationFrame(loop);
-    };
-    rmsFlushRafRef.current = requestAnimationFrame(loop);
-  }, [patchDiagnostics]);
-
-  const stopRmsFlush = useCallback(() => {
-    rmsFlushActiveRef.current = false;
-    if (rmsFlushRafRef.current !== null) {
-      cancelAnimationFrame(rmsFlushRafRef.current);
-      rmsFlushRafRef.current = null;
-    }
-  }, []);
-
-  // Cleanup rAF on unmount
-  useEffect(() => {
-    return () => {
-      stopRmsFlush();
-    };
-  }, [stopRmsFlush]);
-
-  const debugLog = useCallback((event: string, payload: Record<string, unknown> = {}) => {
-    if (!diagnosticsRef.current.enabled) return;
-    console.debug('[GeminiLive]', event, payload);
-  }, []);
+  const debugLog = useCallback(
+    (event: string, payload: Record<string, unknown> = {}) => {
+      if (!diagnosticsRef.current.enabled) return;
+      console.debug('[GeminiLive]', event, payload);
+    },
+    [diagnosticsRef],
+  );
 
   const transition = useCallback(
     (next: GeminiLiveState, reason: string) => {
@@ -1545,4 +1394,5 @@ export function useGeminiLive({
   };
 }
 
-export { uniqueId };
+// Re-export uniqueId from liveConstants for backward compatibility
+export { uniqueId } from '@/voice/liveConstants';

@@ -169,6 +169,26 @@ serve(async req => {
       return rl.response!;
     }
 
+    // ── Concurrent session limit: max 2 sessions per user in 2 minutes ──
+    // Prevents multiple tabs/devices from each opening a Vertex AI connection.
+    // The 2-minute window accommodates auto-reconnect (which creates a new session).
+    const concurrentRl = await applyRateLimit({
+      identifier: `voice-active:${user.id}`,
+      maxRequests: 2,
+      windowSeconds: 120,
+      corsHeaders,
+    });
+    if (!concurrentRl.allowed) {
+      console.warn(`${tag} Concurrent session limit`, { userId: user.id, sessionAttemptId });
+      return new Response(
+        JSON.stringify({
+          error:
+            'You already have an active voice session. Please close it before starting a new one.',
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // ── Entitlement check: resolve user plan ──
     let usagePlan: UsagePlan = 'free';
     const { data: entitlementData, error: entitlementError } = await supabase
