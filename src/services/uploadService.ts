@@ -59,7 +59,7 @@ async function enforceUploadLimits(
 
   // 1. Storage quota check (account-wide MB limit)
   if (limits.storageAccountMB !== -1) {
-    const { data: mediaData } = await supabase
+    const { data: mediaData } = await (supabase as any)
       .from('trip_media_index')
       .select('file_size')
       .eq('uploaded_by', userId);
