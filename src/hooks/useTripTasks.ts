@@ -540,20 +540,20 @@ export const useTripTasks = (
       await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
 
+      const optimisticId = `optimistic-task-${Date.now()}`;
+      const now = new Date().toISOString();
       const optimisticTask: TripTask = {
-        id: `optimistic-task-${Date.now()}`,
+        id: optimisticId,
         trip_id: tripId,
         creator_id: user.id,
         title: task.title,
         description: task.description || null,
         due_at: task.due_at || null,
         is_poll: task.is_poll || false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: now,
+        updated_at: now,
         creator: { id: user.id, name: 'You' },
-        task_status: [
-          { task_id: `optimistic-task-${Date.now()}`, user_id: user.id, completed: false },
-        ],
+        task_status: [{ task_id: optimisticId, user_id: user.id, completed: false }],
       };
 
       queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old => [
