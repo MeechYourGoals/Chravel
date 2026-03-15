@@ -68,6 +68,8 @@ interface ChatInputProps {
    * Set to `false` if the parent already applies `pb-[env(safe-area-inset-bottom)]`.
    */
   safeAreaBottom?: boolean;
+  /** When true, hides file/media upload buttons (media_upload_mode enforcement) */
+  disableFileUpload?: boolean;
 }
 
 export const ChatInput = ({
@@ -84,6 +86,7 @@ export const ChatInput = ({
   tripId,
   onTypingChange,
   safeAreaBottom = true,
+  disableFileUpload = false,
 }: ChatInputProps) => {
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
@@ -525,14 +528,16 @@ export const ChatInput = ({
                 Broadcast
               </DropdownMenuItem>
 
-              {/* File */}
-              <DropdownMenuItem
-                onClick={() => handleFileUpload('document')}
-                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-              >
-                <FileText className="w-4 h-4" />
-                File
-              </DropdownMenuItem>
+              {/* File — hidden when media uploads are restricted */}
+              {!disableFileUpload && (
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload('document')}
+                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+                >
+                  <FileText className="w-4 h-4" />
+                  File
+                </DropdownMenuItem>
+              )}
 
               {/* Link */}
               <DropdownMenuItem
@@ -543,23 +548,27 @@ export const ChatInput = ({
                 Link
               </DropdownMenuItem>
 
-              {/* Photo */}
-              <DropdownMenuItem
-                onClick={() => handleFileUpload('image')}
-                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-              >
-                <Camera className="w-4 h-4" />
-                Photo
-              </DropdownMenuItem>
+              {/* Photo — hidden when media uploads are restricted */}
+              {!disableFileUpload && (
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload('image')}
+                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" />
+                  Photo
+                </DropdownMenuItem>
+              )}
 
-              {/* Video */}
-              <DropdownMenuItem
-                onClick={() => handleFileUpload('video')}
-                className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
-              >
-                <Video className="w-4 h-4" />
-                Video
-              </DropdownMenuItem>
+              {/* Video — hidden when media uploads are restricted */}
+              {!disableFileUpload && (
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload('video')}
+                  className="flex items-center gap-2 px-3 py-2 text-neutral-300 hover:bg-neutral-800 rounded-lg cursor-pointer"
+                >
+                  <Video className="w-4 h-4" />
+                  Video
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 

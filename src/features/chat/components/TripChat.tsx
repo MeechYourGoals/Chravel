@@ -143,6 +143,7 @@ export const TripChat = React.memo(
     const {
       chatMode,
       canPost: canPostToChat,
+      canUploadMedia,
       isLoading: chatModeLoading,
       userRole: chatModeUserRole,
     } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
@@ -305,7 +306,7 @@ export const TripChat = React.memo(
           }
         });
       };
-    }, [shouldEnableTyping, resolvedTripId]);
+    }, [shouldEnableTyping, resolvedTripId, user?.id, user?.displayName, user?.email]);
 
     // Mark messages as read when they come into view AND fetch read statuses
     useEffect(() => {
@@ -951,6 +952,7 @@ export const TripChat = React.memo(
                 hidePayments={true}
                 isPro={isPro}
                 tripId={resolvedTripId}
+                disableFileUpload={!canUploadMedia}
                 onTypingChange={isTyping => {
                   if (!demoMode.isDemoMode && typingServiceRef.current) {
                     if (isTyping) {

@@ -94,7 +94,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         toast.error('Failed to edit message');
       }
     } catch (error) {
-      console.error('Error editing message:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error editing message:', error);
+      }
       toast.error('Failed to edit message');
     } finally {
       setIsSubmitting(false);
@@ -117,7 +119,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         toast.error('Failed to delete message');
       }
     } catch (error) {
-      console.error('Error deleting message:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting message:', error);
+      }
       toast.error('Failed to delete message');
     } finally {
       setIsSubmitting(false);
