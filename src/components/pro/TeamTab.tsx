@@ -5,7 +5,6 @@ import { RolesView } from './team/RolesView';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { CreateRoleDialog } from './admin/CreateRoleDialog';
-import { AssignRoleDialog } from './admin/AssignRoleDialog';
 import { useProTripAdmin } from '@/hooks/useProTripAdmin';
 import { useTripRoles } from '@/hooks/useTripRoles';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -45,9 +44,6 @@ export const TeamTab = ({
     refetch: refetchRoles,
   } = useTripRoles({ tripId: tripId || '', enabled: !!tripId });
   const [createRoleOpen, setCreateRoleOpen] = useState(false);
-  const [assignRoleOpen, setAssignRoleOpen] = useState(false);
-
-  const handleAssignRoleClick = useCallback(() => setAssignRoleOpen(true), []);
 
   // Super admins never have read-only restrictions
   const effectiveIsReadOnly = isSuperAdmin ? false : isReadOnly;
@@ -63,10 +59,6 @@ export const TeamTab = ({
   });
 
   const handleRoleCreated = () => {
-    refetchRoles();
-  };
-
-  const handleRoleAssigned = () => {
     refetchRoles();
   };
 
@@ -93,7 +85,6 @@ export const TeamTab = ({
         onUpdateMemberRole={onUpdateMemberRole}
         canManageRoles={canManageRoles}
         onCreateRole={() => setCreateRoleOpen(true)}
-        onAssignRole={handleAssignRoleClick}
         isLoadingRoles={isLoadingRoles}
         adminLoading={adminLoading}
         tripId={tripId}
@@ -111,14 +102,6 @@ export const TeamTab = ({
             tripId={tripId}
             currentRoleCount={roles.length}
             onRoleCreated={handleRoleCreated}
-          />
-          <AssignRoleDialog
-            open={assignRoleOpen}
-            onOpenChange={setAssignRoleOpen}
-            tripId={tripId}
-            members={roster}
-            roles={roles}
-            onRoleAssigned={handleRoleAssigned}
           />
         </>
       )}

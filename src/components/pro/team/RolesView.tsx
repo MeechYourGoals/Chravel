@@ -1,14 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Users,
-  AlertTriangle,
-  UserPlus,
-  Clock,
-  Cog,
-  LayoutGrid,
-  Network,
-  UserCheck,
-} from 'lucide-react';
+import { Users, AlertTriangle, UserPlus, Clock, Cog, LayoutGrid, Network } from 'lucide-react';
 import { ProParticipant, TeamTripContext } from '../../../types/pro';
 import { ProTripCategory, getCategoryConfig } from '../../../types/proCategories';
 import { TeamOnboardingBanner } from '../TeamOnboardingBanner';
@@ -39,7 +30,6 @@ interface RolesViewProps {
   onUpdateMemberRole?: (memberId: string, roleId: string, roleName: string) => Promise<void>;
   canManageRoles?: boolean;
   onCreateRole?: () => void;
-  onAssignRole?: () => void;
   isLoadingRoles?: boolean;
   adminLoading?: boolean;
   isLoadingRoster?: boolean;
@@ -57,7 +47,6 @@ export const RolesView = ({
   onUpdateMemberRole,
   canManageRoles = false,
   onCreateRole,
-  onAssignRole,
   isLoadingRoles = false,
   adminLoading = false,
   isLoadingRoster = false,
@@ -205,9 +194,7 @@ export const RolesView = ({
 
         {/* Row 2: Consolidated Admin Action Buttons (3 buttons) - Mobile optimized */}
         {(canManageRoles || isSuperAdmin) && !effectiveIsReadOnly && (
-          <div
-            className={`${isMobile ? 'grid grid-cols-2 gap-3' : 'flex justify-evenly gap-3'} mb-3`}
-          >
+          <div className={`flex ${isMobile ? 'flex-wrap' : 'justify-center'} gap-3 mb-3`}>
             <Button
               onClick={onCreateRole}
               disabled={adminLoading || isLoadingRoles}
@@ -228,18 +215,6 @@ export const RolesView = ({
               <Cog className="w-4 h-4 mr-1.5 shrink-0" />
               Manage Roles
             </Button>
-            {onAssignRole && (
-              <Button
-                onClick={onAssignRole}
-                variant="outline"
-                size="sm"
-                className="rounded-full bg-black/40 hover:bg-black/60 hover:text-amber-400 hover:border-amber-400/50 text-white border-white/20 transition-colors min-h-[42px] px-4 text-xs whitespace-nowrap"
-                title="Assign role to members"
-              >
-                <UserCheck className="w-4 h-4 mr-1.5 shrink-0" />
-                Assign Role
-              </Button>
-            )}
             <Button
               onClick={() => setShowRequestsDialog(true)}
               variant="outline"

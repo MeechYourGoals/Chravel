@@ -42,6 +42,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TripRole } from '@/types/roleChannels';
 import { MAX_ROLES_PER_TRIP } from '@/utils/roleUtils';
@@ -80,6 +87,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
   } = useTripAdmins({ tripId });
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
+  const [newRolePermission, setNewRolePermission] = useState<'view' | 'edit' | 'admin'>('edit');
   const [showAdminSection, setShowAdminSection] = useState(false);
 
   // Use passed tripCreatorId or fallback to fetched one
@@ -133,9 +141,10 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
     if (!newRoleName.trim()) return;
 
     try {
-      await createRole(newRoleName);
+      await createRole(newRoleName, newRolePermission);
       setShowCreateDialog(false);
       setNewRoleName('');
+      setNewRolePermission('edit');
     } catch {
       // Error handled in hook
     }
@@ -515,10 +524,41 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                 onChange={e => setNewRoleName(e.target.value)}
                 className="rounded-full bg-white/5 border-white/10"
               />
-              <p className="text-xs text-muted-foreground">
-                Members with this role will have access to the role's private channel
-              </p>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="role-permission">Permission Level</Label>
+              <Select
+                value={newRolePermission}
+                onValueChange={v => setNewRolePermission(v as 'view' | 'edit' | 'admin')}
+              >
+                <SelectTrigger id="role-permission" className="bg-white/5 border-white/10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-amber-500" />
+                      <span>Admin — Full control</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="edit">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-amber-400" />
+                      <span>Edit — Create &amp; modify</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="view">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span>View — Read-only</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A private channel will be automatically created for this role.
+            </p>
           </div>
 
           <DialogFooter>
