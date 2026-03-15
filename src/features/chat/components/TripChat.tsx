@@ -633,10 +633,8 @@ export const TripChat = React.memo(
           ...prev,
           { id: `failed-${Date.now()}`, text: message.text, authorName, messageType: messageType as 'text' | 'broadcast' | 'payment' | 'system' },
         ]);
-        toast({
-          title: isBroadcast ? 'Broadcast failed' : 'Message failed',
+        toast.error(isBroadcast ? 'Broadcast failed to send' : 'Message failed to send', {
           description: errorMsg,
-          variant: 'destructive',
         });
         console.error('[TripChat] Failed to send message:', error);
       }
