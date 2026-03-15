@@ -162,7 +162,8 @@ export class RecommendationService {
    * Fails silently — tracking should never break the UX.
    */
   static async trackClick(params: ClickParams): Promise<void> {
-    const { error } = await supabase.from('recommendation_clicks').insert({
+    // intentional: recommendation tables not yet in generated types
+    const { error } = await (supabase as any).from('recommendation_clicks').insert({
       impression_id: params.impressionId,
       action: params.action,
     });
