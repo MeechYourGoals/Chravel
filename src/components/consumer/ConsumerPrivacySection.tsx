@@ -1,8 +1,203 @@
 import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { supabase } from '../../integrations/supabase/client';
 import { DataExportSection } from '../settings/DataExportSection';
+
+function AccountSecuritySection({
+  userEmail,
+  showDemoContent,
+}: {
+  userEmail: string | undefined;
+  showDemoContent: boolean;
+}) {
+  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const resetForm = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setError('');
+    setShowPassword(false);
+    setShowForm(false);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!userEmail) {
+      setError('Unable to verify account. Please sign in again.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setError('New password must be different from your current password.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Re-authenticate with current password to verify identity
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        setError('Current password is incorrect.');
+        return;
+      }
+
+      // Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      toast({
+        title: 'Password Changed',
+        description: 'Your password has been updated successfully.',
+      });
+      resetForm();
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+      <h4 className="text-base font-semibold text-white mb-3">Account Security</h4>
+      <div className="space-y-3">
+        {!showForm ? (
+          <button
+            onClick={() => {
+              if (showDemoContent) return;
+              setShowForm(true);
+            }}
+            className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <div className="text-left">
+              <div className="text-white font-medium">Change Password</div>
+              <div className="text-sm text-gray-400">Update your account password</div>
+            </div>
+            <div className="text-glass-orange">&rarr;</div>
+          </button>
+        ) : (
+          <form onSubmit={handleChangePassword} className="space-y-3">
+            {error && (
+              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
+                {error}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Current Password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                autoFocus
+                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">New Password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Confirm New Password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
+              >
+                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showPassword ? 'Hide' : 'Show'} passwords
+              </button>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={resetForm}
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-glass-orange to-glass-yellow text-white rounded-lg hover:scale-105 active:scale-95 transition-transform disabled:opacity-50"
+              >
+                {isSubmitting ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </form>
+        )}
+        <div className="w-full flex items-center justify-between p-3 bg-white/5 rounded-lg opacity-50 cursor-not-allowed">
+          <div className="text-left">
+            <div className="text-white font-medium">Two-Factor Authentication</div>
+            <div className="text-sm text-gray-400">
+              Add an extra layer of security to your account
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">Coming Soon</div>
+        </div>
+        <div className="w-full flex items-center justify-between p-3 bg-white/5 rounded-lg opacity-50 cursor-not-allowed">
+          <div className="text-left">
+            <div className="text-white font-medium">Login History</div>
+            <div className="text-sm text-gray-400">View recent login activity</div>
+          </div>
+          <div className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">Coming Soon</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export const ConsumerPrivacySection = () => {
   const { user, updateProfile } = useAuth();
@@ -165,34 +360,7 @@ export const ConsumerPrivacySection = () => {
       </div>
 
       {/* Account Security */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <h4 className="text-base font-semibold text-white mb-3">Account Security</h4>
-        <div className="space-y-3">
-          <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
-            <div className="text-left">
-              <div className="text-white font-medium">Change Password</div>
-              <div className="text-sm text-gray-400">Update your account password</div>
-            </div>
-            <div className="text-glass-orange">→</div>
-          </button>
-          <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
-            <div className="text-left">
-              <div className="text-white font-medium">Two-Factor Authentication</div>
-              <div className="text-sm text-gray-400">
-                Add an extra layer of security to your account
-              </div>
-            </div>
-            <div className="text-glass-orange">Set Up</div>
-          </button>
-          <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
-            <div className="text-left">
-              <div className="text-white font-medium">Login History</div>
-              <div className="text-sm text-gray-400">View recent login activity</div>
-            </div>
-            <div className="text-glass-orange">→</div>
-          </button>
-        </div>
-      </div>
+      <AccountSecuritySection userEmail={user?.email} showDemoContent={showDemoContent} />
 
       {/* Data Export - GDPR Compliance */}
       <DataExportSection />
