@@ -2918,6 +2918,7 @@ export type Database = {
           longitude: number | null
           name: string | null
           trip_id: string
+          type: string
           updated_at: string | null
           user_id: string
         }
@@ -2930,6 +2931,7 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           trip_id: string
+          type?: string
           updated_at?: string | null
           user_id: string
         }
@@ -2942,6 +2944,7 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           trip_id?: string
+          type?: string
           updated_at?: string | null
           user_id?: string
         }

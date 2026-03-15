@@ -1,0 +1,1 @@
+ALTER TABLE trip_personal_basecamps ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'hotel';
