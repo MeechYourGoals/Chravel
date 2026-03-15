@@ -1,0 +1,11 @@
+{
+  "id": "aggressive",
+  "name": "Aggressive",
+  "description": "Full structural rewrites — use with caution, requires human review",
+  "maxRisk": "high",
+  "rules": [
+    "normalize-trailing-newline",
+    "add-missing-frontmatter-fields",
+    "fix-description-prefix"
+  ]
+}

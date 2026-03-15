@@ -82,6 +82,9 @@ class UnifiedMessagingService {
 
   /**
    * Subscribe to real-time messages for a trip
+   * @deprecated Use the realtime subscription in `useTripChat` instead.
+   * This creates a parallel channel (`trip-messages:{tripId}`) that duplicates
+   * the `trip_chat_{tripId}` channel managed by useTripChat.
    */
   async subscribeToTrip(
     tripId: string,

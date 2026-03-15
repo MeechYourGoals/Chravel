@@ -142,3 +142,44 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Evidence:** AGENTS.md § 0.7: "Demo mode is sacred. Mock data is NEVER modified."
 - **Provenance:** AGENTS.md § 0 Non-Negotiables
 - **Confidence:** high
+
+## Chat read receipt write amplification (N×M upserts)
+- **Status:** fixed
+- **Subsystem:** chat / read receipts
+- **Bug class:** performance / write amplification
+- **Symptom:** Every new message triggers marking ALL visible messages as read for every user — N users × M messages upserts per INSERT
+- **User-facing impact:** DB write latency, potential 429 rate limits at scale, wasted bandwidth
+- **Trigger conditions:** Any new message arriving via realtime subscription
+- **Likely root cause:** useEffect dependency on `liveMessages` array (changes on every INSERT) triggering `markMessagesAsRead` for ALL messages, not just new ones
+- **Root cause chain:**
+  - Immediate: Supabase upsert storm on message_read_receipts
+  - Proximate: useEffect fires on every liveMessages reference change
+  - Underlying: No tracking of already-marked message IDs
+- **Smallest safe fix:** Track marked IDs in a ref, debounce 1s, only mark new unread messages
+- **Regression risks:** Delayed read receipts (1s debounce); stale read state if ref not reset on trip change
+- **Related files:** `src/features/chat/components/TripChat.tsx`
+- **Fixed in:** March 2026 chat reliability audit
+- **Confidence:** high
+
+## Chat reaction refetch storm on every message
+- **Status:** fixed
+- **Subsystem:** chat / reactions
+- **Bug class:** performance / N+1
+- **Symptom:** Full reaction fetch for ALL loaded messages fires on every new message arrival
+- **Trigger conditions:** `useEffect` with `[liveMessages.length]` dependency
+- **Smallest safe fix:** Fetch reactions once on initial load, rely on realtime subscription for incremental updates
+- **Related files:** `src/features/chat/components/TripChat.tsx`
+- **Fixed in:** March 2026 chat reliability audit
+- **Confidence:** high
+
+## Chat messages lost during websocket reconnect
+- **Status:** fixed
+- **Subsystem:** chat / realtime
+- **Bug class:** eventual consistency / data loss
+- **Symptom:** Messages sent by others during a websocket drop are never displayed
+- **Trigger conditions:** Mobile background/foreground, poor connectivity, Supabase channel error/timeout
+- **Smallest safe fix:** Track last known server timestamp; on channel SUBSCRIBED (after reconnect) and on visibilitychange, fetch messages since that timestamp and merge with dedupe
+- **Regression risks:** Duplicate messages if dedupe fails; unnecessary fetches if called too frequently
+- **Related files:** `src/features/chat/hooks/useTripChat.ts`
+- **Fixed in:** March 2026 chat reliability audit
+- **Confidence:** high

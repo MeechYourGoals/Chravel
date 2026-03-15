@@ -44,6 +44,7 @@ import {
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
+import { useTripChatMode } from '@/hooks/useTripChatMode';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -137,6 +138,20 @@ export const TripChat = React.memo(
     const demoMode = useDemoMode();
     const { user } = useAuth();
     const queryClient = useQueryClient();
+
+    // Chat mode enforcement — UI layer (server-side RLS is authoritative)
+    const {
+      chatMode,
+      canPost: canPostToChat,
+      canUploadMedia,
+      isLoading: chatModeLoading,
+      userRole: chatModeUserRole,
+    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
+
+    const isUserAdmin =
+      chatModeUserRole === 'admin' ||
+      chatModeUserRole === 'organizer' ||
+      chatModeUserRole === 'owner';
 
     // Optimistic cache updates for edit/delete (MessageActions does the API call)
     const handleMessageEdit = useCallback(
@@ -264,12 +279,19 @@ export const TripChat = React.memo(
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
 
-    // Initialize typing indicators
+    // Initialize typing indicators — disabled for restricted chat modes or large groups
+    const shouldEnableTyping =
+      !demoMode.isDemoMode &&
+      !!user?.id &&
+      !!resolvedTripId &&
+      (!chatMode || chatMode === 'everyone') &&
+      tripMembers.length <= 50;
+
     useEffect(() => {
-      if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
+      if (!shouldEnableTyping) return;
 
       const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
-      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
+      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user!.id, userName);
 
       typingServiceRef.current.initialize(setTypingUsers).catch(error => {
         if (import.meta.env.DEV) {
@@ -284,19 +306,45 @@ export const TripChat = React.memo(
           }
         });
       };
-    }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
+    }, [shouldEnableTyping, resolvedTripId, user?.id, user?.displayName, user?.email]);
 
-    // Mark messages as read when they come into view AND fetch read statuses
+    // Refs for incremental read receipt tracking (declared before effects that use them)
+    const markedMessageIdsRef = useRef<Set<string>>(new Set());
+    const markReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Track own message IDs so the read receipt subscription accepts receipts for them
+    const ownMessageIdsRef = useRef<Set<string>>(new Set());
+
+    // Keep ownMessageIdsRef in sync with liveMessages so the read receipt
+    // subscription can accept receipts for freshly sent own messages.
+    useEffect(() => {
+      if (!user?.id) return;
+      ownMessageIdsRef.current = new Set(
+        liveMessages.filter(msg => msg.user_id === user.id).map(msg => msg.id),
+      );
+    }, [liveMessages, user?.id]);
+
+    // Realtime subscription for read receipts (stable — does NOT depend on liveMessages).
+    // NOTE: message_read_receipts has no trip_id column, so the Supabase realtime
+    // subscription receives ALL inserts globally. We filter client-side below using
+    // readStatusesByMessage keys (only own-message IDs are displayed). At Stage B,
+    // consider adding trip_id to message_read_receipts for server-side filtering.
     useEffect(() => {
       if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
 
-      // Realtime subscription for read receipts (updates UI)
       const subscription = subscribeToReadReceipts(resolvedTripId, newStatus => {
         setReadStatusesByMessage(prev => {
           const msgId = newStatus.message_id;
+          // Only track receipts for messages we already know about.
+          // Accept if: already in state, OR we marked it as read, OR it's our own message.
+          // This prevents accumulating state for unrelated trips.
+          if (
+            !prev[msgId] &&
+            !markedMessageIdsRef.current.has(msgId) &&
+            !ownMessageIdsRef.current.has(msgId)
+          )
+            return prev;
           const currentStatuses = prev[msgId] || [];
-          // Check if status already exists to avoid dupes
-          if (currentStatuses.some(s => s.user_id === newStatus.user_id)) {
+          if (currentStatuses.some((s: any) => s.user_id === newStatus.user_id)) {
             return prev;
           }
           return {
@@ -306,38 +354,6 @@ export const TripChat = React.memo(
         });
       });
 
-      // Mark all messages from other users as read
-      const markVisibleAsRead = async () => {
-        // Get all message IDs from other users that need to be marked as read
-        const messageIdsToMark = liveMessages
-          .filter(msg => msg.user_id !== user.id)
-          .map(msg => msg.id);
-
-        if (messageIdsToMark.length > 0) {
-          await markMessagesAsRead(messageIdsToMark, resolvedTripId, user.id).catch(error => {
-            if (import.meta.env.DEV) {
-              console.error(error);
-            }
-          });
-        }
-
-        // Also fetch read statuses for OWN messages to display receipts
-        const ownMessageIds = liveMessages
-          .filter(msg => msg.user_id === user.id)
-          .map(msg => msg.id);
-
-        if (ownMessageIds.length > 0) {
-          try {
-            const statuses = await getMessagesReadStatus(ownMessageIds);
-            setReadStatusesByMessage(statuses);
-          } catch (e) {
-            console.error('Failed to fetch read statuses', e);
-          }
-        }
-      };
-
-      markVisibleAsRead();
-
       return () => {
         supabase.removeChannel(subscription).catch(error => {
           if (import.meta.env.DEV) {
@@ -345,7 +361,57 @@ export const TripChat = React.memo(
           }
         });
       };
+    }, [user?.id, resolvedTripId, demoMode.isDemoMode]);
+
+    // Mark NEW messages as read (debounced, incremental — not all messages every time).
+    // Uses markedMessageIdsRef to track already-marked IDs so we never re-mark the same message.
+    // The 1s debounce batches rapid incoming messages into a single upsert call.
+    useEffect(() => {
+      if (demoMode.isDemoMode || !user?.id || !resolvedTripId || liveMessages.length === 0) return;
+
+      const newUnmarkedIds = liveMessages
+        .filter(msg => msg.user_id !== user.id && !markedMessageIdsRef.current.has(msg.id))
+        .map(msg => msg.id);
+
+      if (newUnmarkedIds.length === 0) return;
+
+      if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
+      markReadTimerRef.current = setTimeout(async () => {
+        try {
+          await markMessagesAsRead(newUnmarkedIds, resolvedTripId, user.id);
+          newUnmarkedIds.forEach(id => markedMessageIdsRef.current.add(id));
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error(error);
+          }
+        }
+      }, 1000);
+
+      return () => {
+        if (markReadTimerRef.current) clearTimeout(markReadTimerRef.current);
+      };
     }, [liveMessages, user?.id, resolvedTripId, demoMode.isDemoMode]);
+
+    // Fetch read statuses for own messages (only when own message count changes)
+    const ownMessageCountRef = useRef(0);
+    useEffect(() => {
+      if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
+
+      const ownMessages = liveMessages.filter(msg => msg.user_id === user.id);
+      if (ownMessages.length === ownMessageCountRef.current) return;
+      ownMessageCountRef.current = ownMessages.length;
+
+      const ownMessageIds = ownMessages.map(msg => msg.id);
+      if (ownMessageIds.length === 0) return;
+
+      getMessagesReadStatus(ownMessageIds)
+        .then(statuses => setReadStatusesByMessage(prev => ({ ...prev, ...statuses })))
+        .catch(e => {
+          if (import.meta.env.DEV) {
+            console.error('Failed to fetch read statuses', e);
+          }
+        });
+    }, [liveMessages, user?.id, demoMode.isDemoMode]);
 
     const liveFormattedMessages = useMemo(() => {
       if (demoMode.isDemoMode) return [];
@@ -401,14 +467,25 @@ export const TripChat = React.memo(
       });
     }, [liveMessages, demoMode.isDemoMode, tripMembers]);
 
-    // Fetch initial reactions for messages
+    // Fetch reactions for messages whose reactions haven't been loaded yet.
+    // Handles both initial load and pagination (loadMore adds older messages).
+    // Realtime subscription below handles incremental INSERT/DELETE for new reactions.
+    const reactionsFetchedIdsRef = useRef<Set<string>>(new Set());
     useEffect(() => {
       if (demoMode.isDemoMode || !user?.id || liveMessages.length === 0) return;
 
+      // Only fetch for messages we haven't fetched reactions for yet
+      const unfetchedIds = liveMessages
+        .map(m => m.id)
+        .filter(id => !reactionsFetchedIdsRef.current.has(id));
+
+      if (unfetchedIds.length === 0) return;
+
       const fetchReactions = async () => {
-        const messageIds = liveMessages.map(m => m.id);
         try {
-          const data = await getMessagesReactions(messageIds, user.id);
+          const data = await getMessagesReactions(unfetchedIds, user.id);
+          // Mark as fetched before updating state
+          unfetchedIds.forEach(id => reactionsFetchedIdsRef.current.add(id));
           const formatted: Record<
             string,
             Record<string, { count: number; userReacted: boolean; users: string[] }>
@@ -423,7 +500,9 @@ export const TripChat = React.memo(
               };
             }
           }
-          setReactions(formatted);
+          // Merge with existing reactions (don't replace — preserves data for
+          // already-loaded messages and any realtime updates that arrived since)
+          setReactions(prev => ({ ...prev, ...formatted }));
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('[TripChat] Failed to fetch reactions:', error);
@@ -873,10 +952,11 @@ export const TripChat = React.memo(
                           onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                           onRetry={handleRetryFailedMessage}
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-                          tripMembers={tripMembers} // Pass trip members
-                          readStatuses={readStatusesByMessage[message.id]} // Pass read statuses for this message
+                          tripMembers={tripMembers}
+                          readStatuses={readStatusesByMessage[message.id]}
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
+                          isAdmin={isUserAdmin}
                         />
                       </div>
                     )}
@@ -914,8 +994,8 @@ export const TripChat = React.memo(
           </div>
         </div>
 
-        {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
-        {messageFilter !== 'channels' && (
+        {/* Persistent Chat Input - Hidden when in Channels mode or user cannot post */}
+        {messageFilter !== 'channels' && canPostToChat && (
           <div className="chat-input-persistent w-full pb-[env(safe-area-inset-bottom)]">
             <div className="w-full">
               <ChatInput
@@ -929,6 +1009,7 @@ export const TripChat = React.memo(
                 hidePayments={true}
                 isPro={isPro}
                 tripId={resolvedTripId}
+                disableFileUpload={!canUploadMedia}
                 onTypingChange={isTyping => {
                   if (!demoMode.isDemoMode && typingServiceRef.current) {
                     if (isTyping) {
@@ -948,6 +1029,19 @@ export const TripChat = React.memo(
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {/* Chat mode restriction banner */}
+        {messageFilter !== 'channels' && !canPostToChat && !chatModeLoading && (
+          <div className="w-full border-t border-white/10 bg-black/40 px-4 py-3 text-center">
+            <p className="text-sm text-white/60">
+              {chatMode === 'broadcasts'
+                ? 'This chat is in announcements-only mode. Only admins can post.'
+                : chatMode === 'admin_only'
+                  ? 'This chat is in admin-only mode. Only admins can post.'
+                  : 'You do not have permission to post in this chat.'}
+            </p>
           </div>
         )}
 

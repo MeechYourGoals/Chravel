@@ -10,6 +10,13 @@ interface UseUnifiedMessagesOptions {
   enabled?: boolean;
 }
 
+/**
+ * @deprecated Use `useTripChat` instead. This hook maintains a parallel message
+ * path with its own realtime subscription and useState-based state, which
+ * creates duplicate channels and divergent behavior. It is not actively used by
+ * any component as of 2026-03-15. Retained temporarily for reference; will be
+ * removed in a future cleanup pass.
+ */
 export function useUnifiedMessages({ tripId, enabled = true }: UseUnifiedMessagesOptions) {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
