@@ -16,8 +16,8 @@ test.describe('Invite + Preview Links (no blank screens)', () => {
 
   test('trip preview demo renders a preview card', async ({ page }) => {
     await page.goto('/trip/1/preview');
-    // Verify the heading contains the trip name - this confirms the preview loaded
-    await expect(page.getByRole('heading', { name: /Spring Break Cancun/i })).toBeVisible({
+    // Verify the primary heading contains the trip name (avoid strict-mode collisions on "Cancun")
+    await expect(page.getByRole('heading', { level: 1, name: /Spring Break Cancun/i }).first()).toBeVisible({
       timeout: 10_000,
     });
     // The heading assertion already validates content - no redundant checks needed
