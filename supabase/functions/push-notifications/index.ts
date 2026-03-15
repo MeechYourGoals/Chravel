@@ -512,7 +512,12 @@ async function sendSMSNotification(
 
   console.log(`[SMS] Sent successfully. SID: ${messageSid} status: ${twilioStatus}`);
 
-  await supabase.rpc('increment_sms_counter', { p_user_id: userId });
+  const { error: smsCounterError } = await supabase.rpc('increment_sms_counter', {
+    p_user_id: userId,
+  });
+  if (smsCounterError) {
+    console.error('[SMS] Failed to increment counter:', smsCounterError.message);
+  }
 
   await supabase.from('notification_logs').insert({
     user_id: userId,

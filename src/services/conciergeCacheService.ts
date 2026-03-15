@@ -127,7 +127,7 @@ class ConciergeCacheService {
       // Also update messages cache (user-isolated)
       this.updateMessagesCache(tripId, response, userId);
     } catch (error) {
-      console.error('Failed to cache message:', error);
+      if (import.meta.env.DEV) console.error('Failed to cache message:', error);
       // Silently fail - caching is not critical
     }
   }
@@ -166,7 +166,7 @@ class ConciergeCacheService {
 
       return null;
     } catch (error) {
-      console.error('Failed to get cached response:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cached response:', error);
       return null;
     }
   }
@@ -192,7 +192,7 @@ class ConciergeCacheService {
 
       return cached.messages || [];
     } catch (error) {
-      console.error('Failed to get cached messages:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cached messages:', error);
       return [];
     }
   }
@@ -227,7 +227,7 @@ class ConciergeCacheService {
         }
       }
     } catch (error) {
-      console.error('Failed to update messages cache:', error);
+      if (import.meta.env.DEV) console.error('Failed to update messages cache:', error);
     }
   }
 
@@ -255,7 +255,7 @@ class ConciergeCacheService {
 
       return valid;
     } catch (error) {
-      console.error('Failed to get cached responses:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cached responses:', error);
       return [];
     }
   }
@@ -334,7 +334,7 @@ class ConciergeCacheService {
       localStorage.removeItem(`${CACHE_PREFIX}${tripId}_${userKey}`);
       localStorage.removeItem(`${MESSAGES_PREFIX}${tripId}_${userKey}`);
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      if (import.meta.env.DEV) console.error('Failed to clear cache:', error);
     }
   }
 
@@ -350,7 +350,7 @@ class ConciergeCacheService {
         }
       });
     } catch (error) {
-      console.error('Failed to clear all caches:', error);
+      if (import.meta.env.DEV) console.error('Failed to clear all caches:', error);
     }
   }
 
@@ -405,7 +405,7 @@ class ConciergeCacheService {
         oldestCache: oldestTimestamp,
       };
     } catch (error) {
-      console.error('Failed to get cache stats:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cache stats:', error);
       return {
         totalTrips: 0,
         totalResponses: 0,

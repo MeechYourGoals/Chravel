@@ -282,6 +282,7 @@ export const paymentService = {
       const userId = authData?.user?.id;
       if (!userId) return false;
 
+      // RPC not yet in generated Supabase types
       const { data, error } = await (supabase as any).rpc('settle_payment_split', {
         p_split_id: splitId,
         p_user_id: userId,

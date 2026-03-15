@@ -51,14 +51,14 @@ const checkCodeExists = async (code: string): Promise<boolean> => {
     });
 
     if (error) {
-      console.error('[InviteLink] Error checking code existence:', error);
+      if (import.meta.env.DEV) console.error('[InviteLink] Error checking code existence:', error);
       // On error, assume code might exist to be safe (will retry with new code)
       return true;
     }
 
     return data === true;
   } catch (error) {
-    console.error('[InviteLink] Exception checking code:', error);
+    if (import.meta.env.DEV) console.error('[InviteLink] Exception checking code:', error);
     return true; // Assume exists on error to prevent collision
   }
 };
@@ -106,7 +106,7 @@ export const useInviteLink = ({
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        console.error('[InviteLink] User not authenticated');
+        if (import.meta.env.DEV) console.error('[InviteLink] User not authenticated');
         toast.error('Please log in to create invite links');
         return false;
       }
@@ -119,7 +119,7 @@ export const useInviteLink = ({
         .single();
 
       if (tripError || !trip) {
-        console.error('[InviteLink] Trip not found:', tripError);
+        if (import.meta.env.DEV) console.error('[InviteLink] Trip not found:', tripError);
         toast.error('Trip not found in database. Make sure this is a real trip, not a demo trip.');
         return false;
       }
@@ -139,7 +139,7 @@ export const useInviteLink = ({
             .maybeSingle();
 
           if (!member) {
-            console.error('[InviteLink] User is not a trip member');
+            if (import.meta.env.DEV) console.error('[InviteLink] User is not a trip member');
             toast.error('Only trip members can create invite links');
             return false;
           }
@@ -155,7 +155,8 @@ export const useInviteLink = ({
             .maybeSingle();
 
           if (!admin) {
-            console.error('[InviteLink] User not authorized (pro/event trip)');
+            if (import.meta.env.DEV)
+              console.error('[InviteLink] User not authorized (pro/event trip)');
             toast.error('Only trip admins can create invite links for this trip');
             return false;
           }
@@ -177,7 +178,7 @@ export const useInviteLink = ({
       const { error } = await supabase.from('trip_invites').insert([inviteData]);
 
       if (error) {
-        console.error('[InviteLink] Database insert error:', error);
+        if (import.meta.env.DEV) console.error('[InviteLink] Database insert error:', error);
         if (error.code === '42501' || error.message?.includes('RLS')) {
           toast.error(
             'Permission denied. You may not have access to create invites for this trip.',
@@ -188,10 +189,11 @@ export const useInviteLink = ({
         return false;
       }
 
-      console.log('[InviteLink] Invite created successfully:', inviteCode.substring(0, 8));
+      if (import.meta.env.DEV)
+        console.log('[InviteLink] Invite created successfully:', inviteCode.substring(0, 8));
       return true;
     } catch (error) {
-      console.error('[InviteLink] Unexpected error:', error);
+      if (import.meta.env.DEV) console.error('[InviteLink] Unexpected error:', error);
       toast.error('An unexpected error occurred. Please try again.');
       return false;
     }
@@ -223,7 +225,8 @@ export const useInviteLink = ({
 
     // Check if trip ID is a valid UUID (real trips have UUIDs, demo trips have mock IDs)
     if (!UUID_REGEX.test(actualTripId)) {
-      console.error('[InviteLink] Invalid trip ID format (not UUID):', actualTripId);
+      if (import.meta.env.DEV)
+        console.error('[InviteLink] Invalid trip ID format (not UUID):', actualTripId);
       toast.error(
         'This appears to be a demo trip. Create a real trip to generate shareable invite links.',
       );
@@ -264,13 +267,15 @@ export const useInviteLink = ({
         if (oldCode && !isDemoInviteCode(oldCode)) {
           await supabase.from('trip_invites').update({ is_active: false }).eq('code', oldCode);
         } else if (inviteLink && !oldCode) {
-          console.warn(
-            '[InviteLink] Could not extract code from invite link for deactivation:',
-            inviteLink.substring(0, 50),
-          );
+          if (import.meta.env.DEV)
+            console.warn(
+              '[InviteLink] Could not extract code from invite link for deactivation:',
+              inviteLink.substring(0, 50),
+            );
         }
       } catch (error) {
-        console.error('[InviteLink] Error deactivating old invite:', error);
+        if (import.meta.env.DEV)
+          console.error('[InviteLink] Error deactivating old invite:', error);
       }
     }
 
@@ -312,7 +317,7 @@ export const useInviteLink = ({
         return false;
       }
     } catch (error) {
-      console.error('[InviteLink] Error resending invite:', error);
+      if (import.meta.env.DEV) console.error('[InviteLink] Error resending invite:', error);
       toast.error('Failed to resend invite. Please try again.');
       return false;
     } finally {
@@ -329,7 +334,7 @@ export const useInviteLink = ({
       toast.success('Link copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('[InviteLink] Failed to copy:', error);
+      if (import.meta.env.DEV) console.error('[InviteLink] Failed to copy:', error);
       toast.error('Failed to copy link');
     }
   };
@@ -345,7 +350,7 @@ export const useInviteLink = ({
           url: inviteLink,
         });
       } catch (error) {
-        console.error('[InviteLink] Error sharing:', error);
+        if (import.meta.env.DEV) console.error('[InviteLink] Error sharing:', error);
       }
     } else {
       handleCopyLink();

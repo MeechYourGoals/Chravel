@@ -91,7 +91,7 @@ export async function sendChatMessage(data: Record<string, unknown>): Promise<Me
     .single();
 
   if (error) {
-    console.error('[chatService] sendChatMessage error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] sendChatMessage error:', error);
     throw error;
   }
   return result;
@@ -125,7 +125,7 @@ export async function editChatMessage(messageId: string, newContent: string): Pr
     .eq('id', messageId);
 
   if (error) {
-    console.error('[chatService] editChatMessage error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] editChatMessage error:', error);
     return false;
   }
   return true;
@@ -138,7 +138,7 @@ export async function editChannelMessage(messageId: string, newContent: string):
     .eq('id', messageId);
 
   if (error) {
-    console.error('[chatService] editChannelMessage error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] editChannelMessage error:', error);
     return false;
   }
   return true;
@@ -151,7 +151,7 @@ export async function deleteChatMessage(messageId: string): Promise<boolean> {
     .eq('id', messageId);
 
   if (error) {
-    console.error('[chatService] deleteChatMessage error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] deleteChatMessage error:', error);
     return false;
   }
   return true;
@@ -164,7 +164,7 @@ export async function deleteChannelMessage(messageId: string): Promise<boolean> 
     .eq('id', messageId);
 
   if (error) {
-    console.error('[chatService] deleteChannelMessage error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] deleteChannelMessage error:', error);
     return false;
   }
   return true;
@@ -200,6 +200,7 @@ export async function toggleMessageReaction(
       throw new Error(`Unsupported reaction type: ${reactionType}`);
     }
 
+    // RPC not yet in generated Supabase types
     const { data, error } = await (supabase as any).rpc('toggle_reaction', {
       p_message_id: messageId,
       p_user_id: userId,
@@ -221,6 +222,7 @@ export async function getMessagesReactions(
   if (!messageIds.length) return {};
 
   try {
+    // Table not yet in generated Supabase types
     const { data, error } = await (supabase as any)
       .from('message_reactions')
       .select('message_id, reaction_type, user_id')
@@ -257,7 +259,7 @@ export async function getMessagesReactions(
 
     return result;
   } catch (error) {
-    console.error('[chatService] getMessagesReactions error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] getMessagesReactions error:', error);
     return {};
   }
 }
@@ -351,7 +353,7 @@ export async function getThreadReplies(parentMessageId: string): Promise<Message
     .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('[chatService] getThreadReplies error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] getThreadReplies error:', error);
     return [];
   }
   return data || [];
@@ -368,7 +370,7 @@ export async function sendThreadReply(
     });
     return result;
   } catch (error) {
-    console.error('[chatService] sendThreadReply error:', error);
+    if (import.meta.env.DEV) console.error('[chatService] sendThreadReply error:', error);
     return null;
   }
 }
