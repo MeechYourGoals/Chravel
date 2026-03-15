@@ -243,6 +243,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           address: location.address,
           latitude: undefined,
           longitude: undefined,
+          type: location.type,
+          confirmation_number: location.confirmationNumber,
         });
       } else if (user) {
         savedBasecamp = await basecampService.upsertPersonalBasecamp({
