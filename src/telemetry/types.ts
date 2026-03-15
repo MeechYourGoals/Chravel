@@ -194,6 +194,46 @@ export interface DemoEvents {
   };
 }
 
+/**
+ * Recommendation Events
+ */
+export interface RecommendationEvents {
+  recommendation_page_viewed: {
+    trip_id?: string;
+    destination?: string;
+    filter_type?: string;
+  };
+  recommendation_item_viewed: {
+    item_id: string;
+    item_type: 'organic' | 'sponsored';
+    position: number;
+    surface: 'recs_page' | 'trip_detail' | 'concierge' | 'home';
+  };
+  recommendation_item_clicked: {
+    item_id: string;
+    item_type: 'organic' | 'sponsored';
+    action: 'save' | 'book' | 'external_link' | 'add_to_trip' | 'view';
+  };
+  recommendation_item_saved: {
+    item_id: string;
+    item_type: 'organic' | 'sponsored';
+    trip_id?: string;
+  };
+  recommendation_item_hidden: {
+    item_id: string;
+    item_type: 'organic' | 'sponsored';
+    reason?: string;
+  };
+  recommendation_filter_applied: {
+    filter_type: 'category' | 'city' | 'search';
+    value: string;
+  };
+  recommendation_search: {
+    query: string;
+    results_count: number;
+  };
+}
+
 // ============================================================================
 // Combined Event Map
 // ============================================================================
@@ -208,7 +248,8 @@ export type TelemetryEventMap = AuthEvents &
   PerformanceEvents &
   ErrorEvents &
   OnboardingEvents &
-  DemoEvents;
+  DemoEvents &
+  RecommendationEvents;
 
 export type TelemetryEventName = keyof TelemetryEventMap;
 

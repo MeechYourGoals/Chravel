@@ -14,6 +14,7 @@ import type {
   PollEvents,
   TaskEvents,
   ExportEvents,
+  RecommendationEvents,
 } from './types';
 
 // ============================================================================
@@ -240,6 +241,47 @@ export const onboardingEvents = {
 
   demoTripSelected: () => {
     telemetry.track('onboarding_demo_trip_selected', {});
+  },
+};
+
+// ============================================================================
+// Demo Mode Events
+// ============================================================================
+
+// ============================================================================
+// Recommendation Events
+// ============================================================================
+
+export const recommendationEvents = {
+  pageViewed: (params: RecommendationEvents['recommendation_page_viewed']) => {
+    telemetry.track('recommendation_page_viewed', params);
+  },
+
+  itemViewed: (params: RecommendationEvents['recommendation_item_viewed']) => {
+    telemetry.track('recommendation_item_viewed', params);
+  },
+
+  itemClicked: (params: RecommendationEvents['recommendation_item_clicked']) => {
+    telemetry.track('recommendation_item_clicked', params);
+  },
+
+  itemSaved: (params: RecommendationEvents['recommendation_item_saved']) => {
+    telemetry.track('recommendation_item_saved', params);
+  },
+
+  itemHidden: (params: RecommendationEvents['recommendation_item_hidden']) => {
+    telemetry.track('recommendation_item_hidden', params);
+  },
+
+  filterApplied: (
+    filterType: RecommendationEvents['recommendation_filter_applied']['filter_type'],
+    value: string,
+  ) => {
+    telemetry.track('recommendation_filter_applied', { filter_type: filterType, value });
+  },
+
+  search: (query: string, resultsCount: number) => {
+    telemetry.track('recommendation_search', { query, results_count: resultsCount });
   },
 };
 
