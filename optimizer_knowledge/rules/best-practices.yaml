@@ -1,0 +1,117 @@
+# Best Practices Rubric — Skill Optimizer
+# Defines the 15 scoring dimensions and their evaluation criteria.
+
+dimensions:
+  clarity:
+    weight: 0.10
+    description: 'Instructions are unambiguous and easy to follow'
+    strong_signals:
+      - 'Concrete action verbs'
+      - 'Specific conditions and thresholds'
+      - 'Clear headers and logical flow'
+    weak_signals:
+      - 'Vague adverbs (properly, correctly, appropriately)'
+      - 'No headings or structure'
+
+  specificity:
+    weight: 0.08
+    description: 'Contains concrete examples, conditions, and thresholds'
+    strong_signals:
+      - 'Code blocks with examples'
+      - 'Before/after comparisons'
+      - 'Explicit trigger conditions'
+    weak_signals:
+      - 'Abstract instructions without examples'
+      - 'No concrete conditions'
+
+  concision:
+    weight: 0.06
+    description: 'No unnecessary content; every line earns its place'
+    strong_signals:
+      - 'Focused content under 200 lines'
+      - 'No repeated phrases'
+    weak_signals:
+      - 'Over 500 lines'
+      - 'Duplicated instructions'
+
+  determinism:
+    weight: 0.07
+    description: 'Same input produces same behavior'
+    strong_signals:
+      - 'If/then conditional logic'
+      - 'Ordered decision trees'
+    weak_signals:
+      - 'Might, could, maybe, perhaps'
+      - 'Open-ended instructions'
+
+  structure:
+    weight: 0.08
+    description: 'Scannable layout with logical section hierarchy'
+    strong_signals:
+      - 'YAML frontmatter'
+      - 'H2 sections for major topics'
+      - 'Tables for quick reference'
+    weak_signals:
+      - 'Wall of text'
+      - 'No headings'
+
+  trigger_precision:
+    weight: 0.08
+    description: 'Clear activation conditions in description'
+    strong_signals:
+      - "Starts with 'Use when...'"
+      - 'Lists specific symptoms and keywords'
+    weak_signals:
+      - 'Generic description'
+      - 'No trigger keywords'
+
+  output_contract:
+    weight: 0.07
+    description: 'Expected deliverables are clearly defined'
+    strong_signals:
+      - 'Output format specified'
+      - 'Produce/deliver verbs'
+    weak_signals:
+      - 'No output specification'
+
+  tool_use:
+    weight: 0.06
+    description: 'Referenced tools are valid and used correctly'
+
+  edge_cases:
+    weight: 0.06
+    description: 'Failure modes and corner cases addressed'
+    strong_signals:
+      - 'Error handling instructions'
+      - 'Fallback behaviors'
+    weak_signals:
+      - 'No mention of failures'
+
+  safety:
+    weight: 0.08
+    description: 'Contains guardrails and constraints'
+    strong_signals:
+      - 'Do not / never / must not rules'
+      - 'Explicit boundaries'
+    weak_signals:
+      - 'No constraints'
+
+  consistency:
+    weight: 0.06
+    description: 'No internal contradictions'
+
+  redundancy:
+    weight: 0.05
+    description: 'No duplicated instructions within or across artifacts'
+
+  maintainability:
+    weight: 0.05
+    description: 'Easy to update without breaking'
+
+  testability:
+    weight: 0.05
+    description: 'Can verify correctness'
+
+  rewrite_risk:
+    weight: 0.05
+    description: 'How safe it is to modify this artifact'

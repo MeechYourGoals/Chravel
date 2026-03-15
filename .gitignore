@@ -35,6 +35,10 @@ dist-ssr
 .cursor/mcp_config.json
 .claude/worktrees/
 
+# Optimizer runtime data
+optimizer/.data/
+reports/optimizer/
+
 # Loop state (ephemeral, session-scoped)
 tmp/loop-status/*
 tmp/loop-history/*
