@@ -656,7 +656,7 @@ export const TripChat = React.memo(
             undefined,
             user.id,
             effectivePrivacyMode,
-            'text',
+            failed.messageType || 'text',
           );
           setFailedMessages(prev => prev.filter(m => m.id !== failedId));
         } catch {
