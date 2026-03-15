@@ -127,9 +127,10 @@ async function readPendingSharesFromNative(): Promise<SharedInboundItem[]> {
  */
 async function clearProcessedShareFromNative(itemId: string): Promise<void> {
   try {
-    const { Plugins } = await import('@capacitor/core');
+    const capacitorCore = await import('@capacitor/core');
+    // intentional: Capacitor plugin not in published typings
     await (
-      Plugins as Record<string, { clearProcessedShare?: (opts: { id: string }) => Promise<void> }>
+      (capacitorCore as any).Plugins as Record<string, { clearProcessedShare?: (opts: { id: string }) => Promise<void> }>
     ).ChravelShareBridge?.clearProcessedShare?.({ id: itemId });
   } catch {
     // Plugin not available

@@ -316,7 +316,8 @@ export async function getSharedItemsForTrip(
   tripId: string,
   limit: number = 20,
 ): Promise<SharedInboundItemRow[]> {
-  const { data, error } = await supabase
+  // intentional: shared_inbound_items not yet in generated types
+  const { data, error } = await (supabase as any)
     .from('shared_inbound_items')
     .select('*')
     .eq('trip_id', tripId)

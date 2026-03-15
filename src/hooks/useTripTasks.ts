@@ -659,7 +659,7 @@ export const useTripTasks = (
               assigned_by: authUser.id,
             })),
             { onConflict: 'task_id,user_id' },
-          ),
+          ) as unknown as Promise<{ error: unknown }>,
         );
       }
       const postInsertResults = await Promise.all(postInsertOps);

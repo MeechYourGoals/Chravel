@@ -200,7 +200,8 @@ export class RecommendationService {
    * Get items the user has hidden, so they can be filtered from the feed.
    */
   static async getHiddenItemIds(userId: string): Promise<string[]> {
-    const { data, error } = await supabase
+    // intentional: recommendation tables not yet in generated types
+    const { data, error } = await (supabase as any)
       .from('recommendation_feedback')
       .select('item_id')
       .eq('user_id', userId)
