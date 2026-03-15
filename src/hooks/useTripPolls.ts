@@ -222,6 +222,41 @@ export const useTripPolls = (tripId: string) => {
 
   // Create poll mutation
   const createPollMutation = useMutation({
+    onMutate: async (poll: CreatePollRequest) => {
+      // Skip optimistic update for demo mode — it uses pollStorageService
+      if (isDemoMode) return undefined;
+
+      await queryClient.cancelQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
+      const previousPolls = queryClient.getQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode]);
+
+      const optimisticPoll: TripPoll = {
+        id: `optimistic-poll-${Date.now()}`,
+        trip_id: tripId,
+        question: poll.question,
+        options: poll.options.map(text => ({
+          id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          text,
+          votes: 0,
+          voters: [],
+        })),
+        total_votes: 0,
+        status: 'active',
+        created_by: user?.id || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        allow_multiple: poll.settings?.allow_multiple ?? false,
+        is_anonymous: poll.settings?.is_anonymous ?? false,
+        allow_vote_change: poll.settings?.allow_vote_change !== false,
+        deadline_at: poll.settings?.deadline_at,
+      };
+
+      queryClient.setQueryData<TripPoll[]>(['tripPolls', tripId, isDemoMode], old => [
+        optimisticPoll,
+        ...(old || []),
+      ]);
+
+      return { previousPolls };
+    },
     mutationFn: async (poll: CreatePollRequest) => {
       if (isDemoMode) {
         return await pollStorageService.createPoll(tripId, poll);
@@ -269,18 +304,23 @@ export const useTripPolls = (tripId: string) => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
       toast({
         title: 'Poll created',
         description: 'Your poll has been added to the trip.',
       });
     },
-    onError: () => {
+    onError: (_error: Error, _variables, context) => {
+      if (context?.previousPolls) {
+        queryClient.setQueryData(['tripPolls', tripId, isDemoMode], context.previousPolls);
+      }
       toast({
         title: 'Error',
         description: 'Failed to create poll. Please try again.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId, isDemoMode] });
     },
   });
 

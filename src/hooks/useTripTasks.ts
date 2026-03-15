@@ -533,6 +533,36 @@ export const useTripTasks = (
 
   // Task mutations
   const createTaskMutation = useMutation({
+    onMutate: async (task: CreateTaskRequest & { assignedTo?: string[] }) => {
+      // Skip optimistic update for demo/offline paths — they have their own handling
+      if (isDemoMode || !user || !navigator.onLine) return undefined;
+
+      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+
+      const optimisticTask: TripTask = {
+        id: `optimistic-task-${Date.now()}`,
+        trip_id: tripId,
+        creator_id: user.id,
+        title: task.title,
+        description: task.description || null,
+        due_at: task.due_at || null,
+        is_poll: task.is_poll || false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        creator: { id: user.id, name: 'You' },
+        task_status: [
+          { task_id: `optimistic-task-${Date.now()}`, user_id: user.id, completed: false },
+        ],
+      };
+
+      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old => [
+        optimisticTask,
+        ...(old || []),
+      ]);
+
+      return { previousTasks };
+    },
     mutationFn: async (task: CreateTaskRequest & { assignedTo?: string[] }) => {
       // Demo mode: use localStorage
       if (isDemoMode || !user) {
@@ -562,23 +592,24 @@ export const useTripTasks = (
         throw new Error('Please sign in to create tasks');
       }
 
-      // Ensure user is a member of the trip (auto-join for consumer trips)
-      const { error: membershipError } = await supabase.rpc('ensure_trip_membership', {
-        p_trip_id: tripId,
-        p_user_id: authUser.id,
-      });
+      // Run membership check and profile fetch in parallel (both depend only on authUser.id)
+      const [membershipResult, profileResult] = await Promise.all([
+        supabase.rpc('ensure_trip_membership', {
+          p_trip_id: tripId,
+          p_user_id: authUser.id,
+        }),
+        supabase
+          .from('profiles')
+          .select('display_name, avatar_url')
+          .eq('user_id', authUser.id)
+          .single(),
+      ]);
 
-      if (membershipError) {
-        console.error('Membership error:', membershipError);
+      if (membershipResult.error) {
         throw new Error('Unable to join trip. Please try again.');
       }
 
-      // Fetch current user's profile for display_name
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('display_name, avatar_url')
-        .eq('user_id', authUser.id)
-        .single();
+      const userProfile = profileResult.data;
 
       // Create the task in database
       const { data: newTask, error } = await supabase
@@ -614,19 +645,28 @@ export const useTripTasks = (
         }),
       );
 
-      const { error: taskStatusError } = await supabase.from('task_status').insert(taskStatusRows);
-      if (taskStatusError) {
-        throw new Error(taskStatusError.message || 'Failed to initialize task assignments');
-      }
-
+      // Run task_status and task_assignments in parallel (both depend only on newTask.id)
+      const postInsertOps: Promise<{ error: unknown }>[] = [
+        supabase.from('task_status').insert(taskStatusRows),
+      ];
       if (assignedUserIds.length > 0) {
-        await supabase.from('task_assignments').upsert(
-          assignedUserIds.map(assigneeId => ({
-            task_id: newTask.id,
-            user_id: assigneeId,
-            assigned_by: authUser.id,
-          })),
-          { onConflict: 'task_id,user_id' },
+        postInsertOps.push(
+          supabase.from('task_assignments').upsert(
+            assignedUserIds.map(assigneeId => ({
+              task_id: newTask.id,
+              user_id: assigneeId,
+              assigned_by: authUser.id,
+            })),
+            { onConflict: 'task_id,user_id' },
+          ),
+        );
+      }
+      const postInsertResults = await Promise.all(postInsertOps);
+      const taskStatusError = postInsertResults[0]?.error;
+      if (taskStatusError) {
+        throw new Error(
+          (taskStatusError as { message?: string }).message ||
+            'Failed to initialize task assignments',
         );
       }
 
@@ -650,14 +690,16 @@ export const useTripTasks = (
       } as TripTask;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({
         title: 'Task created',
         description: 'Your task has been added to the list.',
       });
     },
-    onError: (error: Error) => {
-      console.error('Create task mutation error:', error);
+    onError: (error: Error, _variables, context) => {
+      // Rollback optimistic update on failure (unless offline-queued)
+      if (context?.previousTasks && !error.message?.includes('OFFLINE:')) {
+        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
+      }
 
       // Provide specific error messages
       let errorTitle = 'Error Creating Task';
@@ -690,9 +732,37 @@ export const useTripTasks = (
         variant,
       });
     },
+    onSettled: () => {
+      // Always reconcile with server truth after mutation completes
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+    },
   });
 
   const updateTaskMutation = useMutation({
+    onMutate: async ({ taskId, title, description, due_at, is_poll }: UpdateTaskRequest) => {
+      if (isDemoMode || !user) return undefined;
+
+      await queryClient.cancelQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      const previousTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+
+      queryClient.setQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode], old => {
+        if (!old) return old;
+        return old.map(task =>
+          task.id === taskId
+            ? {
+                ...task,
+                title: title.trim(),
+                description: description?.trim() || null,
+                due_at: due_at || null,
+                is_poll,
+                updated_at: new Date().toISOString(),
+              }
+            : task,
+        );
+      });
+
+      return { previousTasks };
+    },
     mutationFn: async ({
       taskId,
       title,
@@ -761,15 +831,22 @@ export const useTripTasks = (
       return updatedTask;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({ title: 'Task updated', description: 'Your changes have been saved.' });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      // Rollback optimistic update if we have a snapshot
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
+      }
       toast({
         title: 'Error Updating Task',
         description: error.message || 'Failed to update task.',
         variant: 'destructive',
       });
+    },
+    onSettled: () => {
+      // Reconcile with server truth (same pattern as toggleTaskMutation)
+      queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
     },
   });
 

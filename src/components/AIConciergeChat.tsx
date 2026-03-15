@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Search, ImagePlus, Sparkles } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
@@ -270,6 +271,7 @@ export const AIConciergeChat = ({
   onTabChange,
 }: AIConciergeChatProps) => {
   const { basecamp: globalBasecamp } = useBasecamp();
+  const conciergeQueryClient = useQueryClient();
   const {
     usage: _usage,
     incrementUsageOnSuccess,
@@ -1359,6 +1361,22 @@ export const AIConciergeChat = ({
                     },
                   ];
                 });
+
+                // Invalidate relevant queries so tab data refreshes after AI write actions
+                if (result.success) {
+                  const invalidationMap: Record<string, string[]> = {
+                    createTask: ['tripTasks', tripId],
+                    createPoll: ['tripPolls', tripId],
+                    addToCalendar: ['calendarEvents', tripId],
+                    savePlace: ['tripPlaces', tripId],
+                    setBasecamp: ['tripBasecamp', tripId],
+                    addToAgenda: ['eventAgenda', tripId],
+                  };
+                  const queryKey = invalidationMap[name];
+                  if (queryKey) {
+                    conciergeQueryClient.invalidateQueries({ queryKey });
+                  }
+                }
               }
             },
             onReservationDraft: (draft: ReservationDraft) => {
