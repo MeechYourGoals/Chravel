@@ -455,7 +455,7 @@ export const AIConciergeChat = ({
   const [streamingUserMessage, setStreamingUserMessage] = useState<ChatMessage | null>(null);
 
   // Gemini Live bidirectional voice — always initialized (hooks rules)
-  const { handleToolCall } = useVoiceToolHandler({
+  const { handleToolCall, resetIdempotencyCache } = useVoiceToolHandler({
     tripId,
     userId: user?.id ?? '',
   });
@@ -603,7 +603,8 @@ export const AIConciergeChat = ({
 
   const handleEndLiveSession = useCallback(async () => {
     await endLiveSession();
-  }, [endLiveSession]);
+    resetIdempotencyCache();
+  }, [endLiveSession, resetIdempotencyCache]);
 
   // Waveform button — dictation only. Stops Live if active first.
   const handleConvoToggle = useCallback(() => {

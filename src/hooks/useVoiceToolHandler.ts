@@ -7,6 +7,20 @@ interface UseVoiceToolHandlerOptions {
   userId: string;
 }
 
+/**
+ * Extract idempotency key from tool call args.
+ * Voice tool declarations require this field on mutating tools,
+ * but the model may omit it — return undefined in that case.
+ */
+const extractIdempotencyKey = (args: Record<string, unknown>): string | undefined => {
+  const key = args.idempotency_key;
+  if (typeof key === 'string' && key.trim().length > 0) return key.trim();
+  return undefined;
+};
+
+/** Tool names that perform write mutations and should be deduplicated */
+const MUTATING_CLIENT_TOOLS = new Set(['addToCalendar', 'createTask', 'createPoll']);
+
 /** Validate a value is a non-empty string, optionally capped at maxLen */
 const requireString = (val: unknown, label: string, maxLen = 500): string => {
   if (typeof val !== 'string' || !val.trim()) {
@@ -46,6 +60,15 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
 
+  /**
+   * Client-side idempotency cache.
+   * Keyed by idempotency_key from tool call args.
+   * Prevents duplicate writes when Gemini retries a tool call
+   * (common during barge-in or connection hiccups).
+   * Cleared when the session ends via resetIdempotencyCache().
+   */
+  const idempotencyCacheRef = useRef<Map<string, Record<string, unknown>>>(new Map());
+
   const handleToolCall = useCallback(
     async (call: ToolCallRequest): Promise<Record<string, unknown>> => {
       const { name, args } = call;
@@ -55,6 +78,15 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
       // Gate: refuse writes if auth context is missing
       if (!currentUserId || !currentTripId) {
         return { success: false, error: 'Missing user or trip context — cannot execute tool' };
+      }
+
+      // Idempotency guard: if we've already executed this exact tool call, return cached result
+      const idempotencyKey = extractIdempotencyKey(args);
+      if (idempotencyKey && MUTATING_CLIENT_TOOLS.has(name)) {
+        const cached = idempotencyCacheRef.current.get(idempotencyKey);
+        if (cached) {
+          return { ...cached, _deduplicated: true };
+        }
       }
 
       try {
@@ -81,7 +113,9 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 location,
                 description,
                 source_type: 'voice_concierge',
-              })
+                // DB-level dedup via partial unique index on (trip_id, idempotency_key)
+                ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+              } as Record<string, unknown>)
               .select('id, title, start_time')
               .single();
 
@@ -91,12 +125,14 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 error: `Could not add "${title}" to the calendar: ${error.message}`,
               };
             }
-            return {
+            const calResult = {
               success: true,
               actionType: 'addToCalendar',
               message: `Added "${title}" to the calendar`,
               event: { id: data.id, title: data.title, startTime: data.start_time },
             };
+            if (idempotencyKey) idempotencyCacheRef.current.set(idempotencyKey, calResult);
+            return calResult;
           }
 
           case 'createTask': {
@@ -110,7 +146,9 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 creator_id: currentUserId,
                 title: content,
                 due_at: dueDate,
-              })
+                source_type: 'voice_concierge',
+                ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+              } as Record<string, unknown>)
               .select('id, title')
               .single();
 
@@ -120,12 +158,14 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 error: `Could not create task: ${error.message}`,
               };
             }
-            return {
+            const taskResult = {
               success: true,
               actionType: 'createTask',
               message: `Created task: "${content}"`,
               task: { id: data.id, title: data.title },
             };
+            if (idempotencyKey) idempotencyCacheRef.current.set(idempotencyKey, taskResult);
+            return taskResult;
           }
 
           case 'createPoll': {
@@ -163,7 +203,9 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 question,
                 options: pollOptions,
                 status: 'active',
-              })
+                source_type: 'voice_concierge',
+                ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+              } as Record<string, unknown>)
               .select('id, question')
               .single();
 
@@ -173,12 +215,14 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
                 error: `Could not create poll: ${error.message}`,
               };
             }
-            return {
+            const pollResult = {
               success: true,
               actionType: 'createPoll',
               message: `Created poll: "${question}" with ${options.length} options`,
               poll: { id: data.id, question: data.question, options },
             };
+            if (idempotencyKey) idempotencyCacheRef.current.set(idempotencyKey, pollResult);
+            return pollResult;
           }
 
           case 'getPaymentSummary': {
@@ -307,5 +351,10 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
     [],
   );
 
-  return { handleToolCall };
+  /** Clear the idempotency cache — call when a voice session ends. */
+  const resetIdempotencyCache = useCallback(() => {
+    idempotencyCacheRef.current.clear();
+  }, []);
+
+  return { handleToolCall, resetIdempotencyCache };
 }

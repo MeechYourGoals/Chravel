@@ -1,4 +1,16 @@
 /**
+ * @deprecated — This proxy relay is unused by the frontend as of 2026-03.
+ * The frontend now uses the direct connection path via gemini-voice-session
+ * (HTTP POST that returns credentials + WS URL, then client opens WS directly).
+ *
+ * This file is retained for environments where direct Vertex WS connections
+ * may be blocked by corporate firewalls. It should be removed once that
+ * scenario is confirmed as not needed.
+ *
+ * TODO: Remove in a future cleanup sprint if no consumers are found.
+ *
+ * ---
+ * Original description:
  * gemini-voice-proxy — WebSocket relay between browser and Vertex AI Live API.
  *
  * Architecture (from the gist / official Vertex docs):

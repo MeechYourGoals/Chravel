@@ -295,6 +295,14 @@ export function useGeminiLive({
   const turnCompleteReceivedRef = useRef(false);
   const drainTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userHasSpokenRef = useRef(false);
+  /**
+   * RMS values written at audio callback frequency (~60fps).
+   * Flushed into diagnostics state at ~15fps via rAF to avoid render storms.
+   */
+  const micRmsRef = useRef(0);
+  const playbackRmsRef = useRef(0);
+  const rmsFlushRafRef = useRef<number | null>(null);
+  const rmsFlushActiveRef = useRef(false);
 
   const isSupported =
     typeof window !== 'undefined' &&
@@ -317,6 +325,43 @@ export function useGeminiLive({
       return next;
     });
   }, []);
+
+  /**
+   * Start a throttled rAF loop that flushes micRms/playbackRms into state at ~15fps.
+   * This avoids 60+ re-renders/sec from raw audio callbacks while keeping
+   * barge-in detection (which reads micRmsRef directly) at full frequency.
+   */
+  const startRmsFlush = useCallback(() => {
+    if (rmsFlushActiveRef.current) return;
+    rmsFlushActiveRef.current = true;
+    let lastFlush = 0;
+    const RMS_FLUSH_INTERVAL_MS = 67; // ~15fps
+    const loop = () => {
+      if (!rmsFlushActiveRef.current) return;
+      const now = performance.now();
+      if (now - lastFlush >= RMS_FLUSH_INTERVAL_MS) {
+        lastFlush = now;
+        patchDiagnostics({ micRms: micRmsRef.current, playbackRms: playbackRmsRef.current });
+      }
+      rmsFlushRafRef.current = requestAnimationFrame(loop);
+    };
+    rmsFlushRafRef.current = requestAnimationFrame(loop);
+  }, [patchDiagnostics]);
+
+  const stopRmsFlush = useCallback(() => {
+    rmsFlushActiveRef.current = false;
+    if (rmsFlushRafRef.current !== null) {
+      cancelAnimationFrame(rmsFlushRafRef.current);
+      rmsFlushRafRef.current = null;
+    }
+  }, []);
+
+  // Cleanup rAF on unmount
+  useEffect(() => {
+    return () => {
+      stopRmsFlush();
+    };
+  }, [stopRmsFlush]);
 
   const debugLog = useCallback((event: string, payload: Record<string, unknown> = {}) => {
     if (!diagnosticsRef.current.enabled) return;
@@ -365,6 +410,7 @@ export function useGeminiLive({
     if (isCleaningUpRef.current) return;
     isCleaningUpRef.current = true;
 
+    stopRmsFlush();
     isStartingRef.current = false;
     turnCompleteReceivedRef.current = false;
     clearThinkingTimer();
@@ -430,7 +476,7 @@ export function useGeminiLive({
     });
 
     isCleaningUpRef.current = false;
-  }, [clearThinkingTimer, patchDiagnostics]);
+  }, [clearThinkingTimer, patchDiagnostics, stopRmsFlush]);
 
   useEffect(
     () => () => {
@@ -813,7 +859,7 @@ export function useGeminiLive({
           }
         },
         (rms: number) => {
-          patchDiagnostics({ playbackRms: rms });
+          playbackRmsRef.current = rms;
         },
       );
 
@@ -1054,7 +1100,7 @@ export function useGeminiLive({
                       );
                     },
                     rms => {
-                      patchDiagnostics({ micRms: rms });
+                      micRmsRef.current = rms;
                       if (rms > BARGE_IN_RMS_THRESHOLD && modelRespondingRef.current) {
                         flushModelOutput();
                         sendCancelSignal();
@@ -1069,6 +1115,7 @@ export function useGeminiLive({
                   hasHadSuccessfulSessionRef.current = true;
                   autoReconnectAllowedRef.current = true;
                   autoReconnectCountRef.current = 0;
+                  startRmsFlush();
                   transition('listening', 'capture_started');
                 } catch (captureErr) {
                   const msg =
@@ -1083,6 +1130,7 @@ export function useGeminiLive({
                 }
               })();
             } else {
+              startRmsFlush();
               transition('listening', 'capture_started');
             }
             return;
@@ -1373,6 +1421,7 @@ export function useGeminiLive({
     resetMetricsForNewTurn,
     resetTurnAccumulators,
     sendCancelSignal,
+    startRmsFlush,
     transition,
     recordVoiceFailure,
   ]);

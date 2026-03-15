@@ -9,6 +9,8 @@ import {
   type ServiceAccountKey,
 } from '../_shared/vertexAuth.ts';
 import { VOICE_FUNCTION_DECLARATIONS, VOICE_ADDENDUM } from '../_shared/voiceToolDeclarations.ts';
+import { applyRateLimit } from '../_shared/rateLimitGuard.ts';
+import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
 
 // ── Vertex AI configuration (production-only provider) ──
 const VERTEX_PROJECT_ID = Deno.env.get('VERTEX_PROJECT_ID');
@@ -34,6 +36,37 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const ALLOWED_VOICES = new Set(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']);
 const DEFAULT_VOICE = 'Charon';
+
+// ── Rate limiting & usage ──
+const VOICE_SESSION_RATE_LIMIT = 10; // max sessions per window
+const VOICE_SESSION_RATE_WINDOW_SECONDS = 300; // 5 minutes
+// Voice sessions count toward trip query limits (same as text concierge)
+const VOICE_FREE_TIER_ENABLED =
+  (Deno.env.get('VOICE_FREE_TIER_ENABLED') || 'false').toLowerCase() === 'true';
+
+type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
+
+const getVoiceQueryLimit = (plan: UsagePlan): number | null => {
+  if (plan === 'free') return 5;
+  if (plan === 'explorer') return 10;
+  return null; // unlimited
+};
+
+const mapRawPlanToUsagePlan = (plan: string | null | undefined): UsagePlan => {
+  if (!plan || plan === 'free' || plan === 'consumer') return 'free';
+  if (plan === 'explorer' || plan === 'plus') return 'explorer';
+  return 'frequent_chraveler';
+};
+
+const isActiveEntitlementStatus = (status: string | null | undefined): boolean =>
+  status === 'active' || status === 'trialing';
+
+const hasActiveEntitlementPeriod = (periodEnd: string | null | undefined): boolean => {
+  if (!periodEnd) return true;
+  const parsed = Date.parse(periodEnd);
+  if (Number.isNaN(parsed)) return true;
+  return parsed > Date.now();
+};
 
 // ── Main handler ──
 
@@ -124,11 +157,83 @@ serve(async req => {
       elapsedMs: Date.now() - t0,
     });
 
+    // ── Rate limit: prevent abuse / runaway reconnect loops ──
+    const rl = await applyRateLimit({
+      identifier: `voice-session:${user.id}`,
+      maxRequests: VOICE_SESSION_RATE_LIMIT,
+      windowSeconds: VOICE_SESSION_RATE_WINDOW_SECONDS,
+      corsHeaders,
+    });
+    if (!rl.allowed) {
+      console.warn(`${tag} Rate limited`, { userId: user.id, sessionAttemptId });
+      return rl.response!;
+    }
+
+    // ── Entitlement check: resolve user plan ──
+    let usagePlan: UsagePlan = 'free';
+    const { data: entitlementData, error: entitlementError } = await supabase
+      .from('user_entitlements')
+      .select('plan, status, current_period_end')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (entitlementError) {
+      console.warn(`${tag} Entitlement check failed, defaulting to free`, {
+        error: entitlementError.message,
+      });
+    } else if (
+      entitlementData &&
+      isActiveEntitlementStatus(entitlementData.status) &&
+      hasActiveEntitlementPeriod(entitlementData.current_period_end)
+    ) {
+      usagePlan = mapRawPlanToUsagePlan(entitlementData.plan);
+    }
+
+    // Free-tier voice gating (unless VOICE_FREE_TIER_ENABLED)
+    if (usagePlan === 'free' && !VOICE_FREE_TIER_ENABLED) {
+      console.log(`${tag} Free-tier voice blocked`, { userId: user.id, sessionAttemptId });
+      return new Response(
+        JSON.stringify({
+          error: 'Voice mode requires a paid plan. Upgrade to use AI voice assistant.',
+          upgrade: true,
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const requestedVoice = typeof bodyRaw?.voice === 'string' ? bodyRaw.voice : DEFAULT_VOICE;
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
     const tripId = typeof bodyRaw?.tripId === 'string' ? bodyRaw.tripId : undefined;
     const resumptionToken =
       typeof bodyRaw?.resumptionToken === 'string' ? bodyRaw.resumptionToken : undefined;
+
+    // ── Usage tracking: count voice session against trip query limit ──
+    if (tripId) {
+      const tripQueryLimit = getVoiceQueryLimit(usagePlan);
+      if (tripQueryLimit !== null) {
+        const usageResult = await incrementConciergeTripUsage(supabase, tripId, tripQueryLimit);
+        if (usageResult.status === 'limit_reached') {
+          console.log(`${tag} Trip voice limit reached`, {
+            userId: user.id,
+            tripId,
+            usagePlan,
+            limit: tripQueryLimit,
+          });
+          return new Response(
+            JSON.stringify({
+              error: `Trip voice limit reached (${tripQueryLimit} sessions). Upgrade for more.`,
+              upgrade: true,
+            }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
+        if (usageResult.status === 'verification_unavailable') {
+          console.warn(`${tag} Usage verification unavailable, proceeding`, {
+            error: usageResult.error,
+          });
+        }
+      }
+    }
 
     // Build system instruction
     let systemInstruction: string;
