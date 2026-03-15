@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { basecampService } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { BasecampLocation } from '@/types/basecamp';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -125,6 +126,7 @@ export function useTripBasecamp(tripId: string | undefined) {
 export function useUpdateTripBasecamp(tripId: string | undefined) {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
+  const permissions = useMutationPermissions(tripId || '');
 
   return useMutation({
     // Disable retries to prevent hanging on repeated failures
@@ -138,6 +140,11 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
     }) => {
       if (!tripId) {
         throw new Error('No tripId provided');
+      }
+
+      // Permission guard: pro/event trips restrict basecamp to admins/organizers
+      if (!permissions.canSetBasecamp && !isDemoMode) {
+        throw new Error('PERMISSION: Only admins can change the basecamp for this trip.');
       }
 
       // Guardrail: basecamp is never queued offline (prevent silent overwrites).
@@ -220,7 +227,9 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
       }
 
       const msg = error instanceof Error ? error.message : '';
-      if (msg.includes('OFFLINE:')) {
+      if (msg.includes('PERMISSION:')) {
+        toast.error(msg.replace('PERMISSION: ', ''));
+      } else if (msg.includes('OFFLINE:')) {
         toast.error('Trip Base Camp requires an internet connection.');
       } else if (msg.includes('CONFLICT:')) {
         toast.error('Basecamp was updated by someone else. Refreshing...');

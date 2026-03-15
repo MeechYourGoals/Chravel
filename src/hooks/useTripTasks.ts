@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { generateMutationId } from '@/utils/concurrencyUtils';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 
 // Task form management types
 export interface TaskFormData {
@@ -148,6 +149,7 @@ export const useTripTasks = (
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const permissions = useMutationPermissions(tripId);
 
   // Task form management state
   const [title, setTitle] = useState('');
@@ -565,6 +567,11 @@ export const useTripTasks = (
       return { previousTasks };
     },
     mutationFn: async (task: CreateTaskRequest & { assignedTo?: string[] }) => {
+      // Permission guard: check if user can create tasks (event/pro trip restrictions)
+      if (!permissions.canCreateTask && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to create tasks in this trip.");
+      }
+
       // Demo mode: use localStorage
       if (isDemoMode || !user) {
         const assignedTo = task.assignedTo || ['demo-user'];
@@ -712,7 +719,10 @@ export const useTripTasks = (
       const errorMessage = error.message || '';
       const errorCode = (error as Error & { code?: string }).code;
 
-      if (errorMessage.includes('OFFLINE:')) {
+      if (errorMessage.includes('PERMISSION:')) {
+        errorTitle = 'Permission Denied';
+        errorDescription = errorMessage.replace('PERMISSION: ', '');
+      } else if (errorMessage.includes('OFFLINE:')) {
         errorTitle = 'Task Queued';
         errorDescription = "Task will be created when you're back online.";
         variant = 'default';
@@ -774,6 +784,11 @@ export const useTripTasks = (
       is_poll,
       assignedTo,
     }: UpdateTaskRequest) => {
+      // Permission guard: check if user can edit tasks (event/pro trip restrictions)
+      if (!permissions.canEditTask && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to edit tasks in this trip.");
+      }
+
       if (isDemoMode || !user) {
         const updated = await taskStorageService.updateTask(tripId, taskId, {
           title: title.trim(),
@@ -892,7 +907,13 @@ export const useTripTasks = (
       }
 
       const errMsg = error.message || '';
-      if (errMsg.includes('CONFLICT:')) {
+      if (errMsg.includes('PERMISSION:')) {
+        toast({
+          title: 'Permission Denied',
+          description: errMsg.replace('PERMISSION: ', ''),
+          variant: 'destructive',
+        });
+      } else if (errMsg.includes('CONFLICT:')) {
         toast({
           title: 'Conflict Detected',
           description: errMsg.replace('CONFLICT: ', ''),
@@ -1109,6 +1130,11 @@ export const useTripTasks = (
   // Delete task mutation - creator-only client guard (RLS enforced on backend)
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canDeleteTask && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to delete tasks in this trip.");
+      }
+
       if (isDemoMode || !user) {
         const success = await taskStorageService.deleteTask(tripId, taskId);
         if (!success) throw new Error('Failed to delete task');
@@ -1212,5 +1238,10 @@ export const useTripTasks = (
     updateTaskMutation,
     toggleTaskMutation,
     deleteTaskMutation,
+
+    // Permissions (for UI gating — e.g., hiding create buttons)
+    canCreateTask: permissions.canCreateTask,
+    canEditTask: permissions.canEditTask,
+    canDeleteTask: permissions.canDeleteTask,
   };
 };

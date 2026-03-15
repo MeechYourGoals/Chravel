@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { calendarService, TripEvent, CreateEventData } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useAuth } from '@/hooks/useAuth';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { useCalendarRealtime } from './useCalendarRealtime';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { withTimeout } from '@/utils/timeout';
 import { errorTracking } from '@/utils/errorTracking';
+import { toast } from 'sonner';
 
 /**
  * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
@@ -21,6 +24,8 @@ import { errorTracking } from '@/utils/errorTracking';
 export const useCalendarEvents = (tripId?: string) => {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
+  const permissions = useMutationPermissions(tripId || '');
 
   // Main query for calendar events with proper caching
   const {
@@ -104,6 +109,10 @@ export const useCalendarEvents = (tripId?: string) => {
   // Create event with optimistic update
   const createEventMutation = useMutation({
     mutationFn: async (eventData: CreateEventData) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canCreateEvent && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to create calendar events.");
+      }
       const result = await calendarService.createEvent(eventData);
       return result.event;
     },
@@ -158,6 +167,19 @@ export const useCalendarEvents = (tripId?: string) => {
       updates: Partial<TripEvent>;
       currentVersion?: number;
     }) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canEditEvent && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to edit calendar events.");
+      }
+      // B5: Client-side creator/admin check — prevents optimistic update flash + rollback
+      // RLS enforces this server-side, but this saves a wasted round-trip
+      if (user?.id && tripId) {
+        const cached = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId));
+        const existing = cached?.find(e => e.id === eventId);
+        if (existing && existing.created_by !== user.id && !permissions.canEditEvent) {
+          throw new Error('PERMISSION: Only the event creator or an admin can edit this event.');
+        }
+      }
       await calendarService.updateEvent(eventId, updates, currentVersion);
       return { eventId, updates };
     },
@@ -188,6 +210,10 @@ export const useCalendarEvents = (tripId?: string) => {
   // Delete event with optimistic update
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canDeleteEvent && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to delete calendar events.");
+      }
       await calendarService.deleteEvent(eventId, tripId);
       return eventId;
     },
@@ -244,7 +270,11 @@ export const useCalendarEvents = (tripId?: string) => {
     try {
       await updateEventMutation.mutateAsync({ eventId, updates, currentVersion: version });
       return true;
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('PERMISSION:')) {
+        toast.error(msg.replace('PERMISSION: ', ''));
+      }
       return false;
     }
   };
@@ -279,5 +309,10 @@ export const useCalendarEvents = (tripId?: string) => {
     deleteEvent,
     refreshEvents,
     getCalendarEvents,
+
+    // Permissions (for UI gating)
+    canCreateEvent: permissions.canCreateEvent,
+    canEditEvent: permissions.canEditEvent,
+    canDeleteEvent: permissions.canDeleteEvent,
   };
 };

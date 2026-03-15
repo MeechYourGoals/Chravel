@@ -65,25 +65,34 @@ async function _executeImpl(
       const { title, datetime, location, notes } = args;
       const startTime = new Date(datetime).toISOString();
       const endTime = new Date(new Date(datetime).getTime() + 60 * 60 * 1000).toISOString();
-      const { data, error } = await supabase
-        .from('trip_events')
+
+      // B4: Route to pending buffer for user confirmation
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
         .insert({
           trip_id: tripId,
-          title,
-          start_time: startTime,
-          end_time: endTime,
-          location: location || null,
-          description: notes || null,
-          created_by: userId || null,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'addToCalendar',
+          payload: {
+            title,
+            start_time: startTime,
+            end_time: endTime,
+            location: location || null,
+            description: notes || null,
+            created_by: userId || null,
+          },
+          source_type: 'ai_concierge',
         })
-        .select()
+        .select('id')
         .single();
-      if (error) throw error;
+
+      if (pendingError) throw pendingError;
       return {
         success: true,
-        event: data,
+        pending: true,
+        pendingActionId: pending.id,
         actionType: 'add_to_calendar',
-        message: `Created event "${title}" on ${startTime}`,
+        message: `I'd like to add "${title}" to the calendar. Please confirm in the trip chat.`,
       };
     }
 
@@ -91,23 +100,32 @@ async function _executeImpl(
       const { title, notes, dueDate, assignee } = args;
       const taskTitle = String(title || '').trim();
       if (!taskTitle) return { error: 'Task title is required' };
-      const { data, error } = await supabase
-        .from('trip_tasks')
+
+      // B4: Route to pending buffer for user confirmation
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
         .insert({
           trip_id: tripId,
-          title: taskTitle,
-          description: notes || null,
-          creator_id: userId || '',
-          due_at: dueDate || null,
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'createTask',
+          payload: {
+            title: taskTitle,
+            description: notes || null,
+            creator_id: userId || '',
+            due_at: dueDate || null,
+          },
+          source_type: 'ai_concierge',
         })
-        .select()
+        .select('id')
         .single();
-      if (error) throw error;
+
+      if (pendingError) throw pendingError;
       return {
         success: true,
-        task: data,
+        pending: true,
+        pendingActionId: pending.id,
         actionType: 'create_task',
-        message: `Created task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}`,
+        message: `I'd like to create a task: "${taskTitle}"${assignee ? ` for ${assignee}` : ''}. Please confirm in the trip chat.`,
       };
     }
 
@@ -117,24 +135,33 @@ async function _executeImpl(
         id: `opt_${i}`,
         text: opt,
         votes: 0,
+        voters: [],
       }));
-      const { data, error } = await supabase
-        .from('trip_polls')
+
+      // B4: Route to pending buffer for user confirmation
+      const { data: pending, error: pendingError } = await supabase
+        .from('trip_pending_actions')
         .insert({
           trip_id: tripId,
-          question,
-          options: pollOptions,
-          created_by: userId || null,
-          status: 'active',
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          tool_name: 'createPoll',
+          payload: {
+            question,
+            options: pollOptions,
+            created_by: userId || null,
+          },
+          source_type: 'ai_concierge',
         })
-        .select()
+        .select('id')
         .single();
-      if (error) throw error;
+
+      if (pendingError) throw pendingError;
       return {
         success: true,
-        poll: data,
+        pending: true,
+        pendingActionId: pending.id,
         actionType: 'create_poll',
-        message: `Created poll: "${question}" with ${options.length} options`,
+        message: `I'd like to create a poll: "${question}" with ${options.length} options. Please confirm in the trip chat.`,
       };
     }
 

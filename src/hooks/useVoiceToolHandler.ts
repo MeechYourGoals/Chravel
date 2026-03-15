@@ -70,32 +70,39 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             const location = optionalString(args.location, 300);
             const description = optionalString(args.notes ?? args.description, 1000);
 
-            const { data, error } = await supabase
-              .from('trip_events')
+            // B4: Route to pending buffer instead of direct write
+            const { data: pendingEvent, error: pendingError } = await supabase
+              .from('trip_pending_actions')
               .insert({
                 trip_id: currentTripId,
-                created_by: currentUserId,
-                title,
-                start_time: startTime,
-                end_time: endTime,
-                location,
-                description,
+                user_id: currentUserId,
+                tool_name: 'addToCalendar',
+                tool_call_id: call.id || null,
+                payload: {
+                  title,
+                  start_time: startTime,
+                  end_time: endTime,
+                  location,
+                  description,
+                  created_by: currentUserId,
+                },
                 source_type: 'voice_concierge',
               })
-              .select('id, title, start_time')
+              .select('id')
               .single();
 
-            if (error) {
+            if (pendingError) {
               return {
                 success: false,
-                error: `Could not add "${title}" to the calendar: ${error.message}`,
+                error: `Could not queue calendar event: ${pendingError.message}`,
               };
             }
             return {
               success: true,
               actionType: 'addToCalendar',
-              message: `Added "${title}" to the calendar`,
-              event: { id: data.id, title: data.title, startTime: data.start_time },
+              pending: true,
+              message: `I'd like to add "${title}" to the calendar. Please confirm in the chat.`,
+              pendingActionId: pendingEvent.id,
             };
           }
 
@@ -103,28 +110,36 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             const content = requireString(args.content ?? args.title, 'content', 300);
             const dueDate = validateDatetime(args.dueDate ?? args.due_at, 'dueDate');
 
-            const { data, error } = await supabase
-              .from('trip_tasks')
+            // B4: Route to pending buffer instead of direct write
+            const { data: pendingTask, error: pendingError } = await supabase
+              .from('trip_pending_actions')
               .insert({
                 trip_id: currentTripId,
-                creator_id: currentUserId,
-                title: content,
-                due_at: dueDate,
+                user_id: currentUserId,
+                tool_name: 'createTask',
+                tool_call_id: call.id || null,
+                payload: {
+                  title: content,
+                  due_at: dueDate,
+                  creator_id: currentUserId,
+                },
+                source_type: 'voice_concierge',
               })
-              .select('id, title')
+              .select('id')
               .single();
 
-            if (error) {
+            if (pendingError) {
               return {
                 success: false,
-                error: `Could not create task: ${error.message}`,
+                error: `Could not queue task: ${pendingError.message}`,
               };
             }
             return {
               success: true,
               actionType: 'createTask',
-              message: `Created task: "${content}"`,
-              task: { id: data.id, title: data.title },
+              pending: true,
+              message: `I'd like to create a task: "${content}". Please confirm in the chat.`,
+              pendingActionId: pendingTask.id,
             };
           }
 
@@ -153,31 +168,39 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
               id: `opt-${idx}`,
               text: opt,
               votes: 0,
+              voters: [],
             }));
 
-            const { data, error } = await supabase
-              .from('trip_polls')
+            // B4: Route to pending buffer instead of direct write
+            const { data: pendingPoll, error: pendingError } = await supabase
+              .from('trip_pending_actions')
               .insert({
                 trip_id: currentTripId,
-                created_by: currentUserId,
-                question,
-                options: pollOptions,
-                status: 'active',
+                user_id: currentUserId,
+                tool_name: 'createPoll',
+                tool_call_id: call.id || null,
+                payload: {
+                  question,
+                  options: pollOptions,
+                  created_by: currentUserId,
+                },
+                source_type: 'voice_concierge',
               })
-              .select('id, question')
+              .select('id')
               .single();
 
-            if (error) {
+            if (pendingError) {
               return {
                 success: false,
-                error: `Could not create poll: ${error.message}`,
+                error: `Could not queue poll: ${pendingError.message}`,
               };
             }
             return {
               success: true,
               actionType: 'createPoll',
-              message: `Created poll: "${question}" with ${options.length} options`,
-              poll: { id: data.id, question: data.question, options },
+              pending: true,
+              message: `I'd like to create a poll: "${question}" with ${options.length} options. Please confirm in the chat.`,
+              pendingActionId: pendingPoll.id,
             };
           }
 
