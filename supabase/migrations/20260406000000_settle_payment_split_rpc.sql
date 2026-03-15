@@ -3,7 +3,7 @@
 
 CREATE OR REPLACE FUNCTION settle_payment_split(
   p_split_id UUID,
-  p_user_id UUID,
+  p_user_id UUID,  -- kept for backwards-compat; ignored in favor of auth.uid()
   p_method TEXT
 )
 RETURNS JSONB
@@ -13,7 +13,14 @@ AS $$
 DECLARE
   v_split RECORD;
   v_all_settled BOOLEAN;
+  v_caller UUID;
 BEGIN
+  -- Always use the authenticated caller, never trust the parameter
+  v_caller := auth.uid();
+  IF v_caller IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'NOT_AUTHENTICATED');
+  END IF;
+
   -- Acquire row-level lock to prevent concurrent settlement
   SELECT id, is_settled, payment_message_id
     INTO v_split
@@ -36,12 +43,12 @@ BEGIN
          settlement_method = p_method
    WHERE id = p_split_id;
 
-  -- Insert audit log entry
+  -- Insert audit log entry using authenticated caller, not parameter
   INSERT INTO payment_audit_log (payment_message_id, action, actor_user_id, details)
   VALUES (
     v_split.payment_message_id,
     'split_settled',
-    p_user_id,
+    v_caller,
     jsonb_build_object('split_id', p_split_id, 'method', p_method)
   );
 

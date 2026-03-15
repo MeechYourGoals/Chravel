@@ -17,6 +17,7 @@ const MONTHLY_USER_LIMITS: Record<string, number> = {
   free: 20,
   explorer: 100,
   frequent_traveler: 0, // unlimited
+  frequent_chraveler: 0, // branded alias used by lovable-concierge
 };
 
 /**
