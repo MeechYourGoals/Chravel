@@ -183,3 +183,25 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Trip readable but chat writes denied (missing active membership)
+- **Status:** fixed
+- **Subsystem:** trip access / chat authorization
+- **Bug class:** authorization source-of-truth mismatch
+- **Symptom:** User can open a trip detail/chat UI after approval flow, but sending messages fails silently or with permission errors.
+- **Trigger conditions:** `tripService.getTripById` returns a trip from direct `trips` read while the user lacks an active `trip_members` row (stale/pending/former-member paths).
+- **Likely root cause:** Read path trusted trip row visibility as access truth, but write paths (e.g., `trip_chat_messages`) enforce active membership via RLS.
+- **Root cause chain:**
+  - Immediate: Chat message insert denied by RLS.
+  - Proximate: UI rendered chat because trip read succeeded.
+  - Underlying: Access decision split between `trips` read and membership-gated write tables.
+- **How to reproduce:**
+  1. Use a user who can still read trip row but has no active `trip_members` row.
+  2. Open trip page and attempt to send a chat message.
+  3. Observe send failure despite trip screen loading.
+- **Smallest safe fix:** In `getTripById`, verify active membership (`status is null/active`) before trusting direct trip read; if missing or ambiguous, defer to canonical `get-trip-detail` edge function.
+- **Schema-drift guard:** If `trip_members.status` column is absent (pre-migration), retry membership check without status filter.
+- **Regression risks:** Blocking legitimate creators in drifted environments unless canonical edge-function fallback remains in place.
+- **Related files:** `src/services/tripService.ts`, `supabase/functions/get-trip-detail/index.ts`
+- **Fixed in:** March 2026 bugfix — send-after-approval regression
+- **Confidence:** high

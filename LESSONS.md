@@ -23,6 +23,14 @@
 - **Provenance:** AGENTS.md § 5.2 Field Name Mismatches
 - **Confidence:** high
 
+### Align read-path access checks with write-path RLS constraints
+- **Tip:** If a screen is writable (chat, tasks, calendar), never treat base-row readability as sufficient access proof. Validate the same membership/role condition that write tables enforce, or defer to a canonical server-side access function before rendering writable UI.
+- **Applies when:** Trip detail loads, invite/approval transitions, former-member or pending-member states, any flow where read and write use different tables/policies
+- **Avoid when:** Truly read-only public pages
+- **Evidence:** `tripService.getTripById` returned trip rows for users missing active `trip_members`, which let chat render while `trip_chat_messages` inserts were denied by RLS.
+- **Provenance:** March 2026 “can’t send message after approval” bugfix
+- **Confidence:** high
+
 ### When adding feature parity to a secondary surface, use the existing data layer before adding schema
 - **Tip:** When a feature exists in surface A (e.g., TripChat) and needs to be added to surface B (e.g., Channels), first check what shared components and data services already exist. Often the components are reusable but the data layer wiring is missing. Use JSON metadata fields for lightweight data (reply context, link previews) before resorting to schema migrations.
 - **Applies when:** Adding threading, link previews, or other chat features to Channels or Broadcasts

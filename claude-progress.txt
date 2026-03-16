@@ -8,3 +8,8 @@
 - Added reusable lesson on evidence-based reliability readiness scoring to `LESSONS.md`.
 - Added high-priority reliability drill automation gap to `TEST_GAPS.md`.
 - Next follow-up: implement Tier-0/1 journey SLIs + burn-rate alerts and execute first timed restore drill.
+2026-03-16 — Trip access/chat membership bugfix
+- Reproduced stale-access bug where `getTripById` returned trip row without active membership, allowing chat UI to render but message writes fail under RLS.
+- Added surgical guard in `src/services/tripService.ts` to require active membership (with pre-migration `status` fallback) or defer to canonical `get-trip-detail` edge function.
+- Added regression tests in `src/services/__tests__/tripService.getTripById.test.ts` for missing-membership fallback, active-membership success, and status-column schema drift.
+- Validation completed: targeted test + `npm run lint && npm run typecheck && npm run build`.
