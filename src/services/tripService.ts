@@ -118,6 +118,40 @@ const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null
   return response.trip ?? null;
 };
 
+const hasActiveTripMembership = async (
+  tripId: string,
+  userId: string,
+): Promise<'active_member' | 'not_member' | 'unknown'> => {
+  let membershipResult = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .or('status.is.null,status.eq.active')
+    .maybeSingle();
+
+  if (membershipResult.error) {
+    const statusColumnError =
+      membershipResult.error.message?.toLowerCase().includes('status') ||
+      membershipResult.error.message?.toLowerCase().includes('does not exist');
+
+    if (statusColumnError) {
+      membershipResult = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('user_id', userId)
+        .maybeSingle();
+    }
+  }
+
+  if (membershipResult.error) {
+    return 'unknown';
+  }
+
+  return membershipResult.data ? 'active_member' : 'not_member';
+};
+
 export const tripService = {
   async createTrip(tripData: CreateTripData): Promise<Trip | null> {
     try {
@@ -465,11 +499,24 @@ export const tripService = {
       throw new Error(`Failed to load trip: ${error.message}`);
     }
 
-    if (data) {
+    if (!data) {
+      // No error but no data could be RLS filtering; fall back to server-side access check
+      return await fetchTripByIdViaEdgeFunction(tripId);
+    }
+
+    const authUser = await getCachedAuthUser();
+    if (!authUser?.id) {
+      // Ambiguous auth state: defer to canonical server-side access resolver.
+      return await fetchTripByIdViaEdgeFunction(tripId);
+    }
+
+    const membershipState = await hasActiveTripMembership(tripId, authUser.id);
+    if (membershipState === 'active_member') {
       return data;
     }
 
-    // No error but no data could be RLS filtering; fall back to server-side access check
+    // Direct trip row visibility alone is not sufficient for chat/write access.
+    // Use edge function to resolve ACCESS_DENIED vs allowed consistently.
     return await fetchTripByIdViaEdgeFunction(tripId);
   },
 

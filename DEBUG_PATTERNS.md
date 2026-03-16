@@ -183,3 +183,16 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Trip detail read succeeds but chat send is denied after invite approval
+- **Status:** fixed
+- **Subsystem:** trip detail access / chat permissions
+- **Bug class:** auth/RLS mismatch between read and write paths
+- **Symptom:** User can open a trip and see chat UI after approval flow, but sending a message fails due to permission denied.
+- **Trigger conditions:** `tripService.getTripById()` trusts a direct `trips` row read while the user has no active `trip_members` row (missing, stale, or pending/rejected status).
+- **Likely root cause:** Trip detail fetch used direct table visibility as the access source of truth; chat writes correctly enforce active membership, so UI looked usable while mutations were blocked.
+- **Smallest safe fix:** In `getTripById`, verify active `trip_members` row for the current user (with fallback when `status` column does not exist). If membership is missing or check is ambiguous, defer to `get-trip-detail` edge function for canonical access decision.
+- **Regression risks:** Extra edge-function call on ambiguous membership states; ensure creator and pre-migration schemas still resolve correctly.
+- **Related files:** `src/services/tripService.ts`, `src/services/__tests__/tripService.getTripById.test.ts`
+- **Fixed in:** March 2026 Slack debugging follow-up
+- **Confidence:** high

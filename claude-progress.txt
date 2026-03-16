@@ -8,3 +8,7 @@
 - Added reusable lesson on evidence-based reliability readiness scoring to `LESSONS.md`.
 - Added high-priority reliability drill automation gap to `TEST_GAPS.md`.
 - Next follow-up: implement Tier-0/1 journey SLIs + burn-rate alerts and execute first timed restore drill.
+2026-03-16 — Slack bug: approved user could open trip but not send chat message
+- Reproduced with a new failing unit test in `src/services/__tests__/tripService.getTripById.test.ts` for "trip readable but membership missing".
+- Fixed `tripService.getTripById` to require active membership check (with schema-drift fallback) before trusting direct trip reads; ambiguous/missing membership now defers to `get-trip-detail` edge function.
+- Validated via targeted test plus `npm run lint && npm run typecheck && npm run build`.
