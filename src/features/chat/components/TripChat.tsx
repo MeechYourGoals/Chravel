@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { demoModeService } from '@/services/demoModeService';
@@ -44,6 +45,7 @@ import {
 } from '@/services/chatService';
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
+import { useTripChatMode } from '@/hooks/useTripChatMode';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -125,7 +127,7 @@ export const TripChat = React.memo(
       tripId: string;
     } | null>(null);
     const [failedMessages, setFailedMessages] = useState<
-      Array<{ id: string; text: string; authorName: string }>
+      Array<{ id: string; text: string; authorName: string; messageType?: 'text' | 'broadcast' | 'payment' | 'system' }>
     >([]);
 
     const { isOffline } = useOfflineStatus();
@@ -137,6 +139,20 @@ export const TripChat = React.memo(
     const demoMode = useDemoMode();
     const { user } = useAuth();
     const queryClient = useQueryClient();
+
+    // Chat mode enforcement — UI layer (server-side RLS is authoritative)
+    const {
+      chatMode,
+      canPost: canPostToChat,
+      canUploadMedia,
+      isLoading: chatModeLoading,
+      userRole: chatModeUserRole,
+    } = useTripChatMode(demoMode.isDemoMode ? undefined : resolvedTripId, user?.id);
+
+    const isUserAdmin =
+      chatModeUserRole === 'admin' ||
+      chatModeUserRole === 'organizer' ||
+      chatModeUserRole === 'owner';
 
     // Optimistic cache updates for edit/delete (MessageActions does the API call)
     const handleMessageEdit = useCallback(
@@ -264,12 +280,19 @@ export const TripChat = React.memo(
       enabled: !demoMode.isDemoMode && !!user?.id,
     });
 
-    // Initialize typing indicators
+    // Initialize typing indicators — disabled for restricted chat modes or large groups
+    const shouldEnableTyping =
+      !demoMode.isDemoMode &&
+      !!user?.id &&
+      !!resolvedTripId &&
+      (!chatMode || chatMode === 'everyone') &&
+      tripMembers.length <= 50;
+
     useEffect(() => {
-      if (demoMode.isDemoMode || !user?.id || !resolvedTripId) return;
+      if (!shouldEnableTyping) return;
 
       const userName = user?.displayName || user?.email?.split('@')[0] || 'You';
-      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user.id, userName);
+      typingServiceRef.current = new TypingIndicatorService(resolvedTripId, user!.id, userName);
 
       typingServiceRef.current.initialize(setTypingUsers).catch(error => {
         if (import.meta.env.DEV) {
@@ -284,7 +307,7 @@ export const TripChat = React.memo(
           }
         });
       };
-    }, [demoMode.isDemoMode, user?.id, resolvedTripId]);
+    }, [shouldEnableTyping, resolvedTripId, user?.id, user?.displayName, user?.email]);
 
     // Refs for incremental read receipt tracking (declared before effects that use them)
     const markedMessageIdsRef = useRef<Set<string>>(new Set());
@@ -538,7 +561,13 @@ export const TripChat = React.memo(
       };
     }, [resolvedTripId, user?.id, liveMessages, demoMode.isDemoMode]);
 
-    const handleSendMessage = async (isBroadcast = false, isPayment = false, paymentData?: any) => {
+    const handleSendMessage = async (
+      isBroadcast = false,
+      isPayment = false,
+      paymentData?: any,
+      linkPreview?: any,
+      mentionedUserIds?: string[],
+    ) => {
       // Transform paymentData if needed to match useChatComposer expectations
       let transformedPaymentData;
       if (isPayment && paymentData) {
@@ -572,9 +601,8 @@ export const TripChat = React.memo(
       }
 
       const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
+      const messageType = isBroadcast ? 'broadcast' : isPayment ? 'payment' : 'text';
       try {
-        // Determine message type based on flags
-        const messageType = isBroadcast ? 'broadcast' : isPayment ? 'payment' : 'text';
         // Use actual privacy mode from trip config
         const effectivePrivacyMode = getEffectivePrivacyMode(privacyConfig);
 
@@ -585,7 +613,7 @@ export const TripChat = React.memo(
           undefined,
           user?.id,
           effectivePrivacyMode,
-          messageType,
+          messageType as 'text' | 'broadcast' | 'payment' | 'system',
           replyingTo?.id,
         );
 
@@ -600,13 +628,15 @@ export const TripChat = React.memo(
           }
         }
       } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to send message';
         setFailedMessages(prev => [
           ...prev,
-          { id: `failed-${Date.now()}`, text: message.text, authorName },
+          { id: `failed-${Date.now()}`, text: message.text, authorName, messageType: messageType as 'text' | 'broadcast' | 'payment' | 'system' },
         ]);
-        if (import.meta.env.DEV) {
-          console.error('Failed to send chat message:', error);
-        }
+        toast.error(isBroadcast ? 'Broadcast failed to send' : 'Message failed to send', {
+          description: errorMsg,
+        });
+        console.error('[TripChat] Failed to send message:', error);
       }
     };
 
@@ -626,7 +656,7 @@ export const TripChat = React.memo(
             undefined,
             user.id,
             effectivePrivacyMode,
-            'text',
+            failed.messageType || 'text',
           );
           setFailedMessages(prev => prev.filter(m => m.id !== failedId));
         } catch {
@@ -930,10 +960,11 @@ export const TripChat = React.memo(
                           onDelete={demoMode.isDemoMode ? undefined : handleMessageDelete}
                           onRetry={handleRetryFailedMessage}
                           systemMessagePrefs={isConsumer ? systemMessagePrefs : undefined}
-                          tripMembers={tripMembers} // Pass trip members
-                          readStatuses={readStatusesByMessage[message.id]} // Pass read statuses for this message
+                          tripMembers={tripMembers}
+                          readStatuses={readStatusesByMessage[message.id]}
                           showSenderInfo={showSenderInfo}
                           reactionUserNamesById={reactionUserNamesById}
+                          isAdmin={isUserAdmin}
                         />
                       </div>
                     )}
@@ -971,8 +1002,8 @@ export const TripChat = React.memo(
           </div>
         </div>
 
-        {/* Persistent Chat Input - Fixed at Bottom (Hidden when in Channels mode) */}
-        {messageFilter !== 'channels' && (
+        {/* Persistent Chat Input - Hidden when in Channels mode or user cannot post */}
+        {messageFilter !== 'channels' && canPostToChat && (
           <div className="chat-input-persistent w-full pb-[env(safe-area-inset-bottom)]">
             <div className="w-full">
               <ChatInput
@@ -986,6 +1017,7 @@ export const TripChat = React.memo(
                 hidePayments={true}
                 isPro={isPro}
                 tripId={resolvedTripId}
+                disableFileUpload={!canUploadMedia}
                 onTypingChange={isTyping => {
                   if (!demoMode.isDemoMode && typingServiceRef.current) {
                     if (isTyping) {
@@ -1005,6 +1037,19 @@ export const TripChat = React.memo(
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {/* Chat mode restriction banner */}
+        {messageFilter !== 'channels' && !canPostToChat && !chatModeLoading && (
+          <div className="w-full border-t border-white/10 bg-black/40 px-4 py-3 text-center">
+            <p className="text-sm text-white/60">
+              {chatMode === 'broadcasts'
+                ? 'This chat is in announcements-only mode. Only admins can post.'
+                : chatMode === 'admin_only'
+                  ? 'This chat is in admin-only mode. Only admins can post.'
+                  : 'You do not have permission to post in this chat.'}
+            </p>
           </div>
         )}
 

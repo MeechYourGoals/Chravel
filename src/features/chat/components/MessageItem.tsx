@@ -27,6 +27,8 @@ interface MessageItemProps {
   tripMembers?: Array<{ id: string; name: string; avatar?: string }>;
   readStatuses?: ReadStatus[];
   reactionUserNamesById?: Record<string, string>;
+  /** Pass-through for admin message deletion */
+  isAdmin?: boolean;
 }
 
 export const MessageItem = memo(
@@ -43,6 +45,7 @@ export const MessageItem = memo(
     tripMembers,
     readStatuses,
     reactionUserNamesById,
+    isAdmin = false,
   }: MessageItemProps) => {
     const { user } = useAuth();
     const messageWithGrounding = message as unknown as ChatMessageWithGrounding;
@@ -136,6 +139,7 @@ export const MessageItem = memo(
           // Pass the resolved replyTo context if available
           replyTo={message.replyTo}
           reactionUserNamesById={reactionUserNamesById}
+          isAdmin={isAdmin}
         />
       </div>
     );

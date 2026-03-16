@@ -646,8 +646,11 @@ export const useTripTasks = (
       );
 
       // Run task_status and task_assignments in parallel (both depend only on newTask.id)
+      // intentional: PostgrestFilterBuilder type mismatch with Promise
       const postInsertOps: Promise<{ error: unknown }>[] = [
-        supabase.from('task_status').insert(taskStatusRows),
+        supabase.from('task_status').insert(taskStatusRows) as unknown as Promise<{
+          error: unknown;
+        }>,
       ];
       if (assignedUserIds.length > 0) {
         postInsertOps.push(
@@ -658,7 +661,7 @@ export const useTripTasks = (
               assigned_by: authUser.id,
             })),
             { onConflict: 'task_id,user_id' },
-          ),
+          ) as unknown as Promise<{ error: unknown }>,
         );
       }
       const postInsertResults = await Promise.all(postInsertOps);

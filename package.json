@@ -32,7 +32,8 @@
     "prepare": "husky install",
     "doctor": "bash scripts/doctor.sh",
     "validate-env": "npx tsx scripts/validate-env.ts",
-    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts"
+    "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts",
+    "optimize": "npx tsx optimizer/cli/index.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",
@@ -79,6 +80,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@revenuecat/purchases-capacitor": "^12.0.0",
     "@revenuecat/purchases-js": "^1.23.0",
+    "@sentry/react": "^10.43.0",
     "@supabase/supabase-js": "^2.53.0",
     "@tailwindcss/typography": "^0.5.15",
     "@tanstack/react-query": "^5.56.2",

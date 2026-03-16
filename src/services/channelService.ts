@@ -10,6 +10,7 @@ import {
   CreateChannelRequest,
   SendMessageRequest,
 } from '../types/roleChannels';
+import { rateLimiter } from '../utils/concurrencyUtils';
 
 interface AdminPermissions {
   can_manage_roles: boolean;
@@ -643,6 +644,15 @@ class ChannelService {
       throw Object.assign(new Error('No channel selected.'), {
         code: 'MISSING_CHANNEL',
       });
+    }
+
+    // Rate limit: 5 messages per minute per channel per user
+    const rateLimitKey = `channel_msg:${user.id}:${request.channelId}`;
+    if (!rateLimiter.checkLimit(rateLimitKey, 5, 60000)) {
+      throw Object.assign(
+        new Error('You are sending messages too quickly. Please wait a moment.'),
+        { code: 'RATE_LIMITED' },
+      );
     }
 
     const insertData: Record<string, unknown> = {
