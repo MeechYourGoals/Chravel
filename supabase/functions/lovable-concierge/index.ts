@@ -268,6 +268,30 @@ const buildTripLimitReachedResponse = (
   );
 };
 
+const buildMonthlyLimitReachedResponse = (
+  corsHeaders: Record<string, string>,
+  usagePlan: UsagePlan,
+): Response => {
+  const limitMessage =
+    usagePlan === 'free'
+      ? "You've reached your monthly Concierge limit of 20 queries. Upgrade to Explorer for 100/month or Frequent Chraveler for unlimited."
+      : "You've reached your monthly Concierge limit. Upgrade your plan for more queries.";
+  return new Response(
+    JSON.stringify({
+      response: `🚫 **Monthly limit reached**\n\n${limitMessage}`,
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      sources: [],
+      success: false,
+      error: 'monthly_limit_exceeded',
+      upgradeRequired: true,
+    }),
+    {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    },
+  );
+};
+
 const buildUsageVerificationUnavailableResponse = (corsHeaders: Record<string, string>): Response =>
   new Response(
     JSON.stringify({
@@ -2219,12 +2243,17 @@ Answer the user's question accurately. Use web search for real-time info (weathe
                 supabase,
                 resolvedTripId,
                 tripQueryLimit,
+                user.id,
+                usagePlan,
               );
               if (incrementResult.status === 'verification_unavailable') {
                 console.error(
                   '[Usage/Stream] Failed to increment trip usage:',
                   incrementResult.error,
                 );
+              }
+              if (incrementResult.status === 'monthly_limit_reached') {
+                console.error('[Usage/Stream] Monthly AI quota reached for user:', user.id);
               }
             }
 
@@ -2496,6 +2525,8 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           supabase,
           tripId,
           tripQueryLimit,
+          user.id,
+          usagePlan,
         );
         if (incrementUsageResult.status === 'verification_unavailable') {
           console.error(
@@ -2506,6 +2537,9 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         }
         if (incrementUsageResult.status === 'limit_reached') {
           return buildTripLimitReachedResponse(corsHeaders, usagePlan);
+        }
+        if (incrementUsageResult.status === 'monthly_limit_reached') {
+          return buildMonthlyLimitReachedResponse(corsHeaders, usagePlan);
         }
       }
 
@@ -2728,6 +2762,8 @@ Answer the user's question accurately. Use web search for real-time info (weathe
           supabase,
           resolvedTripId,
           tripQueryLimit,
+          user.id,
+          usagePlan,
         );
         if (incrementUsageResult.status === 'verification_unavailable') {
           console.error(
@@ -2738,6 +2774,9 @@ Answer the user's question accurately. Use web search for real-time info (weathe
         }
         if (incrementUsageResult.status === 'limit_reached') {
           return buildTripLimitReachedResponse(corsHeaders, usagePlan);
+        }
+        if (incrementUsageResult.status === 'monthly_limit_reached') {
+          return buildMonthlyLimitReachedResponse(corsHeaders, usagePlan);
         }
       }
 

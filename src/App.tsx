@@ -2,7 +2,8 @@ import React, { lazy, useCallback, useEffect } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import {
   BrowserRouter,
   Routes,
@@ -13,6 +14,7 @@ import {
   useParams,
 } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { pageView } from '@/telemetry/events';
 import { ConsumerSubscriptionProvider } from './hooks/useConsumerSubscription';
 import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -30,9 +32,8 @@ import { attachNavigator, onNativeResume, setNativeBadgeCount } from '@/native/l
 import { useDeepLinks } from '@/hooks/useDeepLinks';
 
 import { setupGlobalSyncProcessor } from './services/globalSyncProcessor';
+import { useSwUpdate } from '@/hooks/useSwUpdate';
 import { safeReload } from '@/utils/safeReload';
-import { parseJwtPayload } from '@/utils/tokenValidation';
-import { authDebug } from '@/utils/authDebug';
 import { retryImport } from '@/lib/retryImport';
 import Index from './pages/Index';
 
@@ -89,6 +90,7 @@ import { GmailCallbackPage } from './pages/GmailCallbackPage';
 const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
 const AuthPage = lazy(() => retryImport(() => import('./pages/AuthPage')));
+const ResetPasswordPage = lazy(() => retryImport(() => import('./pages/ResetPasswordPage')));
 const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
@@ -99,20 +101,6 @@ const LegacyProTripRedirect = () => {
   const { proTripId } = useParams();
   return <Navigate to={`/tour/pro/${proTripId}`} replace />;
 };
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Performance defaults - individual queries can override
-      staleTime: 30 * 1000, // 30 seconds - data considered fresh
-      gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache after unmount
-      refetchOnWindowFocus: false, // Disable aggressive refetching
-      refetchOnReconnect: 'always', // But refetch when reconnecting
-      retry: 1, // Single retry on failure
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-    },
-  },
-});
 
 // Always use BrowserRouter - Lovable preview now supports SPA routing
 const Router = BrowserRouter;
@@ -181,6 +169,27 @@ const NativeLifecycleBridge = ({ client }: { client: QueryClient }) => {
   return null;
 };
 
+/** Tracks page views on route changes via the telemetry service. */
+const PageViewTracker = () => {
+  const { pathname } = useLocation();
+  const prevPathRef = React.useRef(pathname);
+
+  useEffect(() => {
+    if (pathname !== prevPathRef.current) {
+      prevPathRef.current = pathname;
+      pageView(pathname);
+    }
+  }, [pathname]);
+
+  // Also fire on initial mount
+  useEffect(() => {
+    pageView(pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+};
+
 const OfflineIndicatorGate = () => {
   const { user } = useAuth();
   const { pathname } = useLocation();
@@ -188,6 +197,7 @@ const OfflineIndicatorGate = () => {
   const isPublicRoute =
     pathname === '/' ||
     pathname.startsWith('/auth') ||
+    pathname.startsWith('/reset-password') ||
     pathname.startsWith('/join') ||
     pathname.startsWith('/accept-invite') ||
     pathname.startsWith('/teams') ||
@@ -227,137 +237,8 @@ const App = () => {
     });
   }, []);
 
-  // CRITICAL: Validate session token on mount and clear if corrupted
-  // This fixes "403: invalid claim: missing sub claim" errors
-  useEffect(() => {
-    const validateAndClearCorruptedSession = async () => {
-      try {
-        authDebug('app:validateSession:start', {
-          visibilityState: document.visibilityState,
-          hasAuthSessionKey: (() => {
-            try {
-              return Boolean(localStorage.getItem('chravel-auth-session'));
-            } catch {
-              return false;
-            }
-          })(),
-        });
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        authDebug('app:validateSession:gotSession', {
-          hasSession: Boolean(session),
-          hasUser: Boolean(session?.user),
-          hasAccessToken: Boolean(session?.access_token),
-          hasExpiresAt: Boolean(session?.expires_at),
-          hasRefreshToken: Boolean(session?.refresh_token),
-        });
-
-        if (session?.access_token) {
-          const payload = parseJwtPayload(session.access_token);
-
-          // IMPORTANT: Supabase JWT payload is base64url-encoded; parsing failures can happen if decoded incorrectly.
-          // If parsing/claims validation fails, attempt a refresh first (refresh token may still be valid).
-          if (!payload) {
-            authDebug('app:validateSession:payloadParseFailed:refreshing');
-            console.warn('[App] Failed to parse token payload - attempting session refresh');
-            const { error } = await supabase.auth.refreshSession();
-            if (error) {
-              authDebug('app:validateSession:payloadParseFailed:refreshFailed', {
-                message: error.message,
-                name: error.name,
-                status: (error as unknown as { status?: number }).status,
-              });
-              console.warn('[App] Token refresh failed after parse error - clearing session');
-              await supabase.auth.signOut();
-              authDebug('app:validateSession:payloadParseFailed:signedOut');
-            }
-            return;
-          }
-
-          // Check for missing 'sub' claim (user ID) - primary cause of 403 errors
-          if (!payload.sub) {
-            authDebug('app:validateSession:missingSub:refreshing');
-            console.warn('[App] Token missing sub claim - attempting session refresh');
-            const { data: refreshData, error } = await supabase.auth.refreshSession();
-            if (error || !refreshData.session?.access_token) {
-              authDebug('app:validateSession:missingSub:refreshFailed', {
-                message: error?.message,
-                name: error?.name,
-                status: (error as unknown as { status?: number } | undefined)?.status,
-                hasSession: Boolean(refreshData.session),
-              });
-              console.warn('[App] Refresh failed after missing sub claim - clearing session');
-              await supabase.auth.signOut();
-              authDebug('app:validateSession:missingSub:signedOut');
-              return;
-            }
-
-            const refreshedPayload = parseJwtPayload(refreshData.session.access_token);
-            if (!refreshedPayload?.sub) {
-              authDebug('app:validateSession:missingSub:stillMissingAfterRefresh:signedOut');
-              console.warn('[App] Refreshed token still missing sub claim - clearing session');
-              await supabase.auth.signOut();
-            }
-            return;
-          }
-
-          // Validate sub matches session user id
-          if (payload.sub !== session.user?.id) {
-            authDebug('app:validateSession:subMismatch:refreshing');
-            console.warn('[App] Token sub claim mismatch - attempting session refresh');
-            const { data: refreshData, error } = await supabase.auth.refreshSession();
-            if (error || !refreshData.session?.access_token) {
-              authDebug('app:validateSession:subMismatch:refreshFailed', {
-                message: error?.message,
-                name: error?.name,
-                status: (error as unknown as { status?: number } | undefined)?.status,
-                hasSession: Boolean(refreshData.session),
-              });
-              console.warn('[App] Refresh failed after sub mismatch - clearing session');
-              await supabase.auth.signOut();
-              authDebug('app:validateSession:subMismatch:signedOut');
-              return;
-            }
-
-            const refreshedPayload = parseJwtPayload(refreshData.session.access_token);
-            if (refreshedPayload?.sub && refreshedPayload.sub !== refreshData.session.user?.id) {
-              authDebug('app:validateSession:subMismatch:persistedAfterRefresh:signedOut');
-              console.warn('[App] Refreshed token sub mismatch persists - clearing session');
-              await supabase.auth.signOut();
-            }
-            return;
-          }
-
-          // Check if token is expired
-          if (payload.exp && Date.now() > payload.exp * 1000) {
-            authDebug('app:validateSession:expiredToken:refreshing');
-            console.log('[App] Token expired on mount - refreshing session');
-            const { error } = await supabase.auth.refreshSession();
-            if (error) {
-              authDebug('app:validateSession:expiredToken:refreshFailed', {
-                message: error.message,
-                name: error.name,
-                status: (error as unknown as { status?: number }).status,
-              });
-              console.warn('[App] Token refresh failed - clearing session');
-              await supabase.auth.signOut();
-              authDebug('app:validateSession:expiredToken:signedOut');
-            }
-          }
-
-          authDebug('app:validateSession:done');
-        }
-      } catch (error) {
-        authDebug('app:validateSession:exception', { error: String(error) });
-        console.error('[App] Session validation error:', error);
-        // Don't clear session on validation error - might be transient
-      }
-    };
-
-    validateAndClearCorruptedSession();
-  }, []);
+  // Show toast when a new service worker is installed and waiting to activate
+  useSwUpdate();
 
   // Setup global offline sync processor
   useEffect(() => {
@@ -487,6 +368,7 @@ const App = () => {
 
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
+                  <PageViewTracker />
                   <ExitDemoButtonWithNav />
                   <NativeLifecycleBridge client={queryClient} />
                   <OfflineIndicatorGate />
@@ -538,6 +420,14 @@ const App = () => {
                         element={
                           <LazyRoute>
                             <AuthPage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/reset-password"
+                        element={
+                          <LazyRoute>
+                            <ResetPasswordPage />
                           </LazyRoute>
                         }
                       />

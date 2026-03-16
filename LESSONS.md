@@ -31,9 +31,31 @@
 - **Provenance:** Messaging upgrade March 2026 — ChannelChatView threading + link preview parity
 - **Confidence:** high
 
+### Unified permission guard hook for multi-trip-type codebases
+- **Tip:** When permission models differ by trip type (consumer=open, pro=role-based, event=organizer-only), create a single `useMutationPermissions(tripId)` hook that resolves trip type once and returns flat boolean flags. Import this in every mutation hook rather than duplicating trip-type branching logic. The guard must be client-side UX only — RLS remains authoritative.
+- **Applies when:** Adding permission checks to shared hooks that serve consumer, pro, and event trips simultaneously
+- **Avoid when:** The permission model is identical across all trip types
+- **Evidence:** Stage B hardening added `useMutationPermissions` to 5 hooks (tasks, polls, calendar, basecamp, links) with zero call-site changes. Consumer trips return all-true by default, preserving existing behavior.
+- **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
+### AI tool writes should go through a pending buffer, not directly to shared state
+- **Tip:** When an AI agent (voice concierge, text concierge) wants to create shared objects (tasks, polls, calendar events), write to `trip_pending_actions` instead of directly to the target table. The user then confirms or rejects. This prevents AI hallucination-driven data corruption and gives users agency over their shared trip state. Use `tool_call_id` as idempotency key to prevent duplicate pending actions on retry.
+- **Applies when:** Any AI-initiated write to shared trip state (tasks, polls, calendar, basecamp)
+- **Avoid when:** Read-only AI operations (search, recommendations, summaries) or low-risk append-only operations (saving a link)
+- **Evidence:** Stage B routed `createTask`, `createPoll`, and `addToCalendar` through pending buffer in both `functionExecutor.ts` (edge function) and `useVoiceToolHandler.ts` (client). `savePlace` and `setBasecamp` left as direct writes (lower risk).
+- **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
 ## Recovery Tips
 
-<!-- Add recovery tips here as they are discovered during debugging work -->
+### Gate third-party SDK boot on preview/runtime compatibility
+- **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
+- **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
+- **Avoid when:** The SDK is already lazy-loaded behind an explicit user action
+- **Evidence:** Chravel preview was throwing `Invalid API key. Use your Web Billing API key.` from `@revenuecat/purchases-js` during startup until web initialization was skipped for Lovable preview and non-`rcb_` keys
+- **Provenance:** March 2026 preview recovery fix — `src/config/revenuecat.ts`
+- **Confidence:** high
 
 ## Optimization Tips
 
@@ -57,4 +79,32 @@
 - **Applies when:** Any feature using Supabase realtime where data loss during connectivity gaps is unacceptable
 - **Evidence:** Chat messages were silently lost during websocket drops with no user-visible indication
 - **Provenance:** March 2026 chat reliability audit
+- **Confidence:** high
+
+
+### Explicit `reconnecting` state prevents misleading voice UX
+- **Tip:** For realtime voice sessions, avoid overloading `requesting_mic` during auto-reconnect. Use a dedicated `reconnecting` state so the UI can communicate retry intent and avoid permission confusion after mid-session socket failures.
+- **Applies when:** WebSocket reconnect loops in live audio/chat interfaces
+- **Avoid when:** First session initialization before any successful connection
+- **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
+- **Provenance:** March 2026 concierge live-mode hardening
+### Treat schema migrations as a product compatibility API, not just SQL files
+- **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
+- **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
+- **Avoid when:** Local-only prototypes not shipped to shared environments
+- **Evidence:** Repo migration corpus shows repeated edits of critical tables and mixed-purpose migrations, increasing rollout coupling risk.
+- **Provenance:** 2026-03 data evolution hardening audit
+- **Confidence:** high
+
+### QA confidence drift happens when docs describe planned suites as implemented
+- **Tip:** Keep E2E documentation split into explicit implemented vs planned sections and enforce with a lightweight CI doc-drift script.
+- **Applies when:** Large test architecture transitions where some suites are roadmap-only.
+- **Evidence:** Chravel had roadmap-level suite structure in E2E docs; guardrails were added to validate documented implemented suites.
+- **Provenance:** March 2026 QA governance hardening pass.
+### Reliability posture audits must separate “controls exist” from “controls are exercised”
+- **Tip:** In resilience reviews, never treat documented backup/DR procedures as operational readiness. Grade each control on two axes: presence (configured?) and proof (drilled recently with pass/fail evidence?). Mark unexercised controls as risk, not mitigation.
+- **Applies when:** SLO/DR/capacity audits, production-readiness reviews, launch gating for pro/event usage
+- **Avoid when:** Throwaway prototypes with no continuity commitments
+- **Evidence:** March 2026 reliability constitution audit found multiple backup/DR docs present but explicit “action required” status and missing drill evidence.
+- **Provenance:** `docs/audits/reliability-resilience-constitution-2026-03-16.md`
 - **Confidence:** high

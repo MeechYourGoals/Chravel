@@ -57,14 +57,13 @@ export const registerServiceWorker = async () => {
 
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
-            // Service worker state changed
+            // A new SW has installed and is waiting; there was a prior active SW — this is an update.
+            // Notify the app so it can prompt the user to reload.
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller !== null) {
+              window.dispatchEvent(new CustomEvent('sw:updateavailable'));
+            }
           });
         }
-      });
-
-      // Log only - don't auto-reload to prevent loops
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // New service worker activated
       });
 
       // Check for updates every 5 minutes

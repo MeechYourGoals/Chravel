@@ -8,6 +8,7 @@ import { processQueue } from '@/services/offlineMessageQueue';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { saveMessagesToCache, loadMessagesFromCache } from '@/services/chatStorage';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
+import { messageEvents } from '@/telemetry/events';
 import { sendChatMessage } from '@/services/chatService';
 import { privacyService } from '@/services/privacyService';
 
@@ -96,7 +97,12 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
                 );
                 return { ...msg, content: decrypted };
               } catch (decryptError) {
-                console.error('[useTripChat] Decryption failed for message:', msg.id, decryptError);
+                if (import.meta.env.DEV)
+                  console.error(
+                    '[useTripChat] Decryption failed for message:',
+                    msg.id,
+                    decryptError,
+                  );
                 return { ...msg, content: '[Unable to decrypt message]' };
               }
             }
@@ -116,7 +122,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       } catch (err) {
         // If online fetch fails, return cached messages
         if (cachedMessages.length > 0) {
-          console.warn('Using cached messages due to fetch error:', err);
+          if (import.meta.env.DEV) console.warn('Using cached messages due to fetch error:', err);
           const messagesWithTimestamp = cachedMessages.slice(-15).map(msg => ({
             ...msg,
             updated_at: msg.updated_at || msg.created_at,
@@ -310,7 +316,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           }
           messageCount++;
 
-          pendingInserts.push(payload.new as Record<string, unknown>);
+          const newMsg = payload.new as Record<string, unknown>;
+          pendingInserts.push(newMsg);
           scheduleFlush();
         },
       )
@@ -490,6 +497,17 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         // Save to cache for immediate display
         await saveMessagesToCache(tripId, [optimisticMessage]);
 
+        // Track offline-queued message telemetry
+        messageEvents.sent({
+          trip_id: tripId,
+          message_type:
+            (messageData.message_type as 'text' | 'media' | 'broadcast' | 'payment' | 'system') ||
+            'text',
+          has_media: Boolean(messageData.media_url),
+          character_count: sanitizedContent.length,
+          is_offline_queued: true,
+        });
+
         return optimisticMessage;
       }
 
@@ -499,9 +517,20 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       // Cache the new message
       await saveMessagesToCache(tripId, [data]);
 
+      messageEvents.sent({
+        trip_id: tripId,
+        message_type:
+          (messageData.message_type as 'text' | 'media' | 'broadcast' | 'payment' | 'system') ||
+          'text',
+        has_media: Boolean(messageData.media_url),
+        character_count: sanitizedContent.length,
+        is_offline_queued: false,
+      });
+
       return data;
     },
     onError: (error: unknown) => {
+      messageEvents.sendFailed(tripId, (error as Error)?.message || 'Unknown error');
       if (import.meta.env.DEV) {
         console.error('[useTripChat] Message creation error:', error);
       }
@@ -587,7 +616,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         setHasMore(false);
       }
     } catch (error) {
-      console.error('Failed to load more messages:', error);
+      if (import.meta.env.DEV) console.error('Failed to load more messages:', error);
     } finally {
       setIsLoadingMore(false);
     }

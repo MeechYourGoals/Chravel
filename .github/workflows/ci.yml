@@ -34,6 +34,9 @@ jobs:
       - name: Run type check
         run: npm run typecheck
 
+      - name: Run QA guardrails
+        run: npm run qa:guardrails
+
       - name: Run unit tests
         run: npm run test -- --run --coverage
         env:

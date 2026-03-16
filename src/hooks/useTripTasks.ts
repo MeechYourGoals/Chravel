@@ -8,6 +8,7 @@ import { useAuth } from './useAuth';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
+import { taskEvents } from '@/telemetry/events';
 
 // Task form management types
 export interface TaskFormData {
@@ -147,6 +148,7 @@ export const useTripTasks = (
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const permissions = useMutationPermissions(tripId);
 
   // Task form management state
   const [title, setTitle] = useState('');
@@ -564,6 +566,11 @@ export const useTripTasks = (
       return { previousTasks };
     },
     mutationFn: async (task: CreateTaskRequest & { assignedTo?: string[] }) => {
+      // Permission guard: check if user can create tasks (event/pro trip restrictions)
+      if (!permissions.canCreateTask && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to create tasks in this trip.");
+      }
+
       // Demo mode: use localStorage
       if (isDemoMode || !user) {
         const assignedTo = task.assignedTo || ['demo-user'];
@@ -611,7 +618,8 @@ export const useTripTasks = (
 
       const userProfile = profileResult.data;
 
-      // Create the task in database
+      // Idempotency key: generated per mutationFn call. Safe because mutations use retry:false
+      // (TanStack default) and HTTP-level retries reuse the same request body.
       const { data: newTask, error } = await supabase
         .from('trip_tasks')
         .insert({
@@ -621,6 +629,7 @@ export const useTripTasks = (
           description: task.description,
           due_at: task.due_at,
           is_poll: task.is_poll,
+          idempotency_key: generateMutationId(),
         })
         .select()
         .single();
@@ -665,10 +674,10 @@ export const useTripTasks = (
         );
       }
       const postInsertResults = await Promise.all(postInsertOps);
-      const taskStatusError = postInsertResults[0]?.error;
-      if (taskStatusError) {
+      const postInsertError = postInsertResults.find(r => r.error)?.error;
+      if (postInsertError) {
         throw new Error(
-          (taskStatusError as { message?: string }).message ||
+          (postInsertError as { message?: string }).message ||
             'Failed to initialize task assignments',
         );
       }
@@ -692,7 +701,14 @@ export const useTripTasks = (
         task_status: taskStatusRows,
       } as TripTask;
     },
-    onSuccess: () => {
+    onSuccess: (_data: TripTask, variables: CreateTaskRequest & { assignedTo?: string[] }) => {
+      taskEvents.created({
+        trip_id: tripId,
+        task_id: _data.id,
+        has_due_date: Boolean(variables.due_at),
+        is_poll: variables.is_poll || false,
+        assigned_count: variables.assignedTo?.length || 0,
+      });
       toast({
         title: 'Task created',
         description: 'Your task has been added to the list.',
@@ -712,7 +728,10 @@ export const useTripTasks = (
       const errorMessage = error.message || '';
       const errorCode = (error as Error & { code?: string }).code;
 
-      if (errorMessage.includes('OFFLINE:')) {
+      if (errorMessage.includes('PERMISSION:')) {
+        errorTitle = 'Permission Denied';
+        errorDescription = errorMessage.replace('PERMISSION: ', '');
+      } else if (errorMessage.includes('OFFLINE:')) {
         errorTitle = 'Task Queued';
         errorDescription = "Task will be created when you're back online.";
         variant = 'default';
@@ -774,6 +793,11 @@ export const useTripTasks = (
       is_poll,
       assignedTo,
     }: UpdateTaskRequest) => {
+      // Permission guard: check if user can edit tasks (event/pro trip restrictions)
+      if (!permissions.canEditTask && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to edit tasks in this trip.");
+      }
+
       if (isDemoMode || !user) {
         const updated = await taskStorageService.updateTask(tripId, taskId, {
           title: title.trim(),
@@ -790,21 +814,71 @@ export const useTripTasks = (
         return updated;
       }
 
-      const { data: updatedTask, error } = await supabase
-        .from('trip_tasks')
-        .update({
-          title: title.trim(),
-          description: description?.trim() || null,
-          due_at: due_at || null,
-          is_poll,
-        })
-        .eq('id', taskId)
-        .eq('creator_id', user.id)
-        .select()
-        .single();
+      // Read current version from cache for optimistic locking
+      const cachedTasks = queryClient.getQueryData<TripTask[]>(['tripTasks', tripId, isDemoMode]);
+      const cachedTask = cachedTasks?.find(t => t.id === taskId);
+      const currentVersion = (cachedTask as TripTask & { version?: number })?.version ?? undefined;
 
-      if (error) throw error;
+      // Try versioned RPC first for concurrent edit protection
+      let updatedTask: unknown = null;
+      if (currentVersion != null) {
+        // p_creator_id removed: RPC now uses auth.uid() server-side (see 20260316100000_fix_task_rpc_auth.sql)
+        const { data: rpcResult, error: rpcError } = await supabase.rpc(
+          'update_task_with_version',
+          {
+            p_task_id: taskId,
+            p_current_version: currentVersion,
+            p_title: title.trim(),
+            p_description: description?.trim() || null,
+            p_due_at: due_at || null,
+            p_is_poll: is_poll,
+          },
+        );
 
+        if (rpcError) {
+          // Version conflict
+          if (rpcError.message?.includes('modified by another user') || rpcError.code === 'P0001') {
+            throw new Error(
+              'CONFLICT: This task was modified by another user. Please refresh and try again.',
+            );
+          }
+          // Creator mismatch
+          if (rpcError.code === '42501') {
+            throw new Error('Only the task creator can edit this task.');
+          }
+          // RPC not found — fall through to direct UPDATE
+          const missingFn =
+            rpcError.message?.toLowerCase().includes('does not exist') || rpcError.code === '42883';
+          if (!missingFn) {
+            throw rpcError;
+          }
+        } else {
+          // RPC succeeded — extract result
+          const resultArr = rpcResult as unknown[];
+          updatedTask = Array.isArray(resultArr) && resultArr.length > 0 ? resultArr[0] : rpcResult;
+        }
+      }
+
+      // Fallback: direct UPDATE (no version check — backward compat)
+      if (!updatedTask) {
+        const { data, error } = await supabase
+          .from('trip_tasks')
+          .update({
+            title: title.trim(),
+            description: description?.trim() || null,
+            due_at: due_at || null,
+            is_poll,
+          })
+          .eq('id', taskId)
+          .eq('creator_id', user.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        updatedTask = data;
+      }
+
+      // Handle assignment updates (only after task update succeeds)
       if (Array.isArray(assignedTo) && assignedTo.length > 0) {
         const uniqueAssignees = Array.from(new Set(assignedTo));
 
@@ -837,15 +911,32 @@ export const useTripTasks = (
       toast({ title: 'Task updated', description: 'Your changes have been saved.' });
     },
     onError: (error: Error, _variables, context) => {
-      // Rollback optimistic update if we have a snapshot
       if (context?.previousTasks) {
         queryClient.setQueryData(['tripTasks', tripId, isDemoMode], context.previousTasks);
       }
-      toast({
-        title: 'Error Updating Task',
-        description: error.message || 'Failed to update task.',
-        variant: 'destructive',
-      });
+
+      const errMsg = error.message || '';
+      if (errMsg.includes('PERMISSION:')) {
+        toast({
+          title: 'Permission Denied',
+          description: errMsg.replace('PERMISSION: ', ''),
+          variant: 'destructive',
+        });
+      } else if (errMsg.includes('CONFLICT:')) {
+        toast({
+          title: 'Conflict Detected',
+          description: errMsg.replace('CONFLICT: ', ''),
+          variant: 'destructive',
+        });
+        // Refetch to get latest version
+        queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+      } else {
+        toast({
+          title: 'Error Updating Task',
+          description: errMsg || 'Failed to update task.',
+          variant: 'destructive',
+        });
+      }
     },
     onSettled: () => {
       // Reconcile with server truth (same pattern as toggleTaskMutation)
@@ -1002,6 +1093,13 @@ export const useTripTasks = (
 
       return { previousTasks };
     },
+    onSuccess: (_data: unknown, variables: ToggleTaskRequest) => {
+      if (variables.completed) {
+        taskEvents.completed(tripId, variables.taskId);
+      } else {
+        taskEvents.uncompleted(tripId, variables.taskId);
+      }
+    },
     onError: (err: Error, variables, context) => {
       const errMessage = err.message || '';
 
@@ -1048,6 +1146,11 @@ export const useTripTasks = (
   // Delete task mutation - creator-only client guard (RLS enforced on backend)
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canDeleteTask && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to delete tasks in this trip.");
+      }
+
       if (isDemoMode || !user) {
         const success = await taskStorageService.deleteTask(tripId, taskId);
         if (!success) throw new Error('Failed to delete task');
@@ -1064,7 +1167,8 @@ export const useTripTasks = (
       if (error) throw error;
       return taskId;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, taskId: string) => {
+      taskEvents.deleted(tripId, taskId);
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({
         title: 'Task deleted',
@@ -1151,5 +1255,10 @@ export const useTripTasks = (
     updateTaskMutation,
     toggleTaskMutation,
     deleteTaskMutation,
+
+    // Permissions (for UI gating — e.g., hiding create buttons)
+    canCreateTask: permissions.canCreateTask,
+    canEditTask: permissions.canEditTask,
+    canDeleteTask: permissions.canDeleteTask,
   };
 };

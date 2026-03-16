@@ -2,7 +2,8 @@
  * Centralized Error Tracking Service
  *
  * Provides a unified interface for error tracking across the application.
- * Integrated with Sentry when VITE_SENTRY_DSN is configured.
+ * Integrates with Sentry when VITE_SENTRY_DSN is configured.
+ * Falls back to console-only logging when DSN is not set.
  *
  * Usage:
  * ```ts
@@ -39,11 +40,12 @@ class ErrorTrackingService {
   private breadcrumbs: BreadcrumbData[] = [];
   private maxBreadcrumbs = 50;
   private initialized = false;
+  private sentryEnabled = false;
   private userId: string | null = null;
 
   /**
-   * Initialize error tracking service
-   * In production, this would initialize Sentry/DataDog
+   * Initialize error tracking service.
+   * Sentry is activated only when VITE_SENTRY_DSN is set (no-op otherwise).
    */
   init(config?: { userId?: string; environment?: string }) {
     if (this.initialized) return;
@@ -52,18 +54,18 @@ class ErrorTrackingService {
       this.userId = config.userId;
     }
 
-    if (import.meta.env.VITE_SENTRY_DSN) {
+    const dsn = import.meta.env.VITE_SENTRY_DSN;
+    if (dsn) {
       Sentry.init({
-        dsn: import.meta.env.VITE_SENTRY_DSN,
-        environment: config?.environment || import.meta.env.VITE_ENVIRONMENT || 'development',
-        tracesSampleRate: 0.05,
-        beforeSend(event) {
-          // Strip PII — only keep user ID, not email
-          if (event.user?.email) delete event.user.email;
-          if (event.user?.username) delete event.user.username;
-          return event;
-        },
+        dsn,
+        environment: config?.environment || import.meta.env.MODE || 'production',
+        // Sample 100% of errors, 20% of transactions in production
+        tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
+        // Only send errors in production/staging
+        enabled: import.meta.env.PROD || import.meta.env.VITE_SENTRY_FORCE_ENABLE === 'true',
+        integrations: [Sentry.browserTracingIntegration()],
       });
+      this.sentryEnabled = true;
     }
 
     this.initialized = true;
@@ -72,10 +74,12 @@ class ErrorTrackingService {
   /**
    * Set user context for error tracking
    */
-  setUser(userId: string, _userData?: Record<string, unknown>) {
+  setUser(userId: string, userData?: Record<string, unknown>) {
     this.userId = userId;
 
-    Sentry.setUser({ id: userId });
+    if (this.sentryEnabled) {
+      Sentry.setUser({ id: userId, ...userData });
+    }
   }
 
   /**
@@ -84,7 +88,9 @@ class ErrorTrackingService {
   clearUser() {
     this.userId = null;
 
-    Sentry.setUser(null);
+    if (this.sentryEnabled) {
+      Sentry.setUser(null);
+    }
   }
 
   /**
@@ -93,11 +99,21 @@ class ErrorTrackingService {
   captureException(error: Error | unknown, context?: ErrorContext) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
 
-    Sentry.captureException(errorObj, {
-      extra: { breadcrumbs: this.breadcrumbs.slice(-10) },
-      contexts: { custom: context as Record<string, unknown> },
-      user: this.userId ? { id: this.userId } : undefined,
-    });
+    if (import.meta.env.DEV) {
+      console.error('[ErrorTracking] Exception captured:', {
+        error: errorObj,
+        message: errorObj.message,
+        context,
+      });
+    }
+
+    if (this.sentryEnabled) {
+      Sentry.captureException(errorObj, {
+        contexts: {
+          custom: context as Record<string, unknown>,
+        },
+      });
+    }
 
     return errorObj;
   }
@@ -110,10 +126,14 @@ class ErrorTrackingService {
     level: 'info' | 'warning' | 'error' = 'info',
     context?: ErrorContext,
   ) {
-    Sentry.captureMessage(message, {
-      level,
-      contexts: { custom: context as Record<string, unknown> },
-    });
+    if (this.sentryEnabled) {
+      Sentry.captureMessage(message, {
+        level: level as Sentry.SeverityLevel,
+        contexts: {
+          custom: context as Record<string, unknown>,
+        },
+      });
+    }
   }
 
   /**
@@ -133,12 +153,14 @@ class ErrorTrackingService {
       this.breadcrumbs = this.breadcrumbs.slice(-this.maxBreadcrumbs);
     }
 
-    Sentry.addBreadcrumb({
-      category: breadcrumb.category,
-      message: breadcrumb.message,
-      level: breadcrumb.level,
-      data: breadcrumb.data,
-    });
+    if (this.sentryEnabled) {
+      Sentry.addBreadcrumb({
+        category: breadcrumb.category,
+        message: breadcrumb.message,
+        level: breadcrumb.level as Sentry.SeverityLevel,
+        data: breadcrumb.data,
+      });
+    }
   }
 
   /**
@@ -174,7 +196,7 @@ class ErrorTrackingService {
 // Export singleton instance
 export const errorTracking = new ErrorTrackingService();
 
-// Auto-initialize in development
-if (import.meta.env.DEV) {
-  errorTracking.init({ environment: 'development' });
-}
+// Auto-initialize
+errorTracking.init({
+  environment: import.meta.env.MODE || 'development',
+});

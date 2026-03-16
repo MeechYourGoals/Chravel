@@ -9,7 +9,7 @@ import { useCallback, useEffect } from 'react';
 import { useEntitlementsStore } from '@/stores/entitlementsStore';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
-import { getEntitlementsForTier } from '@/billing/entitlements';
+import { getEntitlementsForTier, FEATURE_LIMITS } from '@/billing/entitlements';
 import {
   configureRevenueCat,
   getCustomerInfo,
@@ -21,32 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 import type { FeatureName, FeatureContext, SubscriptionTier, EntitlementId } from '@/billing/types';
 
-// Feature limits per tier
-const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier, number>>> = {
-  ai_concierge: { free: 5, explorer: 10, 'frequent-chraveler': -1 },
-  trip_creation: { free: 3, explorer: 10, 'frequent-chraveler': -1 },
-  pro_trip_creation: { free: 0, explorer: 0, 'frequent-chraveler': 1 },
-  media_upload: { free: 500, explorer: 2000, 'frequent-chraveler': -1 },
-  payment_splitting: { free: 3, explorer: 10, 'frequent-chraveler': -1 },
-  pdf_export: { free: 0, explorer: -1, 'frequent-chraveler': -1 },
-  calendar_sync: { free: 0, explorer: -1, 'frequent-chraveler': -1 },
-  event_creation: { free: 0, explorer: 0, 'frequent-chraveler': -1 },
-  channels: { free: 0, 'pro-starter': -1 },
-  roles: { free: 0, 'pro-starter': -1 },
-  roster: { free: 0, 'pro-starter': -1 },
-  logistics: { free: 0, 'pro-growth': -1 },
-  approvals: { free: 0, 'pro-enterprise': -1 },
-  quickbooks: { free: 0, 'pro-enterprise': -1 },
-  audit: { free: 0, 'pro-enterprise': -1 },
-  voice_concierge: {
-    free: 0,
-    explorer: 0,
-    'frequent-chraveler': -1,
-    'pro-starter': -1,
-    'pro-growth': -1,
-    'pro-enterprise': -1,
-  },
-};
+// FEATURE_LIMITS imported from '@/billing/entitlements' — single source of truth
 
 export interface UseUnifiedEntitlementsReturn {
   plan: SubscriptionTier;
