@@ -97,6 +97,9 @@ class TelemetryService {
 
     this.initialized = true;
 
+    // Register deploy context as super properties for incident correlation
+    this.registerDeployContext();
+
     // Process any queued events
     this.flushQueue();
 
@@ -302,6 +305,33 @@ class TelemetryService {
 
   private getAppVersion(): string {
     return import.meta.env.VITE_APP_VERSION || '1.0.0';
+  }
+
+  /**
+   * Register deploy markers as super properties on all providers.
+   * Enables correlating errors to specific deployments in PostHog.
+   */
+  private registerDeployContext(): void {
+    const deployContext = {
+      deploy_sha: import.meta.env.VITE_DEPLOY_SHA || 'unknown',
+      deploy_timestamp: import.meta.env.VITE_DEPLOY_TIMESTAMP || 'unknown',
+      build_id: import.meta.env.VITE_BUILD_ID || 'unknown',
+    };
+
+    for (const provider of this.providers) {
+      try {
+        if (
+          'registerSuperProperties' in provider &&
+          typeof provider.registerSuperProperties === 'function'
+        ) {
+          (
+            provider as { registerSuperProperties: (props: Record<string, string>) => void }
+          ).registerSuperProperties(deployContext);
+        }
+      } catch (error) {
+        console.warn(`[Telemetry] ${provider.name} registerDeployContext failed:`, error);
+      }
+    }
   }
 }
 

@@ -935,6 +935,33 @@ export type Database = {
           },
         ];
       };
+      feature_flags: {
+        Row: {
+          key: string;
+          enabled: boolean;
+          rollout_percentage: number;
+          description: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          key: string;
+          enabled?: boolean;
+          rollout_percentage?: number;
+          description?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          key?: string;
+          enabled?: boolean;
+          rollout_percentage?: number;
+          description?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       gmail_accounts: {
         Row: {
           access_token: string | null;

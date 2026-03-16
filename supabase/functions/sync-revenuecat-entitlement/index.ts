@@ -169,6 +169,7 @@ serve(async req => {
         source: 'revenuecat',
         plan,
         status,
+        purchase_type: 'subscription',
         current_period_end: currentPeriodEnd,
         entitlements: entitlementIds,
         revenuecat_customer_id: customerInfo.originalAppUserId,

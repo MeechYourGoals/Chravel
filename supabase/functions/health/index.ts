@@ -8,24 +8,55 @@ serve(async req => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          message: 'Missing required Supabase configuration',
+        }),
+        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+      );
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Test database connectivity
+    // Test database connectivity with timing
+    const dbStart = Date.now();
     const { data, error } = await supabase.from('trips').select('id').limit(1);
+    const dbResponseMs = Date.now() - dbStart;
 
     const dbHealthy = !error;
+
+    // Read feature flags status
+    let flagsStatus: Record<string, boolean> = {};
+    try {
+      const { data: flags } = await supabase.from('feature_flags').select('key, enabled');
+      if (flags) {
+        flagsStatus = Object.fromEntries(
+          (flags as Array<{ key: string; enabled: boolean }>).map(f => [f.key, f.enabled]),
+        );
+      }
+    } catch {
+      // Feature flags table may not exist yet — non-blocking
+    }
 
     const health = {
       status: dbHealthy ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       services: {
         database: dbHealthy ? 'up' : 'down',
+        database_response_ms: dbResponseMs,
         api: 'up',
       },
-      version: '1.0.0',
+      deploy: {
+        sha: Deno.env.get('DEPLOY_SHA') || 'unknown',
+        version: Deno.env.get('DEPLOY_VERSION') || '1.0.0',
+      },
+      feature_flags: flagsStatus,
     };
 
     return new Response(JSON.stringify(health), {
