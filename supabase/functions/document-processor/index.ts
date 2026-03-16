@@ -6,6 +6,7 @@ import {
   validateInput,
   verifyTripMembership,
   validateExternalHttpsUrl,
+  validateExternalUrlBeforeFetch,
 } from '../_shared/validation.ts';
 import {
   invokeChatModel,
@@ -168,8 +169,8 @@ serve(async req => {
       );
     }
 
-    // Validate file_url is HTTPS and external (SSRF protection)
-    if (fileData.file_url && !validateExternalHttpsUrl(fileData.file_url)) {
+    // Validate file_url is HTTPS and external (SSRF + DNS rebinding protection)
+    if (fileData.file_url && !(await validateExternalUrlBeforeFetch(fileData.file_url))) {
       return new Response(
         JSON.stringify({
           error: 'Invalid file URL: must be HTTPS and external (no internal networks)',
@@ -350,8 +351,8 @@ serve(async req => {
 // ============= HELPER FUNCTIONS =============
 
 async function extractWithGeminiVision(fileUrl: string, fileType: string) {
-  // Validate URL before fetching (SSRF protection)
-  if (!validateExternalHttpsUrl(fileUrl)) {
+  // DNS rebinding protection: resolve hostname and validate resolved IPs
+  if (!(await validateExternalUrlBeforeFetch(fileUrl))) {
     throw new Error('Invalid file URL: must be HTTPS and external');
   }
 
@@ -408,8 +409,8 @@ async function extractWithGeminiVision(fileUrl: string, fileType: string) {
 }
 
 async function extractTextFromImage(imageUrl: string) {
-  // Validate URL before fetching (SSRF protection)
-  if (!validateExternalHttpsUrl(imageUrl)) {
+  // DNS rebinding protection: resolve hostname and validate resolved IPs
+  if (!(await validateExternalUrlBeforeFetch(imageUrl))) {
     throw new Error('Invalid image URL: must be HTTPS and external');
   }
 
@@ -454,14 +455,17 @@ async function extractTextFromImage(imageUrl: string) {
   };
 }
 
+const MAX_FETCH_BYTES = 50 * 1024 * 1024; // 50 MB
+
 async function fetchTextFile(fileUrl: string): Promise<string> {
-  // Additional validation before fetch (defense in depth)
-  if (!validateExternalHttpsUrl(fileUrl)) {
+  // DNS rebinding protection: resolve hostname and validate resolved IPs
+  if (!(await validateExternalUrlBeforeFetch(fileUrl))) {
     throw new Error('Invalid file URL: must be HTTPS and external');
   }
 
   const response = await fetch(fileUrl, {
     signal: AbortSignal.timeout(30000), // 30 second timeout
+    redirect: 'error', // prevent redirect-based SSRF
     headers: {
       'User-Agent': 'Chravel-DocumentProcessor/1.0',
     },
@@ -469,6 +473,14 @@ async function fetchTextFile(fileUrl: string): Promise<string> {
 
   if (!response.ok) {
     throw new Error(`Failed to fetch text file: ${response.status}`);
+  }
+
+  // Reject files exceeding size limit before buffering the body
+  const contentLength = parseInt(response.headers.get('content-length') ?? '0', 10);
+  if (contentLength > MAX_FETCH_BYTES) {
+    throw new Error(
+      `File too large: ${contentLength} bytes exceeds ${MAX_FETCH_BYTES / 1024 / 1024} MB limit`,
+    );
   }
 
   return await response.text();

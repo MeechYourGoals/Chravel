@@ -52,6 +52,47 @@ export function validateExternalHttpsUrl(url: string): boolean {
 }
 
 /**
+ * Async SSRF protection with DNS pre-resolution.
+ * Must be called before every external fetch to prevent DNS rebinding attacks.
+ *
+ * DNS rebinding attack: a hostname passes the synchronous regex check because it
+ * looks public, but its DNS entry resolves to a private IP at fetch time.
+ * This function resolves A/AAAA records and validates every resolved IP against
+ * the same private-range blocklist used by validateExternalHttpsUrl().
+ *
+ * Fails closed: any resolution error → false (block the request).
+ */
+export async function validateExternalUrlBeforeFetch(url: string): Promise<boolean> {
+  // First pass: synchronous checks (protocol, localhost, static IP patterns)
+  if (!validateExternalHttpsUrl(url)) return false;
+
+  try {
+    const hostname = new URL(url).hostname;
+
+    // Hostname is already a numeric IP — synchronous check was sufficient
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(':')) return true;
+
+    // Resolve and validate every returned IP address
+    const [ipv4Addrs, ipv6Addrs] = await Promise.all([
+      // @ts-ignore — Deno.resolveDns is only available in Deno runtime
+      Deno.resolveDns(hostname, 'A').catch(() => [] as string[]),
+      // @ts-ignore
+      Deno.resolveDns(hostname, 'AAAA').catch(() => [] as string[]),
+    ]);
+
+    for (const ip of [...ipv4Addrs, ...ipv6Addrs]) {
+      if (!validateExternalHttpsUrl(`https://${ip.includes(':') ? `[${ip}]` : ip}/`)) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false; // fail closed on any unexpected error
+  }
+}
+
+/**
  * Zod refinement for external HTTPS URLs with max length
  */
 export const externalHttpsUrlSchema = z

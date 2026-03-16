@@ -12,7 +12,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   FetchOGMetadataSchema,
   validateInput,
-  validateExternalHttpsUrl,
+  validateExternalUrlBeforeFetch,
 } from '../_shared/validation.ts';
 
 interface OGMetadata {
@@ -46,8 +46,8 @@ serve(async req => {
 
     const { url } = validation.data;
 
-    // Additional defense-in-depth check
-    if (!validateExternalHttpsUrl(url)) {
+    // DNS rebinding protection: resolve hostname and validate resolved IPs
+    if (!(await validateExternalUrlBeforeFetch(url))) {
       return new Response(
         JSON.stringify({ error: 'URL must be HTTPS and external (no internal/private networks)' }),
         {

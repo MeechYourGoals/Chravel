@@ -13,7 +13,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   ReceiptOCRSchema,
   validateInput,
-  validateExternalHttpsUrl,
+  validateExternalUrlBeforeFetch,
 } from '../_shared/validation.ts';
 
 const supabase = createClient(
@@ -73,8 +73,8 @@ serve(async req => {
 
     const payload = validation.data;
 
-    // Additional defense-in-depth: validate imageUrl if provided
-    if (payload.imageUrl && !validateExternalHttpsUrl(payload.imageUrl)) {
+    // DNS rebinding protection: resolve hostname and validate resolved IPs
+    if (payload.imageUrl && !(await validateExternalUrlBeforeFetch(payload.imageUrl))) {
       return createErrorResponse(
         'Image URL must be HTTPS and external (no internal/private networks)',
         400,
@@ -250,8 +250,8 @@ serve(async req => {
 });
 
 async function fetchImageAsBase64(url: string): Promise<string> {
-  // Additional validation before fetch (defense in depth)
-  if (!validateExternalHttpsUrl(url)) {
+  // DNS rebinding protection: resolve hostname and validate resolved IPs
+  if (!(await validateExternalUrlBeforeFetch(url))) {
     throw new Error('Invalid image URL: must be HTTPS and external');
   }
 
