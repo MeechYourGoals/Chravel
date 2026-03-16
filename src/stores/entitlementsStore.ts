@@ -13,7 +13,22 @@ import { TIER_ENTITLEMENTS } from '@/billing/config';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 
 export type EntitlementSource = 'revenuecat' | 'stripe' | 'admin' | 'demo' | 'none';
-export type EntitlementStatus = 'active' | 'trialing' | 'expired' | 'canceled';
+export type EntitlementStatus = 'active' | 'trialing' | 'past_due' | 'expired' | 'canceled';
+
+/**
+ * Determine if a status + period end combination means the user should still have access.
+ *
+ * - active / trialing: always has access
+ * - past_due: has access (Stripe is retrying payment during grace period)
+ * - canceled with future period end: has access until period expires
+ * - canceled with past/no period end: no access
+ * - expired: no access
+ */
+export function isEffectivelyActive(status: EntitlementStatus, periodEnd: Date | null): boolean {
+  if (status === 'active' || status === 'trialing' || status === 'past_due') return true;
+  if (status === 'canceled' && periodEnd && periodEnd > new Date()) return true;
+  return false;
+}
 
 interface EntitlementsState {
   // State

@@ -341,6 +341,37 @@ serve(async req => {
       metadata: body.metadata || {},
     };
 
+    // ── Pre-insert idempotency check (smart_import_candidate_id) ─────────
+    // If the caller provided a smart_import_candidate_id in metadata, check
+    // whether this candidate was already accepted (artifact already committed).
+    // This prevents double-commit when SmartImportReview retries a failed accept.
+    const candidateId = body.metadata?.smart_import_candidate_id as string | undefined;
+    if (candidateId) {
+      const { data: existingByCandidate } = await supabase
+        .from('trip_artifacts')
+        .select('id, artifact_type, ai_summary, created_at')
+        .eq('trip_id', tripId)
+        .contains('metadata', { smart_import_candidate_id: candidateId })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingByCandidate) {
+        console.log(
+          `[artifact-ingest] Idempotent: candidate ${candidateId} already committed as artifact ${existingByCandidate.id}`,
+        );
+        return new Response(
+          JSON.stringify({
+            success: true,
+            artifact: existingByCandidate,
+            isDuplicate: true,
+            idempotent: true,
+            elapsed: Date.now() - startTime,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     const { data: artifact, error: insertError } = await supabase
       .from('trip_artifacts')
       .insert(artifactInsert)
@@ -390,12 +421,16 @@ serve(async req => {
         .eq('id', artifact.id);
     }
 
-    // ── Step 5: Check for duplicates ─────────────────────────────────────
+    // ── Step 5: Check for near-duplicates ────────────────────────────────
+    // IMPORTANT: find_similar_artifacts is SECURITY DEFINER and checks auth.uid().
+    // Must use authClient (user-scoped JWT) so auth.uid() resolves correctly.
+    // Service-role calls would produce auth.uid()=null, causing the RPC to throw.
     let similarArtifacts: Array<Record<string, unknown>> = [];
     let isDuplicate = false;
+    let finalArtifactId = artifact.id;
 
     try {
-      const { data: similar } = await supabase.rpc('find_similar_artifacts', {
+      const { data: similar } = await authClient.rpc('find_similar_artifacts', {
         p_trip_id: tripId,
         p_artifact_id: artifact.id,
         p_threshold: 0.85,
@@ -404,20 +439,31 @@ serve(async req => {
 
       if (similar && similar.length > 0) {
         similarArtifacts = similar;
-        isDuplicate = similar.some((s: { similarity: number }) => s.similarity > 0.95);
+        const nearExact = similar.find(
+          (s: { similarity: number; id: string }) => s.similarity > 0.95,
+        );
+        if (nearExact) {
+          // Block the duplicate: delete the just-inserted artifact and return the existing one.
+          isDuplicate = true;
+          finalArtifactId = nearExact.id;
+          console.log(
+            `[artifact-ingest] Near-exact duplicate (similarity=${nearExact.similarity}): deleting new artifact ${artifact.id}, returning existing ${nearExact.id}`,
+          );
+          await supabase.from('trip_artifacts').delete().eq('id', artifact.id);
+        }
       }
     } catch (dupError) {
       console.warn('[artifact-ingest] Duplicate check failed:', dupError);
     }
 
     const elapsed = Date.now() - startTime;
-    console.log(`[artifact-ingest] Complete: id=${artifact.id} elapsed=${elapsed}ms`);
+    console.log(`[artifact-ingest] Complete: id=${finalArtifactId} elapsed=${elapsed}ms`);
 
     // Re-fetch the artifact to get the updated embedding status
     const { data: finalArtifact } = await supabase
       .from('trip_artifacts')
       .select('*')
-      .eq('id', artifact.id)
+      .eq('id', finalArtifactId)
       .single();
 
     return new Response(
