@@ -2,15 +2,11 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { runtimePrompt } from './prompt.ts';
 import { decryptToken, encryptToken } from '../_shared/gmailTokenCrypto.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 const GMAIL_TOKEN_ENCRYPTION_KEY = Deno.env.get('GMAIL_TOKEN_ENCRYPTION_KEY') ?? '';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface TripContext {
   id: string;
@@ -39,11 +35,11 @@ type ParsedResult = {
   is_modification: boolean;
 };
 
-function configErrorResponse(message: string): Response {
+function configErrorResponse(message: string, headers: Record<string, string> = {}): Response {
   console.error(`[gmail-import-worker] ${message}`);
   return new Response(JSON.stringify({ error: message }), {
     status: 503,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json' },
   });
 }
 
@@ -364,6 +360,8 @@ async function collectMessageIds(accessToken: string, trip: TripContext): Promis
 }
 
 serve(async req => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -372,23 +370,23 @@ serve(async req => {
 
   try {
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-      return configErrorResponse('Google OAuth secrets are not configured.');
+      return configErrorResponse('Google OAuth secrets are not configured.', corsHeaders);
     }
 
     if (!GMAIL_TOKEN_ENCRYPTION_KEY) {
-      return configErrorResponse('GMAIL_TOKEN_ENCRYPTION_KEY is not configured.');
+      return configErrorResponse('GMAIL_TOKEN_ENCRYPTION_KEY is not configured.', corsHeaders);
     }
 
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
-      return configErrorResponse('GEMINI_API_KEY is not configured.');
+      return configErrorResponse('GEMINI_API_KEY is not configured.', corsHeaders);
     }
 
     const { tripId, accountId } = await req.json();
     if (!tripId || !accountId) {
       return new Response(JSON.stringify({ error: 'Missing tripId or accountId' }), {
         status: 400,
-        headers: corsHeaders,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -409,7 +407,7 @@ serve(async req => {
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: corsHeaders,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -423,7 +421,7 @@ serve(async req => {
     if (accountError || !account) {
       return new Response(JSON.stringify({ error: 'Gmail account not found' }), {
         status: 404,
-        headers: corsHeaders,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -509,6 +507,43 @@ serve(async req => {
       );
     }
 
+    // ── Concurrent job guard ─────────────────────────────────────────────────
+    // Check for an existing running job for this user+account+trip.
+    // If one started within the last 10 minutes, reject as 409 (already in progress).
+    // If one exists but is stale (>10 min), mark it failed before proceeding.
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: existingRunning } = await supabaseClient
+      .from('gmail_import_jobs')
+      .select('id, started_at')
+      .eq('user_id', user.id)
+      .eq('gmail_account_id', accountId)
+      .eq('trip_id', tripId)
+      .eq('status', 'running')
+      .maybeSingle();
+
+    if (existingRunning) {
+      const isStale = !existingRunning.started_at || existingRunning.started_at < tenMinutesAgo;
+      if (!isStale) {
+        return new Response(
+          JSON.stringify({ error: 'Import already in progress. Please wait for it to finish.' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      // Stale running job — mark as failed and proceed
+      await supabaseClient
+        .from('gmail_import_jobs')
+        .update({
+          status: 'failed',
+          finished_at: new Date().toISOString(),
+          stats: { error: 'Job timed out or was interrupted' },
+        })
+        .eq('id', existingRunning.id);
+    }
+
+    // ── Create import job ────────────────────────────────────────────────────
+    // The partial unique index idx_gmail_import_jobs_one_running provides a
+    // DB-level safety net: if a concurrent request races past the check above,
+    // the INSERT will fail with a unique violation (23505).
     const { data: job, error: jobError } = await supabaseClient
       .from('gmail_import_jobs')
       .insert({
@@ -525,7 +560,18 @@ serve(async req => {
       .select('id')
       .single();
 
-    if (jobError || !job) throw new Error('Failed to create import job');
+    if (jobError) {
+      // Unique violation from the partial index means a concurrent job was just created
+      const isConflict = jobError.code === '23505' || jobError.message?.includes('unique');
+      if (isConflict) {
+        return new Response(
+          JSON.stringify({ error: 'Import already in progress. Please wait for it to finish.' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      throw new Error(`Failed to create import job: ${jobError.message}`);
+    }
+    if (!job) throw new Error('Failed to create import job');
     jobId = job.id;
 
     const allCandidates: Record<string, unknown>[] = [];
