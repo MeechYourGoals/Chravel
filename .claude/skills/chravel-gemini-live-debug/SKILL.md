@@ -16,9 +16,9 @@ Debug and implement Gemini API integrations in ChravelApp.
 - `src/hooks/useAIConciergePreferences.ts` — Concierge preferences
 - `src/types/ai.ts` — AI-related type definitions
 
-### Voice Proxy Architecture
-- `supabase/functions/gemini-voice-proxy/index.ts` — WebSocket proxy to Vertex AI Live API
-- `supabase/functions/gemini-voice-session/index.ts` — Voice session management
+### Voice Session Architecture
+- `supabase/functions/gemini-voice-session/index.ts` — Voice session bootstrap + Vertex AI setup payload
+- `supabase/functions/execute-concierge-tool/index.ts` — Shared server-side tool execution bridge for live mode
 - **Voice model**: `VERTEX_LIVE_MODEL` env var (default: `gemini-live-2.5-flash-native-audio`, GA)
   - The preview model (`gemini-live-2.5-flash-preview-native-audio-09-2025`) is deprecated
   - Model is now env-configurable — no code change needed for future model upgrades

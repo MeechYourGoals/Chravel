@@ -183,3 +183,23 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Gemini Live tool loop stalls after function response
+- **Status:** fixed
+- **Subsystem:** AI concierge / Gemini Live voice
+- **Bug class:** protocol mismatch
+- **Symptom:** The live voice session successfully receives a `toolCall`, the app executes the tool, but Gemini never speaks the follow-up response or appears to hang after the tool result is sent.
+- **User-facing impact:** Voice mode sounds like it heard the request, then goes silent after actions like calendar/task/poll creation or other function-backed queries.
+- **Trigger conditions:** Live session executes a tool and the client sends `toolResponse.functionResponses` containing undocumented extra metadata such as `scheduling: 'SILENT'`.
+- **Likely root cause:** The Live API docs only document `id`, `name`, and `response` on function responses. Injecting unsupported scheduling metadata can cause the model to drop or mishandle the follow-up generation.
+- **How to reproduce:**
+  1. Start a Gemini Live session
+  2. Ask for a tool-backed action like "add dinner to the calendar tomorrow at 7"
+  3. Confirm the tool executes successfully
+  4. Observe that the assistant does not continue speaking after the function response is sent
+- **How to confirm:** Inspect the outbound WebSocket frame after a tool call. If `toolResponse.functionResponses[*]` contains fields beyond the documented schema, remove them and retest.
+- **Smallest safe fix:** Send only the documented function response envelope (`id`, `name`, `response`) and let the model continue the turn naturally.
+- **Regression risks:** Reintroducing client-only tool-response tweaks copied from gists/forums; trying to suppress speech at the transport layer instead of via prompt/session design.
+- **Related files:** `src/hooks/useGeminiLive.ts`
+- **Evidence:** March 2026 Gemini Live production hardening pass; official Vertex/Gemini Live docs describe manual tool responses but do not document a `scheduling` field on function response objects.
+- **Confidence:** high

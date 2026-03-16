@@ -19,15 +19,15 @@ const VERTEX_SERVICE_ACCOUNT_KEY = Deno.env.get('VERTEX_SERVICE_ACCOUNT_KEY');
 // The old preview model (gemini-live-2.5-flash-preview-native-audio-09-2025) is deprecated.
 const VERTEX_LIVE_MODEL = Deno.env.get('VERTEX_LIVE_MODEL') || 'gemini-live-2.5-flash-native-audio';
 
-// All features ON by default — supported on GA native-audio model
+// Tools stay enabled by default, but preview audio behaviors are opt-in.
 const VOICE_TOOLS_ENABLED =
   (Deno.env.get('VOICE_TOOLS_ENABLED') || 'true').toLowerCase() === 'true';
 
-// Native-audio features — supported on gemini-live-2.5-flash-native-audio
+// Native-audio preview behaviors — keep disabled unless explicitly enabled in env.
 const VOICE_AFFECTIVE_DIALOG =
-  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_AFFECTIVE_DIALOG') || 'false').toLowerCase() === 'true';
 const VOICE_PROACTIVE_AUDIO =
-  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'true').toLowerCase() === 'true';
+  (Deno.env.get('VOICE_PROACTIVE_AUDIO') || 'false').toLowerCase() === 'true';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -205,12 +205,10 @@ serve(async req => {
       contextWindowCompression: { slidingWindow: {} },
     };
 
-    // Session resumption
+    // Session resumption is opt-in; omit the field entirely when unused.
     if (resumptionToken) {
       setupConfig.sessionResumption = { handle: resumptionToken };
       console.log(`${tag} Including session resumption token`);
-    } else {
-      setupConfig.sessionResumption = {};
     }
 
     // Mode 2+: tools (OFF by default in Phase A)

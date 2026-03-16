@@ -83,3 +83,12 @@
 - **Suggested tests:** Scheduled staging drills that (1) inject provider outage, (2) force queue saturation, (3) execute restore rehearsal and verify Tier-0 journeys.
 - **Priority:** high
 - **Provenance:** March 2026 reliability constitution audit
+
+## Gemini Live setup + tool-response contract coverage
+- **Area:** `src/hooks/useGeminiLive.ts`, `supabase/functions/gemini-voice-session/index.ts`, `supabase/functions/execute-concierge-tool/index.ts`
+- **Why this gap matters:** Live voice is a stateful protocol surface where small payload-shape mistakes can silently break audio continuation, tool execution, or session startup in production.
+- **Missing coverage:** No contract tests currently verify that (1) function-call args are normalized from string/object inputs, (2) live tool responses send only the documented `id/name/response` fields, and (3) session bootstrap omits optional resumption config when no handle is present.
+- **Failure mode if untested:** Future refactors can reintroduce stalled post-tool turns, rejected setup payloads, or divergent live-vs-text tool behavior with no compile-time signal.
+- **Suggested tests:** Add unit/contract tests for live tool-response serialization, argument normalization, and session setup payload construction under with/without resumption-token scenarios.
+- **Priority:** high
+- **Provenance:** March 2026 Gemini Live production hardening

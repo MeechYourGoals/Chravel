@@ -50,7 +50,7 @@ describe('useVoiceToolHandler', () => {
     mocks.invoke.mockResolvedValue({ data: { success: true }, error: null });
   });
 
-  it('creates task for createTask tool', async () => {
+  it('routes mutation tools through execute-concierge-tool', async () => {
     const { result } = renderHook(() =>
       useVoiceToolHandler({ tripId: 'trip-1', userId: 'user-1' }),
     );
@@ -62,7 +62,9 @@ describe('useVoiceToolHandler', () => {
     });
 
     expect(response.success).toBe(true);
-    expect(mocks.insert).toHaveBeenCalled();
+    expect(mocks.invoke).toHaveBeenCalledWith('execute-concierge-tool', {
+      body: { toolName: 'createTask', args: { title: 'Buy snacks' }, tripId: 'trip-1' },
+    });
   });
 
   it('routes server-side tools through execute-concierge-tool', async () => {
@@ -93,7 +95,30 @@ describe('useVoiceToolHandler', () => {
       args: { question: 'Dinner?', options: ['Only one'] },
     });
 
-    expect(response.success).toBe(false);
-    expect(String(response.error)).toMatch(/requires at least 2/i);
+    expect(response.success).toBe(true);
+    expect(mocks.invoke).toHaveBeenCalledWith('execute-concierge-tool', {
+      body: {
+        toolName: 'createPoll',
+        args: { question: 'Dinner?', options: ['Only one'] },
+        tripId: 'trip-1',
+      },
+    });
+  });
+
+  it('parses stringified tool arguments before invoking the edge function', async () => {
+    const { result } = renderHook(() =>
+      useVoiceToolHandler({ tripId: 'trip-1', userId: 'user-1' }),
+    );
+
+    const response = await result.current.handleToolCall({
+      id: '4',
+      name: 'searchPlaces',
+      args: '{"query":"coffee near me"}',
+    });
+
+    expect(response.success).toBe(true);
+    expect(mocks.invoke).toHaveBeenCalledWith('execute-concierge-tool', {
+      body: { toolName: 'searchPlaces', args: { query: 'coffee near me' }, tripId: 'trip-1' },
+    });
   });
 });

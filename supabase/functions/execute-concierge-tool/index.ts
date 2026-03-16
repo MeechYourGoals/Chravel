@@ -18,13 +18,27 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { executeFunctionCall } from '../_shared/functionExecutor.ts';
 import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
 import { checkRateLimit } from '../_shared/security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+const parseArgsObject = (value: unknown): Record<string, unknown> => {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = JSON.parse(value);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  }
+
+  return {};
+};
 
 serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req);
@@ -110,27 +124,47 @@ serve(async (req: Request) => {
       });
     }
 
-    const tripIdStr = typeof tripId === 'string' ? tripId : '';
-    const argsObj: Record<string, unknown> =
-      args !== null && typeof args === 'object' && !Array.isArray(args)
-        ? (args as Record<string, unknown>)
-        : {};
+    if (typeof tripId !== 'string' || !tripId.trim()) {
+      return new Response(JSON.stringify({ error: 'tripId (string) is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const tripIdStr = tripId.trim();
+
+    let argsObj: Record<string, unknown>;
+    try {
+      argsObj = parseArgsObject(args);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'args must be an object or JSON object string' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
 
     // ── Resolve location context from trip basecamp for proximity-aware tools ──
     let locationContext: { lat?: number; lng?: number } | null = null;
-    if (tripIdStr) {
-      try {
-        const { data: tripData } = await supabase
-          .from('trips')
-          .select('latitude, longitude')
-          .eq('id', tripIdStr)
-          .maybeSingle();
-        if (tripData?.latitude && tripData?.longitude) {
-          locationContext = { lat: tripData.latitude, lng: tripData.longitude };
-        }
-      } catch {
-        // Non-critical — tools still work without location bias
+    try {
+      const { data: tripData } = await supabase
+        .from('trips')
+        .select('basecamp_latitude, basecamp_longitude')
+        .eq('id', tripIdStr)
+        .maybeSingle();
+      if (tripData?.basecamp_latitude && tripData?.basecamp_longitude) {
+        locationContext = {
+          lat: tripData.basecamp_latitude,
+          lng: tripData.basecamp_longitude,
+        };
       }
+    } catch (locationError) {
+      console.warn(
+        '[execute-concierge-tool] Failed to resolve basecamp location context:',
+        locationError,
+      );
     }
 
     // ── Execute ────────────────────────────────────────────────────────────
@@ -138,8 +172,8 @@ serve(async (req: Request) => {
     // so it uses the common tool router to enforce safety constraints.
     const capabilityToken = await generateCapabilityToken({
       user_id: user.id,
-      trip_id: tripId as string,
-      allowed_tools: ['*'],
+      trip_id: tripIdStr,
+      allowed_tools: [toolName],
     });
 
     const result = await executeToolSecurely(

@@ -37,6 +37,7 @@ import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
+import { VOICE_LIVE_ENABLED } from '@/config/voiceFeatureFlags';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -50,15 +51,6 @@ const EMPTY_SESSION: ConciergeSession = {
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const UPLOAD_ENABLED = true;
-/**
- * DUPLEX_VOICE_ENABLED — When true, the waveform button starts Gemini Live
- * bidirectional voice (Vertex AI). When false, it uses basic Web Speech API
- * dictation instead. Transcripts appear as normal chat bubbles and errors
- * surface via toast notifications.
- */
-const DUPLEX_VOICE_ENABLED = true;
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface AIConciergeChatProps {
   tripId: string;
   basecamp?: { name: string; address: string };
@@ -400,13 +392,9 @@ export const AIConciergeChat = ({
   const hasHydratedRef = useRef(false);
 
   // ─── Voice ─────────────────────────────────────────────────────────────────
-  // When DUPLEX_VOICE_ENABLED is true, the waveform button tries Gemini Live
-  // first.  If bidirectional audio fails, we fall back to Web Speech API
-  // Dictation and Gemini Live are now separate controls — no auto-fallback needed.
-  // When DUPLEX_VOICE_ENABLED is false, the waveform button uses basic Web
-  // Speech API dictation. Transcribed text fills the input field so the user
-  // can review/edit before sending. All Gemini Live hooks remain initialised
-  // (hooks rules) but are not invoked.
+  // Gemini Live and one-shot dictation are separate controls. The runtime voice
+  // flag only gates the Live button/session path; dictation remains available so
+  // text-chat UX does not regress if duplex voice is disabled.
 
   // ── Dictation (Web Speech API) ──────────────────────────────────────────
   // Dictation callback: fill the text input with the transcribed speech
@@ -599,23 +587,23 @@ export const AIConciergeChat = ({
   const convoVoiceState: VoiceState = dictationState;
 
   // Whether Gemini Live session is active (for Live button + inline voice UI)
-  const isLiveSessionActive = DUPLEX_VOICE_ENABLED && liveState !== 'idle' && liveState !== 'error';
+  const isLiveSessionActive = VOICE_LIVE_ENABLED && liveState !== 'idle' && liveState !== 'error';
 
   const handleEndLiveSession = useCallback(async () => {
     await endLiveSession();
   }, [endLiveSession]);
 
   // Waveform button — dictation only. Stops Live if active first.
-  const handleConvoToggle = useCallback(() => {
+  const handleConvoToggle = useCallback(async () => {
     if (isLiveSessionActive) {
-      void handleEndLiveSession();
+      await handleEndLiveSession();
     }
     toggleDictation();
   }, [isLiveSessionActive, handleEndLiveSession, toggleDictation]);
 
   // Live button — Gemini Live toggle. Stops dictation if active first.
   const handleLiveToggle = useCallback(async () => {
-    if (!DUPLEX_VOICE_ENABLED) return;
+    if (!VOICE_LIVE_ENABLED) return;
 
     // Stop dictation if running
     if (isDictationActive) {
@@ -1853,7 +1841,7 @@ export const AIConciergeChat = ({
               >
                 Concierge AI | Chravel Agent
               </h3>
-              {DUPLEX_VOICE_ENABLED && (
+              {VOICE_LIVE_ENABLED && (
                 <button
                   type="button"
                   onClick={handleLiveToggle}
@@ -2042,7 +2030,8 @@ export const AIConciergeChat = ({
             }
             convoVoiceState={convoVoiceState}
             onConvoToggle={handleConvoToggle}
-            isVoiceEligible={DUPLEX_VOICE_ENABLED}
+            isVoiceEligible={true}
+            isLiveActive={isLiveSessionActive}
             onQuickAction={
               UPLOAD_ENABLED && attachedImages.length > 0
                 ? (action: string) => {

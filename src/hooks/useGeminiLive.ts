@@ -117,6 +117,26 @@ function voiceLog(event: string, data?: Record<string, unknown>): void {
   console.log(`[GeminiLive ${ts}] ${event}`, data ?? '');
 }
 
+function normalizeToolArgs(rawArgs: unknown): Record<string, unknown> {
+  if (rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs)) {
+    return rawArgs as Record<string, unknown>;
+  }
+
+  if (typeof rawArgs === 'string') {
+    try {
+      const parsed = JSON.parse(rawArgs);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Ignore malformed JSON and fall back to an empty object, matching the
+      // server-side text concierge's defensive parsing behavior.
+    }
+  }
+
+  return {};
+}
+
 // Safari < 14.5 exposes webkitAudioContext instead of AudioContext
 const SafeAudioContext: typeof AudioContext | undefined =
   typeof window !== 'undefined'
@@ -505,7 +525,7 @@ export function useGeminiLive({
       const functionCalls = (toolCallData.functionCalls || []) as Array<{
         id: string;
         name: string;
-        args?: Record<string, unknown>;
+        args?: unknown;
       }>;
 
       const handler = onToolCallRef.current;
@@ -529,7 +549,11 @@ export function useGeminiLive({
       const responses = await Promise.all(
         functionCalls.map(async fc => {
           try {
-            const result = await handler({ id: fc.id, name: fc.name, args: fc.args || {} });
+            const result = await handler({
+              id: fc.id,
+              name: fc.name,
+              args: normalizeToolArgs(fc.args),
+            });
             // Accumulate tool results for rich card rendering in chat
             turnToolResultsRef.current.push({ name: fc.name, result });
             return { id: fc.id, name: fc.name, response: result };
@@ -544,14 +568,7 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
-        // Use SILENT scheduling to prevent the model from narrating tool results
-        // (double-speech). Vertex AI supports FunctionResponseScheduling.SILENT.
-        // See gist: "Send tool responses with SILENT scheduling"
-        const silentResponses = responses.map(r => ({
-          ...r,
-          scheduling: 'SILENT',
-        }));
-        ws.send(JSON.stringify({ toolResponse: { functionResponses: silentResponses } }));
+        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
       }
     },
     [],

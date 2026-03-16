@@ -88,6 +88,12 @@
 - **Avoid when:** First session initialization before any successful connection
 - **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
 - **Provenance:** March 2026 concierge live-mode hardening
+### Live API optional config should be omitted, not sent empty
+- **Tip:** For Gemini/Vertex Live sessions, treat optional setup fields as truly optional. If session resumption or preview audio behaviors are not actively enabled, omit those fields instead of sending empty objects or default-on preview config.
+- **Applies when:** Building `setup` / `LiveConnectConfig` payloads for Gemini Live or Vertex AI Live
+- **Avoid when:** The feature is explicitly enabled and you have a valid handle or preview entitlement/config
+- **Evidence:** Gemini Live production hardening found two reliability problems from over-eager setup payloads: `sessionResumption: {}` was being sent when no handle existed, and preview audio features were default-on despite not being required. Omitting unused config and making preview features opt-in reduced handshake fragility without changing the core transport.
+- **Provenance:** March 2026 Gemini Live production hardening
 ### Treat schema migrations as a product compatibility API, not just SQL files
 - **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
 - **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
