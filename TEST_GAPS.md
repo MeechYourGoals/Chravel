@@ -67,6 +67,14 @@
 - **Priority:** high
 - **Provenance:** 2026-03 data evolution hardening audit
 
+## Missing automated load + chaos pipelines for Tier-0 journeys
+- **Area:** CI/workflows + QA infrastructure (`.github/workflows`, `qa/`)
+- **Why this gap matters:** Functional tests can be green while event spikes/provider degradation still break launch-critical journeys.
+- **Missing coverage:** No automated load profiles (join surge, hot chat) or chaos scenarios (outage, delayed webhook, stale session) currently gated in CI.
+- **Failure mode if untested:** Release gates pass despite production failures under scale or dependency instability.
+- **Suggested tests:** Add staged load/chaos workflows that publish artifacts and evolve from warn-only to blocking for Tier-0.
+- **Priority:** high
+- **Provenance:** March 2026 QA governance hardening pass.
 ## Reliability drill automation for SLO + degradation + restore
 - **Area:** Cross-cutting reliability platform (`src/services/apiHealthCheck.ts`, queue workers, DR procedures)
 - **Why this gap matters:** Without automated drills, resilience assumptions remain theoretical and regress silently.
