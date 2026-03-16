@@ -40,3 +40,17 @@
 - **Suggested tests:** Render TripChat, simulate 3 messages arriving, verify getMessagesReactions called exactly once (initial), not on subsequent INSERTs
 - **Priority:** low
 - **Provenance:** March 2026 chat reliability audit
+
+## Frontend runtime performance regression suite (missing)
+- **Area:** app-wide (`src/main.tsx`, `src/App.tsx`, `src/components/media/MediaGrid.tsx`, `src/features/chat/components/ChatMessages.tsx`, `src/hooks/useUnreadCounts.ts`)
+- **Why this gap matters:** Runtime regressions currently slip because there are no release-blocking budgets/tests for startup, rerenders, list scaling, resume cost, or memory growth.
+- **Missing coverage:** No CI gate for bundle budgets, no interaction-latency checks, no memory-growth scenarios, no list virtualization thresholds enforcement.
+- **Failure mode if untested:** App appears fine in small demos but degrades under long chat/media sessions, mobile resume, and realtime update bursts.
+- **Suggested tests:**
+  - Route interactive timing tests on throttled profiles
+  - Rerender scope tests for localized updates
+  - Large-list virtualization tests (>500 messages/media items)
+  - Background/resume freeze-time and subscription duplication tests
+  - Bundle budget checks per route chunk in CI
+- **Priority:** high
+- **Provenance:** March 2026 frontend runtime constitution audit

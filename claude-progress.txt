@@ -1,0 +1,6 @@
+# Claude Progress
+
+## 2026-03-16 — Frontend runtime performance constitution audit
+- Completed end-to-end frontend runtime audit covering rendering, state/cache, realtime fanout, bundle/asset strategy, large-list behavior, mobile lifecycle, AI/media/search surfaces, and observability.
+- Produced staged hardening constitution in `docs/ACTIVE/FRONTEND_RUNTIME_PERFORMANCE_CONSTITUTION_2026-03.md` with explicit budgets, failure modes, and implementation plan.
+- Identified immediate high-leverage fixes: scoped resume refresh, mandatory virtualization for AI/media surfaces, cache patch-over-invalidate strategy, CI performance budgets.

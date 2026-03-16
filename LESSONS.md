@@ -64,3 +64,11 @@
 - **Evidence:** Chat messages were silently lost during websocket drops with no user-visible indication
 - **Provenance:** March 2026 chat reliability audit
 - **Confidence:** high
+
+### Treat mobile resume as a performance-critical lifecycle, not a generic refetch hook
+- **Tip:** On Capacitor/PWA apps, background->foreground transitions can trigger concentrated query invalidations and realtime reconnect bursts. Refresh only visible-route critical data first, then defer secondary surfaces to idle time.
+- **Applies when:** App uses global resume handlers (e.g., `onNativeResume`) with TanStack Query.
+- **Avoid when:** App has no realtime state and tiny datasets.
+- **Evidence:** `src/App.tsx` currently invalidates all active queries on resume, which can produce burst render/network cost on mobile.
+- **Provenance:** March 2026 frontend runtime constitution audit.
+- **Confidence:** high
