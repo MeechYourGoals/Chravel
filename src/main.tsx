@@ -77,6 +77,17 @@ initNativeLifecycle();
 // Initialize PostHog analytics
 telemetry.init().catch(err => console.warn('[Telemetry] Init failed:', err));
 
+// Global error listeners — catch unhandled errors outside React boundaries
+window.addEventListener('unhandledrejection', (e: PromiseRejectionEvent) => {
+  telemetry.captureError(e.reason instanceof Error ? e.reason : new Error(String(e.reason)), {
+    context: 'unhandledrejection',
+  });
+});
+
+window.addEventListener('error', (e: ErrorEvent) => {
+  telemetry.captureError(e.error ?? new Error(e.message), { context: 'window.onerror' });
+});
+
 // Initialize RevenueCat for subscription management
 initRevenueCat().catch(err => console.warn('[RevenueCat] Init failed:', err));
 

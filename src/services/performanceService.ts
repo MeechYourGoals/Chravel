@@ -1,3 +1,5 @@
+import { telemetry } from '@/telemetry/service';
+
 interface PerformanceMetrics {
   navigationStart?: number;
   loadComplete?: number;
@@ -89,15 +91,22 @@ class PerformanceService {
   }
 
   private reportMetric(name: string, value: number) {
-    // Send to analytics
+    // Send to PostHog via telemetry service (unified analytics pipeline)
+    if (name === 'Page Load Time') {
+      telemetry.track('app_loaded', {
+        duration_ms: Math.round(value),
+        is_cached: false,
+        network_type: (navigator as any).connection?.effectiveType,
+      });
+    }
+
+    // Keep gtag for backward compatibility
     if (window.gtag) {
       window.gtag('event', 'timing_complete', {
         name: name,
         value: Math.round(value),
       });
     }
-
-    // Development logging enabled via console when needed
   }
 
   // Public methods for manual tracking

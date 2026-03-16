@@ -11,8 +11,11 @@ import {
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { invalidateAuthCache } from '@/lib/authCache';
+import { queryClient } from '@/lib/queryClient';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
 import { useDemoModeStore } from '@/store/demoModeStore';
+import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore';
+import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 import { toast } from '@/hooks/use-toast';
@@ -706,6 +709,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               authDebug('onAuthStateChange:transformUser:success');
               setUser(transformedUser);
               setIsLoading(false);
+
+              // Identify user in analytics (no email for privacy)
+              telemetry.identify({
+                id: transformedUser.id,
+                display_name: transformedUser.display_name ?? undefined,
+                is_pro: transformedUser.is_pro ?? undefined,
+                organization_id: transformedUser.organization_id ?? undefined,
+                created_at: transformedUser.created_at ?? undefined,
+              });
             })
             .catch(err => {
               authDebug('onAuthStateChange:transformUser:error', { error: String(err) });
@@ -719,9 +731,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         authDebug('onAuthStateChange:signedOutOrNoSession');
         invalidateAuthCache();
+        // Clear cached data and subscriptions on token-expiry-triggered signouts
+        queryClient.clear();
+        void supabase.removeAllChannels();
+        conciergeCacheService.clearAllCaches();
+        useNotificationRealtimeStore.getState().clearAll();
         // App-preview: keep demo user when logged out.
         setUser(shouldUseDemoUserRef.current ? demoUser : null);
         setIsLoading(false);
+
+        // Reset analytics identity on explicit sign-out only (not initial page load)
+        if (event === 'SIGNED_OUT') {
+          telemetry.reset();
+        }
       }
     });
 
@@ -981,9 +1003,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Clear onboarding cache to prevent stale data polluting next account
     localStorage.removeItem('chravel_onboarding_completed');
 
+    // Clear all cached server data so next user on this device sees nothing
+    queryClient.clear();
+
+    // Tear down all Realtime subscriptions to prevent cross-user notification leaks
+    await supabase.removeAllChannels();
+
+    // Clear AI concierge localStorage caches (PII — trip planning conversations)
+    conciergeCacheService.clearAllCaches();
+
+    // Reset notification store (unread count, notification list)
+    useNotificationRealtimeStore.getState().clearAll();
+
     // Reset onboarding store (dynamic import to avoid circular deps)
     import('@/store/onboardingStore').then(({ useOnboardingStore }) => {
       useOnboardingStore.getState().resetOnboarding();
+    });
+
+    // Clear notification state to prevent stale badges/data across sessions.
+    // Safety analysis:
+    // - clearAll() only resets client-side Zustand store (sets notifications=[], unreadCount=0).
+    //   No server calls, no RLS implications, no auth-dependent operations.
+    // - RLS on notifications table enforces user_id = auth.uid() — no cross-user access possible.
+    // - useNotificationRealtime already clears on user=null (line 174-179), but this provides
+    //   defense-in-depth for cases where the effect cleanup runs after the redirect.
+    // - No race condition risk: clearAll() is synchronous on the Zustand store.
+    import('@/store/notificationRealtimeStore').then(({ useNotificationRealtimeStore }) => {
+      useNotificationRealtimeStore.getState().clearAll();
     });
 
     // Sign out from Supabase (no-op if not authenticated)

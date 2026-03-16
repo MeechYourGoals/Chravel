@@ -16,6 +16,8 @@ import type {
   ExportEvents,
   RecommendationEvents,
   ShareExtensionEvents,
+  ConciergeEvents,
+  SubscriptionEvents,
 } from './types';
 
 // ============================================================================
@@ -381,5 +383,76 @@ export const shareExtensionEvents = {
 
   unsupportedType: (typeIdentifier: string) => {
     telemetry.track('share_unsupported_type', { type_identifier: typeIdentifier });
+  },
+};
+
+// ============================================================================
+// AI Concierge Events
+// ============================================================================
+
+export const conciergeEvents = {
+  querySent: (params: ConciergeEvents['concierge_query_sent']) => {
+    telemetry.track('concierge_query_sent', params);
+  },
+
+  responseReceived: (params: ConciergeEvents['concierge_response_received']) => {
+    telemetry.track('concierge_response_received', params);
+  },
+
+  error: (params: ConciergeEvents['concierge_error']) => {
+    telemetry.track('concierge_error', params);
+  },
+
+  toolExecuted: (tripId: string, toolName: string, success: boolean, latencyMs: number) => {
+    telemetry.track('concierge_tool_executed', {
+      trip_id: tripId,
+      tool_name: toolName,
+      success,
+      latency_ms: latencyMs,
+    });
+  },
+};
+
+// ============================================================================
+// Subscription Events
+// ============================================================================
+
+export const subscriptionEvents = {
+  upgradePromptShown: (surface: string, tripId?: string) => {
+    telemetry.track('upgrade_prompt_shown', { surface, trip_id: tripId });
+  },
+
+  upgradeStarted: (params: SubscriptionEvents['upgrade_started']) => {
+    telemetry.track('upgrade_started', params);
+  },
+
+  upgradeCompleted: (plan: string) => {
+    telemetry.track('upgrade_completed', { plan });
+  },
+
+  upgradeFailed: (plan: string, error: string) => {
+    telemetry.track('upgrade_failed', { plan, error });
+  },
+};
+
+// ============================================================================
+// Notification Events
+// ============================================================================
+
+export const notificationEvents = {
+  clicked: (type: string, tripId?: string) => {
+    telemetry.track('notification_clicked', { type, trip_id: tripId });
+  },
+
+  pushPermissionPrompted: () => {
+    telemetry.track('push_permission_prompted', {});
+  },
+
+  pushPermissionGranted: () => {
+    telemetry.track('push_permission_granted', {});
+  },
+
+  pushPermissionDenied: () => {
+    telemetry.track('push_permission_denied', {});
   },
 };
