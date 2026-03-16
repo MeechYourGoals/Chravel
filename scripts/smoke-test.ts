@@ -18,8 +18,7 @@
 // Config
 // ---------------------------------------------------------------------------
 
-const DEPLOY_URL =
-  process.env.DEPLOY_URL || process.env.VITE_SUPABASE_URL?.replace('.supabase.co', '') || '';
+const DEPLOY_URL = process.env.DEPLOY_URL || '';
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const TIMEOUT_MS = 10_000;
 
