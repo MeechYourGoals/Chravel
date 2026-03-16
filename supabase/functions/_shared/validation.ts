@@ -26,14 +26,17 @@ export function validateExternalHttpsUrl(url: string): boolean {
 
     // Block private/internal IP ranges
     const ipPatterns = [
-      /^127\./, // 127.0.0.0/8
-      /^10\./, // 10.0.0.0/8
-      /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
-      /^192\.168\./, // 192.168.0.0/16
-      /^169\.254\./, // 169.254.0.0/16 (link-local)
-      /^::1$/, // IPv6 localhost
-      /^fc00:/, // IPv6 private
-      /^fe80:/, // IPv6 link-local
+      /^0\./, // 0.0.0.0/8 — "this" network; 0.0.0.0 binds to all interfaces on many systems
+      /^127\./, // 127.0.0.0/8 — loopback
+      /^10\./, // 10.0.0.0/8 — RFC 1918 private
+      /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12 — RFC 1918 private
+      /^192\.168\./, // 192.168.0.0/16 — RFC 1918 private
+      /^169\.254\./, // 169.254.0.0/16 — link-local (AWS metadata, GCP metadata)
+      /^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./, // 100.64.0.0/10 — carrier-grade NAT
+      /^::1$/, // IPv6 loopback
+      /^fc00:/i, // IPv6 unique local (RFC 4193)
+      /^fe80:/i, // IPv6 link-local
+      /^::ffff:(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/i, // IPv4-mapped IPv6
     ];
 
     // Check if hostname is an IP address

@@ -111,7 +111,9 @@ serve(async req => {
       });
     }
 
-    // 🔒 SECURITY: Verify user is a member of the trip (only if authenticated)
+    // 🔒 SECURITY: Two-layer membership check (defense-in-depth).
+    //
+    // Layer 1 — service-role explicit filter (fast path, catches obvious violations):
     const { data: membershipCheck, error: membershipError } = await supabase
       .from('trip_members')
       .select('user_id')
@@ -124,6 +126,24 @@ serve(async req => {
         JSON.stringify({ error: 'Forbidden - you must be a member of this trip' }),
         { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
       );
+    }
+
+    // Layer 2 — user-scoped client enforces RLS (catches any service-role bypass scenario):
+    const userScopedClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: rlsMembership, error: rlsError } = await userScopedClient
+      .from('trip_members')
+      .select('user_id')
+      .eq('trip_id', tripId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (rlsError || !rlsMembership) {
+      return new Response(JSON.stringify({ error: 'Forbidden - RLS denied trip access' }), {
+        status: 403,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      });
     }
 
     // Fetch file metadata

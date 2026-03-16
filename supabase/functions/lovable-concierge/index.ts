@@ -837,24 +837,26 @@ serve(async req => {
 
     user = authenticatedUser;
 
-    // Per-user AI rate limit: 30 requests per hour (distributed, DB-backed)
+    // Per-user AI rate limit: 30 requests per minute (distributed, DB-backed).
+    // Matches the previous in-process limit (30/min) — DB-backing adds cross-instance
+    // enforcement without reducing user-visible throughput.
     const rlResult = await checkRateLimit(
       supabase,
       `lovable-concierge:${user.id}`,
       30,
-      3600,
+      60,
       user.id,
       'lovable-concierge',
     );
     if (!rlResult.allowed) {
       return new Response(
         JSON.stringify({
-          error: 'Too many AI requests. Try again in an hour.',
-          retryAfter: 3600,
+          error: 'Too many AI requests. Please wait a moment and try again.',
+          retryAfter: 60,
         }),
         {
           status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
         },
       );
     }

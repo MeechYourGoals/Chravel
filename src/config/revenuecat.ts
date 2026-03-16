@@ -27,11 +27,18 @@ const generateAnonymousUserId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `anon_${crypto.randomUUID()}`;
   }
-  // Fallback for older browsers — use crypto.getRandomValues for secure randomness
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-  return `anon_${hex}`;
+  // Fallback: crypto exists but lacks randomUUID (e.g. some older WebView builds).
+  // Guard crypto.getRandomValues separately — if crypto itself is absent the outer
+  // condition already passed (typeof crypto !== 'undefined' was true).
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    return `anon_${hex}`;
+  }
+  // Last-resort fallback for environments with no Web Crypto API at all.
+  // Not cryptographically secure, but preferable to a ReferenceError crash.
+  return `anon_${Date.now().toString(36)}_${((Math.random() * 0xffffffff) >>> 0).toString(36)}`;
 };
 
 /**

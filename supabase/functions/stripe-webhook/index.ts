@@ -193,22 +193,25 @@ serve(async req => {
       return createErrorResponse('Webhook event too old', 400);
     }
 
-    // Atomic idempotency: INSERT with ON CONFLICT DO NOTHING.
-    // If the row already exists (duplicate event), inserted will be empty.
-    // This is race-condition-safe unlike the previous SELECT-then-INSERT approach.
-    const { data: inserted, error: idempotencyError } = await supabaseClient
-      .from('webhook_events')
-      .upsert(
-        { event_id: event.id, event_type: event.type, processed_at: new Date().toISOString() },
-        { onConflict: 'event_id', ignoreDuplicates: true },
-      )
-      .select('id');
+    // Atomic idempotency: plain INSERT that relies on the unique constraint on event_id.
+    // ON CONFLICT DO NOTHING via ignoreDuplicates:true is unreliable — PostgREST may
+    // return an empty array for *both* first inserts and duplicates, making them
+    // indistinguishable. Instead, we INSERT without conflict suppression and treat
+    // a unique-constraint violation (Postgres error code 23505) as a duplicate signal.
+    const { error: idempotencyError } = await supabaseClient.from('webhook_events').insert({
+      event_id: event.id,
+      event_type: event.type,
+      processed_at: new Date().toISOString(),
+    });
 
     if (idempotencyError) {
-      console.warn('[STRIPE-WEBHOOK] Idempotency check failed:', idempotencyError.message);
-    } else if (!inserted || inserted.length === 0) {
-      logStep('Duplicate event skipped (idempotency)', { eventId: event.id });
-      return createSecureResponse({ received: true, duplicate: true, eventType: event.type });
+      if (idempotencyError.code === '23505') {
+        // Unique constraint violation = event already processed
+        logStep('Duplicate event skipped (idempotency)', { eventId: event.id });
+        return createSecureResponse({ received: true, duplicate: true, eventType: event.type });
+      }
+      // Any other DB error — log and continue (don't silently drop real events)
+      console.warn('[STRIPE-WEBHOOK] Idempotency insert failed:', idempotencyError.message);
     }
 
     // Handle different event types
