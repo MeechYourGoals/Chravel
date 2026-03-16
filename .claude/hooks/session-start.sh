@@ -4,7 +4,7 @@ set -euo pipefail
 # --- Context primer (all sessions — local + remote) ---
 MEMORY_COUNT=0
 if [ -f "${CLAUDE_PROJECT_DIR:-}/agent_memory.jsonl" ]; then
-  MEMORY_COUNT=$(grep -c '^{' "${CLAUDE_PROJECT_DIR}/agent_memory.jsonl" 2>/dev/null || echo "0")
+  MEMORY_COUNT=$(grep -c '^{' "${CLAUDE_PROJECT_DIR:-}/agent_memory.jsonl" 2>/dev/null || echo "0")
 fi
 
 echo "=== CHRAVEL SESSION CONTEXT ==="
