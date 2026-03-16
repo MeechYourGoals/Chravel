@@ -699,8 +699,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(shouldUseDemoUserRef.current ? demoUser : null);
         setIsLoading(false);
 
-        // Reset analytics identity on sign-out
-        telemetry.reset();
+        // Reset analytics identity on explicit sign-out only (not initial page load)
+        if (event === 'SIGNED_OUT') {
+          telemetry.reset();
+        }
       }
     });
 

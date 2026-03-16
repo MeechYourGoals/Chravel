@@ -104,7 +104,9 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
       // This prevents the "nothing happens" issue where modal closes before user state updates
       setAwaitingAuth(true);
     } catch (error) {
-      console.error('Auth error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Auth error:', error);
+      }
       setError('An unexpected error occurred');
     }
   };
@@ -384,10 +386,18 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
               onClick={async () => {
                 setGoogleLoading(true);
                 setError('');
-                authEvents.loginStarted('google');
+                if (mode === 'signup') {
+                  authEvents.signupStarted('google');
+                } else {
+                  authEvents.loginStarted('google');
+                }
                 const result = await signInWithGoogle();
                 if (result.error) {
-                  authEvents.loginFailed('google', result.error);
+                  if (mode === 'signup') {
+                    authEvents.signupFailed('google', result.error);
+                  } else {
+                    authEvents.loginFailed('google', result.error);
+                  }
                   setError(result.error);
                   setGoogleLoading(false);
                 }

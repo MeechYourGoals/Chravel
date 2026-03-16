@@ -497,6 +497,17 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         // Save to cache for immediate display
         await saveMessagesToCache(tripId, [optimisticMessage]);
 
+        // Track offline-queued message telemetry
+        messageEvents.sent({
+          trip_id: tripId,
+          message_type:
+            (messageData.message_type as 'text' | 'media' | 'broadcast' | 'payment' | 'system') ||
+            'text',
+          has_media: Boolean(messageData.media_url),
+          character_count: sanitizedContent.length,
+          is_offline_queued: true,
+        });
+
         return optimisticMessage;
       }
 

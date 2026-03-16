@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { errorTracking } from '@/services/errorTracking';
 import { telemetry } from '@/telemetry/service';
+import { redactStackTrace } from '@/telemetry/privacy';
 
 interface Props {
   children: ReactNode;
@@ -60,7 +61,7 @@ export class FeatureErrorBoundary extends Component<Props, State> {
     // Send to telemetry pipeline (PostHog $exception)
     telemetry.captureError(error, {
       context: `FeatureErrorBoundary:${featureName}`,
-      component_stack: errorInfo.componentStack?.substring(0, 500),
+      component_stack: redactStackTrace(errorInfo.componentStack),
       error_count: this.state.errorCount + 1,
     });
 

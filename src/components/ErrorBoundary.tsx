@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 import { safeReload } from '@/utils/safeReload';
 import { telemetry } from '@/telemetry/service';
+import { redactStackTrace } from '@/telemetry/privacy';
 
 interface Props {
   children: ReactNode;
@@ -65,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Send error to telemetry service (PostHog $exception)
     telemetry.captureError(error, {
       context: 'ErrorBoundary',
-      component_stack: errorInfo.componentStack?.substring(0, 500),
+      component_stack: redactStackTrace(errorInfo.componentStack),
       is_chunk_error: isChunkError(error),
     });
 
