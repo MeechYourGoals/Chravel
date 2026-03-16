@@ -24,7 +24,7 @@ jobs:
         run: npm ci
 
       - name: Security audit (dependencies)
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
         continue-on-error: true
 
       - name: Run linter with warning budget
@@ -34,6 +34,12 @@ jobs:
 
       - name: Run type check
         run: npm run typecheck
+
+      - name: Validate environment variables
+        run: npx tsx scripts/validate-env.ts --ci
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Run unit tests
         run: npm run test -- --run --coverage

@@ -199,6 +199,76 @@ const REVENUECAT_VARS: EnvVarSpec[] = [
     canStubForTestFlight: true,
     stubValue: '',
   },
+  {
+    name: 'VITE_REVENUECAT_ANDROID_API_KEY',
+    required: false,
+    description: 'RevenueCat Android API key',
+    provider: 'RevenueCat Dashboard',
+    canStubForTestFlight: true,
+    stubValue: '',
+  },
+];
+
+const PAYMENT_VARS: EnvVarSpec[] = [
+  {
+    name: 'VITE_ENABLE_STRIPE_PAYMENTS',
+    required: false,
+    description: 'Enable Stripe payment processing',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'false',
+  },
+  {
+    name: 'VITE_VENMO_CLIENT_ID',
+    required: false,
+    description: 'Venmo payment client ID',
+    provider: 'Venmo Developer Portal',
+    canStubForTestFlight: true,
+    stubValue: '',
+  },
+];
+
+const ADDITIONAL_VARS: EnvVarSpec[] = [
+  {
+    name: 'VITE_UNFURL_BASE_URL',
+    required: false,
+    description: 'Link unfurl/preview service URL',
+    provider: 'Internal service',
+    canStubForTestFlight: true,
+    stubValue: '',
+  },
+  {
+    name: 'VITE_APP_VERSION',
+    required: false,
+    description: 'App version (injected at build time)',
+    provider: 'Build system',
+    canStubForTestFlight: true,
+    stubValue: '1.0.0',
+  },
+  {
+    name: 'VITE_VOICE_DEBUG',
+    required: false,
+    description: 'Enable voice debugging console output',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'false',
+  },
+  {
+    name: 'VITE_VOICE_AFFECTIVE_DIALOG',
+    required: false,
+    description: 'Enable emotional tone in voice responses',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'true',
+  },
+  {
+    name: 'VITE_VOICE_PROACTIVE_AUDIO',
+    required: false,
+    description: 'Enable model-initiated speech',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'true',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -244,7 +314,13 @@ function validate(): void {
 
   const env = loadEnvFile();
 
-  let allVars = [...FRONTEND_VARS, ...FEATURE_FLAG_VARS, ...ANALYTICS_VARS];
+  let allVars = [
+    ...FRONTEND_VARS,
+    ...FEATURE_FLAG_VARS,
+    ...ANALYTICS_VARS,
+    ...PAYMENT_VARS,
+    ...ADDITIONAL_VARS,
+  ];
   if (isIos) {
     allVars = [...allVars, ...MOBILE_VARS, ...REVENUECAT_VARS];
   }
