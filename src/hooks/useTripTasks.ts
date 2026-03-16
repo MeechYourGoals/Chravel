@@ -9,6 +9,8 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { taskEvents } from '@/telemetry/events';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
+import { generateMutationId } from '@/utils/concurrencyUtils';
 
 // Task form management types
 export interface TaskFormData {
