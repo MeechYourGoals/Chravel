@@ -13,9 +13,9 @@
 Chravel's notification system is **structurally split across two independent generation paths** (database triggers and edge functions) with **no deduplication layer** between them. Delivery works through a centralized dispatch function that correctly enforces preference gating, quiet hours, and rate limiting. The client-side notification surface uses a Zustand store hydrated via Supabase realtime `INSERT` subscriptions with no reconnect correction or multi-device read propagation.
 
 ### Biggest Trust Risks
-1. **Duplicate notifications** — Broadcast creation fires both a DB trigger (`trigger_notify_broadcast`) AND client-side `broadcastService.sendPushNotification()`, creating parallel notification paths
-2. **Badge count drift** — Client Zustand store tracks unread incrementally with no reconnect correction. Any realtime gap causes permanent drift until page reload
-3. **Multi-device read desync** — Marking a notification as read on one device does not propagate to others (subscription watches INSERT only, not UPDATE)
+1. **~~Duplicate notifications~~** — ~~Broadcast creation fires both a DB trigger AND client-side `broadcastService.sendPushNotification()`~~ **FIXED:** Bypass removed in this PR; broadcasts now use only the DB trigger path
+2. **~~Badge count drift~~** — ~~Client Zustand store tracks unread incrementally with no reconnect correction~~ **FIXED:** Reconnect correction re-fetches from DB on channel SUBSCRIBED status
+3. **~~Multi-device read desync~~** — ~~Subscription watches INSERT only, not UPDATE~~ **FIXED:** UPDATE subscription propagates read state and visibility changes across devices
 
 ### Biggest Noise/Relevance Risks
 1. No per-trip or per-channel mute — preferences are global only
@@ -24,9 +24,9 @@ Chravel's notification system is **structurally split across two independent gen
 4. AI concierge mutations fire the same DB triggers as human actions, with no batching or suppression
 
 ### Biggest Unread/Badge Consistency Risks
-1. No reconnect correction — realtime gaps cause silent notification loss
-2. Logout does not clear Zustand store — stale badges persist across sessions
-3. `fetchUnreadCount` uses `count: 'exact'` but only fires on mount, not on reconnect
+1. **~~No reconnect correction~~** — **FIXED:** Re-fetches on channel SUBSCRIBED status
+2. **~~Logout does not clear Zustand store~~** — **FIXED:** signOut now clears notification store; useNotificationRealtime also clears on user=null
+3. `fetchUnreadCount` uses `count: 'exact'` — now fires on mount AND on reconnect
 4. Badge count is client-derived from Zustand state, not periodically reconciled with DB truth
 
 ### Event-Scale Safety
@@ -136,18 +136,20 @@ Chravel's notification system is **structurally split across two independent gen
 ```
 [src/hooks/useNotificationRealtime.ts]
         │
-        ├── ensureSubscription(userId, onInsert)
+        ├── ensureSubscription(userId, { onInsert, onUpdate, onReconnect })
         │     └── supabase.channel(`notifications:${userId}`)
         │           .on('postgres_changes', { event: 'INSERT', table: 'notifications' })
+        │           .on('postgres_changes', { event: 'UPDATE', table: 'notifications' })
+        │           .subscribe(status => onReconnect on SUBSCRIBED)
         │
         ├── Singleton subscription per user (refCount pattern)
         │
-        └── No status event handling (reconnect, error, timeout)
+        └── Reconnect correction: re-fetches notifications + unread count on SUBSCRIBED
 ```
 
 ### Multi-Device Read State Propagation
 
-**Does not exist.** Read state is written to DB but changes are not subscribed to via realtime. Other devices only see the change on full page reload.
+**Implemented.** UPDATE subscription propagates `is_read` and `is_visible` changes from other devices. When `is_read` changes, `updateNotification()` is called. When `is_visible` becomes false, `removeNotification()` is called.
 
 ### Event-Scale Fanout Path
 
@@ -300,6 +302,16 @@ There is no separate "seen" state (user saw the notification in the list but did
 
 **Recommendation (Stage B):** Add per-trip unread counts by filtering `notifications` by `trip_id`. Store as a derived count, not a separate counter.
 
+### Cross-Trip Unified Badge Gap
+
+Two independent unread tracking systems exist with no unified view:
+- **`useUnreadCounts`** (`src/hooks/useUnreadCounts.ts`): Per-trip message unread counts from `message_read_receipts` table. Separates broadcast count from message count. Only visible within a trip.
+- **`useNotificationRealtime`** (`src/hooks/useNotificationRealtime.ts`): Global notification badge from `notifications` table. Shown on the bell icon in `TripActionBar`.
+
+**Gap:** No single badge showing "you have X unread across all trips." Users must open each trip to discover unread chat content. The notification badge only covers notification-type events, not chat messages (which are permanently suppressed from the notification system).
+
+**Recommendation (Stage B):** Either (1) add a cross-trip message unread summary to the home screen, or (2) include high-priority chat events (mentions, DMs) in the notification pipeline so the bell badge captures them.
+
 ### Reconnect / Login / Logout Correction Behavior
 
 **Current state:**
@@ -419,6 +431,31 @@ There is no separate "seen" state (user saw the notification in the list but did
 4. **Batch over blast** — prefer "5 new items" over 5 individual notifications
 5. **Urgent > noise** — broadcasts and payments always cut through, minor updates can be batched
 
+### Chat Notification Suppression Gap
+
+**Current state:** `notifyNewMessage()` in `notificationService.ts` returns `false` unconditionally — chat notifications are permanently disabled due to volume concerns. `chat_messages` is also in `SUPPRESSED_CATEGORIES` in `notificationUtils.ts`.
+
+**Problem:** Users who rely on push/email have no way to receive any chat-related notifications. Important @mentions and direct messages are silently lost outside the app. The `mentions_only` column exists in `notification_preferences` but has no UI toggle and no backend implementation.
+
+**Recommendation (Stage B):**
+1. Separate `@mentions` from `chat_messages` as a distinct notification category
+2. Implement `mentions_only` mode: suppress bulk chat, allow @mentions through
+3. Add UI toggle for mentions-only in `ConsumerNotificationsSection.tsx`
+
+### Dead Schema Columns
+
+The following preference columns exist in the database but have **no implementation or UI**:
+
+| Column | Migration | Status |
+|--------|-----------|--------|
+| `mentions_only` | `20251105000000_notifications_system.sql` | No UI toggle, no backend check |
+| `email_digest` | `20260220000000_enterprise_notification_preferences.sql` | No digest cron job, no template |
+| `org_announcements` | `20260220000000_enterprise_notification_preferences.sql` | No org-level notification system |
+| `team_updates` | `20260220000000_enterprise_notification_preferences.sql` | No team concept in notifications |
+| `billing_alerts` | `20260220000000_enterprise_notification_preferences.sql` | No billing notification triggers |
+
+**Recommendation:** Either implement these features or remove the columns to avoid schema bloat and false expectations.
+
 ---
 
 ## 6. Activity Feed Constitution
@@ -460,6 +497,14 @@ Every feed item MUST show:
 - **What:** Action description
 - **Where:** Trip name
 - **When:** Relative timestamp
+
+### Actor Attribution UX Gap
+
+**Current state:** `TripActionBar.tsx` displays notifications as "New Broadcast in Trip X" or "Reminder: Event Title" without prominently showing **who** created the notification. Actor name is available in `metadata` but not rendered in the notification list.
+
+**Impact:** Users cannot assess notification importance without opening it. A broadcast from the trip organizer may be more important than one from a participant, but the UI treats them identically.
+
+**Recommendation (Stage B):** Display actor name/avatar in the notification list item. Format as "Alex posted a broadcast in Tokyo Trip" instead of "New Broadcast in Tokyo Trip".
 
 ### Feed vs Notification Separation (Stage B Recommendation)
 
@@ -820,46 +865,95 @@ Create a separate `activity_feed` table for low-signal events. Keep `notificatio
 | **Recommended fix** | Acceptable behavior — each device should show the notification. Use `tag` to collapse at OS level. |
 | **Fix timing** | N/A (acceptable) |
 
+### 13. Quiet Hours Wraparound Bug
+
+| Attribute | Value |
+|-----------|-------|
+| **Severity** | CRITICAL |
+| **Likelihood** | HIGH (all users with overnight quiet hours) |
+| **Blast radius** | Every user with quiet hours like 22:00→08:00 |
+| **Root cause** | `should_send_notification()` in `20251105000000_notifications_system.sql` uses `CURRENT_TIME BETWEEN quiet_start AND quiet_end`. SQL `BETWEEN` requires `start <= end`, so overnight ranges (22:00 to 08:00) never evaluate true — quiet hours are silently broken. |
+| **Recommended fix** | Replace with wraparound-aware logic: `IF start <= end THEN time BETWEEN start AND end ELSE (time >= start OR time < end) END IF` |
+| **Fix timing** | Stage A — immediate (requires DB migration) |
+
+### 14. Web Push Subscription Dead-End
+
+| Attribute | Value |
+|-----------|-------|
+| **Severity** | MEDIUM |
+| **Likelihood** | MEDIUM (any user with intermittent connectivity) |
+| **Blast radius** | Individual user loses push delivery permanently |
+| **Root cause** | `web_push_subscriptions` table deactivates a subscription after `failed_count >= 3`. No re-activation path exists — the user must manually unsubscribe and re-subscribe. No UI indicates that push delivery has silently stopped. |
+| **Recommended fix** | (1) Reset `failed_count` to 0 on any successful send. (2) Add re-activation logic in `useWebPush` that detects inactive subscription and prompts re-subscribe. (3) Add UI indicator when push delivery is degraded. |
+| **Fix timing** | Stage B |
+
+### 15. SMS Entitlement Race Condition
+
+| Attribute | Value |
+|-----------|-------|
+| **Severity** | LOW |
+| **Likelihood** | LOW (requires subscription cancellation between queue and dispatch) |
+| **Blast radius** | Individual user — revenue leakage or failed delivery |
+| **Root cause** | SMS entitlement is enforced via `trigger_enforce_sms_entitlement` at preference-save time, not at dispatch time. If a user's subscription expires after a notification is queued but before `dispatch-notification-deliveries` processes it, the SMS is still attempted (and may succeed, causing unpaid delivery, or fail at Twilio). |
+| **Recommended fix** | Re-check `is_user_sms_entitled()` in `dispatch-notification-deliveries` before sending each SMS delivery. |
+| **Fix timing** | Stage B |
+
 ---
 
 ## 10. Recommended Immediate Fixes
 
-### Priority 1: Reconnect Correction (this PR)
+### Priority 1: Reconnect Correction — DONE
 **File:** `src/hooks/useNotificationRealtime.ts`
 **Impact:** Fixes badge drift after realtime disconnection
-**Effort:** Small
+**Status:** Implemented. Channel subscribes with status callback; re-fetches on SUBSCRIBED.
 
-### Priority 2: Multi-Device Read Propagation (this PR)
+### Priority 2: Multi-Device Read Propagation — DONE
 **File:** `src/hooks/useNotificationRealtime.ts`
 **Impact:** Fixes stale unread state on secondary devices
-**Effort:** Small
+**Status:** Implemented. UPDATE subscription propagates is_read and is_visible changes.
 
-### Priority 3: Logout Cleanup (this PR)
-**File:** `src/hooks/useNotificationRealtime.ts`
-**Impact:** Prevents stale notification state across sessions
-**Effort:** Trivial
-
-### Priority 4: Remove console.log (this PR)
-**File:** `src/services/notificationService.ts`
-**Impact:** CLAUDE.md compliance
-**Effort:** Trivial
-
-### Priority 5: Document Broadcast Duplication (this PR)
-**File:** `NOTIFICATION_AUDIT.md`
-**Impact:** Awareness of duplicate notification risk
-**Effort:** Documentation only
-
-### Priority 6 (Stage A, next PR): Remove broadcastService.sendPushNotification()
-**File:** `src/services/broadcastService.ts`
+### Priority 3: Remove broadcastService.sendPushNotification() — DONE
+**File:** `src/services/broadcastService.ts`, `src/features/broadcasts/components/BroadcastComposer.tsx`
 **Impact:** Eliminates duplicate push notifications for broadcasts
-**Effort:** Small — remove the method and its call sites
+**Status:** Implemented. Method removed; DB trigger path is sole notification source.
 
-### Priority 7 (Stage A, next PR): Add idempotency metadata
+### Priority 4: Logout Cleanup — DONE
+**File:** `src/hooks/useAuth.tsx`, `src/hooks/useNotificationRealtime.ts`
+**Impact:** Prevents stale notification state across sessions
+**Status:** Implemented. signOut clears notification store; useNotificationRealtime clears on user=null.
+
+### Priority 5: Guard console statements (CLAUDE.md compliance) — DONE
+**File:** `src/services/notificationService.ts`, `src/features/broadcasts/components/BroadcastComposer.tsx`
+**Impact:** CLAUDE.md compliance — no unguarded console.error in committed code
+**Status:** Implemented. All console statements wrapped with import.meta.env.DEV guards.
+
+### Priority 6 (Stage A, next PR): Fix Quiet Hours Wraparound Bug
+**File:** `supabase/migrations/` (new migration to alter `should_send_notification()`)
+**Impact:** Fixes broken quiet hours for all users with overnight ranges (22:00→08:00)
+**Effort:** Small — replace `BETWEEN` with wraparound-aware conditional
+**Change:** `IF start <= end THEN time BETWEEN start AND end ELSE (time >= start OR time < end) END IF`
+
+### Priority 8 (Stage A, next PR): Add idempotency metadata
 **File:** `supabase/functions/create-notification/index.ts`
 **Impact:** Foundation for deduplication
 **Effort:** Medium
 
-### Priority 8 (Stage B): Deferred delivery cron job
+### Priority 9 (Stage B): Web Push Re-activation Path
+**File:** `src/hooks/useWebPush.ts` + `supabase/functions/dispatch-notification-deliveries/index.ts`
+**Impact:** Prevents silent permanent loss of push delivery after 3 failures
+**Effort:** Medium — reset `failed_count` on success, add re-subscribe prompt in UI
+
+### Priority 10 (Stage B): SMS Entitlement Re-check at Dispatch
+**File:** `supabase/functions/dispatch-notification-deliveries/index.ts`
+**Impact:** Prevents unpaid SMS delivery after subscription expiry
+**Effort:** Small — add `is_user_sms_entitled()` check before SMS send
+
+### Priority 11 (Stage B): Mentions-Only Mode
+**File:** `notificationUtils.ts` + `ConsumerNotificationsSection.tsx` + `notificationService.ts`
+**Impact:** Allows users to receive @mention notifications while chat is suppressed
+**Effort:** Medium — separate mention category, add UI toggle, implement backend check
+
+### Priority 12 (Stage B): Deferred delivery cron job
 **File:** New cron configuration
 **Impact:** Ensures quiet-hours-deferred notifications are eventually delivered
 **Effort:** Medium
@@ -868,43 +962,64 @@ Create a separate `activity_feed` table for low-signal events. Keep `notificatio
 
 ## 11. Exact Code / Schema / Infra Changes
 
-### This PR
+### This PR — All Changes Implemented
 
 #### 1. `src/hooks/useNotificationRealtime.ts`
-- **Change subscription** from `event: 'INSERT'` to `event: '*'`
-- **Add UPDATE handler**: map UPDATE payloads to `updateNotification()` or `removeNotification()`
-- **Add reconnect handler**: listen for channel status changes, re-fetch on reconnect
-- **Add logout cleanup**: clear Zustand store when user becomes null
+- **Added UPDATE subscription**: propagates `is_read` and `is_visible` changes from other devices
+- **Added reconnect handler**: re-fetches notifications + unread count on channel SUBSCRIBED status
+- **Added logout cleanup**: clears Zustand store when user becomes null
+- **Added initialFetchDone ref**: prevents double-fetch on first SUBSCRIBED event
 
-#### 2. `src/services/notificationService.ts`
-- **Remove** `console.log` on lines 105, 202, 437-438
-- **Keep** `console.error`/`console.warn` under DEV guards
+#### 2. `src/services/broadcastService.ts`
+- **Removed** `sendPushNotification()` method (was lines 254-346) — bypassed centralized delivery pipeline
+- DB trigger `trigger_notify_broadcast` now sole notification path for broadcasts
+
+#### 3. `src/features/broadcasts/components/BroadcastComposer.tsx`
+- **Removed** call to `broadcastService.sendPushNotification()` after broadcast creation
+- **Guarded** remaining `console.error` statements with `import.meta.env.DEV`
+
+#### 4. `src/services/notificationService.ts`
+- **Guarded** 6 `console.error` statements with `import.meta.env.DEV` guards
+
+#### 5. `src/hooks/useAuth.tsx`
+- **Added** notification store cleanup in `signOut()` via dynamic import of `useNotificationRealtimeStore`
 
 #### 3. `NOTIFICATION_AUDIT.md` (this file)
 - Full audit document with all 13 sections
 
 ### Stage A (Next PR)
 
-#### 4. `src/services/broadcastService.ts`
+#### 4. New migration: Fix `should_send_notification()` quiet hours wraparound
+- **Replace** `CURRENT_TIME BETWEEN quiet_start::time AND quiet_end::time` with:
+  ```sql
+  IF quiet_start::time <= quiet_end::time THEN
+    CURRENT_TIME BETWEEN quiet_start::time AND quiet_end::time
+  ELSE
+    CURRENT_TIME >= quiet_start::time OR CURRENT_TIME < quiet_end::time
+  END IF
+  ```
+- Also fix the equivalent logic in `notificationUtils.ts` `isQuietHours()` if it has the same bug
+
+#### 5. `src/services/broadcastService.ts`
 - **Remove** `sendPushNotification()` method (lines 254-346)
 - The DB trigger `trigger_notify_broadcast` already handles notification creation
 - The `dispatch-notification-deliveries` function handles push delivery
 
-#### 5. `supabase/functions/create-notification/index.ts`
+#### 6. `supabase/functions/create-notification/index.ts`
 - **Add** idempotency key to notification metadata: `dedup_key: '{type}:{trip_id}:{object_id}'`
 - **Add** dedup check before INSERT: skip if notification with same dedup_key exists within 60s
 
 ### Stage B (Future)
 
-#### 6. New migration: `notification_counts` table
+#### 7. New migration: `notification_counts` table
 - `user_id`, `trip_id`, `unread_count`, `last_updated_at`
 - Materialized from `notifications` table via trigger or cron
 
-#### 7. New migration: `activity_feed` table
+#### 8. New migration: `activity_feed` table
 - Separate from `notifications` for low-signal events
 - `actor_id`, `trip_id`, `type`, `metadata`, `created_at`
 
-#### 8. Cron job for deferred deliveries
+#### 9. Cron job for deferred deliveries
 - Invoke `dispatch-notification-deliveries` every 15 minutes
 - Process `notification_deliveries WHERE status='queued' AND next_attempt_at <= NOW()`
 
@@ -1010,16 +1125,16 @@ Create a separate `activity_feed` table for low-signal events. Keep `notificatio
 
 | Area | Score | Assessment |
 |------|-------|------------|
-| **Notification model coherence** | 62 | Two parallel generation paths (triggers + edge functions) with no dedup layer. Broadcast duplication is active today. |
-| **Delivery reliability** | 78 | Centralized dispatch function is well-designed with proper preference gating, quiet hours, rate limiting. But no retry cron for failed deliveries, and broadcast push bypasses it. |
-| **Unread truth** | 55 | DB is source of truth but client cache drifts on realtime gaps. No reconnect correction (fixed in this PR → expect 75 post-fix). |
-| **Badge truth** | 55 | Derived from drifting client cache. No periodic reconciliation with DB. (Fixed in this PR → expect 75 post-fix). |
-| **Preference enforcement** | 72 | Server-side enforcement in dispatch function is correct. But `broadcastService.sendPushNotification()` bypasses it. No per-trip mute. |
+| **Notification model coherence** | 62 → **72** | Two generation paths remain (triggers + edge functions), but broadcast duplication **eliminated** by removing `broadcastService.sendPushNotification()`. Idempotency key still needed for full dedup. |
+| **Delivery reliability** | 78 → **82** | Centralized dispatch is well-designed. Broadcast push no longer bypasses it. Still needs retry cron for failed deliveries and quiet-hours-deferred re-processing. |
+| **Unread truth** | 55 → **75** | Reconnect correction re-fetches from DB on channel reconnect. Still needs periodic reconciliation for long-lived sessions. |
+| **Badge truth** | 55 → **75** | Same improvement as unread truth. Client cache corrected on reconnect. True 95+ requires server-owned badge count. |
+| **Preference enforcement** | 58 → **68** | Broadcast bypass removed. Server-side enforcement now sole gatekeeper. Still needs quiet hours wraparound fix, per-trip mute, and dead column cleanup. |
 | **Activity feed quality** | 30 | No activity feed exists. All events are notifications. No grouping, batching, or retention policy. |
-| **Multi-device consistency** | 35 | No read state propagation. No reconnect correction. (Fixed in this PR → expect 70 post-fix). |
+| **Multi-device consistency** | 35 → **70** | UPDATE subscription propagates read state across devices. Reconnect correction fills gaps. Still needs cross-device toast suppression and native app background→foreground re-fetch. |
 | **Event-scale safety** | 20 | Synchronous trigger fanout cannot handle 1,000+ member trips. No batching, no async processing. |
-| **Observability** | 55 | `notification_logs` table exists with delivery tracking. Views for summary. But no alerting, no drift detection, no duplicate detection. |
-| **Production readiness** | 52 | Functional for small trips (2-20 members). Fragile for pro trips (20-100). Unsafe for events (100+). |
+| **Observability** | 45 | `notification_logs` table exists with delivery tracking. No structured metrics, no alerting, no drift detection. |
+| **Production readiness** | 48 → **58** | Improved by fixing trust-critical gaps (reconnect, multi-device, dedup). Still fragile for events (100+). Quiet hours wraparound bug remains. |
 
 ### Why Scores Are Below 95
 

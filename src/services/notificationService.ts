@@ -173,7 +173,9 @@ export class NotificationService {
       const keys = subscriptionJSON.keys;
 
       if (!keys?.p256dh || !keys?.auth) {
-        console.error('[NotificationService] Subscription missing required keys');
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] Subscription missing required keys');
+        }
         return null;
       }
 
@@ -194,7 +196,9 @@ export class NotificationService {
       );
 
       if (error) {
-        console.error('[NotificationService] Failed to save subscription:', error);
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] Failed to save subscription:', error);
+        }
         return null;
       }
 
@@ -253,7 +257,9 @@ export class NotificationService {
       );
 
       if (error) {
-        console.error('[NotificationService] Error saving push token:', error);
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] Error saving push token:', error);
+        }
         return false;
       }
       return true;
@@ -351,7 +357,9 @@ export class NotificationService {
       const { error } = await supabase.from('notification_preferences').upsert(updateData);
 
       if (error) {
-        console.error('[NotificationService] Error updating preferences:', error);
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] Error updating preferences:', error);
+        }
         return false;
       }
       return true;
@@ -429,7 +437,9 @@ export class NotificationService {
       });
 
       if (error) {
-        console.error('[NotificationService] Error sending push notification:', error);
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] Error sending push notification:', error);
+        }
         return false;
       }
 
@@ -557,7 +567,9 @@ export class NotificationService {
       });
 
       if (error) {
-        console.error('[NotificationService] Error sending email:', error);
+        if (import.meta.env.DEV) {
+          console.error('[NotificationService] Error sending email:', error);
+        }
         return false;
       }
       return true;
