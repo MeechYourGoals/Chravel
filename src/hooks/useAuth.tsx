@@ -714,9 +714,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               // Identify user in analytics (no email for privacy)
               telemetry.identify({
                 id: transformedUser.id,
-                displayName: transformedUser.displayName ?? undefined,
-                isPro: transformedUser.isPro ?? undefined,
-                organizationId: transformedUser.organizationId ?? undefined,
+                display_name: transformedUser.displayName ?? undefined,
+                is_pro: transformedUser.isPro ?? undefined,
+                organization_id: transformedUser.organizationId ?? undefined,
               });
             })
             .catch(err => {

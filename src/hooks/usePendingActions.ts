@@ -100,7 +100,8 @@ export function usePendingActions(tripId: string) {
         }
 
         case 'createPoll': {
-          const { error } = await supabase
+          // intentional: trip_polls insert with trip_id may not match generated types
+          const { error } = await (supabase as any)
             .from('trip_polls')
             .insert({
               trip_id: action.trip_id,
