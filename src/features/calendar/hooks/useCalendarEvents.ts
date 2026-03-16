@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { calendarService, TripEvent, CreateEventData } from '@/services/calendarService';
 import { CalendarEvent } from '@/types/calendar';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { useAuth } from '@/hooks/useAuth';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { useCalendarRealtime } from './useCalendarRealtime';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
 import { withTimeout } from '@/utils/timeout';
 import { errorTracking } from '@/utils/errorTracking';
+import { toast } from 'sonner';
 
 /**
  * ⚡ PERFORMANCE: TanStack Query-based calendar events hook
@@ -21,6 +24,8 @@ import { errorTracking } from '@/utils/errorTracking';
 export const useCalendarEvents = (tripId?: string) => {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
+  const { user } = useAuth();
+  const permissions = useMutationPermissions(tripId || '');
 
   // Main query for calendar events with proper caching
   const {
@@ -104,6 +109,10 @@ export const useCalendarEvents = (tripId?: string) => {
   // Create event with optimistic update
   const createEventMutation = useMutation({
     mutationFn: async (eventData: CreateEventData) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canCreateEvent && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to create calendar events.");
+      }
       const result = await calendarService.createEvent(eventData);
       return result.event;
     },
@@ -147,10 +156,22 @@ export const useCalendarEvents = (tripId?: string) => {
     },
   });
 
-  // Update event with optimistic update
+  // Update event with optimistic update and version-based conflict detection
   const updateEventMutation = useMutation({
-    mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<TripEvent> }) => {
-      await calendarService.updateEvent(eventId, updates);
+    mutationFn: async ({
+      eventId,
+      updates,
+      currentVersion,
+    }: {
+      eventId: string;
+      updates: Partial<TripEvent>;
+      currentVersion?: number;
+    }) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canEditEvent && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to edit calendar events.");
+      }
+      await calendarService.updateEvent(eventId, updates, currentVersion);
       return { eventId, updates };
     },
     onMutate: async ({ eventId, updates }) => {
@@ -170,11 +191,20 @@ export const useCalendarEvents = (tripId?: string) => {
         queryClient.setQueryData(tripKeys.calendar(tripId), context.previousEvents);
       }
     },
+    onSettled: () => {
+      if (tripId) {
+        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+      }
+    },
   });
 
   // Delete event with optimistic update
   const deleteEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
+      // Permission guard: event/pro trip restrictions
+      if (!permissions.canDeleteEvent && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to delete calendar events.");
+      }
       await calendarService.deleteEvent(eventId, tripId);
       return eventId;
     },
@@ -215,11 +245,32 @@ export const useCalendarEvents = (tripId?: string) => {
     return createEvent(eventData);
   };
 
-  const updateEvent = async (eventId: string, updates: Partial<TripEvent>): Promise<boolean> => {
+  const updateEvent = async (
+    eventId: string,
+    updates: Partial<TripEvent>,
+    currentVersion?: number,
+  ): Promise<boolean> => {
+    // If no version provided, look it up from the current cache
+    let version = currentVersion;
+    if (version == null && tripId) {
+      const cached = queryClient.getQueryData<TripEvent[]>(tripKeys.calendar(tripId));
+      const existing = cached?.find(e => e.id === eventId);
+      version = existing?.version ?? undefined;
+    }
+
     try {
-      await updateEventMutation.mutateAsync({ eventId, updates });
+      await updateEventMutation.mutateAsync({ eventId, updates, currentVersion: version });
       return true;
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('PERMISSION:')) {
+        toast.error(msg.replace('PERMISSION: ', ''));
+      } else if (msg.includes('CONFLICT:') || msg.includes('modified by another user')) {
+        toast.error('This event was modified by someone else. Please refresh and try again.');
+        if (tripId) {
+          queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
+        }
+      }
       return false;
     }
   };
@@ -254,5 +305,10 @@ export const useCalendarEvents = (tripId?: string) => {
     deleteEvent,
     refreshEvents,
     getCalendarEvents,
+
+    // Permissions (for UI gating)
+    canCreateEvent: permissions.canCreateEvent,
+    canEditEvent: permissions.canEditEvent,
+    canDeleteEvent: permissions.canDeleteEvent,
   };
 };

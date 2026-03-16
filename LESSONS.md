@@ -31,6 +31,22 @@
 - **Provenance:** Messaging upgrade March 2026 — ChannelChatView threading + link preview parity
 - **Confidence:** high
 
+### Unified permission guard hook for multi-trip-type codebases
+- **Tip:** When permission models differ by trip type (consumer=open, pro=role-based, event=organizer-only), create a single `useMutationPermissions(tripId)` hook that resolves trip type once and returns flat boolean flags. Import this in every mutation hook rather than duplicating trip-type branching logic. The guard must be client-side UX only — RLS remains authoritative.
+- **Applies when:** Adding permission checks to shared hooks that serve consumer, pro, and event trips simultaneously
+- **Avoid when:** The permission model is identical across all trip types
+- **Evidence:** Stage B hardening added `useMutationPermissions` to 5 hooks (tasks, polls, calendar, basecamp, links) with zero call-site changes. Consumer trips return all-true by default, preserving existing behavior.
+- **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
+### AI tool writes should go through a pending buffer, not directly to shared state
+- **Tip:** When an AI agent (voice concierge, text concierge) wants to create shared objects (tasks, polls, calendar events), write to `trip_pending_actions` instead of directly to the target table. The user then confirms or rejects. This prevents AI hallucination-driven data corruption and gives users agency over their shared trip state. Use `tool_call_id` as idempotency key to prevent duplicate pending actions on retry.
+- **Applies when:** Any AI-initiated write to shared trip state (tasks, polls, calendar, basecamp)
+- **Avoid when:** Read-only AI operations (search, recommendations, summaries) or low-risk append-only operations (saving a link)
+- **Evidence:** Stage B routed `createTask`, `createPoll`, and `addToCalendar` through pending buffer in both `functionExecutor.ts` (edge function) and `useVoiceToolHandler.ts` (client). `savePlace` and `setBasecamp` left as direct writes (lower risk).
+- **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
 ## Recovery Tips
 
 ### Gate third-party SDK boot on preview/runtime compatibility
