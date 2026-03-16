@@ -118,6 +118,43 @@ const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null
   return response.trip ?? null;
 };
 
+const isTripMembersStatusColumnError = (message?: string): boolean => {
+  const normalizedMessage = message?.toLowerCase() ?? '';
+  return normalizedMessage.includes('status') || normalizedMessage.includes('does not exist');
+};
+
+const hasActiveTripMembership = async (tripId: string, userId: string): Promise<boolean | null> => {
+  const activeMembershipResult = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .or('status.is.null,status.eq.active')
+    .maybeSingle();
+
+  if (activeMembershipResult.error) {
+    if (!isTripMembersStatusColumnError(activeMembershipResult.error.message)) {
+      return null;
+    }
+
+    // status column may not exist in pre-migration environments.
+    const fallbackMembershipResult = await supabase
+      .from('trip_members')
+      .select('id')
+      .eq('trip_id', tripId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fallbackMembershipResult.error) {
+      return null;
+    }
+
+    return !!fallbackMembershipResult.data;
+  }
+
+  return !!activeMembershipResult.data;
+};
+
 export const tripService = {
   async createTrip(tripData: CreateTripData): Promise<Trip | null> {
     try {
@@ -466,7 +503,18 @@ export const tripService = {
     }
 
     if (data) {
-      return data;
+      const authUser = await getCachedAuthUser();
+      if (!authUser?.id) {
+        return await fetchTripByIdViaEdgeFunction(tripId);
+      }
+
+      const hasActiveMembership = await hasActiveTripMembership(tripId, authUser.id);
+      if (hasActiveMembership === true) {
+        return data;
+      }
+
+      // Missing/ambiguous membership should defer to canonical server-side access logic.
+      return await fetchTripByIdViaEdgeFunction(tripId);
     }
 
     // No error but no data could be RLS filtering; fall back to server-side access check
