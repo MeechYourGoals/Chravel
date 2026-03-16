@@ -8,8 +8,19 @@ serve(async req => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          message: 'Missing required Supabase configuration',
+        }),
+        { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } },
+      );
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
