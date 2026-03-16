@@ -95,6 +95,14 @@ class TelemetryService {
       this.providers.push(posthogProvider);
     }
 
+    // Sentry — enabled when VITE_SENTRY_DSN is set
+    if (this.config.sentry?.dsn) {
+      const { SentryProvider } = await import('./providers/sentry');
+      const sentryProvider = new SentryProvider();
+      await sentryProvider.init(this.config);
+      this.providers.push(sentryProvider);
+    }
+
     this.initialized = true;
 
     // Process any queued events

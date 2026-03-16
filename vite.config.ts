@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => ({
     // Performance optimizations
     rollupOptions: {
       // Externalize optional native-only dependencies
-      external: ['@sentry/capacitor', '@sentry/react', 'posthog-js'],
+      external: ['@sentry/capacitor', 'posthog-js'],
       output: {
         // Manual chunks for better caching
         manualChunks: {
@@ -92,6 +92,6 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
     // Exclude optional telemetry dependencies that may not be installed
-    exclude: ['@sentry/capacitor', '@sentry/react', 'posthog-js'],
+    exclude: ['@sentry/capacitor', 'posthog-js'],
   },
 }));

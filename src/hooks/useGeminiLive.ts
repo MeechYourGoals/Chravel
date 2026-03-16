@@ -13,6 +13,7 @@ import {
 import {
   logAudioContextParams,
   checkCaptureSampleRate,
+  ensureAudioContextResumed,
   AUDIO_CONTRACT,
 } from '@/voice/audioContract';
 import { telemetry } from '@/telemetry/service';
@@ -32,6 +33,12 @@ import {
   mapWsCloseError,
 } from '@/voice/liveConstants';
 import { useVoiceDiagnostics, initialDiagnostics } from '@/hooks/useVoiceDiagnostics';
+import {
+  VoiceWebSocketManager,
+  type VoiceWsCallbacks,
+  type WsModelPart,
+} from '@/voice/VoiceWebSocketManager';
+import { AdaptiveVad } from '@/voice/adaptiveVad';
 
 export type GeminiLiveState =
   | 'idle'
@@ -195,6 +202,12 @@ export function useGeminiLive({
   // Session resumption token — stored when goAway or sessionResumptionUpdate arrives.
   // Sent on reconnect to resume the conversation without losing context.
   const resumptionTokenRef = useRef<string | null>(null);
+  // iOS Safari: visibility change handler for AudioContext resume on foreground
+  const visibilityHandlerRef = useRef<(() => void) | null>(null);
+  // WebSocket manager instance for current session
+  const wsManagerRef = useRef<VoiceWebSocketManager | null>(null);
+  // Adaptive VAD for dynamic barge-in threshold
+  const vadRef = useRef<AdaptiveVad | null>(null);
 
   /** Session-level metrics accumulated for telemetry emission on cleanup. */
   const sessionMetricsRef = useRef({
@@ -247,6 +260,7 @@ export function useGeminiLive({
     (errMsg: string) => {
       sessionMetricsRef.current.lastError = errMsg;
       telemetry.track('voice_error', { trip_id: tripId, error: errMsg, phase: stateRef.current });
+      telemetry.captureError(new Error(errMsg), { trip_id: tripId, phase: stateRef.current });
       const justOpened = recordFailure(errMsg);
       if (justOpened) {
         setCircuitBreakerOpen(true);
@@ -298,6 +312,12 @@ export function useGeminiLive({
       autoReconnectTimerRef.current = null;
     }
 
+    // Remove iOS Safari visibility change listener
+    if (visibilityHandlerRef.current) {
+      document.removeEventListener('visibilitychange', visibilityHandlerRef.current);
+      visibilityHandlerRef.current = null;
+    }
+
     captureHandleRef.current?.stop();
     captureHandleRef.current = null;
 
@@ -319,19 +339,12 @@ export function useGeminiLive({
       }
     }
 
-    if (wsRef.current) {
-      wsRef.current.onopen = null;
-      wsRef.current.onmessage = null;
-      wsRef.current.onerror = null;
-      wsRef.current.onclose = null;
-      if (
-        wsRef.current.readyState === WebSocket.OPEN ||
-        wsRef.current.readyState === WebSocket.CONNECTING
-      ) {
-        wsRef.current.close();
-      }
-      wsRef.current = null;
+    // Disconnect via manager (handles timers + WS cleanup)
+    if (wsManagerRef.current) {
+      wsManagerRef.current.disconnect();
+      wsManagerRef.current = null;
     }
+    wsRef.current = null;
 
     patchDiagnostics({
       connectionStatus: 'closed',
@@ -576,6 +589,24 @@ export function useGeminiLive({
       // Kick off resume synchronously
       void audioCtxRef.current.resume().catch(() => {});
 
+      // iOS Safari: resume AudioContext when page returns to foreground
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible' && audioCtxRef.current?.state === 'suspended') {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      visibilityHandlerRef.current = handleVisibilityChange;
+
+      // iOS Safari: handle interrupted state (phone call, Siri activation)
+      audioCtxRef.current.addEventListener('statechange', () => {
+        const ctxState = audioCtxRef.current?.state;
+        patchDiagnostics({ audioContextState: ctxState ?? 'unavailable' });
+        if (ctxState === 'interrupted' || ctxState === 'suspended') {
+          audioCtxRef.current?.resume().catch(() => {});
+        }
+      });
+
       patchDiagnostics({
         audioContextState: audioCtxRef.current.state,
         audioSampleRate: audioCtxRef.current.sampleRate,
@@ -698,14 +729,8 @@ export function useGeminiLive({
       voiceLog('timing:mic', { ms: Math.round(performance.now() - sessionStartedAt) });
       patchDiagnostics({ micDeviceLabel: track?.label || null });
 
-      // Resume AudioContext again after async gap (iOS Safari)
-      if (audioCtxRef.current?.state === 'suspended') {
-        await audioCtxRef.current.resume().catch(() => {});
-      }
-      if (audioCtxRef.current?.state === 'suspended') {
-        await new Promise(r => setTimeout(r, 100));
-        await audioCtxRef.current.resume().catch(() => {});
-      }
+      // Resume AudioContext after async gap (iOS Safari suspends during getUserMedia)
+      await ensureAudioContextResumed(audioCtxRef.current);
 
       if (!audioCtxRef.current) throw new Error('Audio context lost.');
       voiceLog('audioContext:resumed', {
@@ -747,7 +772,7 @@ export function useGeminiLive({
         },
       );
 
-      // ── Gate 2: Open WebSocket directly to Vertex AI ──
+      // ── Gate 2: Open WebSocket via VoiceWebSocketManager ──
       patchDiagnostics({ substep: 'Opening audio channel…' });
       const vertexWsUrl = `${sessionData.websocketUrl}?access_token=${sessionData.accessToken}`;
       console.warn('[VOICE:G2] ws_connecting', {
@@ -761,526 +786,295 @@ export function useGeminiLive({
         audioContextState: audioCtxRef.current?.state,
         audioContextSampleRate: audioCtxRef.current?.sampleRate,
       });
-      const ws = new WebSocket(vertexWsUrl);
-      wsRef.current = ws;
 
-      // Track first N inbound WS messages for Gate 2 diagnostics
-      let wsMessageCount = 0;
-
-      let setupTimeoutId: ReturnType<typeof setTimeout> | undefined;
-      const clearSetupTimeout = () => {
-        if (setupTimeoutId !== undefined) {
-          clearTimeout(setupTimeoutId);
-          setupTimeoutId = undefined;
+      // Helper: attempt auto-reconnect if allowed
+      const tryAutoReconnect = (reason: string): boolean => {
+        if (
+          autoReconnectAllowedRef.current &&
+          autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
+          !isCircuitBreakerOpen()
+        ) {
+          autoReconnectCountRef.current += 1;
+          const attempt = autoReconnectCountRef.current;
+          voiceLog(`auto_reconnect:${reason}`, { attempt, max: MAX_AUTO_RECONNECT_RETRIES });
+          patchDiagnostics({
+            substep: `Reconnecting… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})`,
+          });
+          transition('reconnecting', 'auto_reconnect_pending');
+          setError(null);
+          void cleanup().then(() => {
+            autoReconnectTimerRef.current = setTimeout(() => {
+              autoReconnectTimerRef.current = null;
+              void startSessionRef.current();
+            }, AUTO_RECONNECT_DELAY_MS);
+          });
+          return true;
         }
+        return false;
       };
 
-      ws.onopen = () => {
-        patchDiagnostics({ connectionStatus: 'open' });
-        console.warn('[VOICE:G2] ws_opened', {
-          sessionAttemptId,
-          readyState: ws.readyState,
-          msFromStart: Math.round(performance.now() - t0),
-        });
-        debugLog('ws_open', {});
-        voiceLog('ws:opened', { readyState: ws.readyState });
-        voiceLog('timing:wsOpen', { ms: Math.round(performance.now() - sessionStartedAt) });
+      const wsCallbacks: VoiceWsCallbacks = {
+        onOpen: () => {
+          patchDiagnostics({ connectionStatus: 'open' });
+          debugLog('ws_open', {});
+        },
+        onSetupComplete: () => {
+          voiceLog('ws:setupComplete', { sessionId });
+          isStartingRef.current = false;
+          transition('ready', 'setup_complete');
+          patchDiagnostics({ substep: null });
 
-        // Send setup message directly to Vertex AI — session endpoint built it for us
-        if (ws.readyState === WebSocket.OPEN) {
-          console.warn('[VOICE:G2] sending_setup', { sessionAttemptId });
-          ws.send(JSON.stringify(sessionData.setupMessage));
-        }
-        setupTimeoutId = setTimeout(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`;
-            console.warn('[VOICE:G2] ws_setup_timeout', {
-              sessionAttemptId,
-              wsMessageCount,
-              msFromStart: Math.round(performance.now() - t0),
-            });
-            recordVoiceFailure(msg);
+          // Initialize adaptive VAD for this session
+          vadRef.current = new AdaptiveVad();
 
-            // Auto-reconnect only if we've had a prior successful session
-            if (
-              autoReconnectAllowedRef.current &&
-              autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
-              !isCircuitBreakerOpen()
-            ) {
-              autoReconnectCountRef.current += 1;
-              const attempt = autoReconnectCountRef.current;
-              voiceLog('auto_reconnect:setup_timeout', {
-                attempt,
-                max: MAX_AUTO_RECONNECT_RETRIES,
-              });
-              patchDiagnostics({
-                substep: `Reconnecting… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})`,
-              });
-              transition('reconnecting', 'auto_reconnect_pending');
-              setError(null);
-              void cleanup().then(() => {
-                autoReconnectTimerRef.current = setTimeout(() => {
-                  autoReconnectTimerRef.current = null;
-                  void startSessionRef.current();
-                }, AUTO_RECONNECT_DELAY_MS);
-              });
-              return;
-            }
-
-            onErrorRef.current?.(msg);
-            setError(msg);
-            transition('error', 'setup_timeout');
-            void cleanup();
-          }
-        }, WEBSOCKET_SETUP_TIMEOUT_MS);
-      };
-
-      ws.onmessage = event => {
-        try {
-          const data = JSON.parse(event.data);
-          wsMessageCount += 1;
-
-          // Gate 2: Log first 5 inbound message types
-          if (wsMessageCount <= 5) {
-            console.warn(`[VOICE:G2] ws_message_${wsMessageCount}`, {
-              sessionAttemptId,
-              keys: Object.keys(data),
-              hasSetupComplete:
-                Object.prototype.hasOwnProperty.call(data, 'setupComplete') ||
-                Object.prototype.hasOwnProperty.call(data, 'setup_complete'),
-              hasError: !!data.error,
-            });
-          }
-
-          if (data.error) {
-            voiceLog('ws:serverError', { code: data.error?.code, message: data.error?.message });
-            clearSetupTimeout();
-            const code: number | undefined = data.error?.code;
-            const serverMsg = String(data.error?.message || 'Voice session error');
-            const userMsg =
-              code === 429
-                ? 'Voice rate limit reached — please wait a moment and try again.'
-                : code === 503
-                  ? 'Voice service temporarily unavailable — please try again.'
-                  : mapSessionError(serverMsg);
-            recordVoiceFailure(userMsg);
-            onErrorRef.current?.(userMsg);
-            setError(userMsg);
-            patchDiagnostics({ lastError: userMsg, connectionStatus: 'error' });
-            transition('error', 'server_error');
-            void cleanup();
-            return;
-          }
-
-          // Handle goAway — server signals session is ending soon.
-          // Store resumption token if provided for future reconnection.
-          const goAwayData = data.goAway || data.go_away;
-          if (goAwayData) {
-            const timeLeft = goAwayData.timeLeft || goAwayData.time_left;
-            voiceLog('server:goAway', { timeLeft });
-            console.warn('[VOICE:G2] go_away_received', {
-              sessionAttemptId,
-              timeLeft,
-            });
-            // Store session resumption token if provided (for future reconnect support)
-            const resumptionToken =
-              goAwayData.sessionResumptionToken || goAwayData.session_resumption_token;
-            if (resumptionToken) {
-              resumptionTokenRef.current = resumptionToken;
-              voiceLog('server:resumptionToken', { hasToken: true });
-            }
-            onErrorRef.current?.('Voice session ending soon. You may need to restart.');
-            patchDiagnostics({ lastError: 'Session ending (goAway received)' });
-          }
-
-          // Handle session resumption updates
-          const resumptionUpdate = data.sessionResumptionUpdate || data.session_resumption_update;
-          if (resumptionUpdate) {
-            const token = resumptionUpdate.newHandle || resumptionUpdate.new_handle;
-            if (token) {
-              resumptionTokenRef.current = token;
-              voiceLog('server:resumptionUpdate', { hasToken: true });
-            }
-          }
-
-          // Vertex AI may use snake_case field names; handle both conventions
-          const sc_content = data.serverContent || data.server_content;
-          const setupComplete =
-            Object.prototype.hasOwnProperty.call(data, 'setupComplete') ||
-            Object.prototype.hasOwnProperty.call(data, 'setup_complete') ||
-            (sc_content != null &&
-              (Object.prototype.hasOwnProperty.call(sc_content, 'setupComplete') ||
-                Object.prototype.hasOwnProperty.call(sc_content, 'setup_complete')));
-
-          if (setupComplete) {
-            console.warn('[VOICE:G2] ws_setup_complete', {
-              sessionAttemptId,
-              msFromStart: Math.round(performance.now() - t0),
-            });
-            voiceLog('ws:setupComplete', {
-              sessionId,
-              audioContextState: audioCtxRef.current?.state,
-              hasMediaStream: !!mediaStreamRef.current,
-            });
-            voiceLog('timing:setupComplete', {
-              ms: Math.round(performance.now() - sessionStartedAt),
-            });
-            clearSetupTimeout();
-            isStartingRef.current = false;
-
-            // No session expiry timer needed — Vertex AI access tokens last 1hr
-            // and the session will send goAway before expiry. On reconnect we
-            // fetch a fresh token from gemini-voice-session.
-
-            // Start keepalive ping — sends an empty audio chunk periodically to keep
-            // the WebSocket alive and detect dead connections before the browser's
-            // built-in timeout (often 60s+). If the WS is no longer open, the
-            // interval self-clears.
-            keepaliveIntervalRef.current = setInterval(() => {
-              if (ws.readyState !== WebSocket.OPEN) {
-                if (keepaliveIntervalRef.current) {
-                  clearInterval(keepaliveIntervalRef.current);
-                  keepaliveIntervalRef.current = null;
-                }
-                return;
-              }
-              ws.send(
-                JSON.stringify({
-                  realtimeInput: {
-                    mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: SILENT_KEEPALIVE_FRAME }],
+          if (audioCtxRef.current && mediaStreamRef.current) {
+            const currentWs = wsManagerRef.current;
+            void (async () => {
+              try {
+                captureHandleRef.current = await startAudioCapture(
+                  mediaStreamRef.current!,
+                  audioCtxRef.current!,
+                  (base64PCM: string) => {
+                    if (
+                      !currentWs?.getWebSocket() ||
+                      currentWs.getWebSocket()?.readyState !== WebSocket.OPEN
+                    )
+                      return;
+                    if (
+                      turnStartedAtRef.current &&
+                      diagnosticsRef.current.metrics.firstAudioChunkSentMs === null
+                    ) {
+                      patchMetrics({
+                        firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
+                      });
+                    }
+                    if (stateRef.current === 'ready' || stateRef.current === 'listening') {
+                      transition('sending', 'audio_chunk_sent');
+                    }
+                    currentWs.sendAudio(base64PCM);
                   },
-                }),
-              );
-              voiceLog('keepalive:sent', {});
-            }, WS_KEEPALIVE_INTERVAL_MS);
-
-            transition('ready', 'setup_complete');
-            patchDiagnostics({ substep: null });
-
-            if (audioCtxRef.current && mediaStreamRef.current) {
-              void (async () => {
-                try {
-                  captureHandleRef.current = await startAudioCapture(
-                    mediaStreamRef.current!,
-                    audioCtxRef.current!,
-                    (base64PCM: string) => {
-                      if (ws.readyState !== WebSocket.OPEN) return;
-                      if (
-                        turnStartedAtRef.current &&
-                        diagnosticsRef.current.metrics.firstAudioChunkSentMs === null
-                      ) {
-                        patchMetrics({
-                          firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
-                        });
-                        console.warn('[VOICE:G3] first_audio_sent', { sessionAttemptId });
+                  rms => {
+                    micRmsRef.current = rms;
+                    // Feed calibration frames to adaptive VAD during initial listening
+                    const vad = vadRef.current;
+                    if (vad && !vad.isCalibrated()) {
+                      vad.calibrate(rms);
+                      if (vad.isCalibrated()) {
+                        voiceLog('vad:calibrated', { threshold: vad.getThreshold() });
                       }
-                      if (stateRef.current === 'ready' || stateRef.current === 'listening') {
-                        transition('sending', 'audio_chunk_sent');
-                      }
-                      ws.send(
-                        JSON.stringify({
-                          realtimeInput: {
-                            mediaChunks: [{ mimeType: LIVE_INPUT_MIME, data: base64PCM }],
-                          },
-                        }),
-                      );
-                    },
-                    rms => {
-                      micRmsRef.current = rms;
-                      if (rms > BARGE_IN_RMS_THRESHOLD && modelRespondingRef.current) {
-                        flushModelOutput();
-                        sendCancelSignal();
-                        sessionMetricsRef.current.bargeInCount += 1;
-                        telemetry.track('voice_barge_in', { trip_id: tripId });
-                        transition('interrupted', 'barge_in_detected');
-                        transition('listening', 'resume_after_interrupt');
-                      }
-                    },
-                    { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
-                  );
-                  // Successful capture → mark session successful
-                  recordCircuitBreakerSuccess();
-                  hasHadSuccessfulSessionRef.current = true;
-                  autoReconnectAllowedRef.current = true;
-                  sessionMetricsRef.current = {
-                    startedAt: Date.now(),
-                    turnCount: 0,
-                    toolCallCount: 0,
-                    bargeInCount: 0,
-                    reconnects: autoReconnectCountRef.current,
-                    closeCode: null,
-                    lastError: null,
-                  };
-                  telemetry.track('voice_session_started', {
-                    trip_id: tripId,
-                    voice,
-                    auto_reconnect_attempt: autoReconnectCountRef.current,
-                  });
-                  autoReconnectCountRef.current = 0;
-                  startRmsFlush();
-                  transition('listening', 'capture_started');
-                } catch (captureErr) {
-                  const msg =
-                    captureErr instanceof Error
-                      ? captureErr.message
-                      : 'Failed to start audio capture';
-                  recordVoiceFailure(msg);
-                  onErrorRef.current?.(msg);
-                  setError(msg);
-                  transition('error', 'capture_failed');
-                  void cleanup();
-                }
-              })();
-            } else {
-              startRmsFlush();
-              transition('listening', 'capture_started');
-            }
-            return;
-          }
-
-          // Handle tool calls (both camelCase and snake_case)
-          const toolCallData = data.toolCall || data.tool_call;
-          if (toolCallData) {
-            const fnCalls = toolCallData.functionCalls || toolCallData.function_calls || [];
-            voiceLog('server:toolCall', {
-              functions: (fnCalls as Array<{ name: string }>).map(fc => fc.name),
-            });
-            void handleToolCallWs(ws, {
-              functionCalls: fnCalls,
-            });
-            return;
-          }
-
-          // Handle server content (both camelCase and snake_case)
-          const rawSc = data.serverContent || data.server_content;
-          if (rawSc) {
-            const sc = rawSc;
-
-            if (sc.interrupted) {
-              flushModelOutput();
-              voiceLog('server:interrupted');
-              playbackQueueRef.current?.flush();
-              clearThinkingTimer();
-              modelRespondingRef.current = false;
-              if (cancelStartedAtRef.current) {
-                patchMetrics({ cancelLatencyMs: performance.now() - cancelStartedAtRef.current });
-                cancelStartedAtRef.current = null;
-              }
-
-              const partialUser = userTranscriptAccRef.current.trim();
-              const partialAssistant = assistantTranscriptAccRef.current.trim();
-              emitTurnComplete(partialUser, partialAssistant);
-
-              resetTurnAccumulators();
-              transition('interrupted', 'server_interrupted');
-              transition('listening', 'awaiting_next_turn');
-              return;
-            }
-
-            // Vertex AI may use snake_case (model_turn, inline_data) while
-            // AI Studio uses camelCase (modelTurn, inlineData). Handle both.
-            const modelTurn = sc.modelTurn || sc.model_turn;
-            const parts = modelTurn?.parts || [];
-            if (parts.length > 0 && !modelRespondingRef.current) {
-              modelRespondingRef.current = true;
-              if (
-                turnStartedAtRef.current &&
-                diagnosticsRef.current.metrics.firstTokenReceivedMs === null
-              ) {
-                patchMetrics({
-                  firstTokenReceivedMs: performance.now() - turnStartedAtRef.current,
+                    }
+                    // Use adaptive VAD for barge-in if calibrated, else static threshold
+                    const isVoice = vad ? vad.detect(rms) : rms > BARGE_IN_RMS_THRESHOLD;
+                    if (isVoice && modelRespondingRef.current) {
+                      flushModelOutput();
+                      sendCancelSignal();
+                      sessionMetricsRef.current.bargeInCount += 1;
+                      telemetry.track('voice_barge_in', { trip_id: tripId });
+                      transition('interrupted', 'barge_in_detected');
+                      transition('listening', 'resume_after_interrupt');
+                    }
+                  },
+                  { diagnosticsEnabled: VOICE_DIAGNOSTICS_ENABLED },
+                );
+                recordCircuitBreakerSuccess();
+                hasHadSuccessfulSessionRef.current = true;
+                autoReconnectAllowedRef.current = true;
+                sessionMetricsRef.current = {
+                  startedAt: Date.now(),
+                  turnCount: 0,
+                  toolCallCount: 0,
+                  bargeInCount: 0,
+                  reconnects: autoReconnectCountRef.current,
+                  closeCode: null,
+                  lastError: null,
+                };
+                telemetry.track('voice_session_started', {
+                  trip_id: tripId,
+                  voice,
+                  auto_reconnect_attempt: autoReconnectCountRef.current,
                 });
-                console.warn('[VOICE:G3] first_audio_received', { sessionAttemptId });
+                autoReconnectCountRef.current = 0;
+                startRmsFlush();
+                transition('listening', 'capture_started');
+              } catch (captureErr) {
+                const msg =
+                  captureErr instanceof Error
+                    ? captureErr.message
+                    : 'Failed to start audio capture';
+                recordVoiceFailure(msg);
+                onErrorRef.current?.(msg);
+                setError(msg);
+                transition('error', 'capture_failed');
+                void cleanup();
               }
-            }
-
-            for (const part of parts) {
-              const inlineData = part.inlineData || part.inline_data;
-              if (inlineData?.data) {
-                // Proactive audio: model may speak first without user input.
-                // Resume AudioContext (required on iOS after user gesture) and
-                // transition to playing regardless of prior state.
-                transition('playing', 'model_audio_received');
-                void audioCtxRef.current?.resume().catch(() => {});
-                if (!modelRespondingRef.current) {
-                  voiceLog('server:firstAudioChunk', {
-                    mimeType: inlineData.mimeType || inlineData.mime_type,
-                    dataLen: inlineData.data.length,
-                    proactive: !userHasSpokenRef.current,
-                  });
-                }
-                setState('playing');
-                playbackQueueRef.current?.enqueue(inlineData.data);
-              }
-              if (typeof part.text === 'string' && part.text.length > 0) {
-                transition('playing', 'model_text_received');
-                assistantTranscriptAccRef.current += part.text;
-                setAssistantTranscript(assistantTranscriptAccRef.current);
-              }
-            }
-
-            // Handle input transcript (user speech-to-text)
-            const inputTranscript = sc.inputTranscript || sc.input_transcript;
-            if (inputTranscript) {
-              clearThinkingTimer();
-              const transcript =
-                typeof inputTranscript === 'string' ? inputTranscript : inputTranscript?.text || '';
-              if (transcript) {
-                userHasSpokenRef.current = true;
-                // Smoothing: only update if new transcript adds content.
-                // Vertex AI may re-send a shorter correction mid-utterance;
-                // keep the longer version to avoid jarring text shrink.
-                const prev = userTranscriptAccRef.current;
-                if (transcript.length >= prev.length || !prev.startsWith(transcript)) {
-                  userTranscriptAccRef.current = transcript;
-                  setUserTranscript(transcript);
-                }
-                transition('listening', 'input_transcript');
-                thinkingTimerRef.current = setTimeout(() => {
-                  if (stateRef.current === 'listening') transition('sending', 'thinking_timeout');
-                }, THINKING_DELAY_MS);
-              }
-            }
-
-            // Handle output transcript (AI speech-to-text).
-            // outputTranscript is the authoritative server-side transcription of
-            // the model's audio. It replaces (not appends to) any text accumulated
-            // from modelTurn parts, which may be partial or absent for audio-only
-            // responses. This prevents duplicate text in the UI.
-            const outputTranscript = sc.outputTranscript || sc.output_transcript;
-            if (outputTranscript) {
-              const transcript =
-                typeof outputTranscript === 'string'
-                  ? outputTranscript
-                  : outputTranscript?.text || '';
-              if (transcript) {
-                assistantTranscriptAccRef.current = transcript;
-                setAssistantTranscript(transcript);
-              }
-            }
-
-            const isTurnComplete = sc.turnComplete || sc.turn_complete;
-            if (isTurnComplete) {
-              // Do NOT flush playback here — Gemini sends turnComplete when it
-              // finishes *generating*, but audio buffers may still be scheduled
-              // for playback. Flushing here cuts off the AI mid-sentence.
-              // Flush only happens on: barge-in, manual interrupt, endSession.
-              clearThinkingTimer();
-              voiceLog('server:turnComplete', {
-                userText: userTranscriptAccRef.current.slice(0, 50),
-                assistantText: assistantTranscriptAccRef.current.slice(0, 50),
+            })();
+          } else {
+            startRmsFlush();
+            transition('listening', 'capture_started');
+          }
+        },
+        onSetupTimeout: (msgCount: number) => {
+          const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${msgCount} messages). Please try again.`;
+          recordVoiceFailure(msg);
+          if (tryAutoReconnect('setup_timeout')) return true;
+          onErrorRef.current?.(msg);
+          setError(msg);
+          transition('error', 'setup_timeout');
+          void cleanup();
+          return true;
+        },
+        onServerError: err => {
+          recordVoiceFailure(err.userMessage);
+          onErrorRef.current?.(err.userMessage);
+          setError(err.userMessage);
+          patchDiagnostics({ lastError: err.userMessage, connectionStatus: 'error' });
+          transition('error', 'server_error');
+          void cleanup();
+        },
+        onGoAway: data => {
+          if (data.resumptionToken) {
+            resumptionTokenRef.current = data.resumptionToken;
+          }
+          onErrorRef.current?.('Voice session ending soon. You may need to restart.');
+          patchDiagnostics({ lastError: 'Session ending (goAway received)' });
+        },
+        onResumptionUpdate: data => {
+          resumptionTokenRef.current = data.token;
+        },
+        onInterrupted: () => {
+          flushModelOutput();
+          playbackQueueRef.current?.flush();
+          clearThinkingTimer();
+          modelRespondingRef.current = false;
+          if (cancelStartedAtRef.current) {
+            patchMetrics({ cancelLatencyMs: performance.now() - cancelStartedAtRef.current });
+            cancelStartedAtRef.current = null;
+          }
+          const partialUser = userTranscriptAccRef.current.trim();
+          const partialAssistant = assistantTranscriptAccRef.current.trim();
+          emitTurnComplete(partialUser, partialAssistant);
+          resetTurnAccumulators();
+          transition('interrupted', 'server_interrupted');
+          transition('listening', 'awaiting_next_turn');
+        },
+        onModelParts: (parts: WsModelPart[]) => {
+          if (parts.length > 0 && !modelRespondingRef.current) {
+            modelRespondingRef.current = true;
+            if (
+              turnStartedAtRef.current &&
+              diagnosticsRef.current.metrics.firstTokenReceivedMs === null
+            ) {
+              patchMetrics({
+                firstTokenReceivedMs: performance.now() - turnStartedAtRef.current,
               });
-              sessionMetricsRef.current.turnCount += 1;
-
-              const finalUser = userTranscriptAccRef.current.trim();
-              const finalAssistant = assistantTranscriptAccRef.current.trim();
-              emitTurnComplete(finalUser, finalAssistant);
-
-              // Clear accumulators immediately so ws.onclose won't re-emit
-              // the same turn if the socket drops during the playback tail.
-              userTranscriptAccRef.current = '';
-              assistantTranscriptAccRef.current = '';
-              userHasSpokenRef.current = false;
-
-              // If playback already drained (very short response or text-only),
-              // transition immediately. Otherwise, keep modelRespondingRef true
-              // so barge-in stays active during the audio tail, and let the
-              // AudioPlaybackQueue.onDrain callback handle the transition.
-              if (!playbackQueueRef.current?.isPlaying) {
+            }
+          }
+          for (const part of parts) {
+            if (part.audioData) {
+              transition('playing', 'model_audio_received');
+              void audioCtxRef.current?.resume().catch(() => {});
+              setState('playing');
+              playbackQueueRef.current?.enqueue(part.audioData);
+            }
+            if (part.text && part.text.length > 0) {
+              transition('playing', 'model_text_received');
+              assistantTranscriptAccRef.current += part.text;
+              setAssistantTranscript(assistantTranscriptAccRef.current);
+            }
+          }
+        },
+        onInputTranscript: data => {
+          clearThinkingTimer();
+          userHasSpokenRef.current = true;
+          const prev = userTranscriptAccRef.current;
+          if (data.text.length >= prev.length || !prev.startsWith(data.text)) {
+            userTranscriptAccRef.current = data.text;
+            setUserTranscript(data.text);
+          }
+          transition('listening', 'input_transcript');
+          thinkingTimerRef.current = setTimeout(() => {
+            if (stateRef.current === 'listening') transition('sending', 'thinking_timeout');
+          }, THINKING_DELAY_MS);
+        },
+        onOutputTranscript: data => {
+          assistantTranscriptAccRef.current = data.text;
+          setAssistantTranscript(data.text);
+        },
+        onTurnComplete: () => {
+          clearThinkingTimer();
+          voiceLog('server:turnComplete', {
+            userText: userTranscriptAccRef.current.slice(0, 50),
+            assistantText: assistantTranscriptAccRef.current.slice(0, 50),
+          });
+          sessionMetricsRef.current.turnCount += 1;
+          const finalUser = userTranscriptAccRef.current.trim();
+          const finalAssistant = assistantTranscriptAccRef.current.trim();
+          emitTurnComplete(finalUser, finalAssistant);
+          userTranscriptAccRef.current = '';
+          assistantTranscriptAccRef.current = '';
+          userHasSpokenRef.current = false;
+          if (!playbackQueueRef.current?.isPlaying) {
+            modelRespondingRef.current = false;
+            resetTurnAccumulators();
+            resetMetricsForNewTurn();
+            transition('listening', 'turn_complete');
+          } else {
+            turnCompleteReceivedRef.current = true;
+            drainTimeoutRef.current = setTimeout(() => {
+              if (turnCompleteReceivedRef.current) {
+                voiceLog('playback:drain_timeout', {});
+                turnCompleteReceivedRef.current = false;
                 modelRespondingRef.current = false;
                 resetTurnAccumulators();
                 resetMetricsForNewTurn();
-                transition('listening', 'turn_complete');
-              } else {
-                turnCompleteReceivedRef.current = true;
-                // Safety: if onDrain doesn't fire within 5s (e.g. AudioContext
-                // issue), force the transition so we don't get stuck.
-                drainTimeoutRef.current = setTimeout(() => {
-                  if (turnCompleteReceivedRef.current) {
-                    voiceLog('playback:drain_timeout', {});
-                    turnCompleteReceivedRef.current = false;
-                    modelRespondingRef.current = false;
-                    resetTurnAccumulators();
-                    resetMetricsForNewTurn();
-                    transition('listening', 'turn_complete_drain_timeout');
-                  }
-                }, 5_000);
+                transition('listening', 'turn_complete_drain_timeout');
               }
-            }
+            }, 5_000);
           }
-        } catch {
-          // Ignore malformed frames
-        }
-      };
-
-      ws.onerror = ev => {
-        console.warn('[VOICE:G2] ws_error', {
-          sessionAttemptId,
-          type: (ev as ErrorEvent).message ?? 'unknown',
-        });
-        voiceLog('ws:error', { sessionId, type: (ev as ErrorEvent).message ?? 'unknown' });
-        clearSetupTimeout();
-        patchDiagnostics({ connectionStatus: 'error' });
-      };
-
-      ws.onclose = event => {
-        console.warn('[VOICE:G2] ws_closed', {
-          sessionAttemptId,
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-        });
-        voiceLog('ws:closed', { code: event.code, reason: event.reason, wasClean: event.wasClean });
-        clearSetupTimeout();
-        sessionMetricsRef.current.closeCode = event.code;
-        const msg = mapWsCloseError(event.code, event.reason);
-        patchDiagnostics({
-          connectionStatus: 'closed',
-          wsCloseCode: event.code,
-          wsCloseReason: event.reason || null,
-          reconnectAttempts: diagnosticsRef.current.reconnectAttempts + 1,
-        });
-
-        const pendingUser = userTranscriptAccRef.current.trim();
-        const pendingAssistant = assistantTranscriptAccRef.current.trim();
-        emitTurnComplete(pendingUser, pendingAssistant);
-
-        if (msg) {
-          recordVoiceFailure(msg);
-
-          // Auto-reconnect only if we've had a successful session before and retries remain
-          if (
-            autoReconnectAllowedRef.current &&
-            autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
-            !isCircuitBreakerOpen()
-          ) {
-            autoReconnectCountRef.current += 1;
-            const attempt = autoReconnectCountRef.current;
-            voiceLog('auto_reconnect:scheduling', { attempt, max: MAX_AUTO_RECONNECT_RETRIES });
-            patchDiagnostics({
-              substep: `Reconnecting… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})`,
-            });
-            transition('reconnecting', 'auto_reconnect_pending');
-            setError(null);
-            void cleanup().then(() => {
-              autoReconnectTimerRef.current = setTimeout(() => {
-                autoReconnectTimerRef.current = null;
-                voiceLog('auto_reconnect:starting', {});
-                void startSessionRef.current();
-              }, AUTO_RECONNECT_DELAY_MS);
-            });
-            return;
+        },
+        onToolCall: data => {
+          const ws = wsManagerRef.current?.getWebSocket();
+          if (ws) {
+            void handleToolCallWs(ws, { functionCalls: data.functionCalls });
           }
-
-          onErrorRef.current?.(msg);
-          setError(msg);
-          patchDiagnostics({ lastError: msg });
-          transition('error', 'ws_closed_with_error');
-        } else {
-          transition('idle', 'ws_closed_cleanly');
-        }
-        void cleanup();
+        },
+        onError: () => {
+          patchDiagnostics({ connectionStatus: 'error' });
+        },
+        onClose: (code, reason, errMsg) => {
+          sessionMetricsRef.current.closeCode = code;
+          patchDiagnostics({
+            connectionStatus: 'closed',
+            wsCloseCode: code,
+            wsCloseReason: reason || null,
+            reconnectAttempts: diagnosticsRef.current.reconnectAttempts + 1,
+          });
+          const pendingUser = userTranscriptAccRef.current.trim();
+          const pendingAssistant = assistantTranscriptAccRef.current.trim();
+          emitTurnComplete(pendingUser, pendingAssistant);
+          if (errMsg) {
+            recordVoiceFailure(errMsg);
+            if (tryAutoReconnect('ws_close')) return;
+            onErrorRef.current?.(errMsg);
+            setError(errMsg);
+            patchDiagnostics({ lastError: errMsg });
+            transition('error', 'ws_closed_with_error');
+          } else {
+            transition('idle', 'ws_closed_cleanly');
+          }
+          void cleanup();
+        },
       };
+
+      const manager = new VoiceWebSocketManager({
+        callbacks: wsCallbacks,
+        sessionAttemptId,
+        setupMessage: sessionData.setupMessage,
+        t0,
+      });
+      wsManagerRef.current = manager;
+      const ws = manager.connect(vertexWsUrl);
+      wsRef.current = ws;
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
       recordVoiceFailure(errMsg);

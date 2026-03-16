@@ -17,6 +17,7 @@ export default tseslint.config(
       'node_modules/**',
       '.ai/**',
       'docs/**',
+      'load-tests/**',
       'capacitor.config.ts',
       '*.config.js',
       '*.config.ts',
