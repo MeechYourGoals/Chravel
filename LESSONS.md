@@ -79,3 +79,10 @@
 - **Evidence:** Repo migration corpus shows repeated edits of critical tables and mixed-purpose migrations, increasing rollout coupling risk.
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
+
+### QA confidence drift happens when docs describe planned suites as implemented
+- **Tip:** Keep E2E documentation split into explicit implemented vs planned sections and enforce with a lightweight CI doc-drift script.
+- **Applies when:** Large test architecture transitions where some suites are roadmap-only.
+- **Evidence:** Chravel had roadmap-level suite structure in E2E docs; guardrails were added to validate documented implemented suites.
+- **Provenance:** March 2026 QA governance hardening pass.
+- **Confidence:** high
