@@ -122,11 +122,11 @@ serve(async (req: Request) => {
       try {
         const { data: tripData } = await supabase
           .from('trips')
-          .select('latitude, longitude')
+          .select('basecamp_latitude, basecamp_longitude')
           .eq('id', tripIdStr)
           .maybeSingle();
-        if (tripData?.latitude && tripData?.longitude) {
-          locationContext = { lat: tripData.latitude, lng: tripData.longitude };
+        if (tripData?.basecamp_latitude && tripData?.basecamp_longitude) {
+          locationContext = { lat: tripData.basecamp_latitude, lng: tripData.basecamp_longitude };
         }
       } catch {
         // Non-critical — tools still work without location bias

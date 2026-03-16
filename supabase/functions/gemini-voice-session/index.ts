@@ -205,12 +205,11 @@ serve(async req => {
       contextWindowCompression: { slidingWindow: {} },
     };
 
-    // Session resumption
+    // Session resumption — only include when we have a token.
+    // Sending an empty object can cause rejection on some Vertex AI versions.
     if (resumptionToken) {
       setupConfig.sessionResumption = { handle: resumptionToken };
       console.log(`${tag} Including session resumption token`);
-    } else {
-      setupConfig.sessionResumption = {};
     }
 
     // Mode 2+: tools (OFF by default in Phase A)

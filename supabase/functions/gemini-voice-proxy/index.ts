@@ -259,7 +259,7 @@ serve(async (req: Request) => {
           inputAudioTranscription: {},
           outputAudioTranscription: {},
           contextWindowCompression: { slidingWindow: {} },
-          sessionResumption: resumptionToken ? { handle: resumptionToken } : {},
+          ...(resumptionToken ? { sessionResumption: { handle: resumptionToken } } : {}),
         };
 
         // Mode 2+: tools (OFF by default in Phase A)
