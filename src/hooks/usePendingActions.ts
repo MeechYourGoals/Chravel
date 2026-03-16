@@ -140,7 +140,8 @@ export function usePendingActions(tripId: string) {
       }
 
       // Mark as confirmed — re-check status to prevent TOCTOU race
-      const { error: updateError } = await supabase
+      // intentional: trip_pending_actions not yet in generated Supabase types
+      const { error: updateError } = await (supabase as any)
         .from('trip_pending_actions')
         .update({
           status: 'confirmed',
