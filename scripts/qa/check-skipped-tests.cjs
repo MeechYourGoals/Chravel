@@ -41,7 +41,9 @@ const unexpected = [...skippedFiles].filter(file => !allowlist.has(file));
 if (unexpected.length > 0) {
   console.error('❌ New skipped tests detected in critical suites (not in allowlist):');
   for (const file of unexpected.sort()) console.error(`  - ${file}`);
-  console.error('\nIf this is truly temporary, add file to qa/journeys/skip-allowlist.json with a follow-up issue.');
+  console.error(
+    '\nIf this is truly temporary, add file to qa/journeys/skip-allowlist.json with a follow-up issue.',
+  );
   process.exit(1);
 }
 
