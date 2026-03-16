@@ -150,7 +150,6 @@ export const useTripTasks = (
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const permissions = useMutationPermissions(tripId);
-  // Idempotency key generated inline in mutationFn to avoid concurrent-mutation ref collision
 
   // Task form management state
   const [title, setTitle] = useState('');
@@ -620,7 +619,7 @@ export const useTripTasks = (
 
       const userProfile = profileResult.data;
 
-      // Idempotency key set in onMutate (once per user intent, stable across retries)
+      // Idempotency key: unique per mutation call to prevent duplicate inserts
       const { data: newTask, error } = await supabase
         .from('trip_tasks')
         .insert({
@@ -675,10 +674,10 @@ export const useTripTasks = (
         );
       }
       const postInsertResults = await Promise.all(postInsertOps);
-      const taskStatusError = postInsertResults[0]?.error;
-      if (taskStatusError) {
+      const postInsertError = postInsertResults.find(r => r.error)?.error;
+      if (postInsertError) {
         throw new Error(
-          (taskStatusError as { message?: string }).message ||
+          (postInsertError as { message?: string }).message ||
             'Failed to initialize task assignments',
         );
       }
