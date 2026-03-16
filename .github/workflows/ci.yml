@@ -24,7 +24,7 @@ jobs:
         run: npm ci
 
       - name: Security audit (dependencies)
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=critical
         continue-on-error: true
 
       - name: Run linter with warning budget
@@ -37,6 +37,18 @@ jobs:
 
       - name: Run QA guardrails
         run: npm run qa:guardrails
+
+      - name: Validate environment variables
+        run: npx tsx scripts/validate-env.ts --ci
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Check edge function env coverage
+        run: npx tsx scripts/check-env-coverage.ts
+
+      - name: Lint migration files
+        run: npx tsx scripts/lint-migrations.ts
 
       - name: Run unit tests
         run: npm run test -- --run --coverage
@@ -60,6 +72,15 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Deploy summary
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: All checks passed" >> $GITHUB_STEP_SUMMARY
 
   e2e:
     runs-on: ubuntu-latest

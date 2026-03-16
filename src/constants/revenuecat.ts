@@ -9,8 +9,8 @@
 
 import type { SubscriptionTier } from '@/billing/types';
 
-// RevenueCat feature flag - enable when iOS/Android builds are ready
-export const REVENUECAT_ENABLED = import.meta.env.VITE_REVENUECAT_ENABLED === 'true' || true;
+// RevenueCat feature flag - defaults to true; set VITE_REVENUECAT_ENABLED=false to disable
+export const REVENUECAT_ENABLED = import.meta.env.VITE_REVENUECAT_ENABLED !== 'false';
 
 // Platform-specific API keys — must be set via environment variables.
 // iOS:     set VITE_REVENUECAT_IOS_API_KEY in .env / Vercel / Render dashboard

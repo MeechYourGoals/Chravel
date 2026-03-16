@@ -63,13 +63,9 @@ export const initRevenueCat = async (): Promise<void> => {
     return;
   }
 
-  try {
-    const userId = getOrCreateUserId();
-    Purchases.configure(REVENUECAT_API_KEY, userId);
-    isInitialized = true;
-  } catch (error) {
-    throw error;
-  }
+  const userId = getOrCreateUserId();
+  Purchases.configure(REVENUECAT_API_KEY, userId);
+  isInitialized = true;
 };
 
 /**
