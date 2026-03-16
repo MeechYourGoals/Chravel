@@ -291,7 +291,8 @@ export const useTripPolls = (tripId: string) => {
         voters: [],
       }));
 
-      // Idempotency key: unique per mutation call to prevent duplicate inserts
+      // Idempotency key: generated per mutationFn call. Safe because mutations use retry:false
+      // (TanStack default) and HTTP-level retries reuse the same request body.
       const { data, error } = await supabase
         .from('trip_polls')
         .insert({

@@ -278,6 +278,7 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
 export function useClearTripBasecamp(tripId: string | undefined) {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
+  const permissions = useMutationPermissions(tripId || '');
 
   return useMutation({
     // Disable retries to prevent hanging on repeated failures
@@ -286,6 +287,11 @@ export function useClearTripBasecamp(tripId: string | undefined) {
     mutationFn: async () => {
       if (!tripId) {
         throw new Error('No tripId provided');
+      }
+
+      // Permission guard: pro/event trips restrict basecamp to admins/organizers
+      if (!permissions.canSetBasecamp && !isDemoMode) {
+        throw new Error('PERMISSION: Only admins can clear the basecamp for this trip.');
       }
 
       if (isDemoMode) {

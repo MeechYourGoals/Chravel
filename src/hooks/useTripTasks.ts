@@ -619,7 +619,8 @@ export const useTripTasks = (
 
       const userProfile = profileResult.data;
 
-      // Idempotency key: unique per mutation call to prevent duplicate inserts
+      // Idempotency key: generated per mutationFn call. Safe because mutations use retry:false
+      // (TanStack default) and HTTP-level retries reuse the same request body.
       const { data: newTask, error } = await supabase
         .from('trip_tasks')
         .insert({
@@ -815,12 +816,12 @@ export const useTripTasks = (
       // Try versioned RPC first for concurrent edit protection
       let updatedTask: unknown = null;
       if (currentVersion != null) {
+        // p_creator_id removed: RPC now uses auth.uid() server-side (see 20260316100000_fix_task_rpc_auth.sql)
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           'update_task_with_version',
           {
             p_task_id: taskId,
             p_current_version: currentVersion,
-            p_creator_id: user.id,
             p_title: title.trim(),
             p_description: description?.trim() || null,
             p_due_at: due_at || null,
