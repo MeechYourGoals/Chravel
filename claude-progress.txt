@@ -1,0 +1,5 @@
+2026-03-15 — Data evolution constitution audit
+- Completed exhaustive schema/migration/lifecycle audit and produced `docs/audits/data-evolution-constitution-2026-03-15.md`.
+- Added reusable learning entry to `LESSONS.md` (migration compatibility API mindset).
+- Added high-priority migration compatibility test gap to `TEST_GAPS.md`.
+- Next follow-up: implement migration CI lint + compatibility window test harness.

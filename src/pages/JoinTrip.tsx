@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
@@ -28,6 +28,7 @@ import {
   normalizeErrorCode,
   createInviteError,
 } from '../types/inviteErrors';
+import { tripKeys } from '../lib/queryKeys';
 
 interface InvitePreviewData {
   invite: {
@@ -75,10 +76,54 @@ function getUrgencyLine(startDate: string | null): string | null {
   return `Trip starts ${formatted}`;
 }
 
+/**
+ * Resolve the invite code from three sources (priority order):
+ * 1. URL param (:token)
+ * 2. localStorage (INVITE_CODE_STORAGE_KEY)
+ * 3. `invite` query param
+ */
+function resolveInviteCode(
+  token: string | undefined,
+  searchParams: URLSearchParams,
+): string | null {
+  if (token) return token;
+
+  try {
+    const stored = localStorage.getItem(INVITE_CODE_STORAGE_KEY);
+    if (stored) return stored;
+  } catch {
+    // localStorage unavailable in sandboxed environments
+  }
+
+  const fromQuery = searchParams.get('invite');
+  if (fromQuery) return fromQuery;
+
+  return null;
+}
+
+/** Safely store invite code in localStorage */
+function storeInviteCode(code: string): void {
+  try {
+    localStorage.setItem(INVITE_CODE_STORAGE_KEY, code);
+  } catch {
+    // localStorage unavailable — fall through to query param fallback
+  }
+}
+
+/** Remove invite code from localStorage */
+function clearInviteCode(): void {
+  try {
+    localStorage.removeItem(INVITE_CODE_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 const JoinTrip = () => {
   const { token } = useParams<{ token?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
@@ -90,6 +135,19 @@ const JoinTrip = () => {
     'request',
   );
   const autoJoinAttemptedRef = useRef(false);
+
+  // Triple-source invite code restoration on mount
+  // If token is missing but we have the code from another source, redirect
+  useEffect(() => {
+    if (token) return; // URL param present — no recovery needed
+
+    const resolved = resolveInviteCode(undefined, searchParams);
+    if (resolved) {
+      clearInviteCode();
+      navigate(`/join/${resolved}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only
+  }, []);
 
   // Debug logging on mount
   useEffect(() => {
@@ -166,25 +224,15 @@ const JoinTrip = () => {
     updateMetaName('twitter:image', imageUrl);
   }, [inviteData]);
 
-  // Check for stored invite code after login (triple-source restoration)
+  // Check for stored invite code after login (localStorage version)
   useEffect(() => {
-    if (!user || token) return;
-
-    // Source 1: localStorage (primary — survives tab switches and OAuth)
-    const storedInviteCode = localStorage.getItem(INVITE_CODE_STORAGE_KEY);
-    if (storedInviteCode) {
-      localStorage.removeItem(INVITE_CODE_STORAGE_KEY);
-      navigate(`/join/${storedInviteCode}`, { replace: true });
-      return;
+    const resolved = resolveInviteCode(undefined, searchParams);
+    if (resolved && user && !token) {
+      // User just logged in with a pending invite
+      clearInviteCode();
+      navigate(`/join/${resolved}`, { replace: true });
     }
-
-    // Source 2: URL query param (OAuth redirect fallback)
-    const searchParams = new URLSearchParams(location.search);
-    const inviteParam = searchParams.get('invite');
-    if (inviteParam) {
-      navigate(`/join/${inviteParam}`, { replace: true });
-    }
-  }, [user, token, navigate, location.search]);
+  }, [user, token, navigate, searchParams]);
 
   useEffect(() => {
     if (token) {
@@ -301,7 +349,7 @@ const JoinTrip = () => {
   };
 
   // Auto-join after auth completes (P0 conversion path)
-  // Only set autoJoinAttemptedRef on success or terminal error — transient failures allow retry
+  // Only set autoJoinAttemptedRef on success so transient failures allow retry
   useEffect(() => {
     if (!user) return;
     if (!token) return;
@@ -311,26 +359,20 @@ const JoinTrip = () => {
     if (joinSuccess) return;
     if (autoJoinAttemptedRef.current) return;
 
-    const attemptAutoJoin = async () => {
-      try {
-        autoJoinAttemptedRef.current = true;
-        await handleJoinTrip();
-      } catch {
-        // Allow manual retry on failure — reset the ref
-        autoJoinAttemptedRef.current = false;
-      }
-    };
-    void attemptAutoJoin();
+    // Don't set ref here — set it only on successful completion inside handleJoinTrip
+    void handleJoinTrip(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token, inviteData, loading, joining, joinSuccess]);
 
-  const handleJoinTrip = async () => {
+  const handleJoinTrip = async (isAutoJoin = false) => {
     if (!user) {
-      // Store invite code and redirect to login
+      // Store invite code in localStorage and include in query param as fallback
       if (token) {
-        localStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+        storeInviteCode(token);
       }
-      navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
+      const returnPath = encodeURIComponent(location.pathname);
+      const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
+      navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
         replace: true,
       });
       return;
@@ -370,6 +412,20 @@ const JoinTrip = () => {
         return;
       }
 
+      // Mark auto-join as completed on success
+      if (isAutoJoin) {
+        autoJoinAttemptedRef.current = true;
+      }
+
+      // Post-join cleanup: invalidate queries and clear stored invite code
+      const tripId = data.trip_id || inviteData.invite.trip_id;
+      clearInviteCode();
+      queryClient.invalidateQueries({ queryKey: tripKeys.all });
+      if (tripId) {
+        queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+        queryClient.invalidateQueries({ queryKey: tripKeys.members(tripId) });
+      }
+
       if (data.requires_approval) {
         toast.success(
           data.message ||
@@ -378,8 +434,6 @@ const JoinTrip = () => {
         setJoinSuccessType('request');
         setJoinSuccess(true);
         setJoining(false);
-        // Invalidate trips cache so dashboard shows the new pending request
-        queryClient.invalidateQueries({ queryKey: ['trips'] });
         // Redirect to home page after 2 seconds to show pending trip card
         setTimeout(() => {
           navigate('/', { replace: true });
@@ -396,14 +450,6 @@ const JoinTrip = () => {
       }
 
       setJoinSuccess(true);
-      // Clean up stored invite code after successful join
-      localStorage.removeItem(INVITE_CODE_STORAGE_KEY);
-      // Invalidate queries so trip lists and details update immediately
-      queryClient.invalidateQueries({ queryKey: ['trips'] });
-      if (data.trip_id) {
-        queryClient.invalidateQueries({ queryKey: ['trip', data.trip_id] });
-        queryClient.invalidateQueries({ queryKey: ['trip-members', data.trip_id] });
-      }
 
       setTimeout(() => {
         if (data.trip_type === 'pro') {
@@ -423,18 +469,22 @@ const JoinTrip = () => {
 
   const handleLoginRedirect = () => {
     if (token) {
-      localStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+      storeInviteCode(token);
     }
-    navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
+    const returnPath = encodeURIComponent(location.pathname);
+    const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
+    navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
       replace: true,
     });
   };
 
   const handleSignupRedirect = () => {
     if (token) {
-      localStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+      storeInviteCode(token);
     }
-    navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(location.pathname)}`, {
+    const returnPath = encodeURIComponent(location.pathname);
+    const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
+    navigate(`/auth?mode=signup&returnTo=${returnPath}${inviteParam}`, {
       replace: true,
     });
   };
@@ -498,27 +548,37 @@ const JoinTrip = () => {
       switch (action) {
         case 'login':
           if (token) {
-            localStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+            storeInviteCode(token);
           }
-          navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
-            replace: true,
-          });
+          {
+            const returnPath = encodeURIComponent(location.pathname);
+            const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
+            navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
+              replace: true,
+            });
+          }
           break;
         case 'signup':
           if (token) {
-            localStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+            storeInviteCode(token);
           }
-          navigate(`/auth?mode=signup&returnTo=${encodeURIComponent(location.pathname)}`, {
-            replace: true,
-          });
+          {
+            const returnPath = encodeURIComponent(location.pathname);
+            const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
+            navigate(`/auth?mode=signup&returnTo=${returnPath}${inviteParam}`, {
+              replace: true,
+            });
+          }
           break;
         case 'switch_account':
           // Sign out and redirect to login with invite preserved
           if (token) {
-            localStorage.setItem(INVITE_CODE_STORAGE_KEY, token);
+            storeInviteCode(token);
           }
           supabase.auth.signOut().then(() => {
-            navigate(`/auth?mode=signin&returnTo=${encodeURIComponent(location.pathname)}`, {
+            const returnPath = encodeURIComponent(location.pathname);
+            const inviteParam = token ? `&invite=${encodeURIComponent(token)}` : '';
+            navigate(`/auth?mode=signin&returnTo=${returnPath}${inviteParam}`, {
               replace: true,
             });
           });
@@ -856,7 +916,7 @@ const JoinTrip = () => {
           ) : (
             <div className="space-y-4">
               <button
-                onClick={handleJoinTrip}
+                onClick={() => handleJoinTrip()}
                 disabled={joining}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 px-6 rounded-xl transition-all duration-200 font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >

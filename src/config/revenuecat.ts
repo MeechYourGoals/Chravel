@@ -1,6 +1,23 @@
 import { Purchases } from '@revenuecat/purchases-js';
+import { isLovablePreview } from '@/utils/env';
 
 const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || '';
+
+/**
+ * RevenueCat Web Billing keys use the rcb_ prefix.
+ * Native app keys (appl_/goog_/amaz_/stripe_) will throw if passed to purchases-js.
+ */
+export const canInitializeRevenueCat = (
+  apiKey: string = REVENUECAT_API_KEY,
+  preview: boolean = isLovablePreview(),
+): boolean => {
+  if (preview) return false;
+
+  const normalizedKey = apiKey.trim();
+  if (!normalizedKey) return false;
+
+  return normalizedKey.startsWith('rcb_');
+};
 
 /**
  * Generates a unique anonymous user ID for RevenueCat.
@@ -42,21 +59,15 @@ let isInitialized = false;
  * Safe to call multiple times - will only initialize once.
  */
 export const initRevenueCat = async (): Promise<void> => {
-  if (isInitialized) {
-    console.log('[RevenueCat] Already initialized');
+  if (isInitialized || !canInitializeRevenueCat()) {
     return;
   }
 
   try {
     const userId = getOrCreateUserId();
-    // RevenueCat initialization (user ID redacted from logs)
-
     Purchases.configure(REVENUECAT_API_KEY, userId);
     isInitialized = true;
-
-    // RevenueCat SDK initialized
   } catch (error) {
-    console.error('[RevenueCat] Failed to initialize:', error);
     throw error;
   }
 };
@@ -65,9 +76,4 @@ export const initRevenueCat = async (): Promise<void> => {
  * Returns the RevenueCat Purchases instance.
  * Must be called after initRevenueCat().
  */
-export const getPurchases = (): typeof Purchases => {
-  if (!isInitialized) {
-    console.warn('[RevenueCat] SDK not initialized. Call initRevenueCat() first.');
-  }
-  return Purchases;
-};
+export const getPurchases = (): typeof Purchases => Purchases;
