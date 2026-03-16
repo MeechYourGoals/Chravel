@@ -56,7 +56,11 @@ describe('useVoiceToolHandler', () => {
 
     expect(response.success).toBe(true);
     expect(mocks.invoke).toHaveBeenCalledWith('execute-concierge-tool', {
-      body: { toolName: 'searchPlaces', args: { query: 'coffee near me' }, tripId: 'trip-1' },
+      body: {
+        toolName: 'searchPlaces',
+        args: { query: 'coffee near me', idempotency_key: '2' },
+        tripId: 'trip-1',
+      },
     });
   });
 
