@@ -64,3 +64,12 @@
 - **Evidence:** Chat messages were silently lost during websocket drops with no user-visible indication
 - **Provenance:** March 2026 chat reliability audit
 - **Confidence:** high
+
+
+### Explicit `reconnecting` state prevents misleading voice UX
+- **Tip:** For realtime voice sessions, avoid overloading `requesting_mic` during auto-reconnect. Use a dedicated `reconnecting` state so the UI can communicate retry intent and avoid permission confusion after mid-session socket failures.
+- **Applies when:** WebSocket reconnect loops in live audio/chat interfaces
+- **Avoid when:** First session initialization before any successful connection
+- **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
+- **Provenance:** March 2026 concierge live-mode hardening
+- **Confidence:** high
