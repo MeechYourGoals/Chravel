@@ -188,7 +188,8 @@ export function usePendingActions(tripId: string) {
     mutationFn: async (actionId: string) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      // intentional: trip_pending_actions not yet in generated Supabase types
+      const { error } = await (supabase as any)
         .from('trip_pending_actions')
         .update({
           status: 'rejected',

@@ -26,7 +26,7 @@ import type { EntitlementStatus } from '@/stores/entitlementsStore';
 
 export interface UseUnifiedEntitlementsReturn {
   plan: SubscriptionTier;
-  status: 'active' | 'trialing' | 'expired' | 'canceled';
+  status: EntitlementStatus;
   source: 'revenuecat' | 'stripe' | 'admin' | 'demo' | 'none';
   isLoading: boolean;
   isSubscribed: boolean;
