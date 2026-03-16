@@ -10,23 +10,23 @@ echo ""
 if [ -f "$PROJECT_DIR/agent_memory.jsonl" ]; then
   ENTRY_COUNT=$(grep -c '{' "$PROJECT_DIR/agent_memory.jsonl" 2>/dev/null || echo "0")
   echo "## Agent Memory ($ENTRY_COUNT entries)"
-  python3 -c "
-import json
-with open('$PROJECT_DIR/agent_memory.jsonl') as f:
+  MEMORY_FILE="$PROJECT_DIR/agent_memory.jsonl" python3 -c '
+import json, os
+with open(os.environ["MEMORY_FILE"]) as f:
     for i, line in enumerate(f, 1):
         line = line.strip()
         if not line:
             continue
         try:
             entry = json.loads(line)
-            cat = entry.get('category', '?').upper()
-            title = entry.get('title', '?')
-            applies = ', '.join(entry.get('applies_when', [])[:3])
-            print(f'  {i}. [{cat}] {title}')
-            print(f'     Applies: {applies}')
+            cat = entry.get("category", "?").upper()
+            title = entry.get("title", "?")
+            applies = ", ".join(entry.get("applies_when", [])[:3])
+            print(f"  {i}. [{cat}] {title}")
+            print(f"     Applies: {applies}")
         except json.JSONDecodeError:
             pass
-" 2>/dev/null || echo "  (failed to parse agent_memory.jsonl)"
+' 2>/dev/null || echo "  (failed to parse agent_memory.jsonl)"
   echo ""
 fi
 
