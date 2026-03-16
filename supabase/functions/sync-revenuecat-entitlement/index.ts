@@ -128,6 +128,41 @@ serve(async req => {
     // Use service role client to upsert (bypasses RLS)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Idempotency guard: skip DB write when nothing has changed.
+    // RevenueCat sync is user-triggered and may fire repeatedly with identical state.
+    const { data: existing } = await serviceClient
+      .from('user_entitlements')
+      .select('plan, status, current_period_end')
+      .eq('user_id', user.id)
+      .eq('source', 'revenuecat')
+      .maybeSingle();
+
+    const normalizedPeriodEnd = currentPeriodEnd ? new Date(currentPeriodEnd).toISOString() : null;
+    const existingPeriodEnd = existing?.current_period_end
+      ? new Date(existing.current_period_end).toISOString()
+      : null;
+
+    if (
+      existing &&
+      existing.plan === plan &&
+      existing.status === status &&
+      existingPeriodEnd === normalizedPeriodEnd
+    ) {
+      console.log('[sync-rc] No change detected — skipping DB write');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          synced: false,
+          reason: 'no_change',
+          plan,
+          status,
+          currentPeriodEnd,
+          entitlements: entitlementIds,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const { error: upsertError } = await serviceClient.from('user_entitlements').upsert(
       {
         user_id: user.id,
@@ -157,6 +192,7 @@ serve(async req => {
     return new Response(
       JSON.stringify({
         success: true,
+        synced: true,
         plan,
         status,
         currentPeriodEnd,

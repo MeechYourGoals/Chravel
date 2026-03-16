@@ -24,7 +24,7 @@ export const useOfflineStatus = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    const interval = window.setInterval(() => void refresh(), 4000);
+    const interval = window.setInterval(() => void refresh(), 30000);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
