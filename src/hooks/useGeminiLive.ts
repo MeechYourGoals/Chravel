@@ -505,7 +505,7 @@ export function useGeminiLive({
       const functionCalls = (toolCallData.functionCalls || []) as Array<{
         id: string;
         name: string;
-        args?: Record<string, unknown>;
+        args?: Record<string, unknown> | string;
       }>;
 
       const handler = onToolCallRef.current;
@@ -529,7 +529,26 @@ export function useGeminiLive({
       const responses = await Promise.all(
         functionCalls.map(async fc => {
           try {
-            const result = await handler({ id: fc.id, name: fc.name, args: fc.args || {} });
+            const parsedArgs =
+              typeof fc.args === 'string'
+                ? (() => {
+                    try {
+                      const parsed = JSON.parse(fc.args);
+                      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+                        ? (parsed as Record<string, unknown>)
+                        : {};
+                    } catch {
+                      return {};
+                    }
+                  })()
+                : fc.args && typeof fc.args === 'object' && !Array.isArray(fc.args)
+                  ? (fc.args as Record<string, unknown>)
+                  : {};
+            if (fc.id && typeof parsedArgs.idempotency_key !== 'string') {
+              parsedArgs.idempotency_key = fc.id;
+            }
+
+            const result = await handler({ id: fc.id, name: fc.name, args: parsedArgs });
             // Accumulate tool results for rich card rendering in chat
             turnToolResultsRef.current.push({ name: fc.name, result });
             return { id: fc.id, name: fc.name, response: result };
@@ -544,14 +563,7 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
-        // Use SILENT scheduling to prevent the model from narrating tool results
-        // (double-speech). Vertex AI supports FunctionResponseScheduling.SILENT.
-        // See gist: "Send tool responses with SILENT scheduling"
-        const silentResponses = responses.map(r => ({
-          ...r,
-          scheduling: 'SILENT',
-        }));
-        ws.send(JSON.stringify({ toolResponse: { functionResponses: silentResponses } }));
+        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
       }
     },
     [],

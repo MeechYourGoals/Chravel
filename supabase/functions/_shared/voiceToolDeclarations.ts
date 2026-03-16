@@ -80,7 +80,12 @@ export const VOICE_FUNCTION_DECLARATIONS = [
   {
     name: 'getPaymentSummary',
     description: 'Get a summary of who owes money to whom in the trip',
-    parameters: { type: 'object', properties: {} },
+    parameters: {
+      type: 'object',
+      properties: {
+        idempotency_key: { type: 'string', description: 'Optional idempotency key' },
+      },
+    },
   },
   {
     name: 'getDirectionsETA',

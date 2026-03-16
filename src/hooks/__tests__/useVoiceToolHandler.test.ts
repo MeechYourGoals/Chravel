@@ -3,26 +3,13 @@ import { renderHook } from '@testing-library/react';
 import { useVoiceToolHandler } from '../useVoiceToolHandler';
 
 const mocks = vi.hoisted(() => {
-  const insert = vi.fn();
-  const select = vi.fn();
-  const single = vi.fn();
-  const eq = vi.fn();
-  const order = vi.fn();
-  const limit = vi.fn();
   const invoke = vi.fn();
 
-  return { insert, select, single, eq, order, limit, invoke };
+  return { invoke };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      insert: mocks.insert,
-      select: mocks.select,
-      eq: mocks.eq,
-      order: mocks.order,
-      limit: mocks.limit,
-    })),
     functions: {
       invoke: mocks.invoke,
     },
@@ -32,25 +19,10 @@ vi.mock('@/integrations/supabase/client', () => ({
 describe('useVoiceToolHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    mocks.select.mockReturnValue({
-      single: mocks.single,
-      eq: mocks.eq,
-      order: mocks.order,
-      limit: mocks.limit,
-    });
-    mocks.single.mockResolvedValue({
-      data: { id: 'row-1', title: 'Task A', question: 'Q' },
-      error: null,
-    });
-    mocks.insert.mockReturnValue({ select: mocks.select });
-    mocks.eq.mockReturnValue({ order: mocks.order, limit: mocks.limit, eq: mocks.eq });
-    mocks.order.mockReturnValue({ limit: mocks.limit });
-    mocks.limit.mockResolvedValue({ data: [], error: null });
     mocks.invoke.mockResolvedValue({ data: { success: true }, error: null });
   });
 
-  it('creates task for createTask tool', async () => {
+  it('routes createTask through execute-concierge-tool', async () => {
     const { result } = renderHook(() =>
       useVoiceToolHandler({ tripId: 'trip-1', userId: 'user-1' }),
     );
@@ -62,7 +34,13 @@ describe('useVoiceToolHandler', () => {
     });
 
     expect(response.success).toBe(true);
-    expect(mocks.insert).toHaveBeenCalled();
+    expect(mocks.invoke).toHaveBeenCalledWith('execute-concierge-tool', {
+      body: {
+        toolName: 'createTask',
+        args: { title: 'Buy snacks', idempotency_key: '1' },
+        tripId: 'trip-1',
+      },
+    });
   });
 
   it('routes server-side tools through execute-concierge-tool', async () => {
@@ -83,6 +61,11 @@ describe('useVoiceToolHandler', () => {
   });
 
   it('returns error for invalid createPoll payload', async () => {
+    mocks.invoke.mockResolvedValue({
+      data: null,
+      error: { message: 'A poll requires at least 2 options' },
+    });
+
     const { result } = renderHook(() =>
       useVoiceToolHandler({ tripId: 'trip-1', userId: 'user-1' }),
     );
