@@ -174,6 +174,7 @@ async function sendPushNotification(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(fcmPayload),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -235,6 +236,7 @@ async function sendEmailNotification(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(emailPayload),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -420,6 +422,7 @@ async function sendSMSNotification(
         To: targetPhone,
         Body: finalMessage,
       }),
+      signal: AbortSignal.timeout(15_000),
     },
   );
 
@@ -509,7 +512,12 @@ async function sendSMSNotification(
 
   console.log(`[SMS] Sent successfully. SID: ${messageSid} status: ${twilioStatus}`);
 
-  await supabase.rpc('increment_sms_counter', { p_user_id: userId });
+  const { error: smsCounterError } = await supabase.rpc('increment_sms_counter', {
+    p_user_id: userId,
+  });
+  if (smsCounterError) {
+    console.error('[SMS] Failed to increment counter:', smsCounterError.message);
+  }
 
   await supabase.from('notification_logs').insert({
     user_id: userId,

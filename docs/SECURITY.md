@@ -51,5 +51,35 @@ Last Updated: 2025-01-25
 - [ ] secure_storage access requires MFA verification if MFA is enabled
 - [ ] Verification sessions are created via `/verify-identity` edge function after authentication
 
-9. Incident Response
+9. Auth Rate Limiting Strategy
+
+Current auth rate limiting relies on multiple layers:
+
+### Supabase Built-in Rate Limits (Primary)
+- **Login**: Supabase Auth enforces per-IP and per-email rate limits on `signInWithPassword` (default: 30 requests/hour per IP).
+- **Signup**: Rate limited per email and IP (default: 3 signups/hour per email, 30/hour per IP).
+- **Password Reset**: Rate limited per email (default: 3 requests/hour per email).
+- **OTP**: Rate limited per phone number (Supabase default + Twilio rate limits).
+- These are enforced server-side by Supabase Auth and cannot be bypassed from the client.
+
+### Edge Function Rate Limiting (Custom)
+- `supabase/functions/_shared/rateLimitGuard.ts` provides `applyRateLimit()` for custom per-user, per-action rate limits.
+- Used in: `join-trip`, `export-user-data`, and other sensitive operations.
+- Backed by the `increment_rate_limit` RPC function with sliding window counters.
+
+### Client-Side Auth Operations (Awareness)
+- Login, signup, and password reset from the client call Supabase Auth directly — they inherit Supabase's built-in rate limits without additional client-side enforcement.
+- If abuse is detected (via `security_audit_log` telemetry from `log-auth-event` edge function), consider adding edge function wrappers that proxy auth operations with stricter per-IP limits.
+
+### Telemetry & Detection
+- All auth events (login success/failure, signup, password reset, account deletion) are logged to `security_audit_log` via the `log-auth-event` edge function.
+- Query patterns to detect abuse:
+  - `SELECT ip_address, COUNT(*) FROM security_audit_log WHERE event_type = 'login_failure' AND created_at > now() - interval '1 hour' GROUP BY ip_address HAVING COUNT(*) > 20`
+  - `SELECT details->>'method', COUNT(*) FROM security_audit_log WHERE event_type = 'signup_failure' AND created_at > now() - interval '1 day' GROUP BY 1`
+
+### Future Considerations
+- If brute-force or credential-stuffing attacks are detected, add an `auth-proxy` edge function that wraps `signInWithPassword` with custom IP-based rate limiting via `applyRateLimit()`.
+- Consider CAPTCHA integration for signup after N failed attempts from the same IP.
+
+10. Incident Response
 - Rotate Supabase anon key if leaked; revoke secrets; audit edge function logs; disable public policies if necessary; communicate to users.
