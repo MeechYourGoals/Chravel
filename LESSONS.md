@@ -72,3 +72,11 @@
 - **Evidence:** Repo migration corpus shows repeated edits of critical tables and mixed-purpose migrations, increasing rollout coupling risk.
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
+
+### Reliability posture audits must separate “controls exist” from “controls are exercised”
+- **Tip:** In resilience reviews, never treat documented backup/DR procedures as operational readiness. Grade each control on two axes: presence (configured?) and proof (drilled recently with pass/fail evidence?). Mark unexercised controls as risk, not mitigation.
+- **Applies when:** SLO/DR/capacity audits, production-readiness reviews, launch gating for pro/event usage
+- **Avoid when:** Throwaway prototypes with no continuity commitments
+- **Evidence:** March 2026 reliability constitution audit found multiple backup/DR docs present but explicit “action required” status and missing drill evidence.
+- **Provenance:** `docs/audits/reliability-resilience-constitution-2026-03-16.md`
+- **Confidence:** high
