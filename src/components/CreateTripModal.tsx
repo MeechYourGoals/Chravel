@@ -18,6 +18,7 @@ import { useTrips } from '../hooks/useTrips';
 import { useOrganization } from '../hooks/useOrganization';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../hooks/useDemoMode';
+import { tripEvents } from '@/telemetry/events';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
@@ -173,6 +174,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     }
 
     setIsLoading(true);
+    tripEvents.createStarted();
 
     try {
       const tripData = {
@@ -251,6 +253,12 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         }
       }
 
+      tripEvents.created({
+        trip_id: newTrip.id,
+        trip_type: tripType as 'consumer' | 'pro' | 'event',
+        has_dates: Boolean(formData.startDate),
+        has_location: Boolean(formData.location),
+      });
       toast.success('Trip created successfully!');
       onClose();
       // Reset form
@@ -273,6 +281,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       console.error('Error creating trip:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to create trip. Please try again.';
+      tripEvents.createFailed(errorMessage);
 
       if (error instanceof Error && error.message === 'AUTHENTICATION_REQUIRED') {
         toast.error('Please sign in to create a trip');

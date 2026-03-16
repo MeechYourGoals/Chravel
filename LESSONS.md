@@ -85,4 +85,15 @@
 - **Applies when:** Adding or updating any internal/admin route in `App.tsx`
 - **Evidence:** `/admin/scheduled-messages` was reachable by any authenticated account until `InternalAdminRoute` hardening.
 - **Provenance:** March 2026 support/admin hardening pass
+### QA confidence drift happens when docs describe planned suites as implemented
+- **Tip:** Keep E2E documentation split into explicit implemented vs planned sections and enforce with a lightweight CI doc-drift script.
+- **Applies when:** Large test architecture transitions where some suites are roadmap-only.
+- **Evidence:** Chravel had roadmap-level suite structure in E2E docs; guardrails were added to validate documented implemented suites.
+- **Provenance:** March 2026 QA governance hardening pass.
+### Reliability posture audits must separate “controls exist” from “controls are exercised”
+- **Tip:** In resilience reviews, never treat documented backup/DR procedures as operational readiness. Grade each control on two axes: presence (configured?) and proof (drilled recently with pass/fail evidence?). Mark unexercised controls as risk, not mitigation.
+- **Applies when:** SLO/DR/capacity audits, production-readiness reviews, launch gating for pro/event usage
+- **Avoid when:** Throwaway prototypes with no continuity commitments
+- **Evidence:** March 2026 reliability constitution audit found multiple backup/DR docs present but explicit “action required” status and missing drill evidence.
+- **Provenance:** `docs/audits/reliability-resilience-constitution-2026-03-16.md`
 - **Confidence:** high

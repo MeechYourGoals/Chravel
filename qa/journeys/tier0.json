@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "description": "Tier-0 launch-blocking journeys that must have durable automated coverage.",
+  "journeys": [
+    {
+      "id": "TIER0-AUTH",
+      "name": "Signup / Login / Logout",
+      "requiredFiles": ["e2e/specs/auth/full-auth.spec.ts", "src/__tests__/auth.test.tsx"]
+    },
+    {
+      "id": "TIER0-INVITE-JOIN",
+      "name": "Invite / Share / Join",
+      "requiredFiles": ["e2e/invite-links.spec.ts", "src/lib/__tests__/inviteLinkUtils.test.ts"]
+    },
+    {
+      "id": "TIER0-TRIP-CORE",
+      "name": "Trip creation / open / switching",
+      "requiredFiles": [
+        "e2e/specs/trips/trip-crud.spec.ts",
+        "src/__tests__/trip-creation-flow.test.tsx"
+      ]
+    },
+    {
+      "id": "TIER0-CHAT",
+      "name": "Chat send / visibility / channel send flow",
+      "requiredFiles": [
+        "e2e/chat.spec.ts",
+        "src/__tests__/chat-flow.test.tsx",
+        "src/__tests__/channel-send-flow.test.ts"
+      ]
+    },
+    {
+      "id": "TIER0-RLS",
+      "name": "Authorization boundaries",
+      "requiredFiles": ["e2e/specs/rls/trip-rls.spec.ts"]
+    },
+    {
+      "id": "TIER0-OFFLINE-RECOVERY",
+      "name": "Offline / reconnect resilience",
+      "requiredFiles": [
+        "e2e/offline-resilience.spec.ts",
+        "src/services/__tests__/offlineSyncService.test.ts"
+      ]
+    }
+  ],
+  "allowSkippedFiles": [
+    "e2e/specs/auth/full-auth.spec.ts",
+    "e2e/chat.spec.ts",
+    "src/__tests__/auth.test.tsx",
+    "src/__tests__/trip-creation-flow.test.tsx",
+    "src/__tests__/chat-flow.test.tsx"
+  ]
+}
