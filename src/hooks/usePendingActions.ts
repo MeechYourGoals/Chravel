@@ -43,7 +43,8 @@ export function usePendingActions(tripId: string) {
     queryFn: async (): Promise<PendingAction[]> => {
       if (isDemoMode || !tripId) return [];
 
-      const { data, error } = await supabase
+      // intentional: trip_pending_actions not yet in generated Supabase types
+      const { data, error } = await (supabase as any)
         .from('trip_pending_actions')
         .select('*')
         .eq('trip_id', tripId)
