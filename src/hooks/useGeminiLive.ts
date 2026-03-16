@@ -544,9 +544,17 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
-        // Send tool results back to the model without SILENT scheduling.
-        // We want the AI to audibly acknowledge the action as instructed in the system prompt.
-        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
+        // We want the AI to audibly acknowledge most actions as instructed in the system prompt.
+        // However, we explicitly silence tools that return PII/large unstructured text
+        // (like searchTripArtifacts) to prevent the model from reading sensitive docs aloud.
+        const silentTools = new Set(['searchTripArtifacts']);
+
+        const scheduledResponses = responses.map(r => ({
+          ...r,
+          ...(silentTools.has(r.name) ? { scheduling: 'SILENT' } : {}),
+        }));
+
+        ws.send(JSON.stringify({ toolResponse: { functionResponses: scheduledResponses } }));
       }
     },
     [],
