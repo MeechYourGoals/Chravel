@@ -21,6 +21,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { executeFunctionCall } from '../_shared/functionExecutor.ts';
 import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
+import { checkRateLimit } from '../_shared/security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -64,6 +65,29 @@ serve(async (req: Request) => {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Per-user AI tool rate limit: 20 requests per hour
+    const rlResult = await checkRateLimit(
+      supabase,
+      `execute-concierge-tool:${user.id}`,
+      20,
+      3600,
+      user.id,
+      'execute-concierge-tool',
+    );
+    if (!rlResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Too many AI tool requests. Try again in an hour.' }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': '3600',
+          },
+        },
+      );
     }
 
     // ── Parse body ─────────────────────────────────────────────────────────

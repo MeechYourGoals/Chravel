@@ -2,11 +2,7 @@
  * Centralized Error Tracking Service
  *
  * Provides a unified interface for error tracking across the application.
- * Currently logs to console, but can be easily integrated with services like:
- * - Sentry
- * - DataDog
- * - LogRocket
- * - Rollbar
+ * Integrated with Sentry when VITE_SENTRY_DSN is configured.
  *
  * Usage:
  * ```ts
@@ -22,6 +18,7 @@
  * }
  * ```
  */
+import * as Sentry from '@sentry/react';
 
 export interface ErrorContext {
   userId?: string;
@@ -55,12 +52,19 @@ class ErrorTrackingService {
       this.userId = config.userId;
     }
 
-    // TODO: Initialize Sentry here
-    // Sentry.init({
-    //   dsn: import.meta.env.VITE_SENTRY_DSN,
-    //   environment: config?.environment || 'development',
-    //   tracesSampleRate: 1.0,
-    // });
+    if (import.meta.env.VITE_SENTRY_DSN) {
+      Sentry.init({
+        dsn: import.meta.env.VITE_SENTRY_DSN,
+        environment: config?.environment || import.meta.env.VITE_ENVIRONMENT || 'development',
+        tracesSampleRate: 0.05,
+        beforeSend(event) {
+          // Strip PII — only keep user ID, not email
+          if (event.user?.email) delete event.user.email;
+          if (event.user?.username) delete event.user.username;
+          return event;
+        },
+      });
+    }
 
     this.initialized = true;
   }
@@ -71,8 +75,7 @@ class ErrorTrackingService {
   setUser(userId: string, _userData?: Record<string, unknown>) {
     this.userId = userId;
 
-    // TODO: Set Sentry user context
-    // Sentry.setUser({ id: userId, ...userData });
+    Sentry.setUser({ id: userId });
   }
 
   /**
@@ -81,8 +84,7 @@ class ErrorTrackingService {
   clearUser() {
     this.userId = null;
 
-    // TODO: Clear Sentry user context
-    // Sentry.setUser(null);
+    Sentry.setUser(null);
   }
 
   /**
@@ -91,21 +93,11 @@ class ErrorTrackingService {
   captureException(error: Error | unknown, context?: ErrorContext) {
     const errorObj = error instanceof Error ? error : new Error(String(error));
 
-    console.error('[ErrorTracking] Exception captured:', {
-      error: errorObj,
-      message: errorObj.message,
-      stack: errorObj.stack,
-      context,
-      breadcrumbs: this.breadcrumbs.slice(-10), // Last 10 breadcrumbs
+    Sentry.captureException(errorObj, {
+      extra: { breadcrumbs: this.breadcrumbs.slice(-10) },
+      contexts: { custom: context as Record<string, unknown> },
+      user: this.userId ? { id: this.userId } : undefined,
     });
-
-    // TODO: Send to Sentry
-    // Sentry.captureException(errorObj, {
-    //   contexts: {
-    //     custom: context
-    //   },
-    //   user: this.userId ? { id: this.userId } : undefined
-    // });
 
     return errorObj;
   }
@@ -115,16 +107,13 @@ class ErrorTrackingService {
    */
   captureMessage(
     message: string,
-    _level: 'info' | 'warning' | 'error' = 'info',
-    _context?: ErrorContext,
+    level: 'info' | 'warning' | 'error' = 'info',
+    context?: ErrorContext,
   ) {
-    // TODO: Send to Sentry
-    // Sentry.captureMessage(message, {
-    //   level,
-    //   contexts: {
-    //     custom: context
-    //   }
-    // });
+    Sentry.captureMessage(message, {
+      level,
+      contexts: { custom: context as Record<string, unknown> },
+    });
   }
 
   /**
@@ -144,13 +133,12 @@ class ErrorTrackingService {
       this.breadcrumbs = this.breadcrumbs.slice(-this.maxBreadcrumbs);
     }
 
-    // TODO: Send to Sentry
-    // Sentry.addBreadcrumb({
-    //   category: breadcrumb.category,
-    //   message: breadcrumb.message,
-    //   level: breadcrumb.level,
-    //   data: breadcrumb.data
-    // });
+    Sentry.addBreadcrumb({
+      category: breadcrumb.category,
+      message: breadcrumb.message,
+      level: breadcrumb.level,
+      data: breadcrumb.data,
+    });
   }
 
   /**

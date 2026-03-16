@@ -24,8 +24,7 @@ jobs:
         run: npm ci
 
       - name: Security audit (dependencies)
-        run: npm audit --audit-level=high
-        continue-on-error: true
+        run: npm audit --audit-level=moderate
 
       - name: Run linter with warning budget
         run: npm run lint:budget

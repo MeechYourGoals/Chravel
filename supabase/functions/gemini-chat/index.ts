@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkRateLimit } from '../_shared/security.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -54,6 +55,42 @@ serve(async req => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
+
+    // Verify auth and get user ID for rate limiting
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+
+    if (authError || !authUser) {
+      return new Response(JSON.stringify({ error: 'Invalid authentication', success: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    // Per-user AI rate limit: 30 requests per hour
+    const rlResult = await checkRateLimit(
+      supabase,
+      `gemini-chat:${authUser.id}`,
+      30,
+      3600,
+      authUser.id,
+      'gemini-chat',
+    );
+    if (!rlResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Too many AI requests. Try again in an hour.', success: false }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Retry-After': '3600',
+          },
+          status: 429,
+        },
+      );
+    }
 
     // Check privacy settings if trip context is provided
     if (tripContext?.id) {

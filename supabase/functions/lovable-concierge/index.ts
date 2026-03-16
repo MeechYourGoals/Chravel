@@ -16,8 +16,9 @@ import { normalizeGeminiModel } from '../_shared/gemini.ts';
 import { executeFunctionCall } from '../_shared/functionExecutor.ts';
 import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
-import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
+import { buildSystemPrompt, sanitizeForPrompt } from '../_shared/promptBuilder.ts';
 import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
+import { checkRateLimit } from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
@@ -812,18 +813,24 @@ serve(async req => {
 
     user = authenticatedUser;
 
-    // Per-user rate limit: max 30 AI requests per minute to prevent rapid-fire abuse
-    const rlKey = `concierge:${user.id}`;
-    const rlBucket = inProcessRateLimit(rlKey, 30, 60_000);
-    if (!rlBucket.allowed) {
+    // Per-user AI rate limit: 30 requests per hour (distributed, DB-backed)
+    const rlResult = await checkRateLimit(
+      supabase,
+      `lovable-concierge:${user.id}`,
+      30,
+      3600,
+      user.id,
+      'lovable-concierge',
+    );
+    if (!rlResult.allowed) {
       return new Response(
         JSON.stringify({
-          error: 'Too many requests. Please slow down and try again in a moment.',
-          retryAfter: 60,
+          error: 'Too many AI requests. Try again in an hour.',
+          retryAfter: 3600,
         }),
         {
           status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' },
         },
       );
     }
@@ -891,10 +898,24 @@ serve(async req => {
                   return '';
                 }
 
+                // Pre-fetch doc IDs owned by this trip to enforce trip isolation at query time.
+                // This is more secure than the previous post-filter: it prevents cross-trip
+                // chunks from being returned even if RLS on kb_chunks is misconfigured.
+                const { data: tripDocs } = await supabase
+                  .from('kb_documents')
+                  .select('id, source')
+                  .eq('trip_id', tripId);
+
+                const allowedDocIds = (tripDocs || []).map((d: any) => d.id);
+                if (!allowedDocIds.length) return '';
+
+                const docSourceMap = new Map((tripDocs || []).map((d: any) => [d.id, d.source]));
+
                 console.log('Using keyword-only search for RAG retrieval');
                 const { data: keywordResults, error: keywordError } = await supabase
                   .from('kb_chunks')
                   .select('id, content, doc_id, modality')
+                  .in('doc_id', allowedDocIds)
                   .textSearch('content_tsv', message.split(' ').slice(0, 5).join(' & '), {
                     type: 'plain',
                   })
@@ -902,34 +923,17 @@ serve(async req => {
 
                 if (keywordError || !keywordResults?.length) return '';
 
-                const docIds = [
-                  ...new Set(keywordResults.map((r: any) => r.doc_id).filter(Boolean)),
-                ];
-                const docMap = new Map();
-
-                if (docIds.length > 0) {
-                  const { data: docs } = await supabase
-                    .from('kb_documents')
-                    .select('id, source, trip_id')
-                    .in('id', docIds)
-                    .eq('trip_id', tripId);
-                  docs?.forEach((d: any) => docMap.set(d.id, d));
-                }
-
-                const tripChunks = keywordResults.filter((r: any) => {
-                  const doc = docMap.get(r.doc_id);
-                  return doc?.trip_id === tripId;
-                });
-
-                if (!tripChunks.length) return '';
-
-                console.log(`Found ${tripChunks.length} relevant context items via keyword search`);
+                console.log(
+                  `Found ${keywordResults.length} relevant context items via keyword search`,
+                );
                 let ctx = '\n\n=== RELEVANT TRIP CONTEXT (Keyword Search) ===\n';
                 ctx += 'Retrieved using keyword matching:\n';
-                tripChunks.forEach((result: any, idx: number) => {
-                  const doc = docMap.get(result.doc_id);
-                  const sourceType = doc?.source || result.modality || 'unknown';
-                  ctx += `\n[${idx + 1}] [${sourceType}] ${(result.content || '').substring(0, 300)}`;
+                keywordResults.forEach((result: any, idx: number) => {
+                  const sourceType =
+                    docSourceMap.get(result.doc_id) || result.modality || 'unknown';
+                  // Sanitize RAG content before injecting into the system prompt (prompt injection defense)
+                  const safeContent = sanitizeForPrompt((result.content || '').substring(0, 300));
+                  ctx += `\n[${idx + 1}] [${sourceType}] ${safeContent}`;
                 });
                 ctx +=
                   '\n\nIMPORTANT: Use this retrieved context to provide accurate answers. Cite sources when possible.';
