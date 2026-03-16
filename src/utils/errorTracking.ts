@@ -79,11 +79,16 @@ class ErrorTrackingService {
 
   captureMessage(
     message: string,
-    _level: 'info' | 'warning' | 'error' = 'info',
-    _context?: ErrorContext,
+    level: 'info' | 'warning' | 'error' = 'info',
+    context?: ErrorContext,
   ) {
-    if (!this.isInitialized) return;
-    // Messages routed through telemetry if needed in future
+    // Record as breadcrumb so the message appears in future error reports
+    this.addBreadcrumb({
+      category: 'message',
+      message,
+      level,
+      data: context,
+    });
   }
 
   setUser(_userId: string, _userData?: Record<string, unknown>) {

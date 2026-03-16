@@ -60,15 +60,18 @@ export function logMetrics(
     [key: string]: unknown;
   },
 ): void {
+  // Extract known fields; collect the rest as extra metadata
+  const { user_id, trip_id, error_type, ...extra } = meta ?? {};
   const metrics: EdgeFunctionMetrics = {
     type: 'EDGE_METRICS',
     function_name: ctx.function_name,
     request_id: ctx.request_id,
     duration_ms: Date.now() - ctx.started_at,
     status,
-    user_id: meta?.user_id,
-    trip_id: meta?.trip_id,
-    error_type: meta?.error_type,
+    user_id,
+    trip_id,
+    error_type,
+    metadata: Object.keys(extra).length > 0 ? extra : undefined,
     timestamp: new Date().toISOString(),
   };
 
