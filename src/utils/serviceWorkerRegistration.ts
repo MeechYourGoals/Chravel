@@ -5,19 +5,23 @@ export const registerServiceWorker = async () => {
   // CRITICAL: Preview includes lovable.app, *.lovable.app, lovableproject.com, *.lovableproject.com
   if (isLovablePreview()) {
     // One-time cleanup of any existing SW in preview (v2 to re-run after domain fix)
-    const CLEANUP_KEY = 'lovable_sw_cleanup_v2';
-    if (!localStorage.getItem(CLEANUP_KEY)) {
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r => r.unregister()));
-      }
+    try {
+      const CLEANUP_KEY = 'lovable_sw_cleanup_v2';
+      if (!localStorage.getItem(CLEANUP_KEY)) {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
 
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-      }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
 
-      localStorage.setItem(CLEANUP_KEY, 'true');
+        localStorage.setItem(CLEANUP_KEY, 'true');
+      }
+    } catch {
+      // Ignore in restricted/sandboxed preview environments
     }
     return;
   }
@@ -34,8 +38,15 @@ export const registerServiceWorker = async () => {
       const swUrl = `/sw.js?v=${buildId}`;
 
       // One-time production cleanup migration (v1)
+      let prodMigrationDone = false;
       const PROD_MIGRATION_KEY = 'prod_sw_migration_v1';
-      if (!localStorage.getItem(PROD_MIGRATION_KEY)) {
+      try {
+        prodMigrationDone = !!localStorage.getItem(PROD_MIGRATION_KEY);
+      } catch {
+        // Treat as done if storage is inaccessible
+        prodMigrationDone = true;
+      }
+      if (!prodMigrationDone) {
         const regs = await navigator.serviceWorker.getRegistrations();
         await Promise.all(regs.map(r => r.unregister()));
 
@@ -45,7 +56,11 @@ export const registerServiceWorker = async () => {
           await Promise.all(chravelCaches.map(k => caches.delete(k)));
         }
 
-        localStorage.setItem(PROD_MIGRATION_KEY, 'true');
+        try {
+          localStorage.setItem(PROD_MIGRATION_KEY, 'true');
+        } catch {
+          // Best-effort marker
+        }
       }
 
       const registration = await navigator.serviceWorker.register(swUrl, {
@@ -81,9 +96,14 @@ export const registerServiceWorker = async () => {
 
       // On failure, trigger cleanup to recover from stale SW
       const PROD_MIGRATION_KEY = 'prod_sw_migration_v1';
-      if (localStorage.getItem(PROD_MIGRATION_KEY)) {
-        localStorage.removeItem(PROD_MIGRATION_KEY);
-
+      let hasMarker = false;
+      try {
+        hasMarker = !!localStorage.getItem(PROD_MIGRATION_KEY);
+        if (hasMarker) localStorage.removeItem(PROD_MIGRATION_KEY);
+      } catch {
+        // Storage inaccessible — skip marker-based recovery
+      }
+      if (hasMarker) {
         if ('serviceWorker' in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();
           await Promise.all(regs.map(r => r.unregister()));
