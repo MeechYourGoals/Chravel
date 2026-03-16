@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 
 type AuthMode = 'signin' | 'signup';
 
+const INVITE_CODE_STORAGE_KEY = 'chravel_pending_invite_code';
+
 function getSafeReturnTo(value: string | null, fallback: string): string {
   if (!value) return fallback;
   // Only allow same-origin relative paths.
@@ -31,12 +33,31 @@ const AuthPage = () => {
     return raw === 'signup' ? 'signup' : 'signin';
   }, [searchParams]);
 
-  // If already authenticated, immediately go back.
+  // Restore invite context from query param into localStorage
+  // This ensures the invite code survives OAuth redirects that may clear localStorage
+  useEffect(() => {
+    const inviteCode = searchParams.get('invite');
+    if (inviteCode) {
+      try {
+        localStorage.setItem(INVITE_CODE_STORAGE_KEY, inviteCode);
+      } catch {
+        // localStorage unavailable — JoinTrip will fall back to query param
+      }
+    }
+  }, [searchParams]);
+
+  // If already authenticated, redirect — preferring invite join flow if invite code exists
   useEffect(() => {
     if (user && !authLoading) {
-      navigate(returnTo, { replace: true });
+      const inviteCode = searchParams.get('invite');
+      if (inviteCode) {
+        // User just authenticated with an invite context — go straight to join
+        navigate(`/join/${inviteCode}`, { replace: true });
+      } else {
+        navigate(returnTo, { replace: true });
+      }
     }
-  }, [user, authLoading, navigate, returnTo]);
+  }, [user, authLoading, navigate, returnTo, searchParams]);
 
   return (
     <div className="min-h-screen bg-background">

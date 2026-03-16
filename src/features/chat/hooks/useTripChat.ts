@@ -97,7 +97,12 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
                 );
                 return { ...msg, content: decrypted };
               } catch (decryptError) {
-                console.error('[useTripChat] Decryption failed for message:', msg.id, decryptError);
+                if (import.meta.env.DEV)
+                  console.error(
+                    '[useTripChat] Decryption failed for message:',
+                    msg.id,
+                    decryptError,
+                  );
                 return { ...msg, content: '[Unable to decrypt message]' };
               }
             }
@@ -117,7 +122,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       } catch (err) {
         // If online fetch fails, return cached messages
         if (cachedMessages.length > 0) {
-          console.warn('Using cached messages due to fetch error:', err);
+          if (import.meta.env.DEV) console.warn('Using cached messages due to fetch error:', err);
           const messagesWithTimestamp = cachedMessages.slice(-15).map(msg => ({
             ...msg,
             updated_at: msg.updated_at || msg.created_at,
@@ -311,7 +316,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           }
           messageCount++;
 
-          pendingInserts.push(payload.new as Record<string, unknown>);
+          const newMsg = payload.new as Record<string, unknown>;
+          pendingInserts.push(newMsg);
           scheduleFlush();
         },
       )
@@ -599,7 +605,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         setHasMore(false);
       }
     } catch (error) {
-      console.error('Failed to load more messages:', error);
+      if (import.meta.env.DEV) console.error('Failed to load more messages:', error);
     } finally {
       setIsLoadingMore(false);
     }

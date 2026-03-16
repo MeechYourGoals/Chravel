@@ -17,7 +17,7 @@ export const deleteTripForMe = async (tripId: string, userId: string): Promise<v
     .maybeSingle();
 
   if (membershipError) {
-    console.error('Failed to check trip membership:', membershipError);
+    if (import.meta.env.DEV) console.error('Failed to check trip membership:', membershipError);
     throw membershipError;
   }
 
@@ -34,7 +34,7 @@ export const deleteTripForMe = async (tripId: string, userId: string): Promise<v
     .eq('user_id', userId);
 
   if (deleteError) {
-    console.error('Failed to delete trip membership:', deleteError);
+    if (import.meta.env.DEV) console.error('Failed to delete trip membership:', deleteError);
     throw deleteError;
   }
 };
@@ -44,7 +44,7 @@ export const hideTrip = async (tripId: string): Promise<void> => {
   const { error } = await supabase.from('trips').update({ is_hidden: true }).eq('id', tripId);
 
   if (error) {
-    console.error('Failed to hide trip:', error);
+    if (import.meta.env.DEV) console.error('Failed to hide trip:', error);
     throw error;
   }
 };
@@ -54,7 +54,7 @@ export const unhideTrip = async (tripId: string): Promise<void> => {
   const { error } = await supabase.from('trips').update({ is_hidden: false }).eq('id', tripId);
 
   if (error) {
-    console.error('Failed to unhide trip:', error);
+    if (import.meta.env.DEV) console.error('Failed to unhide trip:', error);
     throw error;
   }
 };
@@ -68,7 +68,7 @@ export const isTripHidden = async (tripId: string): Promise<boolean> => {
     .single();
 
   if (error) {
-    console.error('Failed to check hidden status:', error);
+    if (import.meta.env.DEV) console.error('Failed to check hidden status:', error);
     return false;
   }
 
@@ -84,7 +84,7 @@ export const getHiddenTrips = async (userId: string) => {
     .eq('created_by', userId);
 
   if (error) {
-    console.error('Failed to get hidden trips:', error);
+    if (import.meta.env.DEV) console.error('Failed to get hidden trips:', error);
     return [];
   }
 
@@ -110,7 +110,7 @@ export const getArchivedTripCount = async (
   const { count, error } = await query;
 
   if (error) {
-    console.error('Failed to get archived trip count:', error);
+    if (import.meta.env.DEV) console.error('Failed to get archived trip count:', error);
     return 0;
   }
 
@@ -126,9 +126,16 @@ export const archiveTrip = async (
   const { error } = await supabase.from('trips').update({ is_archived: true }).eq('id', tripId);
 
   if (error) {
-    console.error('Failed to archive trip:', error);
+    if (import.meta.env.DEV) console.error('Failed to archive trip:', error);
     throw error;
   }
+
+  // Best-effort storage cleanup — don't block the archive action
+  cleanupTripStorage(tripId).catch(cleanupErr => {
+    if (import.meta.env.DEV) {
+      console.error('Storage cleanup failed for trip:', tripId, cleanupErr);
+    }
+  });
 };
 
 // Restore (unarchive) a trip
@@ -176,7 +183,7 @@ export const restoreTrip = async (
   const { error } = await supabase.from('trips').update({ is_archived: false }).eq('id', tripId);
 
   if (error) {
-    console.error('Failed to restore trip:', error);
+    if (import.meta.env.DEV) console.error('Failed to restore trip:', error);
     throw error;
   }
 };
@@ -194,7 +201,7 @@ export const isTripArchived = async (
     .single();
 
   if (error) {
-    console.error('Failed to check archive status:', error);
+    if (import.meta.env.DEV) console.error('Failed to check archive status:', error);
     return false;
   }
 
@@ -211,7 +218,7 @@ export const getArchivedTrips = async (userId?: string) => {
     .eq('created_by', userId || '');
 
   if (error) {
-    console.error('Failed to get archived trips:', error);
+    if (import.meta.env.DEV) console.error('Failed to get archived trips:', error);
     return {
       consumer: [],
       pro: [],
@@ -247,7 +254,7 @@ export const filterActiveTrips = async <T extends { id: string | number }>(
     .eq('trip_type', tripType);
 
   if (error) {
-    console.error('Failed to filter active trips:', error);
+    if (import.meta.env.DEV) console.error('Failed to filter active trips:', error);
     return trips;
   }
 
@@ -274,7 +281,7 @@ export const bulkArchiveTrips = async (
   const { error } = await supabase.from('trips').update({ is_archived: true }).in('id', tripIds);
 
   if (error) {
-    console.error('Failed to bulk archive trips:', error);
+    if (import.meta.env.DEV) console.error('Failed to bulk archive trips:', error);
     throw error;
   }
 };
@@ -287,7 +294,7 @@ export const bulkRestoreTrips = async (
   const { error } = await supabase.from('trips').update({ is_archived: false }).in('id', tripIds);
 
   if (error) {
-    console.error('Failed to bulk restore trips:', error);
+    if (import.meta.env.DEV) console.error('Failed to bulk restore trips:', error);
     throw error;
   }
 };
@@ -301,7 +308,7 @@ export const clearAllArchivedTrips = async (userId?: string): Promise<void> => {
     .eq('is_archived', true);
 
   if (error) {
-    console.error('Failed to clear archived trips:', error);
+    if (import.meta.env.DEV) console.error('Failed to clear archived trips:', error);
     throw error;
   }
 };
@@ -316,7 +323,7 @@ export const getArchiveAnalytics = async (userId?: string) => {
     .eq('created_by', userId || '');
 
   if (error) {
-    console.error('Failed to get archive analytics:', error);
+    if (import.meta.env.DEV) console.error('Failed to get archive analytics:', error);
     return {
       totalArchived: archived.total,
       archivedByType: {
@@ -351,6 +358,71 @@ export const getArchiveAnalytics = async (userId?: string) => {
   };
 };
 
+/**
+ * Clean up storage objects for an archived trip.
+ * Removes files from the trip-media bucket in batches.
+ * Safe to call multiple times (idempotent — skips already-deleted files).
+ */
+export const cleanupTripStorage = async (
+  tripId: string,
+): Promise<{ deleted: number; errors: number }> => {
+  let deleted = 0;
+  let errors = 0;
+
+  // Get all media index entries for this trip to find storage paths
+  const { data: mediaEntries, error: queryError } = await supabase
+    .from('trip_media_index')
+    .select('id, metadata')
+    .eq('trip_id', tripId);
+
+  if (queryError || !mediaEntries?.length) {
+    return { deleted: 0, errors: queryError ? 1 : 0 };
+  }
+
+  // Extract upload paths from metadata
+  const paths: string[] = [];
+  for (const entry of mediaEntries) {
+    const meta = entry.metadata as Record<string, unknown> | null;
+    if (meta?.upload_path && typeof meta.upload_path === 'string') {
+      paths.push(meta.upload_path);
+    }
+  }
+
+  // Also try the standard path pattern: tripId/subdir/*
+  const subdirs = ['images', 'videos', 'files'];
+  for (const subdir of subdirs) {
+    const { data: files } = await supabase.storage
+      .from('trip-media')
+      .list(`${tripId}/${subdir}`, { limit: 1000 });
+
+    if (files) {
+      for (const file of files) {
+        paths.push(`${tripId}/${subdir}/${file.name}`);
+      }
+    }
+  }
+
+  // Delete in batches of 50
+  const batchSize = 50;
+  for (let i = 0; i < paths.length; i += batchSize) {
+    const batch = paths.slice(i, i + batchSize);
+    const { error: deleteError } = await supabase.storage.from('trip-media').remove(batch);
+
+    if (deleteError) {
+      errors++;
+    } else {
+      deleted += batch.length;
+    }
+  }
+
+  // Clean up media index entries
+  if (deleted > 0) {
+    await supabase.from('trip_media_index').delete().eq('trip_id', tripId);
+  }
+
+  return { deleted, errors };
+};
+
 export const archiveService = {
   deleteTripForMe,
   hideTrip,
@@ -368,4 +440,5 @@ export const archiveService = {
   bulkRestoreTrips,
   clearAllArchivedTrips,
   getArchiveAnalytics,
+  cleanupTripStorage,
 };

@@ -275,37 +275,32 @@ export const paymentService = {
     }
   },
 
-  // Payment Settlement
+  // Payment Settlement — uses pessimistic locking RPC to prevent double-credit race conditions
   async settlePayment(splitId: string, settlementMethod: string): Promise<boolean> {
     try {
-      // Get the split and its parent payment info
-      const { data: currentSplit, error: fetchError } = await supabase
-        .from('payment_splits')
-        .select('is_settled, payment_message_id')
-        .eq('id', splitId)
-        .single();
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) return false;
 
-      if (fetchError) throw fetchError;
+      // RPC not yet in generated Supabase types
+      const { data, error } = await (supabase as any).rpc('settle_payment_split', {
+        p_split_id: splitId,
+        p_user_id: userId,
+        p_method: settlementMethod,
+      });
 
-      if (currentSplit.is_settled) {
-        throw new Error('Payment has already been settled by another user.');
+      if (error) {
+        console.error('[paymentService] settle_payment_split RPC error:', error);
+        return false;
       }
 
-      // Mark split as settled
-      const { error } = await supabase
-        .from('payment_splits')
-        .update({
-          is_settled: true,
-          settled_at: new Date().toISOString(),
-          settlement_method: settlementMethod,
-        })
-        .eq('id', splitId)
-        .eq('is_settled', false);
-
-      if (error) return false;
-
-      // Check if all splits for this payment are now settled
-      await this.updateParentPaymentSettledStatus(currentSplit.payment_message_id);
+      // RPC returns { success, error?, all_settled? }
+      if (!data?.success) {
+        if (data?.error === 'ALREADY_SETTLED') {
+          throw new Error('Payment has already been settled by another user.');
+        }
+        return false;
+      }
 
       return true;
     } catch (error) {

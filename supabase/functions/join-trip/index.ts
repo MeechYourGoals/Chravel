@@ -429,6 +429,21 @@ serve(async req => {
 
         joinRequestId = joinRequest?.id;
         logStep('Join request created successfully', { requestId: joinRequestId });
+
+        // Increment current_uses on the invite with optimistic concurrency
+        const currentUses = invite.current_uses ?? 0;
+        const { error: incrementError } = await supabaseClient
+          .from('trip_invites')
+          .update({ current_uses: currentUses + 1 })
+          .eq('code', normalizedInviteCode)
+          .eq('current_uses', currentUses); // optimistic lock
+
+        if (incrementError) {
+          // Non-fatal: log but don't fail the join request
+          logStep('WARNING: Failed to increment current_uses', { error: incrementError.message });
+        } else {
+          logStep('Incremented current_uses', { from: currentUses, to: currentUses + 1 });
+        }
       }
 
       // Note: requesterName and requesterEmail were already captured above
