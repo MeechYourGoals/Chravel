@@ -78,7 +78,7 @@ export async function renderTemplate(data: TripExportData): Promise<string> {
  * Simple Text Header (No Cover Image)
  */
 function renderHeader(data: TripExportData): string {
-  const { tripTitle, subtitle, destination, startDate, endDate } = data;
+  const { tripTitle, subtitle, destination, startDate, endDate, generatedAtLocal } = data;
 
   const hasMeta = destination || (startDate && endDate);
   const metaText = [
@@ -94,6 +94,9 @@ function renderHeader(data: TripExportData): string {
       <h1>${escapeHtml(tripTitle)}</h1>
       ${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ''}
       ${hasMeta ? `<div class="meta">${metaText}</div>` : ''}
+      <div class="meta" style="margin-top:0.5em;font-size:0.8em;opacity:0.7;">
+        Exported ${escapeHtml(generatedAtLocal)}
+      </div>
     </div>
   </div>`;
 }

@@ -229,8 +229,11 @@ const FEATURE_TO_ENTITLEMENTS: Record<FeatureName, EntitlementId[]> = {
 /**
  * Usage limits per feature per tier
  * -1 = unlimited, 0 = not available, positive number = limit
+ *
+ * SINGLE SOURCE OF TRUTH — do not duplicate this map elsewhere.
+ * Import from '@/billing/entitlements' in all consumers.
  */
-const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier, number>>> = {
+export const FEATURE_LIMITS: Record<FeatureName, Partial<Record<SubscriptionTier, number>>> = {
   ai_concierge: {
     free: 5,
     explorer: 10,

@@ -1,3 +1,82 @@
+# AI Ingestion Summary
+
+- **App Name:** Chravel
+- **Product Description:** A multi-platform trip management and collaboration app (web + PWA + iOS) that combines itinerary planning, real-time group chat, expense splitting, calendar sync, media sharing, and an AI-powered travel concierge for both consumer travelers and professional tour/event teams.
+
+## Primary User Types
+1. Consumer travelers (Free / Explorer / Frequent Chraveler tiers)
+2. Pro/Enterprise teams (tour managers, event coordinators, sports teams)
+3. Organization admins (B2B seat-based billing)
+4. Advertisers (campaign management dashboard)
+
+## Top 10 Systems/Modules
+1. Trip Management (create, join, archive, share, invite)
+2. Unified Messaging (trip chat, channels, broadcasts, threads, reactions)
+3. AI Concierge (Gemini-powered travel assistant with voice + text)
+4. Calendar & Events (Google Calendar sync, reminders, agendas)
+5. Payments & Expense Splitting (RevenueCat subscriptions, Stripe checkout, split settlements)
+6. Smart Import (Gmail OAuth, receipt OCR, artifact ingestion)
+7. Media Gallery (upload, compression, AI tagging, lightbox)
+8. Maps & Places (Google Maps, place search, location sharing)
+9. Organizations & Teams (B2B, roles, permissions, rosters)
+10. Notifications & Realtime (push notifications, Supabase realtime, read receipts)
+
+## Top 10 Third-Party Integrations
+1. Supabase (Postgres, RLS, Auth, Realtime, Edge Functions, Storage)
+2. Google Gemini / Vertex AI (text + voice concierge)
+3. Google Maps JavaScript API (maps, places, geocoding)
+4. RevenueCat (iOS/web subscription billing)
+5. Stripe (web checkout, webhooks, customer portal)
+6. Capacitor (iOS/Android native shell)
+7. Sentry (error tracking)
+8. PostHog (product analytics)
+9. Google Calendar API (bi-directional sync)
+10. Gmail API (OAuth email import)
+
+## Top 20 Core Entities/Features
+1. Trips (consumer, pro, event types)
+2. Trip Members / Participants
+3. Messages (unified across chat + channels)
+4. Channels (role-based, custom)
+5. Broadcasts (trip-wide announcements)
+6. Calendar Events (with recurrence, reminders)
+7. Payment Splits (multi-method settlements)
+8. Receipts (OCR-parsed expenses)
+9. Media Attachments (photos, videos, files)
+10. Artifacts (imported documents, itineraries)
+11. Tasks (assignable, per-trip)
+12. Polls (voting with real-time updates)
+13. Links (shared with OG previews)
+14. Organizations (B2B with seat billing)
+15. AI Queries (concierge conversation history)
+16. Notifications (push + email + in-app)
+17. Profiles (user settings, preferences)
+18. Subscriptions (consumer + pro tiers)
+19. Campaigns (advertiser targeting + analytics)
+20. Shared Locations (realtime GPS sharing)
+
+## Known Risky Areas
+- Trip Not Found flash during auth hydration (recurring)
+- Auth desync causing data leaks
+- RLS policy bypasses (zero-tolerance)
+- Chat message loss on WebSocket reconnect
+- Demo mode data contamination
+- Capability token security (edge function JWT)
+- CORS origin validation (edge functions)
+- CronGuard fail-open (cron-only endpoints)
+- Chat read receipt write amplification
+- Supabase realtime unfiltered subscriptions
+
+## Canonical Docs Created/Updated
+- `CLAUDE.md` — Engineering manifesto & hard constraints
+- `DEBUG_PATTERNS.md` — Security + performance anti-patterns
+- `LESSONS.md` — Reusable engineering tips
+- `TEST_GAPS.md` — Missing test coverage by subsystem
+- `AGENTS.md` — Agent operating principles
+- `agent_memory.jsonl` — Structured machine-readable memory
+
+---
+
 # 🧭 CHRAVEL ENGINEERING MANIFESTO
 > **Stack:** React 18 + TypeScript · TanStack Query + Zustand · Tailwind · Supabase (Postgres, RLS, Auth, Realtime, Edge Functions) · Vercel
 > **Platforms:** Web + PWA + Mobile Web

@@ -212,6 +212,7 @@ async function sendViaResend(
         'X-Entity-Ref-ID': crypto.randomUUID(), // For tracking
       },
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -255,6 +256,7 @@ async function sendViaSendGrid(
         },
       ],
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {

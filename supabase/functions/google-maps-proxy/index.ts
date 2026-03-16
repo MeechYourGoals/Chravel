@@ -119,7 +119,7 @@ serve(async req => {
 
         const apiUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=${origins}&destinations=${destinations}&mode=${mode}&key=${apiKey}`;
 
-        const apiResponse = await fetch(apiUrl);
+        const apiResponse = await fetch(apiUrl, { signal: AbortSignal.timeout(15_000) });
         const apiData = await apiResponse.json();
 
         // Response logged at debug level only
@@ -146,7 +146,7 @@ serve(async req => {
         // Address redacted from logs
         const apiUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
 
-        const apiResponse = await fetch(apiUrl);
+        const apiResponse = await fetch(apiUrl, { signal: AbortSignal.timeout(15_000) });
         const apiData = await apiResponse.json();
 
         // Geocoding response logged at debug level only
@@ -196,7 +196,7 @@ serve(async req => {
           apiUrl += `&type=${type}`;
         }
 
-        const apiResponse = await fetch(apiUrl);
+        const apiResponse = await fetch(apiUrl, { signal: AbortSignal.timeout(15_000) });
         const apiData = await apiResponse.json();
 
         // Enhanced error handling for API responses
@@ -233,7 +233,7 @@ serve(async req => {
 
         const apiUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${location}&radius=${radius}&key=${apiKey}`;
 
-        const apiResponse = await fetch(apiUrl);
+        const apiResponse = await fetch(apiUrl, { signal: AbortSignal.timeout(15_000) });
         const apiData = await apiResponse.json();
 
         const result = new Response(JSON.stringify(apiData), {
@@ -257,7 +257,7 @@ serve(async req => {
 
         const apiUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}`;
 
-        const apiResponse = await fetch(apiUrl);
+        const apiResponse = await fetch(apiUrl, { signal: AbortSignal.timeout(15_000) });
         const apiData = await apiResponse.json();
 
         const result = new Response(JSON.stringify(apiData), {
@@ -282,7 +282,7 @@ serve(async req => {
         // Autocomplete request redacted from logs
         const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&types=${encodeURIComponent(types)}&key=${apiKey}`;
 
-        const apiResponse = await fetch(apiUrl);
+        const apiResponse = await fetch(apiUrl, { signal: AbortSignal.timeout(15_000) });
         const apiData = await apiResponse.json();
 
         // Autocomplete response logged at debug level only

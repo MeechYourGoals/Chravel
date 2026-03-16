@@ -19,6 +19,7 @@ import {
 export type GeminiLiveState =
   | 'idle'
   | 'requesting_mic'
+  | 'reconnecting'
   | 'ready'
   | 'listening'
   | 'sending'
@@ -884,7 +885,7 @@ export function useGeminiLive({
                 max: MAX_AUTO_RECONNECT_RETRIES,
               });
               patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-              transition('requesting_mic', 'auto_reconnect_pending');
+              transition('reconnecting', 'auto_reconnect_pending');
               setError(null);
               void cleanup().then(() => {
                 autoReconnectTimerRef.current = setTimeout(() => {
@@ -1300,7 +1301,7 @@ export function useGeminiLive({
             const attempt = autoReconnectCountRef.current;
             voiceLog('auto_reconnect:scheduling', { attempt, max: MAX_AUTO_RECONNECT_RETRIES });
             patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-            transition('requesting_mic', 'auto_reconnect_pending');
+            transition('reconnecting', 'auto_reconnect_pending');
             setError(null);
             void cleanup().then(() => {
               autoReconnectTimerRef.current = setTimeout(() => {
@@ -1339,7 +1340,7 @@ export function useGeminiLive({
           max: MAX_AUTO_RECONNECT_RETRIES,
         });
         patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-        transition('requesting_mic', 'auto_reconnect_pending');
+        transition('reconnecting', 'auto_reconnect_pending');
         setError(null);
         void cleanup().then(() => {
           autoReconnectTimerRef.current = setTimeout(() => {

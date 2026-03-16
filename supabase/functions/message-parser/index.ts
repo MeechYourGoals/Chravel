@@ -68,6 +68,7 @@ serve(async req => {
         try {
           const response = await fetch(url, {
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LinkPreview/1.0)' },
+            signal: AbortSignal.timeout(10_000),
           });
 
           if (response.ok) {

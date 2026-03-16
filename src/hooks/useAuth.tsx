@@ -18,6 +18,8 @@ import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore'
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
+import { toast } from '@/hooks/use-toast';
+import { logAuthEvent } from '@/utils/authTelemetry';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -666,6 +668,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (demoStore.isDemoMode || demoStore.demoView === 'app-preview') {
             demoStore.setDemoView('off');
           }
+
+          // 🔒 Detect potential duplicate provider account: if a brand-new Google OAuth
+          // user's email already has a profile under a different user_id, warn the user
+          // so they know to use their original sign-in method instead.
+          const signedInUser = session.user;
+          const provider = signedInUser.app_metadata?.provider;
+          const createdAt = new Date(signedInUser.created_at).getTime();
+          const isNewAccount = Date.now() - createdAt < 60_000;
+
+          if (provider === 'google' && isNewAccount && signedInUser.email) {
+            setTimeout(async () => {
+              try {
+                const { data: existingProfiles } = await supabase
+                  .from('profiles')
+                  .select('user_id')
+                  .eq('email', signedInUser.email!)
+                  .neq('user_id', signedInUser.id)
+                  .limit(1);
+
+                if (existingProfiles && existingProfiles.length > 0) {
+                  toast({
+                    title: 'Possible Duplicate Account',
+                    description:
+                      'An account with this email already exists. To avoid split data, sign out and use your original sign-in method (email/password).',
+                    variant: 'destructive',
+                  });
+                }
+              } catch {
+                // Non-critical — silently ignore detection failures
+              }
+            }, 500);
+          }
         }
 
         // Defer async work with setTimeout(0) to avoid Supabase auth deadlock
@@ -765,6 +799,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (import.meta.env.DEV) {
           console.error('[Auth] Sign in error:', error);
         }
+        logAuthEvent('login_failure', { method: 'email', errorReason: error.message });
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -784,6 +819,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Success path: clear loading state (auth state listener will update user)
+      logAuthEvent('login_success', { method: 'email' });
       setIsLoading(false);
       void data;
       return {};
@@ -808,6 +844,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
+          // Force account picker so users don't accidentally sign in with the wrong Google account,
+          // which could create a duplicate profile if the email differs from their email/password account.
+          // NOTE: Enable "Automatic Linking" in Supabase Dashboard (Auth > Providers) to prevent
+          // duplicate auth.users entries when the same email is used across providers.
+          queryParams: { prompt: 'select_account' },
         },
       });
 
@@ -842,6 +883,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (import.meta.env.DEV) {
           console.error('[Auth] Phone OTP error:', error);
         }
+        logAuthEvent('phone_otp_failure', { method: 'phone', errorReason: error.message });
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -857,6 +899,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
+      logAuthEvent('phone_otp_requested', { method: 'phone' });
       setIsLoading(false);
       return {};
     } catch (error) {
@@ -900,11 +943,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (import.meta.env.DEV) {
           console.error('[Auth] Sign up error:', error);
         }
+        logAuthEvent('signup_failure', { method: 'email', errorReason: error.message });
         setIsLoading(false);
 
         // Provide more specific error messages
         if (error.message.includes('already registered')) {
-          return { error: 'This email is already registered. Please sign in instead.' };
+          return {
+            error:
+              'Unable to create account with this email. If you already have an account, try signing in or resetting your password.',
+          };
         }
         if (error.message.includes('password')) {
           return { error: 'Password must be at least 6 characters long.' };
@@ -912,6 +959,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         return { error: error.message };
       }
+
+      logAuthEvent('signup_success', { method: 'email' });
 
       // Check if email confirmation is required
       if (data.user && !data.session) {
@@ -957,7 +1006,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       useOnboardingStore.getState().resetOnboarding();
     });
 
+    // Clear notification state to prevent stale badges/data across sessions.
+    // Safety analysis:
+    // - clearAll() only resets client-side Zustand store (sets notifications=[], unreadCount=0).
+    //   No server calls, no RLS implications, no auth-dependent operations.
+    // - RLS on notifications table enforces user_id = auth.uid() — no cross-user access possible.
+    // - useNotificationRealtime already clears on user=null (line 174-179), but this provides
+    //   defense-in-depth for cases where the effect cleanup runs after the redirect.
+    // - No race condition risk: clearAll() is synchronous on the Zustand store.
+    import('@/store/notificationRealtimeStore').then(({ useNotificationRealtimeStore }) => {
+      useNotificationRealtimeStore.getState().clearAll();
+    });
+
     // Sign out from Supabase (no-op if not authenticated)
+    logAuthEvent('logout');
     invalidateAuthCache();
     await supabase.auth.signOut();
     setUser(null);
@@ -980,6 +1042,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
+      logAuthEvent('password_reset_requested', { method: 'email' });
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {
