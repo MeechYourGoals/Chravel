@@ -646,7 +646,9 @@ export const TripChat = React.memo(
         toast.error(isBroadcast ? 'Broadcast failed to send' : 'Message failed to send', {
           description: errorMsg,
         });
-        console.error('[TripChat] Failed to send message:', error);
+        if (import.meta.env.DEV) {
+          console.error('[TripChat] Failed to send message:', error);
+        }
       }
     };
 
