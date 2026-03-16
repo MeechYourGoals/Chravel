@@ -40,3 +40,12 @@
 - **Suggested tests:** Render TripChat, simulate 3 messages arriving, verify getMessagesReactions called exactly once (initial), not on subsequent INSERTs
 - **Priority:** low
 - **Provenance:** March 2026 chat reliability audit
+
+## Migration compatibility window regression suite
+- **Area:** `supabase/migrations/` + app DB access layer
+- **Why this gap matters:** Current migration history shows repeated modification of high-risk tables and policies; without compatibility testing, rolling deploy windows can break old/new app versions.
+- **Missing coverage:** No automated CI test that validates both old-app/new-schema and new-app/old-schema compatibility for one deploy window.
+- **Failure mode if untested:** Runtime failures during phased rollout, policy mismatches, or enum/state parsing regressions after migration apply.
+- **Suggested tests:** CI job that boots previous app build against latest schema, and current app build against prior schema snapshot; verify critical CRUD/auth paths.
+- **Priority:** high
+- **Provenance:** 2026-03 data evolution hardening audit
