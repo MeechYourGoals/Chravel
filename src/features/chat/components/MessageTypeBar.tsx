@@ -21,7 +21,7 @@ const SEGMENT_COLORS = {
     inactive: 'text-[#059669]/70 hover:text-[#059669] hover:bg-[#059669]/10',
   },
   search: {
-    inactive: 'text-[#1E40AF]/70 hover:text-[#1E40AF] hover:bg-[#1E40AF]/10',
+    inactive: 'text-white/70 hover:text-white hover:bg-white/5',
   },
 } as const;
 
