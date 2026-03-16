@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 
 type AuthMode = 'signin' | 'signup';
 
+const INVITE_CODE_STORAGE_KEY = 'chravel_pending_invite_code';
+
 function getSafeReturnTo(value: string | null, fallback: string): string {
   if (!value) return fallback;
   // Only allow same-origin relative paths.
@@ -23,16 +25,7 @@ const AuthPage = () => {
     const fromQuery = searchParams.get('returnTo');
     // If caller used state, prefer it (more trustworthy).
     const fromState = (location.state as { returnTo?: string } | null)?.returnTo ?? null;
-    const baseReturn = getSafeReturnTo(fromState ?? fromQuery, '/');
-
-    // If an invite code was passed (e.g., from OAuth redirect), ensure returnTo
-    // points to the join page so the invite flow completes after auth
-    const inviteCode = searchParams.get('invite');
-    if (inviteCode && !baseReturn.includes('/join/')) {
-      return `/join/${inviteCode}`;
-    }
-
-    return baseReturn;
+    return getSafeReturnTo(fromState ?? fromQuery, '/');
   }, [location.state, searchParams]);
 
   const mode = useMemo<AuthMode>(() => {
@@ -40,12 +33,31 @@ const AuthPage = () => {
     return raw === 'signup' ? 'signup' : 'signin';
   }, [searchParams]);
 
-  // If already authenticated, immediately go back.
+  // Restore invite context from query param into localStorage
+  // This ensures the invite code survives OAuth redirects that may clear localStorage
+  useEffect(() => {
+    const inviteCode = searchParams.get('invite');
+    if (inviteCode) {
+      try {
+        localStorage.setItem(INVITE_CODE_STORAGE_KEY, inviteCode);
+      } catch {
+        // localStorage unavailable — JoinTrip will fall back to query param
+      }
+    }
+  }, [searchParams]);
+
+  // If already authenticated, redirect — preferring invite join flow if invite code exists
   useEffect(() => {
     if (user && !authLoading) {
-      navigate(returnTo, { replace: true });
+      const inviteCode = searchParams.get('invite');
+      if (inviteCode) {
+        // User just authenticated with an invite context — go straight to join
+        navigate(`/join/${inviteCode}`, { replace: true });
+      } else {
+        navigate(returnTo, { replace: true });
+      }
     }
-  }, [user, authLoading, navigate, returnTo]);
+  }, [user, authLoading, navigate, returnTo, searchParams]);
 
   return (
     <div className="min-h-screen bg-background">
