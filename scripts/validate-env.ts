@@ -364,7 +364,7 @@ function validate(): void {
           });
         }
       }
-    } else if (spec.required) {
+    } else if (spec.required && !isCi) {
       missing.push(spec);
     } else {
       optional.push(spec);

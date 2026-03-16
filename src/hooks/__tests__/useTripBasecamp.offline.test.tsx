@@ -16,6 +16,10 @@ vi.mock('@/hooks/useDemoMode', () => ({
   useDemoMode: () => ({ isDemoMode: false }),
 }));
 
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: vi.fn(() => ({ user: { id: 'user-1' } })),
+}));
+
 vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
