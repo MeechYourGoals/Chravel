@@ -83,7 +83,8 @@ export function usePendingActions(tripId: string) {
       // Execute the original mutation based on tool_name
       switch (action.tool_name) {
         case 'createTask': {
-          const { error } = await supabase
+          // intentional: source_type column may not be in generated types yet
+          const { error } = await (supabase as any)
             .from('trip_tasks')
             .insert({
               trip_id: action.trip_id,
