@@ -544,14 +544,9 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
-        // Use SILENT scheduling to prevent the model from narrating tool results
-        // (double-speech). Vertex AI supports FunctionResponseScheduling.SILENT.
-        // See gist: "Send tool responses with SILENT scheduling"
-        const silentResponses = responses.map(r => ({
-          ...r,
-          scheduling: 'SILENT',
-        }));
-        ws.send(JSON.stringify({ toolResponse: { functionResponses: silentResponses } }));
+        // Send tool results back to the model without SILENT scheduling.
+        // We want the AI to audibly acknowledge the action as instructed in the system prompt.
+        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
       }
     },
     [],
