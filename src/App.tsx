@@ -247,25 +247,28 @@ const App = () => {
 
   // Breaking-only version check - only triggers for true breaking changes (manually incremented)
   useEffect(() => {
-    const BREAKING_VERSION_KEY = 'chravel_breaking_version';
-    const CURRENT_BREAKING_VERSION = '1'; // Only increment for true breaking changes (auth, API, schema)
+    try {
+      const BREAKING_VERSION_KEY = 'chravel_breaking_version';
+      const CURRENT_BREAKING_VERSION = '1'; // Only increment for true breaking changes (auth, API, schema)
 
-    const storedBreaking = localStorage.getItem(BREAKING_VERSION_KEY);
+      const storedBreaking = localStorage.getItem(BREAKING_VERSION_KEY);
 
-    // First visit - store and continue
-    if (!storedBreaking) {
-      localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
-      return;
-    }
-
-    // Breaking change detected - force reload silently
-    if (storedBreaking !== CURRENT_BREAKING_VERSION) {
-      console.log('[App] Breaking version change detected, reloading silently');
-      if ('caches' in window) {
-        caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))));
+      // First visit - store and continue
+      if (!storedBreaking) {
+        localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
+        return;
       }
-      localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
-      safeReload(true);
+
+      // Breaking change detected - force reload silently
+      if (storedBreaking !== CURRENT_BREAKING_VERSION) {
+        if ('caches' in window) {
+          caches.keys().then(names => Promise.all(names.map(n => caches.delete(n))));
+        }
+        localStorage.setItem(BREAKING_VERSION_KEY, CURRENT_BREAKING_VERSION);
+        safeReload(true);
+      }
+    } catch {
+      // Ignore in restricted environments (sandboxed previews)
     }
   }, []);
 
