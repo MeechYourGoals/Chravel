@@ -28,14 +28,17 @@ describe('functionExecutor idempotency', () => {
       'user-1',
     );
 
-    expect(mockFrom).toHaveBeenCalledWith('trip_tasks');
+    expect(mockFrom).toHaveBeenCalledWith('trip_pending_actions');
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Passports',
+        payload: expect.objectContaining({
+          title: 'Passports',
+        }),
       }),
     );
     expect(result.success).toBe(true);
-    expect(result.task).toEqual({ id: 'task-1' });
+    expect(result.pending).toBe(true);
+    expect(result.pendingActionId).toBe('task-1');
   });
 
   it('should handle unique constraint violation and fetch existing task by idempotency_key', async () => {
@@ -58,10 +61,12 @@ describe('functionExecutor idempotency', () => {
       ),
     ).rejects.toEqual({ code: '23505' });
 
-    expect(mockFrom).toHaveBeenCalledWith('trip_tasks');
+    expect(mockFrom).toHaveBeenCalledWith('trip_pending_actions');
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Passports',
+        payload: expect.objectContaining({
+          title: 'Passports',
+        }),
       }),
     );
   });
