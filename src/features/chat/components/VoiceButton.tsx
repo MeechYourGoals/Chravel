@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { AudioLines, Lock, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
-import { CTA_GRADIENT, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
+import { CTA_GRADIENT, CTA_ICON_SIZE, CTA_ICON_SIZE_SM } from '@/lib/ctaButtonStyles';
 
 interface VoiceButtonProps {
   /** Dictation engine state */
@@ -13,13 +13,21 @@ interface VoiceButtonProps {
   onToggle: () => void;
   /** Upgrade prompt for ineligible users */
   onUpgrade?: () => void;
+  /** Use compact 36px size instead of default 44px */
+  small?: boolean;
 }
 
 /**
  * Waveform button — dedicated to one-shot dictation only.
  * Tap to start/stop Web Speech API dictation.
  */
-export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: VoiceButtonProps) => {
+export const VoiceButton = ({
+  voiceState,
+  isEligible,
+  onToggle,
+  onUpgrade,
+  small,
+}: VoiceButtonProps) => {
   const handleClick = useCallback(() => {
     if (!isEligible) {
       onUpgrade?.();
@@ -58,7 +66,7 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
           <button
             type="button"
             onClick={handleClick}
-            className={`relative size-11 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
+            className={`relative ${small ? 'size-9' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
           >
             {/* Animated pulse rings when dictating */}
@@ -83,9 +91,9 @@ export const VoiceButton = ({ voiceState, isEligible, onToggle, onUpgrade }: Voi
             )}
             <span className="relative z-10">
               {isConnecting ? (
-                <Loader2 size={CTA_ICON_SIZE} className="animate-spin" />
+                <Loader2 size={small ? CTA_ICON_SIZE_SM : CTA_ICON_SIZE} className="animate-spin" />
               ) : (
-                <AudioLines size={CTA_ICON_SIZE} />
+                <AudioLines size={small ? CTA_ICON_SIZE_SM : CTA_ICON_SIZE} />
               )}
             </span>
             {!isEligible && (

@@ -27,16 +27,20 @@ const getBuildVersion = (): string => {
 
 // Check if we're on a new version
 const isNewVersion = (): boolean => {
-  const currentVersion = getBuildVersion();
-  const storedVersion = localStorage.getItem(BUILD_VERSION_KEY);
+  try {
+    const currentVersion = getBuildVersion();
+    const storedVersion = localStorage.getItem(BUILD_VERSION_KEY);
 
-  if (currentVersion === 'unknown') return false;
-  if (!storedVersion) {
-    localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
+    if (currentVersion === 'unknown') return false;
+    if (!storedVersion) {
+      localStorage.setItem(BUILD_VERSION_KEY, currentVersion);
+      return false;
+    }
+
+    return currentVersion !== storedVersion;
+  } catch {
     return false;
   }
-
-  return currentVersion !== storedVersion;
 };
 
 // Clear all caches including service workers - enhanced version
