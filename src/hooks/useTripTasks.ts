@@ -5,7 +5,7 @@ import { useToast } from './use-toast';
 import { taskStorageService } from '../services/taskStorageService';
 import { useDemoMode } from './useDemoMode';
 import { useAuth } from './useAuth';
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { generateMutationId } from '@/utils/concurrencyUtils';
@@ -150,7 +150,7 @@ export const useTripTasks = (
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const permissions = useMutationPermissions(tripId);
-  const pendingIdempotencyKey = useRef<string>('');
+  // Idempotency key generated inline in mutationFn to avoid concurrent-mutation ref collision
 
   // Task form management state
   const [title, setTitle] = useState('');
@@ -565,7 +565,6 @@ export const useTripTasks = (
         ...(old || []),
       ]);
 
-      pendingIdempotencyKey.current = generateMutationId();
       return { previousTasks };
     },
     mutationFn: async (task: CreateTaskRequest & { assignedTo?: string[] }) => {
@@ -631,7 +630,7 @@ export const useTripTasks = (
           description: task.description,
           due_at: task.due_at,
           is_poll: task.is_poll,
-          idempotency_key: pendingIdempotencyKey.current,
+          idempotency_key: generateMutationId(),
         })
         .select()
         .single();

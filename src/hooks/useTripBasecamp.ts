@@ -12,7 +12,7 @@
  * - Cross-device synchronization via refetch
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { basecampService } from '@/services/basecampService';
 import { demoModeService } from '@/services/demoModeService';
@@ -127,6 +127,9 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
   const queryClient = useQueryClient();
   const { isDemoMode } = useDemoMode();
   const permissions = useMutationPermissions(tripId || '');
+  // Ref captures previous address before onMutate overwrites cache,
+  // so mutationFn can read the real previous address for the system message.
+  const previousAddressRef = useRef<string | undefined>(undefined);
 
   return useMutation({
     // Disable retries to prevent hanging on repeated failures
@@ -160,14 +163,14 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
         return { success: true, address: newBasecamp.address, name: newBasecamp.name };
       }
 
-      // Read current version from cache for optimistic locking
+      // Read version from cache (preserved through optimistic update — see onMutate)
       const cached = queryClient.getQueryData<BasecampWithVersion | null>(
         tripBasecampKeys.trip(tripId),
       );
       const currentVersion = cached?._version ?? undefined;
 
-      // Get previous address for system message
-      const previousAddress = cached?.address ?? undefined;
+      // Get previous address from ref (captured in onMutate before cache overwrite)
+      const previousAddress = previousAddressRef.current;
 
       // Authenticated mode: save to database with version check
       const result = await basecampService.setTripBasecamp(tripId, newBasecamp, {
@@ -199,13 +202,16 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
       // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: tripBasecampKeys.trip(tripId) });
 
-      // Snapshot previous value for rollback
-      const previousBasecamp = queryClient.getQueryData<BasecampLocation | null>(
+      // Snapshot previous value for rollback and version preservation
+      const previousBasecamp = queryClient.getQueryData<BasecampWithVersion | null>(
         tripBasecampKeys.trip(tripId),
       );
 
-      // Optimistically update cache
-      const optimisticValue: BasecampLocation = {
+      // Capture previous address before cache overwrite (for system message in mutationFn)
+      previousAddressRef.current = previousBasecamp?.address ?? undefined;
+
+      // Optimistically update cache — preserve _version so mutationFn reads the correct value
+      const optimisticValue: BasecampWithVersion = {
         address: newBasecamp.address,
         name: newBasecamp.name,
         type: 'other',
@@ -213,6 +219,7 @@ export function useUpdateTripBasecamp(tripId: string | undefined) {
           newBasecamp.latitude && newBasecamp.longitude
             ? { lat: newBasecamp.latitude, lng: newBasecamp.longitude }
             : undefined,
+        _version: previousBasecamp?._version,
       };
 
       queryClient.setQueryData(tripBasecampKeys.trip(tripId), optimisticValue);

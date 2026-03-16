@@ -88,10 +88,8 @@ function normalizeFlightToPayload(flight: FlightResult): SavePayload {
 function dedupeKey(url: string): string {
   try {
     const parsed = new URL(url);
-    // Lowercase entire URL to match server-side normalize_link_url()
-    let normalized = parsed.toString().toLowerCase();
-    if (normalized.endsWith('/')) normalized = normalized.slice(0, -1);
-    return normalized;
+    // Lowercase and strip all trailing slashes to match server-side normalize_link_url()
+    return parsed.toString().toLowerCase().replace(/\/+$/, '');
   } catch {
     return url.toLowerCase().replace(/\/+$/, '');
   }
