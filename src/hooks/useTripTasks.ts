@@ -8,8 +8,7 @@ import { useAuth } from './useAuth';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
-import { generateMutationId } from '@/utils/concurrencyUtils';
-import { useMutationPermissions } from '@/hooks/useMutationPermissions';
+import { taskEvents } from '@/telemetry/events';
 
 // Task form management types
 export interface TaskFormData {
@@ -702,7 +701,14 @@ export const useTripTasks = (
         task_status: taskStatusRows,
       } as TripTask;
     },
-    onSuccess: () => {
+    onSuccess: (_data: TripTask, variables: CreateTaskRequest & { assignedTo?: string[] }) => {
+      taskEvents.created({
+        trip_id: tripId,
+        task_id: _data.id,
+        has_due_date: Boolean(variables.due_at),
+        is_poll: variables.is_poll || false,
+        assigned_count: variables.assignedTo?.length || 0,
+      });
       toast({
         title: 'Task created',
         description: 'Your task has been added to the list.',
@@ -1087,6 +1093,13 @@ export const useTripTasks = (
 
       return { previousTasks };
     },
+    onSuccess: (_data: unknown, variables: ToggleTaskRequest) => {
+      if (variables.completed) {
+        taskEvents.completed(tripId, variables.taskId);
+      } else {
+        taskEvents.uncompleted(tripId, variables.taskId);
+      }
+    },
     onError: (err: Error, variables, context) => {
       const errMessage = err.message || '';
 
@@ -1154,7 +1167,8 @@ export const useTripTasks = (
       if (error) throw error;
       return taskId;
     },
-    onSuccess: () => {
+    onSuccess: (_data: unknown, taskId: string) => {
+      taskEvents.deleted(tripId, taskId);
       queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
       toast({
         title: 'Task deleted',

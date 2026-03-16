@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { authEvents } from '@/telemetry/events';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -68,26 +69,44 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
     try {
       let result;
       if (mode === 'signup') {
+        authEvents.signupStarted('email');
         result = await signUp(email, password, firstName, lastName);
       } else {
+        authEvents.loginStarted('email');
         result = await signIn(email, password);
       }
 
       if (result.error) {
+        if (mode === 'signup') {
+          authEvents.signupFailed('email', result.error);
+        } else {
+          authEvents.loginFailed('email', result.error);
+        }
         setError(result.error);
         return;
       }
 
       if (result.success) {
+        // Sign-up confirmation email sent — user_id captured by identify() on auth state change
+        if (mode === 'signup') {
+          authEvents.signupCompleted('email', '');
+        }
         setSuccess(result.success);
         return; // Keep modal open to show success message (sign-up confirmation)
+      }
+
+      // Sign-in successful — user_id captured by identify() on auth state change
+      if (mode !== 'signup') {
+        authEvents.loginCompleted('email', '');
       }
 
       // Sign-in successful - wait for auth state to update before closing
       // This prevents the "nothing happens" issue where modal closes before user state updates
       setAwaitingAuth(true);
     } catch (error) {
-      console.error('Auth error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Auth error:', error);
+      }
       setError('An unexpected error occurred');
     }
   };
@@ -367,8 +386,18 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
               onClick={async () => {
                 setGoogleLoading(true);
                 setError('');
+                if (mode === 'signup') {
+                  authEvents.signupStarted('google');
+                } else {
+                  authEvents.loginStarted('google');
+                }
                 const result = await signInWithGoogle();
                 if (result.error) {
+                  if (mode === 'signup') {
+                    authEvents.signupFailed('google', result.error);
+                  } else {
+                    authEvents.loginFailed('google', result.error);
+                  }
                   setError(result.error);
                   setGoogleLoading(false);
                 }
