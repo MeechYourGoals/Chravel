@@ -1,7 +1,30 @@
 # Telemetry & Analytics
 
-> **Module:** `src/telemetry/`  
-> **Last Updated:** 2024-12-23
+> **Module:** `src/telemetry/`
+> **Last Updated:** 2026-03-15
+
+## Implementation Status
+
+| Category | Events | Status |
+|----------|--------|--------|
+| Auth (signup/login/logout) | 7 | **Wired** in AuthModal + useAuth |
+| Trips (create/join/view/archive) | 8 | **Wired** in CreateTripModal |
+| Messages (send/fail) | 2 | **Wired** in useTripChat |
+| Tasks (create/complete/delete) | 4 | **Wired** in useTripTasks |
+| Onboarding | 4 | **Wired** in OnboardingCarousel |
+| Demo Mode | 3 | **Wired** in ExitDemoModal |
+| AI Concierge | 4 | **Defined** — wire into conciergeGateway |
+| Places | 3 | **Defined** — wire into save/search hooks |
+| Polls | 4 | **Defined** — wire into useTripPolls |
+| Export/Recap | 3 | **Defined** — wire into export hooks |
+| Recommendations | 7 | **Defined** — wire into recommendation pages |
+| Share Extension | 11 | **Defined** — wire into iOS share flow |
+| Subscription | 4 | **Defined** — wire into billing flows |
+| Notifications | 4 | **Defined** — wire into notification handlers |
+| Performance | 3 | **Wired** via performanceService + PageViewTracker |
+| Errors | 2 | **Wired** via ErrorBoundary + global listeners |
+
+---
 
 This document describes Chravel's analytics and crash reporting system, including how to add new events, configure providers, and best practices.
 
@@ -108,16 +131,14 @@ try {
 
 ### 4. Track Page Views
 
-Use the hook in your layout:
+Page views are tracked automatically by `PageViewTracker` in `App.tsx`.
+For manual page tracking, use the `pageView` helper:
 
 ```tsx
-import { usePageTracking } from '@/telemetry';
+import { pageView } from '@/telemetry/events';
 
-function AppLayout({ children }) {
-  usePageTracking(); // Automatic page view tracking
-  
-  return <>{children}</>;
-}
+// Track a page view with optional metadata
+pageView('/trips/123', { trip_id: '123' });
 ```
 
 ---
@@ -375,32 +396,21 @@ if (telemetry.isEnabled()) {
 
 ### Track Time-to-Action
 
+Use `performanceService.startTiming()` for manual timing:
+
 ```typescript
-import { useOperationTiming } from '@/telemetry';
+import { performanceService } from '@/services/performanceService';
 
 function CheckoutFlow() {
-  const { startTiming, endTiming } = useOperationTiming('checkout');
-  
+  const stopTiming = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    startTiming(); // Start when component mounts
+    stopTiming.current = performanceService.startTiming('checkout');
   }, []);
-  
+
   const handleComplete = () => {
-    const duration = endTiming();
-    tripEvents.created({ ..., checkout_duration_ms: duration });
+    stopTiming.current?.();
   };
-}
-```
-
-### Track Chat Performance
-
-```typescript
-import { useChatPerformance } from '@/telemetry';
-
-function TripChat({ tripId, messages, isLoading }) {
-  useChatPerformance(tripId, messages, isLoading);
-  
-  return <ChatMessages messages={messages} />;
 }
 ```
 

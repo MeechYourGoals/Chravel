@@ -291,6 +291,56 @@ export interface ShareExtensionEvents {
   };
 }
 
+/**
+ * AI Concierge Events
+ */
+export interface ConciergeEvents {
+  concierge_query_sent: {
+    trip_id: string;
+    query_length: number;
+    has_image: boolean;
+    is_voice: boolean;
+  };
+  concierge_response_received: {
+    trip_id: string;
+    latency_ms: number;
+    response_length: number;
+    has_function_calls: boolean;
+    function_call_names?: string[];
+  };
+  concierge_error: {
+    trip_id: string;
+    error_type: string;
+    latency_ms: number;
+  };
+  concierge_tool_executed: {
+    trip_id: string;
+    tool_name: string;
+    success: boolean;
+    latency_ms: number;
+  };
+}
+
+/**
+ * Subscription Events
+ */
+export interface SubscriptionEvents {
+  upgrade_prompt_shown: { surface: string; trip_id?: string };
+  upgrade_started: { plan: string; surface: string };
+  upgrade_completed: { plan: string };
+  upgrade_failed: { plan: string; error: string };
+}
+
+/**
+ * Notification Events
+ */
+export interface NotificationEvents {
+  notification_clicked: { type: string; trip_id?: string };
+  push_permission_prompted: Record<string, never>;
+  push_permission_granted: Record<string, never>;
+  push_permission_denied: Record<string, never>;
+}
+
 // ============================================================================
 // Combined Event Map
 // ============================================================================
@@ -307,7 +357,10 @@ export type TelemetryEventMap = AuthEvents &
   OnboardingEvents &
   DemoEvents &
   RecommendationEvents &
-  ShareExtensionEvents;
+  ShareExtensionEvents &
+  ConciergeEvents &
+  SubscriptionEvents &
+  NotificationEvents;
 
 export type TelemetryEventName = keyof TelemetryEventMap;
 

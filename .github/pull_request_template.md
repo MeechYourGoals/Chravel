@@ -38,6 +38,7 @@
 ## Pre-Merge Checklist
 
 - [ ] `npm run lint && npm run typecheck && npm run build` passes locally
+- [ ] `npm run qa:guardrails` passes
 - [ ] No `console.log` left in committed code
 - [ ] No hardcoded secrets, API keys, or credentials
 - [ ] No weakening of RLS or auth guarantees
@@ -48,6 +49,10 @@
 ## Testing
 
 <!-- How was this tested? Manual steps, automated tests, screenshots? -->
+
+## Risk
+
+<!-- What could go wrong? What's the blast radius? -->
 
 ## Rollback Plan
 

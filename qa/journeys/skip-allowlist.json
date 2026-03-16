@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "description": "Temporary allowlist for existing skipped tests in critical suites. Entries must be burned down over time.",
+  "allowed": [
+    "src/services/__tests__/paymentBalanceService.integration.test.ts",
+    "src/services/__tests__/calendarService.integration.test.ts",
+    "src/services/__tests__/chatService.integration.test.ts",
+    "src/services/__tests__/mediaSearchService.test.ts",
+    "src/services/__tests__/chatContentParser.test.ts",
+    "src/pages/__tests__/ProTripDetail.test.tsx",
+    "src/pages/__tests__/IndexProTripNavigation.test.tsx",
+    "src/pages/__tests__/ProTripRouteOrder.test.tsx",
+    "e2e/specs/auth/full-auth.spec.ts",
+    "e2e/auth.spec.ts",
+    "e2e/chat.spec.ts",
+    "src/__tests__/auth.test.tsx",
+    "src/__tests__/calendar-conflict.test.tsx",
+    "src/__tests__/chat-flow.test.tsx",
+    "src/__tests__/payment-balance.test.tsx",
+    "src/__tests__/trip-creation-flow.test.tsx"
+  ]
+}

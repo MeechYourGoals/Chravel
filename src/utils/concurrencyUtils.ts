@@ -1,3 +1,14 @@
+/**
+ * Generate a unique mutation ID for deduplication and audit trail.
+ * Uses crypto.randomUUID when available, falls back to timestamp + random.
+ */
+export function generateMutationId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `mut_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 // Rate limiting utility
 class RateLimiter {
   private attempts: Map<string, { count: number; resetTime: number }> = new Map();

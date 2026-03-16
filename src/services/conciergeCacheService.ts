@@ -47,6 +47,40 @@ const TRIP_CONTEXT_KEYWORDS =
   /\b(calendar|event|task|payment|expense|poll|hotel|flight|itinerary|schedule|basecamp|who|member|going|reservation|book|checkin|checkout|cost|budget|owe|paid)\b/i;
 
 class ConciergeCacheService {
+  /**
+   * In-flight request deduplication map.
+   * Key = tripId + normalized query hash. If an identical request is already in-flight,
+   * subsequent callers get the same promise instead of hitting Gemini again.
+   */
+  private inFlightRequests = new Map<string, Promise<ChatMessage>>();
+
+  /** Build a dedup key for in-flight tracking. */
+  private buildDedupKey(tripId: string, query: string): string {
+    return `${tripId}::${query.toLowerCase().trim()}`;
+  }
+
+  /**
+   * Wrap an async AI request with in-flight deduplication.
+   * If an identical request (same trip + query) is already pending,
+   * the existing promise is returned instead of spawning a new request.
+   */
+  deduplicateRequest(
+    tripId: string,
+    query: string,
+    requestFn: () => Promise<ChatMessage>,
+  ): Promise<ChatMessage> {
+    const key = this.buildDedupKey(tripId, query);
+    const existing = this.inFlightRequests.get(key);
+    if (existing) return existing;
+
+    const promise = requestFn().finally(() => {
+      this.inFlightRequests.delete(key);
+    });
+
+    this.inFlightRequests.set(key, promise);
+    return promise;
+  }
+
   /** Returns true if the query touches live trip data (short TTL applies). */
   private isContextualQuery(query: string): boolean {
     return TRIP_CONTEXT_KEYWORDS.test(query);
@@ -93,7 +127,7 @@ class ConciergeCacheService {
       // Also update messages cache (user-isolated)
       this.updateMessagesCache(tripId, response, userId);
     } catch (error) {
-      console.error('Failed to cache message:', error);
+      if (import.meta.env.DEV) console.error('Failed to cache message:', error);
       // Silently fail - caching is not critical
     }
   }
@@ -132,7 +166,7 @@ class ConciergeCacheService {
 
       return null;
     } catch (error) {
-      console.error('Failed to get cached response:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cached response:', error);
       return null;
     }
   }
@@ -158,7 +192,7 @@ class ConciergeCacheService {
 
       return cached.messages || [];
     } catch (error) {
-      console.error('Failed to get cached messages:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cached messages:', error);
       return [];
     }
   }
@@ -193,7 +227,7 @@ class ConciergeCacheService {
         }
       }
     } catch (error) {
-      console.error('Failed to update messages cache:', error);
+      if (import.meta.env.DEV) console.error('Failed to update messages cache:', error);
     }
   }
 
@@ -221,7 +255,7 @@ class ConciergeCacheService {
 
       return valid;
     } catch (error) {
-      console.error('Failed to get cached responses:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cached responses:', error);
       return [];
     }
   }
@@ -300,7 +334,7 @@ class ConciergeCacheService {
       localStorage.removeItem(`${CACHE_PREFIX}${tripId}_${userKey}`);
       localStorage.removeItem(`${MESSAGES_PREFIX}${tripId}_${userKey}`);
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      if (import.meta.env.DEV) console.error('Failed to clear cache:', error);
     }
   }
 
@@ -316,7 +350,7 @@ class ConciergeCacheService {
         }
       });
     } catch (error) {
-      console.error('Failed to clear all caches:', error);
+      if (import.meta.env.DEV) console.error('Failed to clear all caches:', error);
     }
   }
 
@@ -371,7 +405,7 @@ class ConciergeCacheService {
         oldestCache: oldestTimestamp,
       };
     } catch (error) {
-      console.error('Failed to get cache stats:', error);
+      if (import.meta.env.DEV) console.error('Failed to get cache stats:', error);
       return {
         totalTrips: 0,
         totalResponses: 0,

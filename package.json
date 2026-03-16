@@ -33,7 +33,11 @@
     "doctor": "bash scripts/doctor.sh",
     "validate-env": "npx tsx scripts/validate-env.ts",
     "screenshots:appstore": "npx tsx scripts/capture-appstore-screenshots.ts",
-    "optimize": "npx tsx optimizer/cli/index.ts"
+    "optimize": "npx tsx optimizer/cli/index.ts",
+    "qa:tier0": "node scripts/qa/validate-tier0-gate.cjs",
+    "qa:skip-policy": "node scripts/qa/check-skipped-tests.cjs",
+    "qa:e2e-docs": "node scripts/qa/check-e2e-doc-drift.cjs",
+    "qa:guardrails": "npm run qa:tier0 && npm run qa:skip-policy && npm run qa:e2e-docs"
   },
   "dependencies": {
     "@capacitor/app": "^8.0.0",
@@ -80,6 +84,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@revenuecat/purchases-capacitor": "^12.0.0",
     "@revenuecat/purchases-js": "^1.23.0",
+    "@sentry/react": "^10.43.0",
     "@supabase/supabase-js": "^2.53.0",
     "@tailwindcss/typography": "^0.5.15",
     "@tanstack/react-query": "^5.56.2",

@@ -35,6 +35,9 @@ jobs:
       - name: Run type check
         run: npm run typecheck
 
+      - name: Run QA guardrails
+        run: npm run qa:guardrails
+
       - name: Validate environment variables
         run: npx tsx scripts/validate-env.ts --ci
         env:

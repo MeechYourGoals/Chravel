@@ -1,0 +1,10 @@
+2026-03-15 — Data evolution constitution audit
+- Completed exhaustive schema/migration/lifecycle audit and produced `docs/audits/data-evolution-constitution-2026-03-15.md`.
+- Added reusable learning entry to `LESSONS.md` (migration compatibility API mindset).
+- Added high-priority migration compatibility test gap to `TEST_GAPS.md`.
+- Next follow-up: implement migration CI lint + compatibility window test harness.
+2026-03-16 — Reliability + DR constitution audit
+- Completed end-to-end reliability resilience audit and created `docs/audits/reliability-resilience-constitution-2026-03-16.md`.
+- Added reusable lesson on evidence-based reliability readiness scoring to `LESSONS.md`.
+- Added high-priority reliability drill automation gap to `TEST_GAPS.md`.
+- Next follow-up: implement Tier-0/1 journey SLIs + burn-rate alerts and execute first timed restore drill.
