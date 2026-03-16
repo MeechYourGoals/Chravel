@@ -83,3 +83,15 @@
 - **Suggested tests:** Scheduled staging drills that (1) inject provider outage, (2) force queue saturation, (3) execute restore rehearsal and verify Tier-0 journeys.
 - **Priority:** high
 - **Provenance:** March 2026 reliability constitution audit
+
+## Gemini Live websocket contract tests for tool response and setup payloads
+- **Area:** `src/hooks/useGeminiLive.ts`, `supabase/functions/gemini-voice-session/index.ts`
+- **Why this gap matters:** Live API behavior is schema-sensitive; small payload-shape drift can silently break setup or function-calling turns in production.
+- **Missing coverage:** No tests asserting that:
+  - `sessionResumption` is omitted when no token exists,
+  - tool-call args support both JSON-string and object formats,
+  - `toolResponse.functionResponses` is emitted with the expected shape.
+- **Failure mode if untested:** Intermittent setup failures, dropped tool executions, or no post-tool assistant response after upstream protocol changes.
+- **Suggested tests:** Add unit/contract tests around setup-message builder and `handleToolCallWs` normalization/response emission.
+- **Priority:** high
+- **Provenance:** March 2026 Gemini Live forensic reliability audit

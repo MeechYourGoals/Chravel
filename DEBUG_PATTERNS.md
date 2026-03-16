@@ -86,6 +86,30 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Never return raw error messages to clients** — log server-side, return generic messages
 - **Never inject unsanitized user content into AI prompts** — use boundary markers and strip tags
 - **Never fail-open on missing auth secrets** — deny with 503, not allow with a warning log
+
+---
+
+## 5. Gemini Live tool-call parity drift from duplicated executors
+
+**Symptom:** Live voice can call tools, but behavior/results differ from text concierge (different payload keys, action types, or side effects).
+**Risk:** HIGH — inconsistent user-visible outcomes and fragile AI behavior between text and voice.
+**Root Cause:** Separate client-side voice tool execution logic diverges from shared server-side executor used by text concierge.
+**How to Confirm:** Compare `useVoiceToolHandler` outputs against `execute-concierge-tool`/`functionExecutor` outputs for the same tool names.
+**Smallest Safe Fix:** Route Live voice tool calls through the same server-side executor path as text concierge; inject `idempotency_key` from tool-call ID when missing.
+**Regression Surfaces:** Pending action creation (`trip_pending_actions`), payment summaries, and action/result metadata consumed by chat cards.
+**Fixed in:** `src/hooks/useVoiceToolHandler.ts`, `src/hooks/useGeminiLive.ts` (March 2026 Live reliability audit)
+
+---
+
+## 6. Gemini Live setup instability from empty optional objects
+
+**Symptom:** Live session setup intermittently fails or is rejected by upstream even when auth/model appear correct.
+**Risk:** MEDIUM — flaky session startup and hard-to-reproduce connection failures.
+**Root Cause:** Sending optional setup objects with empty payloads (e.g., `sessionResumption: {}`) instead of omitting them when no token/handle exists.
+**How to Confirm:** Inspect setup payload sent to Vertex/Gemini Live; check for empty optional objects and correlate with setup failures.
+**Smallest Safe Fix:** Include `sessionResumption` only when a valid resumption handle exists.
+**Regression Surfaces:** Session reconnect/resume logic and any fallback proxy path that builds setup payloads.
+**Fixed in:** `supabase/functions/gemini-voice-session/index.ts`, `supabase/functions/gemini-voice-proxy/index.ts` (March 2026 Live reliability audit)
 # Debug Patterns
 
 > Canonical memory for recurring bugs, root causes, regression risks, and proven fixes.

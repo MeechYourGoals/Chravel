@@ -108,3 +108,11 @@
 - **Evidence:** March 2026 reliability constitution audit found multiple backup/DR docs present but explicit “action required” status and missing drill evidence.
 - **Provenance:** `docs/audits/reliability-resilience-constitution-2026-03-16.md`
 - **Confidence:** high
+
+### Live voice tool paths should reuse text concierge execution, not duplicate client logic
+- **Tip:** For multimodal assistants, tool declaration parity alone is insufficient. Route Live voice tool calls through the same server-side executor as text to keep behavior, metadata, idempotency, and security guarantees aligned.
+- **Applies when:** Adding or maintaining tool/function calling across text + voice/live pathways.
+- **Avoid when:** A tool is intentionally voice-only and cannot share execution semantics.
+- **Evidence:** Gemini Live path had a separate client executor for core tools, causing output-shape and behavior drift versus text concierge; unifying through `execute-concierge-tool` removed the divergence with a smaller code surface.
+- **Provenance:** March 2026 Gemini Live forensic reliability audit
+- **Confidence:** high
