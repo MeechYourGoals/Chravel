@@ -18,6 +18,7 @@ import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore'
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
+import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
 
