@@ -47,8 +47,29 @@ jobs:
         run: |
           supabase functions deploy --project-ref $PROJECT_ID
 
+      - name: Post-deploy health check
+        env:
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          echo "Waiting 5s for functions to initialize..."
+          sleep 5
+          HTTP_STATUS=$(curl -sf -o /tmp/health-response.json -w '%{http_code}' \
+            "https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/health" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" 2>/dev/null || echo "000")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Health check passed (HTTP 200)"
+            cat /tmp/health-response.json | python3 -m json.tool 2>/dev/null || true
+          else
+            echo "⚠️ Health check returned HTTP $HTTP_STATUS (non-blocking)"
+            cat /tmp/health-response.json 2>/dev/null || true
+          fi
+        continue-on-error: true
+
       - name: Deployment summary
         run: |
-          echo "✅ Edge Functions deployed successfully!"
-          echo "Project: ${{ secrets.SUPABASE_PROJECT_ID }}"
-          echo "Function: ${{ github.event.inputs.function_name || 'triggered by push' }}"
+          echo "## Edge Function Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project**: ${{ secrets.SUPABASE_PROJECT_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Function**: ${{ github.event.inputs.function_name || 'triggered by push' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY

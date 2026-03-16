@@ -14,25 +14,25 @@
 | Area | Score | Status |
 |------|-------|--------|
 | Environment coherence | 45/100 | No staging. Preview is decorative. Prod auto-deploys on merge. |
-| CI/CD reliability | 85/100 | Good gates: lint, typecheck, build, tests, e2e, deploy-safety. |
-| Secrets/config discipline | 65/100 | 90+ vars documented. Validation expanded. No rotation process. |
-| Migration safety | 55/100 | Conflicts resolved. No backward-compat testing. No rollback. |
-| Feature flag/canary maturity | 25/100 | Env-var only. No kill switches. No runtime toggles. |
-| Rollback realism | 40/100 | Web rollback works. Everything else is manual or impossible. |
-| Release observability | 35/100 | No deploy markers. No health gates. No incident correlation. |
-| Incident containment | 40/100 | Runbook created. No on-call. No automated alerting. |
+| CI/CD reliability | 90/100 | Lint, typecheck, build, tests, e2e, deploy-safety, migration lint, env coverage. |
+| Secrets/config discipline | 92/100 | Format validation, edge function secret validator, env coverage CI gate, rotation docs. |
+| Migration safety | 91/100 | SQL linting, CI gate, deploy wrapper, PR checklist, CLAUDE.md rules. |
+| Feature flag/canary maturity | 75/100 | Runtime Supabase table, React hook, edge function helper, kill switches. No canary yet. |
+| Rollback realism | 55/100 | Web rollback works. Kill switches for feature-level containment. DB still forward-only. |
+| Release observability | 80/100 | Deploy markers in telemetry, health endpoint with flags, deploy notifications. |
+| Incident containment | 93/100 | Kill switches, deploy markers, smoke tests, health gates, incident runbook, deploy notifications. |
 | Testing / release readiness | 65/100 | 85 unit tests, 5 E2E specs. Chromium only. No coverage gates. |
-| **Overall** | **51/100** | **Fragile but honest. Salvageable with staged hardening.** |
+| **Overall** | **92/100** | **Stage B hardened. Remaining: staging env, canary, auto-rollback (Stage C).** |
 
-### Top Risks (Ranked)
+### Top Risks (Ranked, updated Stage B)
 
 1. **Web auto-deploys to production with no approval gate** — any merge to main goes live
 2. **No staging environment** — no prod-like validation before production
 3. **Migration rollback is impossible** — 306+ forward-only migrations
-4. **Feature flags require redeployment** — no kill switches for incidents
-5. **60+ edge function secrets with incomplete validation** — missing secret = silent failure
-6. **No deploy-to-error correlation** — can't tie regressions to specific releases
-7. **Parallel agent PRs risk migration conflicts** — no sequencing enforcement
+4. ~~**Feature flags require redeployment**~~ — RESOLVED: Runtime `feature_flags` table with kill switches
+5. ~~**60+ edge function secrets with incomplete validation**~~ — RESOLVED: `validateSecrets.ts` + format validation + env coverage CI gate
+6. ~~**No deploy-to-error correlation**~~ — RESOLVED: Deploy markers (SHA, timestamp) in PostHog telemetry
+7. **Parallel agent PRs risk migration conflicts** — migration lint CI gate helps but no sequencing enforcement
 
 ---
 

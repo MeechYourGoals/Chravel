@@ -24,6 +24,17 @@
 - [ ] **Feature flag change** — flag documented and reversible
 - [ ] **None of the above** — code-only change
 
+### Migration Checklist (if applicable)
+
+- [ ] Migration file is timestamped (`YYYYMMDDHHMMSS_description.sql`)
+- [ ] All `CREATE TABLE` statements use `IF NOT EXISTS`
+- [ ] All `DROP` statements use `IF EXISTS`
+- [ ] All functions use `CREATE OR REPLACE`
+- [ ] DDL uses schema qualification (`public.table_name`)
+- [ ] Backward-compatible with current app code (no breaking renames/drops without migration plan)
+- [ ] Forward-fix strategy documented (if this is a breaking change)
+- [ ] `npx tsx scripts/lint-migrations.ts` passes
+
 ## Pre-Merge Checklist
 
 - [ ] `npm run lint && npm run typecheck && npm run build` passes locally

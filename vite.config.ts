@@ -38,6 +38,11 @@ export default defineConfig(({ mode }) => ({
     'import.meta.env.VITE_BUILD_ID': JSON.stringify(
       process.env.VITE_BUILD_ID || process.env.RENDER_GIT_COMMIT || buildVersion,
     ),
+    // Deploy markers for incident correlation in telemetry
+    'import.meta.env.VITE_DEPLOY_SHA': JSON.stringify(
+      process.env.VERCEL_GIT_COMMIT_SHA || process.env.RENDER_GIT_COMMIT || 'local',
+    ),
+    'import.meta.env.VITE_DEPLOY_TIMESTAMP': JSON.stringify(new Date().toISOString()),
   },
   build: {
     // Performance optimizations

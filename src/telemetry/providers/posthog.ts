@@ -73,6 +73,15 @@ export class PostHogProvider implements TelemetryProvider {
     });
   }
 
+  /**
+   * Register super properties that are sent with every event.
+   * Used for deploy markers (SHA, timestamp, build ID).
+   */
+  registerSuperProperties(properties: Record<string, string>): void {
+    if (!this.ready) return;
+    posthog.register(properties);
+  }
+
   async flush(): Promise<void> {
     // posthog-js auto-flushes; no manual flush needed
   }
