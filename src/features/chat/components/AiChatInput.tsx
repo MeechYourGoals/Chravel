@@ -147,7 +147,9 @@ export const AiChatInput = ({
         )}
 
         {/* Input container — clean, no embedded Live button */}
-        <div className="relative flex-1 min-w-0">
+        <div
+          className={`relative flex-1 min-w-0 rounded-full dictation-ring-active${isConvoActive && !isLiveActive ? ' dictation-ring-visible' : ''}`}
+        >
           <textarea
             value={inputMessage}
             onChange={e => onInputChange(e.target.value)}
