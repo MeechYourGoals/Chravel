@@ -72,7 +72,9 @@ export async function validateExternalUrlBeforeFetch(url: string): Promise<boole
     // Hostname is already a numeric IP — synchronous check was sufficient
     if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(':')) return true;
 
-    // Resolve and validate every returned IP address
+    // Resolve and validate every returned IP address.
+    // Fail closed: if DNS resolution fails for both A and AAAA, block the request
+    // rather than allowing it through with an empty IP list.
     const [ipv4Addrs, ipv6Addrs] = await Promise.all([
       // @ts-ignore — Deno.resolveDns is only available in Deno runtime
       Deno.resolveDns(hostname, 'A').catch(() => [] as string[]),
@@ -80,7 +82,12 @@ export async function validateExternalUrlBeforeFetch(url: string): Promise<boole
       Deno.resolveDns(hostname, 'AAAA').catch(() => [] as string[]),
     ]);
 
-    for (const ip of [...ipv4Addrs, ...ipv6Addrs]) {
+    const allAddrs = [...ipv4Addrs, ...ipv6Addrs];
+    if (allAddrs.length === 0) {
+      return false; // DNS resolution failed or returned no records — fail closed
+    }
+
+    for (const ip of allAddrs) {
       if (!validateExternalHttpsUrl(`https://${ip.includes(':') ? `[${ip}]` : ip}/`)) {
         return false;
       }

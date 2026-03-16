@@ -4,8 +4,6 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   DocumentProcessorSchema,
   validateInput,
-  verifyTripMembership,
-  validateExternalHttpsUrl,
   validateExternalUrlBeforeFetch,
 } from '../_shared/validation.ts';
 import {
@@ -138,35 +136,6 @@ serve(async req => {
 
     if (fileError || !fileData) {
       throw new Error(`File not found: ${fileId}`);
-    }
-
-    // Verify file belongs to the specified trip
-    if (fileData.trip_id !== tripId) {
-      return new Response(
-        JSON.stringify({
-          error: 'File does not belong to the specified trip',
-          success: false,
-        }),
-        {
-          status: 403,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        },
-      );
-    }
-
-    // Additional membership verification via helper function
-    const tripMembership = await verifyTripMembership(supabase, userId, tripId);
-    if (!tripMembership.isMember) {
-      return new Response(
-        JSON.stringify({
-          error: tripMembership.error || 'Unauthorized access to trip',
-          success: false,
-        }),
-        {
-          status: 403,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        },
-      );
     }
 
     // Validate file_url is HTTPS and external (SSRF + DNS rebinding protection)
@@ -475,15 +444,45 @@ async function fetchTextFile(fileUrl: string): Promise<string> {
     throw new Error(`Failed to fetch text file: ${response.status}`);
   }
 
-  // Reject files exceeding size limit before buffering the body
-  const contentLength = parseInt(response.headers.get('content-length') ?? '0', 10);
-  if (contentLength > MAX_FETCH_BYTES) {
-    throw new Error(
-      `File too large: ${contentLength} bytes exceeds ${MAX_FETCH_BYTES / 1024 / 1024} MB limit`,
-    );
+  // Reject files exceeding size limit before buffering the body.
+  // When Content-Length is absent (e.g. chunked transfer), we stream and
+  // enforce the limit on actual bytes read to prevent memory exhaustion.
+  const contentLengthHeader = response.headers.get('content-length');
+  if (contentLengthHeader) {
+    const contentLength = parseInt(contentLengthHeader, 10);
+    if (contentLength > MAX_FETCH_BYTES) {
+      throw new Error(
+        `File too large: ${contentLength} bytes exceeds ${MAX_FETCH_BYTES / 1024 / 1024} MB limit`,
+      );
+    }
   }
 
-  return await response.text();
+  // Stream-read with hard byte limit (protects against missing/lying Content-Length)
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('Response body is not readable');
+  }
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_FETCH_BYTES) {
+      reader.cancel();
+      throw new Error(
+        `File too large: exceeded ${MAX_FETCH_BYTES / 1024 / 1024} MB limit during download`,
+      );
+    }
+    chunks.push(value);
+  }
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
 }
 
 async function generateDocumentSummary(text: string, fileName: string): Promise<string> {

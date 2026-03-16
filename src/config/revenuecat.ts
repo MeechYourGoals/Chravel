@@ -27,8 +27,11 @@ const generateAnonymousUserId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `anon_${crypto.randomUUID()}`;
   }
-  // Fallback for older browsers
-  return `anon_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  // Fallback for older browsers — use crypto.getRandomValues for secure randomness
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+  return `anon_${hex}`;
 };
 
 /**

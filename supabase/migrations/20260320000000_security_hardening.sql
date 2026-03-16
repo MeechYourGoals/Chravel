@@ -57,10 +57,12 @@ CREATE POLICY "super_admins_read_admin_audit_logs"
   FOR SELECT
   USING (is_super_admin());
 
--- Service role (edge functions) can insert
+-- Service role (edge functions) can insert — restricted to service_role only
+-- to prevent authenticated users from forging audit entries
 CREATE POLICY "service_role_insert_admin_audit_logs"
   ON public.admin_audit_logs
   FOR INSERT
+  TO service_role
   WITH CHECK (true);
 
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_admin_id
