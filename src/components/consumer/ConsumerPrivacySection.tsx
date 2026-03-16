@@ -5,6 +5,7 @@ import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { supabase } from '../../integrations/supabase/client';
 import { DataExportSection } from '../settings/DataExportSection';
+import { logAuthEvent } from '../../utils/authTelemetry';
 
 function AccountSecuritySection({
   userEmail,
@@ -64,6 +65,10 @@ function AccountSecuritySection({
       });
 
       if (signInError) {
+        logAuthEvent('password_change_failure', {
+          method: 'email',
+          errorReason: 'incorrect_current_password',
+        });
         setError('Current password is incorrect.');
         return;
       }
@@ -74,6 +79,10 @@ function AccountSecuritySection({
       });
 
       if (updateError) {
+        logAuthEvent('password_change_failure', {
+          method: 'email',
+          errorReason: updateError.message,
+        });
         setError(updateError.message);
         return;
       }
@@ -81,6 +90,7 @@ function AccountSecuritySection({
       // Invalidate all other sessions so compromised devices are signed out
       await supabase.auth.signOut({ scope: 'others' });
 
+      logAuthEvent('password_change_success', { method: 'email' });
       toast({
         title: 'Password Changed',
         description: 'Your password has been updated and all other sessions have been signed out.',

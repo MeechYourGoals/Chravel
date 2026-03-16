@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { logAuthEvent } from '@/utils/authTelemetry';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,6 +62,7 @@ export const ConsumerGeneralSettings = () => {
         });
         return;
       }
+      logAuthEvent('account_deletion_cancelled');
       setDeletionScheduledFor(null);
       toast({
         title: 'Deletion Cancelled',
@@ -130,6 +132,7 @@ export const ConsumerGeneralSettings = () => {
       }
 
       // RPC succeeded — deletion is SCHEDULED, not immediate
+      logAuthEvent('account_deletion_requested');
       setDeletionScheduledFor(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
       toast({
         title: 'Deletion Scheduled',

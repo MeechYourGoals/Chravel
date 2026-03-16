@@ -16,6 +16,7 @@ import { useDemoModeStore } from '@/store/demoModeStore';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
 import { toast } from '@/hooks/use-toast';
+import { logAuthEvent } from '@/utils/authTelemetry';
 
 // Timeout utility to prevent indefinite hanging on database queries
 const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
@@ -790,6 +791,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (import.meta.env.DEV) {
           console.error('[Auth] Sign in error:', error);
         }
+        logAuthEvent('login_failure', { method: 'email', errorReason: error.message });
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -809,6 +811,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Success path: clear loading state (auth state listener will update user)
+      logAuthEvent('login_success', { method: 'email' });
       setIsLoading(false);
       void data;
       return {};
@@ -872,6 +875,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (import.meta.env.DEV) {
           console.error('[Auth] Phone OTP error:', error);
         }
+        logAuthEvent('phone_otp_failure', { method: 'phone', errorReason: error.message });
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -887,6 +891,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
+      logAuthEvent('phone_otp_requested', { method: 'phone' });
       setIsLoading(false);
       return {};
     } catch (error) {
@@ -930,6 +935,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (import.meta.env.DEV) {
           console.error('[Auth] Sign up error:', error);
         }
+        logAuthEvent('signup_failure', { method: 'email', errorReason: error.message });
         setIsLoading(false);
 
         // Provide more specific error messages
@@ -945,6 +951,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         return { error: error.message };
       }
+
+      logAuthEvent('signup_success', { method: 'email' });
 
       // Check if email confirmation is required
       if (data.user && !data.session) {
@@ -979,6 +987,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     // Sign out from Supabase (no-op if not authenticated)
+    logAuthEvent('logout');
     invalidateAuthCache();
     await supabase.auth.signOut();
     setUser(null);
@@ -1001,6 +1010,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: error.message };
       }
 
+      logAuthEvent('password_reset_requested', { method: 'email' });
       return {};
     } catch (error) {
       if (import.meta.env.DEV) {
