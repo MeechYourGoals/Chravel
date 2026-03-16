@@ -185,14 +185,6 @@ serve(async req => {
       return createErrorResponse('Invalid signature', 400);
     }
 
-    // Timestamp validation: reject events older than 5 minutes (replay attack prevention)
-    const MAX_WEBHOOK_AGE_SECONDS = 300;
-    const eventAge = Math.floor(Date.now() / 1000) - event.created;
-    if (eventAge > MAX_WEBHOOK_AGE_SECONDS) {
-      logStep('Webhook event too old', { eventId: event.id, ageSeconds: eventAge });
-      return createErrorResponse('Webhook event too old', 400);
-    }
-
     // Atomic idempotency: plain INSERT that relies on the unique constraint on event_id.
     // ON CONFLICT DO NOTHING via ignoreDuplicates:true is unreliable — PostgREST may
     // return an empty array for *both* first inserts and duplicates, making them

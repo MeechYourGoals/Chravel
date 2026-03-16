@@ -35,24 +35,6 @@ if (GEMINI_API_KEY && MAPS_API_KEY && GEMINI_API_KEY === MAPS_API_KEY) {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-// In-process rate limiting (lightweight, per edge function instance)
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-function inProcessRateLimit(
-  key: string,
-  max: number,
-  windowMs: number,
-): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const bucket = rateBuckets.get(key);
-  if (!bucket || now > bucket.resetAt) {
-    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: max - 1 };
-  }
-  if (bucket.count >= max) return { allowed: false, remaining: 0 };
-  bucket.count++;
-  return { allowed: true, remaining: max - bucket.count };
-}
-
 // In-memory cache for get_concierge_trip_history RPC results.
 // Keyed by `${tripId}:${userId}`, 30 s TTL (matches TripContextBuilder cache).
 // Prevents a repeated DB round-trip for every message in a rapid back-to-back conversation.
