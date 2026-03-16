@@ -121,6 +121,27 @@ serve(async req => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep('Existing customer found', { customerId });
+
+      // FIX 9: Prevent duplicate subscriptions — check for active sub before creating new checkout
+      if (!isPass) {
+        const existingSubs = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'active',
+          limit: 1,
+        });
+
+        if (existingSubs.data.length > 0) {
+          const existingSub = existingSubs.data[0];
+          logStep('User already has active subscription', {
+            subscriptionId: existingSub.id,
+            status: existingSub.status,
+          });
+          return createErrorResponse(
+            'You already have an active subscription. Please manage your existing subscription from Settings.',
+            400,
+          );
+        }
+      }
     } else {
       logStep('No existing customer, will create during checkout');
     }
