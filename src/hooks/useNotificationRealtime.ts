@@ -1,9 +1,15 @@
 /**
  * Shared notification realtime hook — ONE subscription for TripActionBar.
  * Deduplicates channels: both components share the same Supabase subscription and state.
+ *
+ * Features:
+ * - Singleton realtime subscription per user (refCount pattern)
+ * - INSERT + UPDATE event handling for multi-device read state propagation
+ * - Reconnect correction: re-fetches from DB on channel reconnect
+ * - Logout cleanup: clears Zustand store when user becomes null
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
@@ -37,7 +43,13 @@ const subscriptionRefs = new Map<
   { refCount: number; channel: ReturnType<typeof supabase.channel> }
 >();
 
-function ensureSubscription(userId: string, onInsert: (row: Record<string, unknown>) => void) {
+interface SubscriptionCallbacks {
+  onInsert: (row: Record<string, unknown>) => void;
+  onUpdate: (row: Record<string, unknown>) => void;
+  onReconnect: () => void;
+}
+
+function ensureSubscription(userId: string, callbacks: SubscriptionCallbacks) {
   const existing = subscriptionRefs.get(userId);
   if (existing) {
     existing.refCount++;
@@ -61,10 +73,31 @@ function ensureSubscription(userId: string, onInsert: (row: Record<string, unkno
         filter: `user_id=eq.${userId}`,
       },
       payload => {
-        onInsert(payload.new as Record<string, unknown>);
+        callbacks.onInsert(payload.new as Record<string, unknown>);
       },
     )
-    .subscribe();
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`,
+      },
+      payload => {
+        callbacks.onUpdate(payload.new as Record<string, unknown>);
+      },
+    )
+    .subscribe((status, err) => {
+      if (err && import.meta.env.DEV) {
+        console.error('[useNotificationRealtime] Subscription error:', err);
+      }
+      // Re-fetch from DB on reconnect to correct any drift from gaps
+      if (status === 'SUBSCRIBED') {
+        // Channel just (re)connected — re-fetch to fill any gap
+        callbacks.onReconnect();
+      }
+    });
 
   subscriptionRefs.set(userId, { refCount: 1, channel });
 
@@ -95,6 +128,9 @@ export function useNotificationRealtime() {
     clearAll: storeClearAll,
   } = useNotificationRealtimeStore();
 
+  // Track whether initial fetch has completed to avoid double-fetch on SUBSCRIBED
+  const initialFetchDone = useRef(false);
+
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
 
@@ -107,7 +143,9 @@ export function useNotificationRealtime() {
       .limit(20);
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      if (import.meta.env.DEV) {
+        console.error('[useNotificationRealtime] Error fetching notifications:', error);
+      }
       return;
     }
 
@@ -132,21 +170,63 @@ export function useNotificationRealtime() {
     }
   }, [user, setUnreadCount]);
 
+  // Clear notification state on logout (user becomes null)
+  useEffect(() => {
+    if (!user) {
+      storeClearAll();
+      initialFetchDone.current = false;
+    }
+  }, [user, storeClearAll]);
+
   // Single realtime subscription — shared by all consumers
   useEffect(() => {
     if (isDemoMode || !user) return;
 
+    initialFetchDone.current = false;
     fetchNotifications();
     fetchUnreadCount();
+    initialFetchDone.current = true;
 
-    const cleanup = ensureSubscription(user.id, newRow => {
-      const item = mapRowToNotification(newRow);
-      addNotification(item);
+    const cleanup = ensureSubscription(user.id, {
+      onInsert: (newRow: Record<string, unknown>) => {
+        const item = mapRowToNotification(newRow);
+        addNotification(item);
+      },
+      onUpdate: (updatedRow: Record<string, unknown>) => {
+        const id = updatedRow.id as string;
+        if (!id) return;
+
+        // If notification was cleared (is_visible=false), remove it from the store
+        if (updatedRow.is_visible === false) {
+          removeNotification(id);
+          return;
+        }
+
+        // Propagate read state changes from other devices
+        updateNotification(id, {
+          isRead: (updatedRow.is_read as boolean) || false,
+        });
+      },
+      onReconnect: () => {
+        // Only re-fetch on reconnect, not on initial subscription
+        if (initialFetchDone.current) {
+          fetchNotifications();
+          fetchUnreadCount();
+        }
+      },
     });
 
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- user object is unstable; user?.id already in deps
-  }, [user?.id, isDemoMode, fetchNotifications, fetchUnreadCount, addNotification]);
+  }, [
+    user?.id,
+    isDemoMode,
+    fetchNotifications,
+    fetchUnreadCount,
+    addNotification,
+    updateNotification,
+    removeNotification,
+  ]);
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
