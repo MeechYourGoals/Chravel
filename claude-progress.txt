@@ -8,3 +8,8 @@
 - Added reusable lesson on evidence-based reliability readiness scoring to `LESSONS.md`.
 - Added high-priority reliability drill automation gap to `TEST_GAPS.md`.
 - Next follow-up: implement Tier-0/1 journey SLIs + burn-rate alerts and execute first timed restore drill.
+2026-03-16 — Gemini Live forensic audit + protocol hardening
+- Audited active runtime path (browser -> gemini-voice-session -> direct Vertex Live WS) and confirmed proxy is not used by frontend.
+- Implemented minimal protocol-safe fixes: removed empty sessionResumption payload, removed SILENT toolResponse scheduling, added startup timeout around gemini-voice-session bootstrap.
+- Added regression test `src/__tests__/geminiLiveProtocolSafety.test.ts` to lock protocol invariants.
+- Next follow-up: retire/undeploy gemini-voice-proxy in Supabase project environments to eliminate stale surface area.
