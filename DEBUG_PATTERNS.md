@@ -183,3 +183,21 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Gemini Live tool responses silently suppress voice acknowledgement
+- **Status:** fixed
+- **Subsystem:** AI concierge / Gemini Live voice
+- **Bug class:** integration contract mismatch
+- **Symptom:** Voice concierge executes a tool (e.g., create task/event) but gives no audible confirmation afterward
+- **User-facing impact:** Users think the action failed or is incomplete because they do not hear a completion response
+- **Trigger conditions:** Tool-call loop in live voice session when sending `BidiGenerateContentToolResponse`
+- **Likely root cause:** Client payload added `scheduling: 'SILENT'` on each function response, which suppresses the model’s spoken continuation turn
+- **Root cause chain:**
+  - Immediate cause: No post-tool spoken response from model
+  - Proximate cause: Tool response includes SILENT scheduling directive
+  - Underlying cause: Scheduling override conflicted with system prompt requirement to confirm actions conversationally
+- **Smallest safe fix:** Send `toolResponse.functionResponses` without SILENT scheduling override so the model can continue naturally
+- **Regression risks:** Future “double speech” mitigation changes may reintroduce silent scheduling
+- **Related files:** `src/hooks/useGeminiLive.ts`
+- **Fixed in:** PR #991 (`cbf0ef503dc620da77ce8ed61ae0e414ce1205f5`)
+- **Confidence:** high
