@@ -40,7 +40,8 @@ export function useFeatureFlag(key: string, defaultValue: boolean = true): boole
   const { data } = useQuery({
     queryKey: ['feature-flag', key],
     queryFn: async (): Promise<FeatureFlagRow | null> => {
-      const { data, error } = await supabase
+      // intentional: feature_flags table not yet in generated Supabase types
+      const { data, error } = await (supabase as any)
         .from('feature_flags')
         .select('key, enabled, rollout_percentage')
         .eq('key', key)
