@@ -79,3 +79,10 @@
 - **Evidence:** Repo migration corpus shows repeated edits of critical tables and mixed-purpose migrations, increasing rollout coupling risk.
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
+
+### Internal admin surfaces need route-level role guards, not auth-only protection
+- **Tip:** Treat internal pages as production-critical privileged surfaces. `ProtectedRoute` (auth only) is insufficient for `/admin/*`; use explicit role guard components and test redirects for non-admin users.
+- **Applies when:** Adding or updating any internal/admin route in `App.tsx`
+- **Evidence:** `/admin/scheduled-messages` was reachable by any authenticated account until `InternalAdminRoute` hardening.
+- **Provenance:** March 2026 support/admin hardening pass
+- **Confidence:** high
