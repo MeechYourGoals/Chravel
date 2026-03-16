@@ -119,7 +119,8 @@ export function usePendingActions(tripId: string) {
         }
 
         case 'addToCalendar': {
-          const { error } = await supabase
+          // intentional: source_type column may not be in generated types yet
+          const { error } = await (supabase as any)
             .from('trip_events')
             .insert({
               trip_id: action.trip_id,
