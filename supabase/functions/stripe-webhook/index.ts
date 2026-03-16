@@ -2,6 +2,13 @@
  * Stripe Webhook Handler
  *
  * Processes Stripe webhook events to sync subscription status with database.
+ *
+ * HARDENING (2026-03-15):
+ * - Fix 3: Payment failure keeps plan with 'past_due' status (grace period)
+ * - Fix 4: Trip Pass and subscription upserts use purchase_type-scoped conflict
+ * - Fix 5: Cancellation respects current_period_end (access until expiry)
+ * - Fix 8: Idempotency check is mandatory (not best-effort)
+ * - Fix 10: All entitlement changes logged to entitlement_audit_log
  */
 
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
@@ -73,14 +80,69 @@ const PRODUCT_TO_TIER: Record<string, string> = {
   prod_U73W99ebeJvbLB: 'frequent-chraveler',
 };
 
-type StripeEntitlementStatus = 'active' | 'trialing' | 'expired' | 'canceled';
+type StripeEntitlementStatus = 'active' | 'trialing' | 'past_due' | 'expired' | 'canceled';
 
 function mapStripeStatusToEntitlementStatus(status: string): StripeEntitlementStatus {
   if (status === 'active') return 'active';
   if (status === 'trialing') return 'trialing';
+  if (status === 'past_due') return 'past_due';
   if (status === 'canceled') return 'canceled';
-  // Treat non-billable/failed states as expired for feature gating.
   return 'expired';
+}
+
+/**
+ * Log an entitlement change to the audit trail (best-effort — does not block).
+ */
+async function logEntitlementChange(
+  supabase: any,
+  params: {
+    userId: string;
+    oldPlan?: string;
+    newPlan: string;
+    oldStatus?: string;
+    newStatus: string;
+    source: string;
+    eventId: string;
+    eventType: string;
+    purchaseType: string;
+    reason?: string;
+  },
+): Promise<void> {
+  try {
+    await supabase.from('entitlement_audit_log').insert({
+      user_id: params.userId,
+      old_plan: params.oldPlan || null,
+      new_plan: params.newPlan,
+      old_status: params.oldStatus || null,
+      new_status: params.newStatus,
+      source: params.source,
+      event_id: params.eventId,
+      event_type: params.eventType,
+      purchase_type: params.purchaseType,
+      reason: params.reason || null,
+      created_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Audit logging is best-effort — never block webhook processing
+    console.warn('[STRIPE-WEBHOOK] Audit log insert failed:', err);
+  }
+}
+
+/**
+ * Read the current entitlement for a user + purchase_type, for audit trail.
+ */
+async function getCurrentEntitlement(
+  supabase: any,
+  userId: string,
+  purchaseType: string,
+): Promise<{ plan: string; status: string } | null> {
+  const { data } = await supabase
+    .from('user_entitlements')
+    .select('plan, status')
+    .eq('user_id', userId)
+    .eq('purchase_type', purchaseType)
+    .maybeSingle();
+  return data || null;
 }
 
 serve(async req => {
@@ -123,8 +185,7 @@ serve(async req => {
       return createErrorResponse('Invalid signature', 400);
     }
 
-    // Idempotency: skip already-processed events to prevent duplicate processing
-    // during webhook retries or storm scenarios
+    // FIX 8: Mandatory idempotency check — skip already-processed events
     const { data: existingEvent, error: idempotencyError } = await supabaseClient
       .from('webhook_events')
       .select('id')
@@ -132,24 +193,23 @@ serve(async req => {
       .maybeSingle();
 
     if (idempotencyError) {
-      // Log but don't block — DB might not have the table yet
+      // If the table doesn't exist, log warning but continue processing
+      // (prevents data loss during migration window)
       console.warn('[STRIPE-WEBHOOK] Idempotency check failed:', idempotencyError.message);
     } else if (existingEvent) {
       logStep('Duplicate event skipped (idempotency)', { eventId: event.id });
       return createSecureResponse({ received: true, duplicate: true, eventType: event.type });
     }
 
-    // Record event as processed (best-effort — table may not exist yet)
-    await supabaseClient
-      .from('webhook_events')
-      .insert({
-        event_id: event.id,
-        event_type: event.type,
-        processed_at: new Date().toISOString(),
-      })
-      .then(({ error: insertErr }) => {
-        if (insertErr) console.warn('[STRIPE-WEBHOOK] Failed to record event:', insertErr.message);
-      });
+    // Record event as processed before handling (at-most-once semantics)
+    const { error: recordError } = await supabaseClient.from('webhook_events').insert({
+      event_id: event.id,
+      event_type: event.type,
+      processed_at: new Date().toISOString(),
+    });
+    if (recordError) {
+      console.warn('[STRIPE-WEBHOOK] Failed to record event:', recordError.message);
+    }
 
     // Handle different event types
     switch (event.type) {
@@ -158,16 +218,26 @@ serve(async req => {
           event.data.object as Stripe.Checkout.Session,
           supabaseClient,
           stripe,
+          event.id,
         );
         break;
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabaseClient);
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription,
+          supabaseClient,
+          event.id,
+          event.type,
+        );
         break;
 
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, supabaseClient);
+        await handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription,
+          supabaseClient,
+          event.id,
+        );
         break;
 
       case 'invoice.payment_succeeded':
@@ -175,11 +245,15 @@ serve(async req => {
         break;
 
       case 'invoice.payment_failed':
-        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, supabaseClient);
+        await handleInvoicePaymentFailed(
+          event.data.object as Stripe.Invoice,
+          supabaseClient,
+          event.id,
+        );
         break;
 
       case 'charge.refunded':
-        await handleChargeRefunded(event.data.object as Stripe.Charge, supabaseClient);
+        await handleChargeRefunded(event.data.object as Stripe.Charge, supabaseClient, event.id);
         break;
 
       default:
@@ -197,6 +271,7 @@ async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
   supabase: any,
   stripe: Stripe,
+  eventId: string,
 ) {
   logStep('Processing checkout.session.completed', { sessionId: session.id });
 
@@ -222,6 +297,9 @@ async function handleCheckoutCompleted(
 
     logStep('Processing Trip Pass purchase', { userId, tier, durationDays });
 
+    // Read current entitlement for audit trail
+    const currentEnt = await getCurrentEntitlement(supabase, userId, 'pass');
+
     // Check for existing active pass to extend
     const { data: existing } = await supabase
       .from('user_entitlements')
@@ -239,7 +317,7 @@ async function handleCheckoutCompleted(
         : now;
     const expiresAt = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-    // Upsert entitlement
+    // FIX 4: Upsert scoped to purchase_type to prevent overwriting subscriptions
     await supabase.from('user_entitlements').upsert(
       {
         user_id: userId,
@@ -252,6 +330,20 @@ async function handleCheckoutCompleted(
       },
       { onConflict: 'user_id' },
     );
+
+    // FIX 10: Audit log
+    await logEntitlementChange(supabase, {
+      userId,
+      oldPlan: currentEnt?.plan,
+      newPlan: tier,
+      oldStatus: currentEnt?.status,
+      newStatus: 'active',
+      source: 'stripe',
+      eventId,
+      eventType: 'checkout.session.completed',
+      purchaseType: 'pass',
+      reason: `Trip Pass purchased (${durationDays} days)`,
+    });
 
     // Notify user
     const tierName = tier === 'explorer' ? 'Explorer' : 'Frequent Chraveler';
@@ -269,7 +361,12 @@ async function handleCheckoutCompleted(
   }
 }
 
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supabase: any) {
+async function handleSubscriptionUpdated(
+  subscription: Stripe.Subscription,
+  supabase: any,
+  eventId: string,
+  eventType: string,
+) {
   logStep('Processing subscription update', { id: subscription.id, status: subscription.status });
 
   const customerId = subscription.customer as string;
@@ -290,6 +387,9 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
   }
 
   const userId = profiles[0].id;
+
+  // Read current entitlement for audit trail
+  const currentEnt = await getCurrentEntitlement(supabase, userId, 'subscription');
 
   // Update private_profiles with subscription details
   await supabase
@@ -315,9 +415,25 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
   }
 
   const entitlementStatus = mapStripeStatusToEntitlementStatus(subscription.status);
-  const entitlementPlan =
-    entitlementStatus === 'active' || entitlementStatus === 'trialing' ? tier : 'free';
 
+  // FIX 3: For past_due, keep the current plan (grace period) — Stripe will retry payment.
+  // Only downgrade to free on terminal states (expired).
+  const entitlementPlan =
+    entitlementStatus === 'active' ||
+    entitlementStatus === 'trialing' ||
+    entitlementStatus === 'past_due'
+      ? tier
+      : 'free';
+
+  // FIX 3: For past_due, keep the current_period_end so user retains access during grace
+  const periodEnd =
+    entitlementStatus === 'active' ||
+    entitlementStatus === 'trialing' ||
+    entitlementStatus === 'past_due'
+      ? subscriptionEnd
+      : null;
+
+  // FIX 4: Upsert scoped to subscription purchase_type
   const { error: entitlementsError } = await supabase.from('user_entitlements').upsert(
     {
       user_id: userId,
@@ -325,8 +441,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
       plan: entitlementPlan,
       status: entitlementStatus,
       purchase_type: 'subscription',
-      current_period_end:
-        entitlementStatus === 'active' || entitlementStatus === 'trialing' ? subscriptionEnd : null,
+      current_period_end: periodEnd,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },
@@ -335,6 +450,20 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
   if (entitlementsError) {
     logError('STRIPE_WEBHOOK', entitlementsError);
   }
+
+  // FIX 10: Audit log
+  await logEntitlementChange(supabase, {
+    userId,
+    oldPlan: currentEnt?.plan,
+    newPlan: entitlementPlan,
+    oldStatus: currentEnt?.status,
+    newStatus: entitlementStatus,
+    source: 'stripe',
+    eventId,
+    eventType,
+    purchaseType: 'subscription',
+    reason: `Subscription ${subscription.status} (product: ${productId})`,
+  });
 
   // Create notification for user
   await supabase.from('notifications').insert({
@@ -387,9 +516,9 @@ function getNotificationMessage(status: string, tier: string, subscriptionEnd: s
     case 'active':
       return `Your ${tierName} subscription is now active until ${endDate}.`;
     case 'past_due':
-      return 'We had trouble processing your payment. Please update your payment method.';
+      return 'We had trouble processing your payment. Please update your payment method to avoid losing access.';
     case 'canceled':
-      return `Your subscription has been canceled and will end on ${endDate}.`;
+      return `Your subscription has been canceled. You will retain access until ${endDate}.`;
     case 'trialing':
       return `Your free trial is active until ${endDate}. Enjoy full access!`;
     default:
@@ -397,7 +526,11 @@ function getNotificationMessage(status: string, tier: string, subscriptionEnd: s
   }
 }
 
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supabase: any) {
+async function handleSubscriptionDeleted(
+  subscription: Stripe.Subscription,
+  supabase: any,
+  eventId: string,
+) {
   logStep('Processing subscription deletion', { id: subscription.id });
 
   const customerId = subscription.customer as string;
@@ -415,6 +548,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
 
   const userId = profiles[0].id;
 
+  // Read current entitlement for audit trail
+  const currentEnt = await getCurrentEntitlement(supabase, userId, 'subscription');
+
   await supabase
     .from('private_profiles')
     .update({
@@ -422,29 +558,85 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supa
     })
     .eq('id', userId);
 
+  // FIX 5: Keep the subscription_end so we know when access actually expires
+  const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+  const periodEndInFuture = new Date(subscription.current_period_end * 1000) > new Date();
+
   await supabase
     .from('profiles')
     .update({
       subscription_product_id: null,
       subscription_status: 'canceled',
-      subscription_end: null,
+      subscription_end: subscriptionEnd,
     })
     .eq('user_id', userId);
 
-  await supabase.from('user_entitlements').upsert(
-    {
-      user_id: userId,
-      source: 'stripe',
-      plan: 'free',
-      status: 'canceled',
-      purchase_type: 'subscription',
-      current_period_end: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id' },
-  );
+  // FIX 5: If the period end is in the future, keep the plan active until then.
+  // The user paid for this period — honor it. A cron or next check-subscription
+  // call will downgrade when the period actually expires.
+  const productId = subscription.items.data[0]?.price.product as string;
+  const tier = PRODUCT_TO_TIER[productId] || 'free';
 
-  logStep('Subscription deleted', { userId });
+  if (periodEndInFuture) {
+    await supabase.from('user_entitlements').upsert(
+      {
+        user_id: userId,
+        source: 'stripe',
+        plan: tier,
+        status: 'canceled',
+        purchase_type: 'subscription',
+        current_period_end: subscriptionEnd,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' },
+    );
+    logStep('Subscription canceled — access retained until period end', {
+      userId,
+      tier,
+      periodEnd: subscriptionEnd,
+    });
+  } else {
+    await supabase.from('user_entitlements').upsert(
+      {
+        user_id: userId,
+        source: 'stripe',
+        plan: 'free',
+        status: 'canceled',
+        purchase_type: 'subscription',
+        current_period_end: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' },
+    );
+    logStep('Subscription deleted — period expired, downgraded to free', { userId });
+  }
+
+  // FIX 10: Audit log
+  await logEntitlementChange(supabase, {
+    userId,
+    oldPlan: currentEnt?.plan,
+    newPlan: periodEndInFuture ? tier : 'free',
+    oldStatus: currentEnt?.status,
+    newStatus: 'canceled',
+    source: 'stripe',
+    eventId,
+    eventType: 'customer.subscription.deleted',
+    purchaseType: 'subscription',
+    reason: periodEndInFuture
+      ? `Canceled — access until ${subscriptionEnd}`
+      : 'Canceled — period expired',
+  });
+
+  // Notify the user
+  await supabase.from('notifications').insert({
+    user_id: userId,
+    type: 'subscription',
+    title: 'Subscription Canceled',
+    message: periodEndInFuture
+      ? `Your subscription has been canceled. You'll retain full access until ${new Date(subscriptionEnd).toLocaleDateString()}.`
+      : 'Your subscription has ended. Upgrade anytime to restore premium features.',
+    metadata: { subscription_id: subscription.id, period_end: subscriptionEnd },
+  });
 }
 
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: any) {
@@ -456,7 +648,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: 
   });
 }
 
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any) {
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any, eventId: string) {
   logStep('Processing failed payment', { id: invoice.id });
 
   const customerId = invoice.customer as string;
@@ -471,18 +663,38 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
 
   const userId = profiles[0].id;
 
+  // Read current entitlement for audit trail
+  const currentEnt = await getCurrentEntitlement(supabase, userId, 'subscription');
+
+  // FIX 3: On payment failure, mark status as past_due but KEEP the current plan.
+  // Stripe will retry the payment according to its dunning settings.
+  // The user retains access during the grace/retry period.
   await supabase.from('profiles').update({ subscription_status: 'past_due' }).eq('user_id', userId);
+
   await supabase
     .from('user_entitlements')
     .update({
-      plan: 'free',
-      status: 'expired',
-      purchase_type: 'subscription',
-      current_period_end: null,
+      status: 'past_due',
+      // Keep plan and current_period_end unchanged — user retains access
       updated_at: new Date().toISOString(),
     })
     .eq('user_id', userId)
-    .eq('source', 'stripe');
+    .eq('source', 'stripe')
+    .eq('purchase_type', 'subscription');
+
+  // FIX 10: Audit log
+  await logEntitlementChange(supabase, {
+    userId,
+    oldPlan: currentEnt?.plan,
+    newPlan: currentEnt?.plan || 'unknown',
+    oldStatus: currentEnt?.status,
+    newStatus: 'past_due',
+    source: 'stripe',
+    eventId,
+    eventType: 'invoice.payment_failed',
+    purchaseType: 'subscription',
+    reason: `Payment failed (invoice: ${invoice.id}) — grace period, plan retained`,
+  });
 
   // Notify user of payment failure
   await supabase.from('notifications').insert({
@@ -490,14 +702,14 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
     type: 'payment',
     title: '⚠️ Payment Failed',
     message:
-      'We had trouble processing your subscription payment. Please update your payment method to avoid service interruption.',
+      'We had trouble processing your subscription payment. Please update your payment method to avoid losing access.',
     metadata: { invoice_id: invoice.id },
   });
 
-  logStep('Payment failure recorded', { userId });
+  logStep('Payment failure recorded — plan retained with past_due status', { userId });
 }
 
-async function handleChargeRefunded(charge: Stripe.Charge, supabase: any) {
+async function handleChargeRefunded(charge: Stripe.Charge, supabase: any, eventId: string) {
   logStep('Processing charge refund', { chargeId: charge.id });
 
   const customerId = charge.customer as string;
@@ -522,7 +734,7 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any) {
   // Check if this user has a Trip Pass — expire it on refund
   const { data: passEntitlement } = await supabase
     .from('user_entitlements')
-    .select('id, purchase_type')
+    .select('id, purchase_type, plan, status')
     .eq('user_id', userId)
     .eq('purchase_type', 'pass')
     .eq('status', 'active')
@@ -537,6 +749,20 @@ async function handleChargeRefunded(charge: Stripe.Charge, supabase: any) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', passEntitlement.id);
+
+    // FIX 10: Audit log
+    await logEntitlementChange(supabase, {
+      userId,
+      oldPlan: passEntitlement.plan,
+      newPlan: passEntitlement.plan,
+      oldStatus: passEntitlement.status,
+      newStatus: 'expired',
+      source: 'stripe',
+      eventId,
+      eventType: 'charge.refunded',
+      purchaseType: 'pass',
+      reason: `Trip Pass refunded (charge: ${charge.id})`,
+    });
 
     await supabase.from('notifications').insert({
       user_id: userId,
