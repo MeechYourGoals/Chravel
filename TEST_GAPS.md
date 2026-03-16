@@ -75,3 +75,11 @@
 - **Suggested tests:** Add staged load/chaos workflows that publish artifacts and evolve from warn-only to blocking for Tier-0.
 - **Priority:** high
 - **Provenance:** March 2026 QA governance hardening pass.
+## Reliability drill automation for SLO + degradation + restore
+- **Area:** Cross-cutting reliability platform (`src/services/apiHealthCheck.ts`, queue workers, DR procedures)
+- **Why this gap matters:** Without automated drills, resilience assumptions remain theoretical and regress silently.
+- **Missing coverage:** No CI/staging suite that validates tier-based degradation behavior, queue backlog alert thresholds, and backup-restore acceptance checks.
+- **Failure mode if untested:** Production incidents where fallback modes are broken, alerts are noisy/missing, or restore success is declared prematurely.
+- **Suggested tests:** Scheduled staging drills that (1) inject provider outage, (2) force queue saturation, (3) execute restore rehearsal and verify Tier-0 journeys.
+- **Priority:** high
+- **Provenance:** March 2026 reliability constitution audit
