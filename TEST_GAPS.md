@@ -41,6 +41,23 @@
 - **Priority:** low
 - **Provenance:** March 2026 chat reliability audit
 
+## Integrations platform replay/idempotency coverage
+- **Area:** `supabase/functions/gmail-import-worker/index.ts`, `supabase/functions/file-ai-parser/index.ts`, `supabase/functions/calendar-sync/index.ts`
+- **Why this gap matters:** Integration retries and provider replays can silently duplicate or corrupt shared trip data.
+- **Missing coverage:** No shared contract tests for idempotent reruns, out-of-order events, or partial import terminal states across provider pipelines.
+- **Failure mode if untested:** Duplicate imports, stale sync state, and false-success UX after partial failures.
+- **Suggested tests:** End-to-end integration suite with deterministic replay payloads, duplicate-run attempts, and partial-step failures asserting `completed_partial` semantics.
+- **Priority:** high
+- **Provenance:** March 2026 integrations/import-export audit
+
+## Export completeness + authorization manifest tests
+- **Area:** `supabase/functions/export-user-data/index.ts`, `supabase/functions/export-trip/index.ts`
+- **Why this gap matters:** Exports are trust/privacy boundaries and can become compliance incidents when partial or over-scoped.
+- **Missing coverage:** No manifest-based assertions for table completeness, mandatory-section failures, and per-role authorization boundaries.
+- **Failure mode if untested:** Silent omissions presented as success, or unauthorized data leakage in generated export packages.
+- **Suggested tests:** Integration tests validating manifest row counts, enforced auth checks, and blocked access for non-members/non-admins.
+- **Priority:** high
+- **Provenance:** March 2026 integrations/import-export audit
 ## Migration compatibility window regression suite
 - **Area:** `supabase/migrations/` + app DB access layer
 - **Why this gap matters:** Current migration history shows repeated modification of high-risk tables and policies; without compatibility testing, rolling deploy windows can break old/new app versions.
