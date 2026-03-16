@@ -108,3 +108,10 @@
 - **Evidence:** March 2026 reliability constitution audit found multiple backup/DR docs present but explicit “action required” status and missing drill evidence.
 - **Provenance:** `docs/audits/reliability-resilience-constitution-2026-03-16.md`
 - **Confidence:** high
+
+### Vertex Live setup payloads should omit optional objects when unset
+- **Tip:** For Gemini/Vertex Live setup, avoid sending empty objects for optional fields (e.g., `sessionResumption: {}`); include optional sections only when populated.
+- **Applies when:** Building setup envelopes for bidirectional WS sessions with optional resumption handles/features.
+- **Evidence:** Chravel voice sessions had intermittent setup instability while always sending empty sessionResumption; hardening changed to conditional inclusion only.
+- **Provenance:** March 2026 Gemini Live production hardening.
+- **Confidence:** medium
