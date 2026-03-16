@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
+import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 
 export interface PendingAction {
@@ -171,7 +172,7 @@ export function usePendingActions(tripId: string) {
       } else if (action.tool_name === 'createPoll') {
         queryClient.invalidateQueries({ queryKey: ['tripPolls', tripId] });
       } else if (action.tool_name === 'addToCalendar') {
-        queryClient.invalidateQueries({ queryKey: ['calendar', tripId] });
+        queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
       }
     },
     onError: (error: Error) => {
@@ -191,7 +192,8 @@ export function usePendingActions(tripId: string) {
           resolved_at: new Date().toISOString(),
           resolved_by: user.id,
         })
-        .eq('id', actionId);
+        .eq('id', actionId)
+        .eq('status', 'pending');
 
       if (error) throw error;
       return actionId;

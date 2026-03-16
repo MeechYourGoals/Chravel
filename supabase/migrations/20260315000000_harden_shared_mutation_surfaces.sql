@@ -85,15 +85,15 @@ BEGIN
       USING ERRCODE = 'P0001';
   END IF;
 
-  -- Apply updates (only non-NULL params are applied)
+  -- Apply updates: NULL param = keep existing; empty string = clear to NULL via NULLIF
   RETURN QUERY
   UPDATE trip_events
   SET
-    title = COALESCE(p_title, title),
-    description = COALESCE(p_description, description),
+    title = CASE WHEN p_title IS NULL THEN title ELSE NULLIF(p_title, '') END,
+    description = CASE WHEN p_description IS NULL THEN description ELSE NULLIF(p_description, '') END,
     start_time = COALESCE(p_start_time, start_time),
-    end_time = COALESCE(p_end_time, end_time),
-    location = COALESCE(p_location, location),
+    end_time = CASE WHEN p_end_time IS NULL THEN end_time ELSE p_end_time END,
+    location = CASE WHEN p_location IS NULL THEN location ELSE NULLIF(p_location, '') END,
     event_category = COALESCE(p_event_category, event_category),
     include_in_itinerary = COALESCE(p_include_in_itinerary, include_in_itinerary),
     is_all_day = COALESCE(p_is_all_day, is_all_day),
@@ -155,9 +155,9 @@ BEGIN
   RETURN QUERY
   UPDATE trip_tasks
   SET
-    title = COALESCE(p_title, title),
-    description = COALESCE(p_description, description),
-    due_at = COALESCE(p_due_at, due_at),
+    title = CASE WHEN p_title IS NULL THEN title ELSE NULLIF(p_title, '') END,
+    description = CASE WHEN p_description IS NULL THEN description ELSE NULLIF(p_description, '') END,
+    due_at = CASE WHEN p_due_at IS NULL THEN due_at ELSE p_due_at END,
     is_poll = COALESCE(p_is_poll, is_poll),
     version = COALESCE(v_actual_version, 1) + 1,
     updated_at = NOW()
