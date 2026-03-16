@@ -58,3 +58,11 @@
 - **Suggested tests:** Integration tests validating manifest row counts, enforced auth checks, and blocked access for non-members/non-admins.
 - **Priority:** high
 - **Provenance:** March 2026 integrations/import-export audit
+## Migration compatibility window regression suite
+- **Area:** `supabase/migrations/` + app DB access layer
+- **Why this gap matters:** Current migration history shows repeated modification of high-risk tables and policies; without compatibility testing, rolling deploy windows can break old/new app versions.
+- **Missing coverage:** No automated CI test that validates both old-app/new-schema and new-app/old-schema compatibility for one deploy window.
+- **Failure mode if untested:** Runtime failures during phased rollout, policy mismatches, or enum/state parsing regressions after migration apply.
+- **Suggested tests:** CI job that boots previous app build against latest schema, and current app build against prior schema snapshot; verify critical CRUD/auth paths.
+- **Priority:** high
+- **Provenance:** 2026-03 data evolution hardening audit

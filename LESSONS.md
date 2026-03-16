@@ -33,7 +33,13 @@
 
 ## Recovery Tips
 
-<!-- Add recovery tips here as they are discovered during debugging work -->
+### Gate third-party SDK boot on preview/runtime compatibility
+- **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
+- **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
+- **Avoid when:** The SDK is already lazy-loaded behind an explicit user action
+- **Evidence:** Chravel preview was throwing `Invalid API key. Use your Web Billing API key.` from `@revenuecat/purchases-js` during startup until web initialization was skipped for Lovable preview and non-`rcb_` keys
+- **Provenance:** March 2026 preview recovery fix — `src/config/revenuecat.ts`
+- **Confidence:** high
 
 ## Optimization Tips
 
@@ -57,4 +63,12 @@
 - **Applies when:** Any feature using Supabase realtime where data loss during connectivity gaps is unacceptable
 - **Evidence:** Chat messages were silently lost during websocket drops with no user-visible indication
 - **Provenance:** March 2026 chat reliability audit
+- **Confidence:** high
+
+### Treat schema migrations as a product compatibility API, not just SQL files
+- **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
+- **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
+- **Avoid when:** Local-only prototypes not shipped to shared environments
+- **Evidence:** Repo migration corpus shows repeated edits of critical tables and mixed-purpose migrations, increasing rollout coupling risk.
+- **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high

@@ -89,6 +89,7 @@ import { GmailCallbackPage } from './pages/GmailCallbackPage';
 const DemoEntry = lazy(() => retryImport(() => import('./pages/DemoEntry')));
 const TripPreview = lazy(() => retryImport(() => import('./pages/TripPreview')));
 const AuthPage = lazy(() => retryImport(() => import('./pages/AuthPage')));
+const ResetPasswordPage = lazy(() => retryImport(() => import('./pages/ResetPasswordPage')));
 const DeviceTestMatrix = lazy(() => retryImport(() => import('./pages/DeviceTestMatrix')));
 // AdminMigrateDemoImages removed - migration complete, images now in Supabase Storage
 
@@ -188,6 +189,7 @@ const OfflineIndicatorGate = () => {
   const isPublicRoute =
     pathname === '/' ||
     pathname.startsWith('/auth') ||
+    pathname.startsWith('/reset-password') ||
     pathname.startsWith('/join') ||
     pathname.startsWith('/accept-invite') ||
     pathname.startsWith('/teams') ||
@@ -538,6 +540,14 @@ const App = () => {
                         element={
                           <LazyRoute>
                             <AuthPage />
+                          </LazyRoute>
+                        }
+                      />
+                      <Route
+                        path="/reset-password"
+                        element={
+                          <LazyRoute>
+                            <ResetPasswordPage />
                           </LazyRoute>
                         }
                       />
