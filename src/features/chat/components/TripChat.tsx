@@ -127,7 +127,12 @@ export const TripChat = React.memo(
       tripId: string;
     } | null>(null);
     const [failedMessages, setFailedMessages] = useState<
-      Array<{ id: string; text: string; authorName: string; messageType?: 'text' | 'broadcast' | 'payment' | 'system' }>
+      Array<{
+        id: string;
+        text: string;
+        authorName: string;
+        messageType?: 'text' | 'broadcast' | 'payment' | 'system';
+      }>
     >([]);
 
     const { isOffline } = useOfflineStatus();
@@ -631,12 +636,19 @@ export const TripChat = React.memo(
         const errorMsg = error instanceof Error ? error.message : 'Failed to send message';
         setFailedMessages(prev => [
           ...prev,
-          { id: `failed-${Date.now()}`, text: message.text, authorName, messageType: messageType as 'text' | 'broadcast' | 'payment' | 'system' },
+          {
+            id: `failed-${Date.now()}`,
+            text: message.text,
+            authorName,
+            messageType: messageType as 'text' | 'broadcast' | 'payment' | 'system',
+          },
         ]);
         toast.error(isBroadcast ? 'Broadcast failed to send' : 'Message failed to send', {
           description: errorMsg,
         });
-        console.error('[TripChat] Failed to send message:', error);
+        if (import.meta.env.DEV) {
+          console.error('[TripChat] Failed to send message:', error);
+        }
       }
     };
 

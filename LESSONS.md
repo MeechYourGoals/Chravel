@@ -72,4 +72,10 @@
 - **Avoid when:** First session initialization before any successful connection
 - **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
 - **Provenance:** March 2026 concierge live-mode hardening
+### Treat schema migrations as a product compatibility API, not just SQL files
+- **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
+- **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
+- **Avoid when:** Local-only prototypes not shipped to shared environments
+- **Evidence:** Repo migration corpus shows repeated edits of critical tables and mixed-purpose migrations, increasing rollout coupling risk.
+- **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high

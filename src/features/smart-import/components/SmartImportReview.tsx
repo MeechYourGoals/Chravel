@@ -136,9 +136,12 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
       const accepted = candidates.filter(c => selectedIds.has(c.id));
       const rejected = candidates.filter(c => !selectedIds.has(c.id));
 
-      // Persist accepted candidates as trip artifacts
+      // Persist accepted candidates as trip artifacts.
+      // A candidate is only marked 'accepted' after artifact-ingest confirms success.
+      // Candidates whose ingest call fails are left as 'pending' so the user can retry.
       let persistedCount = 0;
       let failedCount = 0;
+      const succeededIds: string[] = [];
 
       if (tripId && accepted.length > 0) {
         const ingestResults = await Promise.allSettled(
@@ -149,7 +152,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
               ? RESERVATION_TO_ARTIFACT_TYPE[reservationType]
               : undefined;
 
-            await supabase.functions.invoke('artifact-ingest', {
+            const { data, error } = await supabase.functions.invoke('artifact-ingest', {
               body: {
                 tripId,
                 sourceType: 'gmail_import',
@@ -162,20 +165,38 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                 },
               },
             });
+
+            if (error || !data?.success) {
+              throw new Error(error?.message || data?.error || 'artifact-ingest returned failure');
+            }
+
+            return candidate.id;
           }),
         );
 
-        persistedCount = ingestResults.filter(r => r.status === 'fulfilled').length;
-        failedCount = ingestResults.filter(r => r.status === 'rejected').length;
+        for (let i = 0; i < ingestResults.length; i++) {
+          const result = ingestResults[i];
+          if (result.status === 'fulfilled') {
+            succeededIds.push(accepted[i].id);
+            persistedCount++;
+          } else {
+            failedCount++;
+            console.error(
+              '[SmartImportReview] artifact-ingest failed for candidate',
+              accepted[i].id,
+              result.reason,
+            );
+          }
+        }
 
-        // Mark accepted candidates (best-effort — don't fail the whole accept if this errors)
-        await supabase
-          .from('smart_import_candidates')
-          .update({ status: 'accepted' })
-          .in(
-            'id',
-            accepted.map(c => c.id),
-          );
+        // Only mark candidates as 'accepted' if artifact-ingest succeeded.
+        // Failed candidates remain 'pending' so the user can retry.
+        if (succeededIds.length > 0) {
+          await supabase
+            .from('smart_import_candidates')
+            .update({ status: 'accepted' })
+            .in('id', succeededIds);
+        }
       }
 
       // Mark rejected candidates (regardless of whether tripId is present)

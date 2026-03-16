@@ -124,7 +124,9 @@ export const BroadcastComposer = ({
           });
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
+          if (import.meta.env.DEV) {
+            console.error('Upload error:', uploadError);
+          }
           toast.error(`Failed to upload ${file.name}`);
           continue;
         }
@@ -142,7 +144,9 @@ export const BroadcastComposer = ({
         toast.success(`Uploaded ${uploadedUrls.length} file(s)`);
       }
     } catch (error) {
-      console.error('Error uploading files:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error uploading files:', error);
+      }
       toast.error('Failed to upload files');
     } finally {
       setUploadingAttachments(false);
@@ -179,15 +183,9 @@ export const BroadcastComposer = ({
       const newBroadcast = await broadcastService.createBroadcast(broadcastData);
 
       if (newBroadcast) {
-        // Trigger push notification for urgent/reminder broadcasts if sent immediately
-        if (!scheduledFor && (category === 'urgent' || category === 'logistics')) {
-          try {
-            await broadcastService.sendPushNotification(newBroadcast.id, tripId);
-          } catch (error) {
-            console.error('Failed to send push notification:', error);
-            // Don't fail the broadcast creation if push fails
-          }
-        }
+        // Push notifications are handled by the DB trigger `trigger_notify_broadcast`
+        // which fires on broadcast INSERT and routes through the centralized delivery pipeline.
+        // No client-side push call needed.
 
         toast.success(
           scheduledFor ? 'Broadcast scheduled successfully!' : 'Broadcast sent successfully!',
@@ -210,7 +208,9 @@ export const BroadcastComposer = ({
         toast.error('Failed to send broadcast. Please try again.');
       }
     } catch (error) {
-      console.error('Error sending broadcast:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error sending broadcast:', error);
+      }
       toast.error('Failed to send broadcast. Please try again.');
     } finally {
       setIsLoading(false);
