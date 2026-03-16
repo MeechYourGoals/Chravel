@@ -50,7 +50,8 @@ export const useProTripAdmin = (tripId: string) => {
       }
 
       // Server-side verification: RPC handles super-admin + trip-admin checks
-      const { data, error } = await supabase.rpc('get_trip_admin_permissions', {
+      // intentional: get_trip_admin_permissions RPC not yet in generated Supabase types
+      const { data, error } = await (supabase as any).rpc('get_trip_admin_permissions', {
         p_trip_id: tripId,
       });
 

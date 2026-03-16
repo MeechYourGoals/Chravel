@@ -18,6 +18,7 @@ import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore'
 import { conciergeCacheService } from '@/services/conciergeCacheService';
 import { isSessionTokenValid } from '@/utils/tokenValidation';
 import { authDebug } from '@/utils/authDebug';
+import { telemetry } from '@/telemetry/service';
 import { toast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/utils/authTelemetry';
 
@@ -713,10 +714,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               // Identify user in analytics (no email for privacy)
               telemetry.identify({
                 id: transformedUser.id,
-                display_name: transformedUser.display_name ?? undefined,
-                is_pro: transformedUser.is_pro ?? undefined,
-                organization_id: transformedUser.organization_id ?? undefined,
-                created_at: transformedUser.created_at ?? undefined,
+                display_name: transformedUser.displayName ?? undefined,
+                is_pro: transformedUser.isPro ?? undefined,
+                organization_id: transformedUser.organizationId ?? undefined,
               });
             })
             .catch(err => {

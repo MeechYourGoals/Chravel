@@ -40,7 +40,8 @@ export function useFeatureFlag(key: string, defaultValue: boolean = true): boole
   const { data } = useQuery({
     queryKey: ['feature-flag', key],
     queryFn: async (): Promise<FeatureFlagRow | null> => {
-      const { data, error } = await supabase
+      // intentional: feature_flags table not yet in generated Supabase types
+      const { data, error } = await (supabase as any)
         .from('feature_flags')
         .select('key, enabled, rollout_percentage')
         .eq('key', key)
@@ -72,14 +73,13 @@ export function useFeatureFlag(key: string, defaultValue: boolean = true): boole
  * Call once at app startup for faster first reads.
  */
 export async function prefetchFeatureFlags(): Promise<void> {
-  const { data, error } = await supabase
+  // intentional: feature_flags table not yet in generated Supabase types
+  const { data, error } = await (supabase as any)
     .from('feature_flags')
     .select('key, enabled, rollout_percentage');
 
   if (error || !data) return;
 
-  // This is a no-op cache warm — consumers use individual useFeatureFlag hooks
-  // which will hit the queryClient cache after this prefetch
   for (const flag of data as FeatureFlagRow[]) {
     // Store in a way the individual hooks can find
     // The hooks use ['feature-flag', key] as query key

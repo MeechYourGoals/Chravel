@@ -71,7 +71,8 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             const description = optionalString(args.notes ?? args.description, 1000);
 
             // B4: Route to pending buffer instead of direct write
-            const { data: pendingEvent, error: pendingError } = await supabase
+            // intentional: trip_pending_actions not yet in generated Supabase types
+            const { data: pendingEvent, error: pendingError } = await (supabase as any)
               .from('trip_pending_actions')
               .insert({
                 trip_id: currentTripId,
@@ -111,7 +112,8 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             const dueDate = validateDatetime(args.dueDate ?? args.due_at, 'dueDate');
 
             // B4: Route to pending buffer instead of direct write
-            const { data: pendingTask, error: pendingError } = await supabase
+            // intentional: trip_pending_actions not yet in generated Supabase types
+            const { data: pendingTask, error: pendingError } = await (supabase as any)
               .from('trip_pending_actions')
               .insert({
                 trip_id: currentTripId,
@@ -172,7 +174,8 @@ export function useVoiceToolHandler({ tripId, userId }: UseVoiceToolHandlerOptio
             }));
 
             // B4: Route to pending buffer instead of direct write
-            const { data: pendingPoll, error: pendingError } = await supabase
+            // intentional: trip_pending_actions not yet in generated Supabase types
+            const { data: pendingPoll, error: pendingError } = await (supabase as any)
               .from('trip_pending_actions')
               .insert({
                 trip_id: currentTripId,

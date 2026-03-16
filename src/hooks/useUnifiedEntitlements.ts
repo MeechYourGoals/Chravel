@@ -20,12 +20,13 @@ import { REVENUECAT_CONFIG } from '@/constants/revenuecat';
 import { supabase } from '@/integrations/supabase/client';
 import { isSuperAdminEmail } from '@/utils/isSuperAdmin';
 import type { FeatureName, FeatureContext, SubscriptionTier, EntitlementId } from '@/billing/types';
+import type { EntitlementStatus } from '@/stores/entitlementsStore';
 
 // FEATURE_LIMITS imported from '@/billing/entitlements' — single source of truth
 
 export interface UseUnifiedEntitlementsReturn {
   plan: SubscriptionTier;
-  status: 'active' | 'trialing' | 'expired' | 'canceled';
+  status: EntitlementStatus;
   source: 'revenuecat' | 'stripe' | 'admin' | 'demo' | 'none';
   isLoading: boolean;
   isSubscribed: boolean;

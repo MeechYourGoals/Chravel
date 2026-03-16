@@ -87,7 +87,7 @@ class ErrorTrackingService {
       category: 'message',
       message,
       level,
-      data: context,
+      data: context as Record<string, unknown> | undefined,
     });
   }
 

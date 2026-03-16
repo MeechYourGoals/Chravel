@@ -43,7 +43,8 @@ export function usePendingActions(tripId: string) {
     queryFn: async (): Promise<PendingAction[]> => {
       if (isDemoMode || !tripId) return [];
 
-      const { data, error } = await supabase
+      // intentional: trip_pending_actions not yet in generated Supabase types
+      const { data, error } = await (supabase as any)
         .from('trip_pending_actions')
         .select('*')
         .eq('trip_id', tripId)
@@ -65,7 +66,8 @@ export function usePendingActions(tripId: string) {
       if (!user?.id) throw new Error('Not authenticated');
 
       // Fetch the pending action
-      const { data: action, error: fetchError } = await supabase
+      // intentional: trip_pending_actions not yet in generated Supabase types
+      const { data: action, error: fetchError } = await (supabase as any)
         .from('trip_pending_actions')
         .select('*')
         .eq('id', actionId)
@@ -81,7 +83,8 @@ export function usePendingActions(tripId: string) {
       // Execute the original mutation based on tool_name
       switch (action.tool_name) {
         case 'createTask': {
-          const { error } = await supabase
+          // intentional: source_type column may not be in generated types yet
+          const { error } = await (supabase as any)
             .from('trip_tasks')
             .insert({
               trip_id: action.trip_id,
@@ -98,7 +101,8 @@ export function usePendingActions(tripId: string) {
         }
 
         case 'createPoll': {
-          const { error } = await supabase
+          // intentional: trip_polls insert with trip_id may not match generated types
+          const { error } = await (supabase as any)
             .from('trip_polls')
             .insert({
               trip_id: action.trip_id,
@@ -115,7 +119,8 @@ export function usePendingActions(tripId: string) {
         }
 
         case 'addToCalendar': {
-          const { error } = await supabase
+          // intentional: source_type column may not be in generated types yet
+          const { error } = await (supabase as any)
             .from('trip_events')
             .insert({
               trip_id: action.trip_id,
@@ -138,7 +143,8 @@ export function usePendingActions(tripId: string) {
       }
 
       // Mark as confirmed — re-check status to prevent TOCTOU race
-      const { error: updateError } = await supabase
+      // intentional: trip_pending_actions not yet in generated Supabase types
+      const { error: updateError } = await (supabase as any)
         .from('trip_pending_actions')
         .update({
           status: 'confirmed',
@@ -185,7 +191,8 @@ export function usePendingActions(tripId: string) {
     mutationFn: async (actionId: string) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      // intentional: trip_pending_actions not yet in generated Supabase types
+      const { error } = await (supabase as any)
         .from('trip_pending_actions')
         .update({
           status: 'rejected',

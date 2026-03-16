@@ -9,6 +9,8 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
 import { taskEvents } from '@/telemetry/events';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
+import { generateMutationId } from '@/utils/concurrencyUtils';
 
 // Task form management types
 export interface TaskFormData {
@@ -823,7 +825,8 @@ export const useTripTasks = (
       let updatedTask: unknown = null;
       if (currentVersion != null) {
         // p_creator_id removed: RPC now uses auth.uid() server-side (see 20260316100000_fix_task_rpc_auth.sql)
-        const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        // intentional: update_task_with_version RPC not yet in generated Supabase types
+        const { data: rpcResult, error: rpcError } = await (supabase as any).rpc(
           'update_task_with_version',
           {
             p_task_id: taskId,
