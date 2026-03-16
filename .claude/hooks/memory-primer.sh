@@ -33,14 +33,14 @@ fi
 # 2. Debug pattern titles
 if [ -f "$PROJECT_DIR/DEBUG_PATTERNS.md" ]; then
   echo "## Debug Patterns"
-  grep -E '^## ' "$PROJECT_DIR/DEBUG_PATTERNS.md" | grep -v '^## General' | sed 's/^## /  - /' | head -15
+  grep -E '^## ' "$PROJECT_DIR/DEBUG_PATTERNS.md" | grep -v '^## General' | sed 's/^## /  - /' | head -15 || true
   echo ""
 fi
 
 # 3. Lesson titles
 if [ -f "$PROJECT_DIR/LESSONS.md" ]; then
   echo "## Lessons"
-  grep -E '^### ' "$PROJECT_DIR/LESSONS.md" | sed 's/^### /  - /' | head -15
+  grep -E '^### ' "$PROJECT_DIR/LESSONS.md" | sed 's/^### /  - /' | head -15 || true
   echo ""
 fi
 
