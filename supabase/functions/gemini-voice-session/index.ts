@@ -8,6 +8,7 @@ import {
   parseServiceAccountKey,
   type ServiceAccountKey,
 } from '../_shared/vertexAuth.ts';
+import { normalizeResumptionToken } from '../_shared/voiceSessionResumption.ts';
 import { VOICE_FUNCTION_DECLARATIONS, VOICE_ADDENDUM } from '../_shared/voiceToolDeclarations.ts';
 
 // ── Vertex AI configuration (production-only provider) ──
@@ -127,8 +128,7 @@ serve(async req => {
     const requestedVoice = typeof bodyRaw?.voice === 'string' ? bodyRaw.voice : DEFAULT_VOICE;
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
     const tripId = typeof bodyRaw?.tripId === 'string' ? bodyRaw.tripId : undefined;
-    const resumptionToken =
-      typeof bodyRaw?.resumptionToken === 'string' ? bodyRaw.resumptionToken : undefined;
+    const resumptionToken = normalizeResumptionToken(bodyRaw?.resumptionToken);
 
     // Build system instruction
     let systemInstruction: string;

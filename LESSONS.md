@@ -57,6 +57,14 @@
 - **Provenance:** March 2026 preview recovery fix — `src/config/revenuecat.ts`
 - **Confidence:** high
 
+### Normalize optional external API fields before serialization
+- **Tip:** When sending optional objects to strict third-party APIs (especially websocket setup payloads), treat blank/whitespace string inputs as absent and omit the field entirely. `""` and `"   "` are not equivalent to “no value” and can trigger setup rejections.
+- **Applies when:** Building setup/config payloads for Gemini Live, OAuth-backed websocket APIs, and edge-function proxy contracts
+- **Avoid when:** The upstream API explicitly documents empty string/object as valid sentinel values
+- **Evidence:** Gemini Live setup reliability hardening required omitting `sessionResumption` unless a non-empty token exists; adding shared token normalization prevented whitespace handles from reintroducing the same rejection path.
+- **Provenance:** March 2026 Gemini Live handshake fix (`gemini-voice-session`, `gemini-voice-proxy`)
+- **Confidence:** high
+
 ## Optimization Tips
 
 ### useEffect dependencies on array state cause O(N) re-execution storms

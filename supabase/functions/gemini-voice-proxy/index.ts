@@ -27,6 +27,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { TripContextBuilder } from '../_shared/contextBuilder.ts';
 import { buildSystemPrompt } from '../_shared/promptBuilder.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { normalizeResumptionToken } from '../_shared/voiceSessionResumption.ts';
 import { VOICE_FUNCTION_DECLARATIONS, VOICE_ADDENDUM } from '../_shared/voiceToolDeclarations.ts';
 
 // ── Environment ──
@@ -210,8 +211,7 @@ serve(async (req: Request) => {
         const requestedVoice = typeof initData.voice === 'string' ? initData.voice : DEFAULT_VOICE;
         const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
         const tripId = typeof initData.tripId === 'string' ? initData.tripId : undefined;
-        const resumptionToken =
-          typeof initData.resumptionToken === 'string' ? initData.resumptionToken : undefined;
+        const resumptionToken = normalizeResumptionToken(initData.resumptionToken);
 
         // Build system instruction
         let systemInstruction: string;
