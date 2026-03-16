@@ -78,6 +78,19 @@ Known security anti-patterns discovered during audits. Reference this before int
 
 ---
 
+## 5. Client-Trusted Billing Provider Payload
+
+**Symptom:** Any authenticated user can self-upgrade by sending forged subscription or entitlement JSON to an edge function that writes billing state with the service role.
+**Risk:** CRITICAL — paid tier bypass, false entitlements, and feature gating corruption without a real purchase.
+**Root Cause:** The backend authenticated the caller but trusted client-supplied provider state (`customerInfo`, entitlement arrays, expiration dates) instead of fetching authoritative data from the billing provider or verifying a signed webhook.
+**How to Confirm:** Inspect the edge function for `await req.json()` followed by a service-role upsert into `user_entitlements` without a server-to-server verification call to the provider.
+**Smallest Safe Fix:** Ignore client billing payloads. Fetch the subscriber record server-side from the provider using a secret API key or process only verified webhooks. Fail closed if the provider secret is missing.
+**Required Tests:** Unit test that server-side normalization ignores expired entitlements and that the function requires a server billing secret.
+**Regression Surfaces:** RevenueCat sync, Stripe mirrors, any future billing/provider sync endpoint.
+**Fixed in:** `supabase/functions/sync-revenuecat-entitlement/index.ts` (March 2026 repo audit)
+
+---
+
 ## General Anti-Patterns to Avoid
 
 - **Never use `|| 'default'` for security-sensitive env vars** — fail loudly instead
