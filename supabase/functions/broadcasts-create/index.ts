@@ -7,6 +7,7 @@ import {
 } from '../_shared/securityHeaders.ts';
 import { BroadcastCreateSchema, validateInput } from '../_shared/validation.ts';
 import { sanitizeErrorForClient, logError } from '../_shared/errorHandling.ts';
+import { checkRateLimit } from '../_shared/security.ts';
 
 serve(async req => {
   // Handle CORS preflight requests
@@ -45,6 +46,19 @@ serve(async req => {
     }
 
     const { trip_id, content, location, tag, scheduled_time } = validation.data;
+
+    // Per-user-per-trip broadcast rate limit: 5 per minute (anti-spam)
+    const broadcastRlResult = await checkRateLimit(
+      supabase,
+      `broadcasts-create:${user.id}:${trip_id}`,
+      5,
+      60,
+      user.id,
+      'broadcasts-create',
+    );
+    if (!broadcastRlResult.allowed) {
+      return createErrorResponse('Too many broadcasts. Please wait before sending another.', 429);
+    }
 
     // Verify user is a member of the trip
     const { data: membership, error: membershipError } = await supabase

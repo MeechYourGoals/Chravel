@@ -306,7 +306,7 @@ serve(async req => {
       // Check if user has an existing request for this trip
       const { data: existingRequest } = await supabaseClient
         .from('trip_join_requests')
-        .select('id, status')
+        .select('id, status, rejection_cooldown_until')
         .eq('trip_id', invite.trip_id)
         .eq('user_id', user.id)
         .single();
@@ -326,7 +326,18 @@ serve(async req => {
             corsHeaders,
           );
         } else if (existingRequest.status === 'rejected') {
-          // Previously rejected - allow re-request by updating status back to pending
+          // Previously rejected - check 24-hour cooldown before allowing re-request
+          const cooldownUntil = existingRequest.rejection_cooldown_until
+            ? new Date(existingRequest.rejection_cooldown_until)
+            : null;
+          if (cooldownUntil && cooldownUntil > new Date()) {
+            const minutesLeft = Math.ceil((cooldownUntil.getTime() - Date.now()) / 60000);
+            return errorResponse(
+              `Your join request was recently denied. Please wait ${minutesLeft > 60 ? Math.ceil(minutesLeft / 60) + ' hour(s)' : minutesLeft + ' minute(s)'} before requesting again.`,
+              429,
+              corsHeaders,
+            );
+          }
           logStep('Updating rejected request to pending', { requestId: existingRequest.id });
           const { error: updateError } = await supabaseClient
             .from('trip_join_requests')

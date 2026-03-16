@@ -4,8 +4,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import {
   DocumentProcessorSchema,
   validateInput,
-  verifyTripMembership,
-  validateExternalHttpsUrl,
+  validateExternalUrlBeforeFetch,
 } from '../_shared/validation.ts';
 import {
   invokeChatModel,
@@ -112,7 +111,9 @@ serve(async req => {
       });
     }
 
-    // 🔒 SECURITY: Verify user is a member of the trip (only if authenticated)
+    // 🔒 SECURITY: Two-layer membership check (defense-in-depth).
+    //
+    // Layer 1 — service-role explicit filter (fast path, catches obvious violations):
     const { data: membershipCheck, error: membershipError } = await supabase
       .from('trip_members')
       .select('user_id')
@@ -127,6 +128,24 @@ serve(async req => {
       );
     }
 
+    // Layer 2 — user-scoped client enforces RLS (catches any service-role bypass scenario):
+    const userScopedClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: rlsMembership, error: rlsError } = await userScopedClient
+      .from('trip_members')
+      .select('user_id')
+      .eq('trip_id', tripId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (rlsError || !rlsMembership) {
+      return new Response(JSON.stringify({ error: 'Forbidden - RLS denied trip access' }), {
+        status: 403,
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      });
+    }
+
     // Fetch file metadata
     const { data: fileData, error: fileError } = await supabase
       .from('trip_files')
@@ -139,37 +158,8 @@ serve(async req => {
       throw new Error(`File not found: ${fileId}`);
     }
 
-    // Verify file belongs to the specified trip
-    if (fileData.trip_id !== tripId) {
-      return new Response(
-        JSON.stringify({
-          error: 'File does not belong to the specified trip',
-          success: false,
-        }),
-        {
-          status: 403,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        },
-      );
-    }
-
-    // Additional membership verification via helper function
-    const tripMembership = await verifyTripMembership(supabase, userId, tripId);
-    if (!tripMembership.isMember) {
-      return new Response(
-        JSON.stringify({
-          error: tripMembership.error || 'Unauthorized access to trip',
-          success: false,
-        }),
-        {
-          status: 403,
-          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        },
-      );
-    }
-
-    // Validate file_url is HTTPS and external (SSRF protection)
-    if (fileData.file_url && !validateExternalHttpsUrl(fileData.file_url)) {
+    // Validate file_url is HTTPS and external (SSRF + DNS rebinding protection)
+    if (fileData.file_url && !(await validateExternalUrlBeforeFetch(fileData.file_url))) {
       return new Response(
         JSON.stringify({
           error: 'Invalid file URL: must be HTTPS and external (no internal networks)',
@@ -350,8 +340,8 @@ serve(async req => {
 // ============= HELPER FUNCTIONS =============
 
 async function extractWithGeminiVision(fileUrl: string, fileType: string) {
-  // Validate URL before fetching (SSRF protection)
-  if (!validateExternalHttpsUrl(fileUrl)) {
+  // DNS rebinding protection: resolve hostname and validate resolved IPs
+  if (!(await validateExternalUrlBeforeFetch(fileUrl))) {
     throw new Error('Invalid file URL: must be HTTPS and external');
   }
 
@@ -408,8 +398,8 @@ async function extractWithGeminiVision(fileUrl: string, fileType: string) {
 }
 
 async function extractTextFromImage(imageUrl: string) {
-  // Validate URL before fetching (SSRF protection)
-  if (!validateExternalHttpsUrl(imageUrl)) {
+  // DNS rebinding protection: resolve hostname and validate resolved IPs
+  if (!(await validateExternalUrlBeforeFetch(imageUrl))) {
     throw new Error('Invalid image URL: must be HTTPS and external');
   }
 
@@ -454,14 +444,17 @@ async function extractTextFromImage(imageUrl: string) {
   };
 }
 
+const MAX_FETCH_BYTES = 50 * 1024 * 1024; // 50 MB
+
 async function fetchTextFile(fileUrl: string): Promise<string> {
-  // Additional validation before fetch (defense in depth)
-  if (!validateExternalHttpsUrl(fileUrl)) {
+  // DNS rebinding protection: resolve hostname and validate resolved IPs
+  if (!(await validateExternalUrlBeforeFetch(fileUrl))) {
     throw new Error('Invalid file URL: must be HTTPS and external');
   }
 
   const response = await fetch(fileUrl, {
     signal: AbortSignal.timeout(30000), // 30 second timeout
+    redirect: 'error', // prevent redirect-based SSRF
     headers: {
       'User-Agent': 'Chravel-DocumentProcessor/1.0',
     },
@@ -471,7 +464,45 @@ async function fetchTextFile(fileUrl: string): Promise<string> {
     throw new Error(`Failed to fetch text file: ${response.status}`);
   }
 
-  return await response.text();
+  // Reject files exceeding size limit before buffering the body.
+  // When Content-Length is absent (e.g. chunked transfer), we stream and
+  // enforce the limit on actual bytes read to prevent memory exhaustion.
+  const contentLengthHeader = response.headers.get('content-length');
+  if (contentLengthHeader) {
+    const contentLength = parseInt(contentLengthHeader, 10);
+    if (contentLength > MAX_FETCH_BYTES) {
+      throw new Error(
+        `File too large: ${contentLength} bytes exceeds ${MAX_FETCH_BYTES / 1024 / 1024} MB limit`,
+      );
+    }
+  }
+
+  // Stream-read with hard byte limit (protects against missing/lying Content-Length)
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('Response body is not readable');
+  }
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_FETCH_BYTES) {
+      reader.cancel();
+      throw new Error(
+        `File too large: exceeded ${MAX_FETCH_BYTES / 1024 / 1024} MB limit during download`,
+      );
+    }
+    chunks.push(value);
+  }
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
 }
 
 async function generateDocumentSummary(text: string, fileName: string): Promise<string> {

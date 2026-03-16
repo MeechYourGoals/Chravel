@@ -6,11 +6,9 @@ import {
   createErrorResponse,
   createOptionsResponse,
 } from '../_shared/securityHeaders.ts';
+import { redactSensitiveToken } from '../_shared/security.ts';
 
 serve(async req => {
-  const { createOptionsResponse, createErrorResponse, createSecureResponse } =
-    await import('../_shared/securityHeaders.ts');
-
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return createOptionsResponse(req);
@@ -46,7 +44,7 @@ serve(async req => {
 
     const { token } = validation.data;
 
-    console.log('Accepting invite with token:', token);
+    console.log('Accepting invite with token:', redactSensitiveToken(token));
 
     // Find the invite
     const { data: invite, error: inviteError } = await supabase

@@ -24,6 +24,17 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useEventAdmin, ChatMode, MediaUploadMode } from '@/hooks/useEventAdmin';
@@ -251,24 +262,63 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => approveRequest(req.id)}
-                            disabled={isProcessing}
-                            className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
-                            aria-label="Approve"
-                            title="Approve"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            onClick={() => rejectRequest(req.id)}
-                            disabled={isProcessing}
-                            className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50"
-                            aria-label="Deny"
-                            title="Deny"
-                          >
-                            <X size={14} />
-                          </button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                disabled={isProcessing}
+                                className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                                aria-label="Approve"
+                                title="Approve"
+                              >
+                                <Check size={14} />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Approve join request?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {req.profile?.display_name || 'This person'} will be added to the
+                                  event.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => approveRequest(req.id)}>
+                                  Approve
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                disabled={isProcessing}
+                                className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                                aria-label="Deny"
+                                title="Deny"
+                              >
+                                <X size={14} />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Deny join request?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {req.profile?.display_name || 'This person'} will not be added to
+                                  the event.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => rejectRequest(req.id)}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  Deny
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     ))}

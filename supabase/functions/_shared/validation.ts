@@ -26,14 +26,17 @@ export function validateExternalHttpsUrl(url: string): boolean {
 
     // Block private/internal IP ranges
     const ipPatterns = [
-      /^127\./, // 127.0.0.0/8
-      /^10\./, // 10.0.0.0/8
-      /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
-      /^192\.168\./, // 192.168.0.0/16
-      /^169\.254\./, // 169.254.0.0/16 (link-local)
-      /^::1$/, // IPv6 localhost
-      /^fc00:/, // IPv6 private
-      /^fe80:/, // IPv6 link-local
+      /^0\./, // 0.0.0.0/8 — "this" network; 0.0.0.0 binds to all interfaces on many systems
+      /^127\./, // 127.0.0.0/8 — loopback
+      /^10\./, // 10.0.0.0/8 — RFC 1918 private
+      /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12 — RFC 1918 private
+      /^192\.168\./, // 192.168.0.0/16 — RFC 1918 private
+      /^169\.254\./, // 169.254.0.0/16 — link-local (AWS metadata, GCP metadata)
+      /^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./, // 100.64.0.0/10 — carrier-grade NAT
+      /^::1$/, // IPv6 loopback
+      /^fc00:/i, // IPv6 unique local (RFC 4193)
+      /^fe80:/i, // IPv6 link-local
+      /^::ffff:(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/i, // IPv4-mapped IPv6
     ];
 
     // Check if hostname is an IP address
@@ -48,6 +51,54 @@ export function validateExternalHttpsUrl(url: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Async SSRF protection with DNS pre-resolution.
+ * Must be called before every external fetch to prevent DNS rebinding attacks.
+ *
+ * DNS rebinding attack: a hostname passes the synchronous regex check because it
+ * looks public, but its DNS entry resolves to a private IP at fetch time.
+ * This function resolves A/AAAA records and validates every resolved IP against
+ * the same private-range blocklist used by validateExternalHttpsUrl().
+ *
+ * Fails closed: any resolution error → false (block the request).
+ */
+export async function validateExternalUrlBeforeFetch(url: string): Promise<boolean> {
+  // First pass: synchronous checks (protocol, localhost, static IP patterns)
+  if (!validateExternalHttpsUrl(url)) return false;
+
+  try {
+    const hostname = new URL(url).hostname;
+
+    // Hostname is already a numeric IP — synchronous check was sufficient
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(':')) return true;
+
+    // Resolve and validate every returned IP address.
+    // Fail closed: if DNS resolution fails for both A and AAAA, block the request
+    // rather than allowing it through with an empty IP list.
+    const [ipv4Addrs, ipv6Addrs] = await Promise.all([
+      // @ts-ignore — Deno.resolveDns is only available in Deno runtime
+      Deno.resolveDns(hostname, 'A').catch(() => [] as string[]),
+      // @ts-ignore
+      Deno.resolveDns(hostname, 'AAAA').catch(() => [] as string[]),
+    ]);
+
+    const allAddrs = [...ipv4Addrs, ...ipv6Addrs];
+    if (allAddrs.length === 0) {
+      return false; // DNS resolution failed or returned no records — fail closed
+    }
+
+    for (const ip of allAddrs) {
+      if (!validateExternalHttpsUrl(`https://${ip.includes(':') ? `[${ip}]` : ip}/`)) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false; // fail closed on any unexpected error
   }
 }
 
