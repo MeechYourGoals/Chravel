@@ -40,6 +40,7 @@ import { SmartImportGmail } from '@/features/smart-import/components/SmartImport
 import { SmartImportReview } from '@/features/smart-import/components/SmartImportReview';
 import type { SmartImportCandidate } from '@/features/smart-import/types';
 import { supabase } from '@/integrations/supabase/client';
+import { validateImportUrl } from '@/features/calendar/utils/importUrlValidation';
 
 interface CalendarImportModalProps {
   isOpen: boolean;
@@ -65,6 +66,9 @@ const FORMAT_BADGES = [
   { label: 'Image', icon: Image },
   { label: 'URL', icon: Globe },
 ];
+
+const IMPORT_CONTROL_CLASS =
+  'h-12 min-h-[48px] rounded-xl border-amber-500/60 hover:bg-amber-400 hover:text-black hover:border-amber-400';
 
 export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
   isOpen,
@@ -169,22 +173,14 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     processParseResult(result);
   }, [pasteText, processParseResult]);
 
-  const isValidUrl = useCallback((str: string) => {
-    try {
-      const url = new URL(str);
-      return url.protocol === 'https:' || url.protocol === 'http:';
-    } catch {
-      return false;
-    }
-  }, []);
+  const urlValidation = validateImportUrl(urlInput);
 
   const handleUrlImport = useCallback(async () => {
-    const trimmed = urlInput.trim();
-    if (!trimmed) return;
+    if (!urlValidation.isValid) return;
 
     // If background import handler is available, use it (close modal, import in background)
     if (onStartBackgroundImport) {
-      onStartBackgroundImport(trimmed);
+      onStartBackgroundImport(urlValidation.normalizedUrl);
       resetState();
       onClose();
       return;
@@ -193,9 +189,9 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
     // Fallback: synchronous import (kept for safety)
     setParsingSource('url');
     setState('parsing');
-    const result = await parseURLSchedule(trimmed);
+    const result = await parseURLSchedule(urlValidation.normalizedUrl);
     processParseResult(result);
-  }, [urlInput, processParseResult, onStartBackgroundImport, resetState, onClose]);
+  }, [urlValidation, processParseResult, onStartBackgroundImport, resetState, onClose]);
 
   const handleImport = useCallback(async () => {
     if (!parseResult) return;
@@ -341,7 +337,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                   ))}
                 </div>
 
-                <Button variant="outline" className="min-h-[44px]" type="button">
+                <Button variant="outline" className={IMPORT_CONTROL_CLASS} type="button">
                   Choose File
                 </Button>
 
@@ -361,24 +357,31 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
                       placeholder="Paste a schedule URL (team's site, tour dates, etc.)"
                       value={urlInput}
                       onChange={e => setUrlInput(e.target.value)}
-                      className="flex-1 text-sm rounded-lg h-11 border-amber-500/60 focus:border-amber-400"
+                      className="flex-1 text-sm rounded-xl h-12 min-h-[48px] border-amber-500/60 focus:border-amber-400"
+                      aria-invalid={urlInput.trim().length > 0 && !urlValidation.isValid}
                       onKeyDown={e => {
-                        if (e.key === 'Enter' && isValidUrl(urlInput.trim())) {
+                        if (e.key === 'Enter' && urlValidation.isValid) {
                           handleUrlImport();
                         }
                       }}
                     />
                     <Button
                       variant="outline"
-                      size="sm"
                       onClick={handleUrlImport}
-                      disabled={!urlInput.trim() || !isValidUrl(urlInput.trim())}
-                      className="h-11 shrink-0"
+                      disabled={!urlValidation.isValid}
+                      className={cn(
+                        'shrink-0',
+                        IMPORT_CONTROL_CLASS,
+                        'disabled:hover:bg-transparent disabled:hover:text-current disabled:hover:border-input',
+                      )}
                     >
                       <Globe className="w-4 h-4 mr-1.5" />
                       Import
                     </Button>
                   </div>
+                  {urlInput.trim().length > 0 && !urlValidation.isValid && urlValidation.error && (
+                    <p className="mt-2 text-xs text-destructive">{urlValidation.error}</p>
+                  )}
                 </div>
               </div>
 
