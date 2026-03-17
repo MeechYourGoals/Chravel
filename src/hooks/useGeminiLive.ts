@@ -100,6 +100,7 @@ interface UseGeminiLiveReturn {
 
 const LIVE_INPUT_MIME = 'audio/pcm;rate=16000';
 const WEBSOCKET_SETUP_TIMEOUT_MS = 20_000; // Allow time for proxy → Vertex handshake
+const SESSION_BOOTSTRAP_TIMEOUT_MS = 15_000;
 const THINKING_DELAY_MS = 1_500;
 const BARGE_IN_RMS_THRESHOLD = 0.035;
 const WS_KEEPALIVE_INTERVAL_MS = 15_000;
@@ -517,7 +518,7 @@ export function useGeminiLive({
                 functionResponses: functionCalls.map(fc => ({
                   id: fc.id,
                   name: fc.name,
-                  response: { result: 'Tool execution not available' },
+                  response: { error: 'Tool execution not available' },
                 })),
               },
             }),
@@ -683,29 +684,37 @@ export function useGeminiLive({
 
       // Get voice session from gemini-voice-session edge function (HTTP POST).
       // Returns { accessToken, websocketUrl, setupMessage } for direct Vertex AI connection.
-      const sessionPromise = supabase.functions
-        .invoke('gemini-voice-session', {
+      const sessionBootstrapTimeout = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Voice session bootstrap timed out. Please try again.')),
+          SESSION_BOOTSTRAP_TIMEOUT_MS,
+        );
+      });
+
+      const sessionPromise = Promise.race([
+        supabase.functions.invoke('gemini-voice-session', {
           body: {
             tripId,
             voice,
             sessionAttemptId,
             ...(resumptionTokenRef.current ? { resumptionToken: resumptionTokenRef.current } : {}),
           },
-        })
-        .then(({ data, error: fnError }) => {
-          if (fnError) {
-            throw new Error(mapSessionError(fnError.message || 'Voice session request failed'));
-          }
-          if (!data?.accessToken || !data?.websocketUrl || !data?.setupMessage) {
-            throw new Error('Voice session returned incomplete data. Please try again.');
-          }
-          patchDiagnostics({ substep: 'Session ready, waiting for microphone…' });
-          return data as {
-            accessToken: string;
-            websocketUrl: string;
-            setupMessage: Record<string, unknown>;
-          };
-        });
+        }),
+        sessionBootstrapTimeout,
+      ]).then(({ data, error: fnError }) => {
+        if (fnError) {
+          throw new Error(mapSessionError(fnError.message || 'Voice session request failed'));
+        }
+        if (!data?.accessToken || !data?.websocketUrl || !data?.setupMessage) {
+          throw new Error('Voice session returned incomplete data. Please try again.');
+        }
+        patchDiagnostics({ substep: 'Session ready, waiting for microphone…' });
+        return data as {
+          accessToken: string;
+          websocketUrl: string;
+          setupMessage: Record<string, unknown>;
+        };
+      });
 
       const micPromise = navigator.mediaDevices
         .getUserMedia({

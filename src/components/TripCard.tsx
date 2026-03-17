@@ -38,6 +38,7 @@ import { orderExportSections } from '../utils/exportSectionOrder';
 import { useConsumerSubscription } from '../hooks/useConsumerSubscription';
 import { calculateDaysCount } from '../utils/tripStatsUtils';
 import { usePrefetchTrip } from '../hooks/usePrefetchTrip';
+import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -380,6 +381,7 @@ export const TripCard = ({
   const isConsumer = isConsumerTrip(trip.id.toString());
   const daysUntil = isConsumer ? gamificationService.getDaysUntilTrip(trip.id.toString()) : 0;
   const momentum = isConsumer ? gamificationService.getTripMomentum(trip.id.toString()) : 'cold';
+  const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
 
   return (
     <div
@@ -393,6 +395,7 @@ export const TripCard = ({
           <OptimizedImage
             src={trip.coverPhoto}
             alt={`${trip.title} cover`}
+            fallbackSrc={demoCoverFallback}
             lazy={!priority}
             priority={priority}
             className="absolute inset-0 opacity-80"

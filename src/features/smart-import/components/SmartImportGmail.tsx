@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Mail, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+import { Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -20,6 +20,22 @@ export interface SmartImportGmailProps {
   onImportComplete?: (candidates: SmartImportCandidate[]) => void;
   onImportError?: (error: Error) => void;
 }
+
+const GmailIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    role="img"
+    aria-label="Gmail"
+  >
+    <path d="M3.27 6.05A2 2 0 0 1 5 5h14a2 2 0 0 1 1.73 1.05L12 12.26 3.27 6.05Z" fill="#EA4335" />
+    <path d="M3 6.78V18a2 2 0 0 0 2 2h2.25V10.4L3 6.78Z" fill="#34A853" />
+    <path d="M21 6.78V18a2 2 0 0 1-2 2h-2.25V10.4L21 6.78Z" fill="#4285F4" />
+    <path d="M7.25 20V9.75L12 13.4l4.75-3.65V20H7.25Z" fill="#FBBC04" />
+  </svg>
+);
 
 export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
   tripId,
@@ -101,7 +117,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
   if (accounts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-4 rounded-lg border border-dashed bg-muted/50 text-center space-y-3">
-        <Mail className="h-6 w-6 text-muted-foreground" />
+        <GmailIcon className="h-6 w-6 opacity-90" />
         <p className="text-sm font-medium">No Gmail account connected.</p>
         <p className="text-xs text-muted-foreground max-w-sm">
           Connect your Gmail in Settings to find flights, hotels, transport, dining, and ticketed
@@ -143,7 +159,7 @@ export const SmartImportGmail: React.FC<SmartImportGmailProps> = ({
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-blue-500" />
+            <GmailIcon className="h-5 w-5" />
             <h4 className="font-medium text-sm">Smart Import from Gmail</h4>
             <Sparkles className="h-3 w-3 text-yellow-500" />
           </div>
