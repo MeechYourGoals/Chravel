@@ -40,6 +40,7 @@ interface CreateMessageRequest {
   privacyMode?: string;
   messageType?: 'text' | 'broadcast' | 'payment' | 'system';
   replyToId?: string;
+  mentionedUserIds?: string[];
   /** Pre-generated client message ID for optimistic insert + server dedupe */
   clientMessageId: string;
 }
@@ -504,6 +505,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         media_type: message.media_type,
         media_url: message.media_url,
         reply_to_id: message.replyToId,
+        mentioned_user_ids: message.mentionedUserIds,
       };
 
       // If offline, queue the message using unified sync service
@@ -615,6 +617,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     privacyMode?: string,
     messageType?: 'text' | 'broadcast' | 'payment' | 'system',
     replyToId?: string,
+    mentionedUserIds?: string[],
   ) => {
     createMessageMutation.mutate({
       content,
@@ -625,6 +628,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       privacyMode,
       messageType,
       replyToId,
+      mentionedUserIds,
       clientMessageId: createClientMessageId(),
     });
   };
@@ -638,6 +642,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     privacyMode?: string,
     messageType?: 'text' | 'broadcast' | 'payment' | 'system',
     replyToId?: string,
+    mentionedUserIds?: string[],
   ) => {
     return createMessageMutation.mutateAsync({
       content,
@@ -648,6 +653,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       privacyMode,
       messageType,
       replyToId,
+      mentionedUserIds,
       clientMessageId: createClientMessageId(),
     });
   };

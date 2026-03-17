@@ -96,6 +96,11 @@
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
 
+### Internal admin surfaces need route-level role guards, not auth-only protection
+- **Tip:** Treat internal pages as production-critical privileged surfaces. `ProtectedRoute` (auth only) is insufficient for `/admin/*`; use explicit role guard components and test redirects for non-admin users.
+- **Applies when:** Adding or updating any internal/admin route in `App.tsx`
+- **Evidence:** `/admin/scheduled-messages` was reachable by any authenticated account until `InternalAdminRoute` hardening.
+- **Provenance:** March 2026 support/admin hardening pass
 ### QA confidence drift happens when docs describe planned suites as implemented
 - **Tip:** Keep E2E documentation split into explicit implemented vs planned sections and enforce with a lightweight CI doc-drift script.
 - **Applies when:** Large test architecture transitions where some suites are roadmap-only.
@@ -128,4 +133,24 @@
 - **Applies when:** Demo mode relies on externally hosted images (Supabase Storage/CDN/third-party assets) that may be unavailable in some environments.
 - **Evidence:** Demo trip covers intermittently failed, showing broken alt text/empty headers. Adding `fallbackSrc` in `OptimizedImage` plus id-based local cover mapping restored card visuals without touching demo data semantics.
 - **Provenance:** March 2026 demo trip cover resilience hardening.
+### Never block chat delivery on preview metadata fetch
+- **Tip:** Link unfurl/OG fetch must run asynchronously after message persistence. Composer-level preview fetches in the critical send path can deadlock both Enter and send-button flows when the metadata request hangs or fails.
+- **Applies when:** Any chat surface supports URL previews.
+- **Evidence:** Main chat web send path was blocked by `isFetchingPreview` in `ChatInput`, causing Enter/button sends to appear nonfunctional for link messages.
+- **Provenance:** March 2026 chat send + unfurl forensic fix.
+### Remove visual effects at the trigger class, not with clipping overrides
+- **Tip:** When a conditional animation class is the sole activation path for a decorative effect, remove the class usage in the component and delete the paired keyframes/utilities instead of masking with `overflow-hidden`/z-index patches.
+- **Applies when:** UI regressions from over-scoped pseudo-element effects tied to active/listening states.
+- **Evidence:** AI Concierge dictation regression came from `.dictation-ring-active` + `::after` conic-gradient rotation mounted during listening; removing class wiring and CSS definitions fully eliminated the oversized gold sweep without touching dictation behavior.
+- **Provenance:** March 2026 AI Concierge dictation visual rollback.
+### For event-scale chat gating, enforce threshold as both mode-resolution and write-validation
+- **Tip:** For size-based permission limits, add a single shared resolver (effective mode) for UI/runtime behavior and pair it with backend write validation (trigger/check) + send-path authorization. This prevents stale legacy values from silently bypassing product rules when group size changes.
+- **Applies when:** Permission mode validity depends on dynamic counts (members/attendees) and legacy records may become invalid over time.
+- **Evidence:** Event chat `everyone` mode now degrades to effective `admin_only` above 50 members while DB trigger blocks setting invalid `chat_mode='everyone'` for large events.
+- **Provenance:** March 2026 event chat permission scaling implementation.
+### Mention chips inside themed chat bubbles should be bubble-context aware, not brand-accent aware
+- **Tip:** Keep mention styling separate from hyperlink styling and derive mention colors from bubble context (own/broadcast vs incoming) so text remains readable on colored surfaces; use font-weight + subtle background chip for distinction instead of a hardcoded accent text color.
+- **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
+- **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
+- **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
