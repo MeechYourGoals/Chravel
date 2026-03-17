@@ -13,3 +13,8 @@
 - Implemented minimal protocol-safe fixes: removed empty sessionResumption payload, removed SILENT toolResponse scheduling, added startup timeout around gemini-voice-session bootstrap.
 - Added regression test `src/__tests__/geminiLiveProtocolSafety.test.ts` to lock protocol invariants.
 - Next follow-up: retire/undeploy gemini-voice-proxy in Supabase project environments to eliminate stale surface area.
+2026-03-17 — Event chat permission scaling enforcement
+- Completed forensic audit + surgical implementation for event chat size gating at 50 attendees.
+- Added shared permission helper (`src/lib/eventChatPermissions.ts`) and wired UI/runtime enforcement in event admin + main chat hooks.
+- Added DB migration `20260317000001_enforce_event_chat_size_limit.sql` to enforce >50 event restriction in `can_post_to_trip_chat` and block invalid direct `chat_mode='everyone'` updates.
+- Added regression test `src/__tests__/eventChatPermissions.test.ts` for <=50, >50, and legacy everyone-state behavior.

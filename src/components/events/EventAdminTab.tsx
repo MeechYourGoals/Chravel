@@ -40,6 +40,7 @@ import { Label } from '@/components/ui/label';
 import { useEventAdmin, ChatMode, MediaUploadMode } from '@/hooks/useEventAdmin';
 import { EVENT_TABS_CONFIG } from '@/lib/eventTabs';
 import { NativeSegmentedControl } from '@/components/native/NativeSegmentedControl';
+import { EVENT_OPEN_CHAT_MAX_ATTENDEES } from '@/lib/eventChatPermissions';
 
 interface EventAdminTabProps {
   eventId: string;
@@ -79,6 +80,8 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
     isSaving,
     isProcessing,
     chatMode,
+    canUseEveryoneChat,
+    attendeeCount,
     mediaUploadMode,
     toggleVisibility,
     toggleFeature,
@@ -123,6 +126,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
   };
 
   const saveChatMode = async () => {
+    if (pendingChatMode === 'everyone' && !canUseEveryoneChat) return;
     await setChatMode(pendingChatMode);
     setChatModalOpen(false);
   };
@@ -338,6 +342,10 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
             <DialogDescription>
               Control who can send messages in this event's chat.
             </DialogDescription>
+            <p className="text-xs text-muted-foreground">
+              Everyone can chat is available for events with {EVENT_OPEN_CHAT_MAX_ATTENDEES}{' '}
+              attendees or fewer. Current attendee count: {attendeeCount}.
+            </p>
           </DialogHeader>
           <RadioGroup
             value={pendingChatMode}
@@ -363,10 +371,21 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
               </Label>
             </div>
             <div className="flex items-start space-x-3">
-              <RadioGroupItem value="everyone" id="chat-everyone" className="mt-1" />
+              <RadioGroupItem
+                value="everyone"
+                id="chat-everyone"
+                className="mt-1"
+                disabled={!canUseEveryoneChat}
+              />
               <Label htmlFor="chat-everyone" className="cursor-pointer space-y-1">
-                <span className="font-medium text-foreground">Everyone can chat</span>
-                <p className="text-xs text-muted-foreground">All attendees can send messages.</p>
+                <span className="font-medium text-foreground">
+                  Everyone can chat ({EVENT_OPEN_CHAT_MAX_ATTENDEES} people or fewer)
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {!canUseEveryoneChat
+                    ? 'Unavailable for larger events. Use admin-only chat or broadcasts to keep communication scalable.'
+                    : 'All attendees can send messages.'}
+                </p>
               </Label>
             </div>
           </RadioGroup>
@@ -374,7 +393,10 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
             <Button variant="outline" onClick={() => setChatModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveChatMode} disabled={isSaving}>
+            <Button
+              onClick={saveChatMode}
+              disabled={isSaving || (pendingChatMode === 'everyone' && !canUseEveryoneChat)}
+            >
               Save
             </Button>
           </DialogFooter>
