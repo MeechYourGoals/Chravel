@@ -115,3 +115,10 @@
 - **Evidence:** Chravel voice sessions had intermittent setup instability while always sending empty sessionResumption; hardening changed to conditional inclusion only.
 - **Provenance:** March 2026 Gemini Live production hardening.
 - **Confidence:** medium
+
+### Keep role-based tab visibility and feature-toggle state in a shared resolver
+- **Tip:** In multi-tab event UIs, split concerns into a single resolver that returns both `isVisible` (role-based) and `isEnabled` (feature-toggle) for each tab. Render all visible tabs consistently and handle disabled behavior at the tab-content layer.
+- **Applies when:** Tabs must remain discoverable to attendees while still honoring admin-only tabs and per-feature disablement.
+- **Evidence:** Desktop and mobile event tab rails were previously diverging (admin tab shown as disabled + disabled tabs forced redirect), causing orientation and UX inconsistency. Shared resolver fixed both with minimal change surface.
+- **Provenance:** March 2026 event permissions/gating hardening.
+- **Confidence:** high

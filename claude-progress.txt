@@ -13,3 +13,9 @@
 - Implemented minimal protocol-safe fixes: removed empty sessionResumption payload, removed SILENT toolResponse scheduling, added startup timeout around gemini-voice-session bootstrap.
 - Added regression test `src/__tests__/geminiLiveProtocolSafety.test.ts` to lock protocol invariants.
 - Next follow-up: retire/undeploy gemini-voice-proxy in Supabase project environments to eliminate stale surface area.
+2026-03-17 — Event tab permissions/gating hardening
+- Audited event tab architecture and unified role-aware tab resolution in `src/lib/eventTabs.ts`.
+- Implemented stable attendee tab model: Admin tab hidden for non-admins, non-admin deep-links to Admin redirected to Agenda.
+- Changed disabled-event-tab behavior to remain visible and render in-tab disabled overlay/message (desktop + mobile) instead of bouncing users away.
+- Added regression tests for organizer/attendee tab visibility and enabled-state resolution (`src/lib/__tests__/eventTabs.test.ts`).
+- Next follow-up: add integration tests around event attendee role + feature-toggle combinations for tab-content overlays.

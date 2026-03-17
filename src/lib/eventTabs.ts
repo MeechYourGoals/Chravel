@@ -14,6 +14,13 @@ export interface EventTabConfig {
   alwaysOn?: boolean;
 }
 
+export interface ResolvedEventTab {
+  key: EventTabKey;
+  label: string;
+  isVisible: boolean;
+  isEnabled: boolean;
+}
+
 export const EVENT_TABS_CONFIG: EventTabConfig[] = [
   { key: 'admin', label: 'Admin' },
   { key: 'agenda', label: 'Agenda', alwaysOn: true },
@@ -49,3 +56,25 @@ export const isEventTabEnabled = (tabKey: EventTabKey, enabledTabs: EventEnabled
   if (ALWAYS_ON_EVENT_TABS.has(tabKey)) return true;
   return enabledTabs[tabKey] === true;
 };
+
+export const resolveEventTabsForRole = (
+  enabledTabs: EventEnabledTabs,
+  isOrganizer: boolean,
+): ResolvedEventTab[] =>
+  EVENT_TABS_CONFIG.map(tab => {
+    if (tab.key === 'admin') {
+      return {
+        key: tab.key,
+        label: tab.label,
+        isVisible: isOrganizer,
+        isEnabled: isOrganizer,
+      };
+    }
+
+    return {
+      key: tab.key,
+      label: tab.label,
+      isVisible: true,
+      isEnabled: isEventTabEnabled(tab.key, enabledTabs),
+    };
+  }).filter(tab => tab.isVisible);
