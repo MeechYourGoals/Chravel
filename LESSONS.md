@@ -121,6 +121,11 @@
 - **Provenance:** March 2026 Gemini Live production hardening.
 - **Confidence:** medium
 
+### Never block chat delivery on preview metadata fetch
+- **Tip:** Link unfurl/OG fetch must run asynchronously after message persistence. Composer-level preview fetches in the critical send path can deadlock both Enter and send-button flows when the metadata request hangs or fails.
+- **Applies when:** Any chat surface supports URL previews.
+- **Evidence:** Main chat web send path was blocked by `isFetchingPreview` in `ChatInput`, causing Enter/button sends to appear nonfunctional for link messages.
+- **Provenance:** March 2026 chat send + unfurl forensic fix.
 ### Remove visual effects at the trigger class, not with clipping overrides
 - **Tip:** When a conditional animation class is the sole activation path for a decorative effect, remove the class usage in the component and delete the paired keyframes/utilities instead of masking with `overflow-hidden`/z-index patches.
 - **Applies when:** UI regressions from over-scoped pseudo-element effects tied to active/listening states.
