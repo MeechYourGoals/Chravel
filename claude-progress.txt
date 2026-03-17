@@ -19,3 +19,13 @@
 - Removed `dictation-ring-active`/`dictation-ring-visible` usage from `AiChatInput` and deleted corresponding keyframes + utility CSS in `index.css`.
 - Verified typecheck/lint/build and captured updated UI screenshot artifact.
 - Next follow-up: none (cleanup complete, no residual animation hooks).
+2026-03-17 — Event chat permission scaling enforcement
+- Completed forensic audit + surgical implementation for event chat size gating at 50 attendees.
+- Added shared permission helper (`src/lib/eventChatPermissions.ts`) and wired UI/runtime enforcement in event admin + main chat hooks.
+- Added DB migration `20260317000001_enforce_event_chat_size_limit.sql` to enforce >50 event restriction in `can_post_to_trip_chat` and block invalid direct `chat_mode='everyone'` updates.
+- Added regression test `src/__tests__/eventChatPermissions.test.ts` for <=50, >50, and legacy everyone-state behavior.
+2026-03-17 — Chat mention contrast forensic fix
+- Audited mention rendering path and confirmed mentions were split/rendered in `MessageBubble` with hardcoded `text-blue-400` token independent of bubble context.
+- Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
+- Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
+- Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
