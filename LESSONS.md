@@ -126,6 +126,13 @@
 - **Applies when:** Import flows accept pasted URLs and have both click + keyboard submit paths.
 - **Evidence:** Calendar import modal had separate checks (`trim`, `new URL`, submit path) causing weak gating and inconsistent enabled state; consolidating with `validateImportUrl()` aligned UI state, Enter behavior, and submit normalization.
 - **Provenance:** March 2026 Calendar Import modal forensic fix.
+- **Confidence:** high
+
+### Demo-mode media should not depend on external uptime without a local fallback path
+- **Tip:** For demo-critical visuals (trip cards, hero surfaces), keep remote URLs as primary if needed but always provide deterministic local fallbacks and use a single automatic retry at the image component boundary.
+- **Applies when:** Demo mode relies on externally hosted images (Supabase Storage/CDN/third-party assets) that may be unavailable in some environments.
+- **Evidence:** Demo trip covers intermittently failed, showing broken alt text/empty headers. Adding `fallbackSrc` in `OptimizedImage` plus id-based local cover mapping restored card visuals without touching demo data semantics.
+- **Provenance:** March 2026 demo trip cover resilience hardening.
 ### Never block chat delivery on preview metadata fetch
 - **Tip:** Link unfurl/OG fetch must run asynchronously after message persistence. Composer-level preview fetches in the critical send path can deadlock both Enter and send-button flows when the metadata request hangs or fails.
 - **Applies when:** Any chat surface supports URL previews.

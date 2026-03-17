@@ -19,6 +19,12 @@
 - Replaced generic mail icon in Smart Import Gmail states with a local Gmail-branded SVG mark for recognizable but tasteful dark-theme integration.
 - Added targeted regression tests for URL validation edge cases (`src/features/calendar/utils/__tests__/importUrlValidation.test.ts`).
 - Next follow-up: optionally reuse `validateImportUrl` in Lineup/Agenda import modals to keep URL gate semantics fully consistent across smart-import surfaces.
+2026-03-17 — Demo trip cover resilience fix
+- Investigated missing/broken demo trip hero photos and traced issue to remote demo cover URL dependency failures rendering alt text/blank headers.
+- Added deterministic local fallback map for all demo trip ids and wired `TripCard` image rendering to auto-fallback when remote cover fails.
+- Extended `OptimizedImage` with a safe `fallbackSrc` retry path (single fallback attempt) to preserve existing behavior while recovering broken remote sources.
+- Added unit test for fallback map coverage + unknown-id behavior.
+- Next follow-up: optionally migrate demo cover source-of-truth to local assets entirely to remove external dependency from demo mode.
 2026-03-17 — Chat send pipeline + link preview forensic fix
 - Root-caused web send failure to client-side OG fetch lock in ChatInput (`isFetchingPreview` gated both Enter and send-button flow).
 - Removed pre-send preview fetch from composer so message send is immediate/non-blocking; preserved single send path and send lock.
