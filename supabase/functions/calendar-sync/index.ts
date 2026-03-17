@@ -93,7 +93,7 @@ serve(async req => {
 });
 
 async function createEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   tripId: string,
   userId: string,
   eventData: Record<string, unknown> | undefined,
