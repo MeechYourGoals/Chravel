@@ -27,19 +27,12 @@ import { ParsedContentSuggestions } from './ParsedContentSuggestions';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { fetchOGMetadata } from '@/services/ogMetadataService';
 import { cn } from '@/lib/utils';
 import { CTA_BUTTON, CTA_BUTTON_SM, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 import * as haptics from '@/native/haptics';
 import { MentionPicker, TripMember } from './MentionPicker';
-
-// URL detection regex
-const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
-
-function extractFirstUrl(text: string): string | null {
-  const matches = text.match(URL_REGEX);
-  return matches ? matches[0] : null;
-}
+import { VoiceButton } from './VoiceButton';
+import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
 
 interface ChatInputProps {
   inputMessage: string;
@@ -91,7 +84,6 @@ export const ChatInput = ({
   const [isBroadcastMode, setIsBroadcastMode] = useState(false);
   const [isPaymentMode, setIsPaymentMode] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
-  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false); // Send-lock to prevent double submit
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareUrlInput, setShareUrlInput] = useState('');
@@ -112,6 +104,24 @@ export const ChatInput = ({
   const [EmojiPickerComponent, setEmojiPickerComponent] = useState<React.ComponentType<any> | null>(
     null,
   );
+
+  // Dictation (Web Speech API) — reuses the same hook as concierge
+  const inputMessageRef = useRef(inputMessage);
+  inputMessageRef.current = inputMessage;
+
+  const handleDictationResult = useCallback(
+    (text: string) => {
+      if (text.trim()) {
+        const prev = inputMessageRef.current;
+        const separator = prev && !prev.endsWith(' ') ? ' ' : '';
+        onInputChange(prev + separator + text.trim());
+      }
+    },
+    [onInputChange],
+  );
+
+  const { voiceState: dictationState, toggleVoice: toggleDictation } =
+    useWebSpeechVoice(handleDictationResult);
 
   const loadEmojiPicker = useCallback(async () => {
     if (EmojiPickerComponent) return;
@@ -278,36 +288,10 @@ export const ChatInput = ({
       onTypingChange?.(false);
 
       try {
-        // Check for URL and fetch OG metadata
-        const url = extractFirstUrl(inputMessage);
-        let linkPreview = null;
-
-        if (url) {
-          setIsFetchingPreview(true);
-          try {
-            const metadata = await fetchOGMetadata(url);
-            if (metadata && !metadata.error) {
-              linkPreview = {
-                url,
-                title: metadata.title,
-                description: metadata.description,
-                image: metadata.image,
-                domain: new URL(url).hostname.replace('www.', ''),
-              };
-            }
-          } catch (error) {
-            if (import.meta.env.DEV) {
-              console.warn('Failed to fetch OG metadata:', error);
-            }
-          } finally {
-            setIsFetchingPreview(false);
-          }
-        }
-
         // Extract mentioned user IDs
         const mentionedUserIds = mentionedUsers.map(u => u.id);
 
-        onSendMessage(isBroadcastMode, false, undefined, linkPreview, mentionedUserIds);
+        onSendMessage(isBroadcastMode, false, undefined, undefined, mentionedUserIds);
 
         // Clear mentioned users after send
         setMentionedUsers([]);
@@ -506,7 +490,43 @@ export const ChatInput = ({
             </PopoverContent>
           </Popover>
 
-          {/* + Button with Dropdown Menu */}
+          {/* Dictation Button — reuses concierge Web Speech API hook */}
+          <VoiceButton
+            voiceState={dictationState}
+            isEligible={true}
+            onToggle={toggleDictation}
+            small
+          />
+
+          {/* Mention Picker */}
+          {showMentionPicker && tripMembers.length > 0 && (
+            <MentionPicker
+              members={tripMembers}
+              searchQuery={mentionSearchQuery}
+              onSelect={handleMentionSelect}
+              onClose={() => setShowMentionPicker(false)}
+              selectedIndex={selectedMentionIndex}
+              onSelectedIndexChange={setSelectedMentionIndex}
+            />
+          )}
+
+          {/* Message Input */}
+          <textarea
+            ref={textareaRef}
+            value={inputMessage}
+            onChange={e => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder={isBroadcastMode ? 'Send an announcement...' : 'Type @ to mention someone…'}
+            rows={1}
+            className={cn(
+              'flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all',
+              isBroadcastMode
+                ? 'bg-white/5 border border-[#B91C1C]/50 focus-visible:ring-[#B91C1C]/40 backdrop-blur-sm text-white placeholder-red-800/80'
+                : 'bg-white/5 border border-white/10 focus-visible:ring-primary/40 backdrop-blur-sm text-white placeholder-neutral-400',
+            )}
+          />
+
+          {/* + Button with Dropdown Menu — right side */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className={CTA_BUTTON_SM} aria-label="Message options">
@@ -515,14 +535,14 @@ export const ChatInput = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               side="top"
-              align="start"
+              align="end"
               sideOffset={8}
               className="w-52 p-1 bg-neutral-900/95 backdrop-blur-lg border border-neutral-800 rounded-xl shadow-lg animate-slide-in-right z-50"
             >
               {/* Broadcast - Deep Crimson Styling */}
               <DropdownMenuItem
                 onClick={() => setIsBroadcastMode(!isBroadcastMode)}
-                className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C]/10 rounded-lg mb-1 cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C] hover:text-white rounded-lg mb-1 cursor-pointer"
               >
                 <Megaphone className="w-4 h-4" />
                 Broadcast
@@ -572,52 +592,19 @@ export const ChatInput = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mention Picker */}
-          {showMentionPicker && tripMembers.length > 0 && (
-            <MentionPicker
-              members={tripMembers}
-              searchQuery={mentionSearchQuery}
-              onSelect={handleMentionSelect}
-              onClose={() => setShowMentionPicker(false)}
-              selectedIndex={selectedMentionIndex}
-              onSelectedIndexChange={setSelectedMentionIndex}
-            />
-          )}
-
-          {/* Message Input */}
-          <textarea
-            ref={textareaRef}
-            value={inputMessage}
-            onChange={e => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder={isBroadcastMode ? 'Send an announcement...' : 'Type @ to mention someone…'}
-            rows={1}
-            className={cn(
-              'flex-1 min-h-[44px] sm:min-h-[48px] px-4 py-2 rounded-full resize-none focus:outline-none focus-visible:ring-2 transition-all',
-              isBroadcastMode
-                ? 'bg-white/5 border border-[#B91C1C]/50 focus-visible:ring-[#B91C1C]/40 backdrop-blur-sm text-white placeholder-red-800/80'
-                : 'bg-white/5 border border-white/10 focus-visible:ring-primary/40 backdrop-blur-sm text-white placeholder-neutral-400',
-            )}
-          />
-
           {/* Send Button — persistent gold rim; broadcast mode keeps orange gradient */}
           <button
             onClick={handleSend}
-            disabled={
-              (!inputMessage.trim() && !isShareUploading) ||
-              isTyping ||
-              isFetchingPreview ||
-              isSendingMessage
-            }
+            disabled={(!inputMessage.trim() && !isShareUploading) || isTyping || isSendingMessage}
             className={
               isBroadcastMode
                 ? cn(
-                    'size-11 min-w-[44px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90',
+                    'size-9 min-w-[36px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
                   )
-                : CTA_BUTTON
+                : CTA_BUTTON_SM
             }
           >
-            {isFetchingPreview ? (
+            {isSendingMessage ? (
               <Loader2 size={CTA_ICON_SIZE} className="text-white animate-spin" />
             ) : (
               <Send size={CTA_ICON_SIZE} className="text-white" />

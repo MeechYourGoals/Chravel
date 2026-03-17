@@ -38,9 +38,9 @@ export const MobileEventDetail = () => {
 
   // Persist activeTab in sessionStorage to survive orientation changes
   const getInitialTab = () => {
-    if (typeof window === 'undefined') return 'admin';
+    if (typeof window === 'undefined') return 'agenda';
     const storedTab = sessionStorage.getItem(`event_${eventId}_activeTab`);
-    return storedTab || 'admin';
+    return storedTab || 'agenda';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [tripDescription, setTripDescription] = useState<string>('');

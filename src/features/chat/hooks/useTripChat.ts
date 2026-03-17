@@ -40,6 +40,9 @@ interface CreateMessageRequest {
   privacyMode?: string;
   messageType?: 'text' | 'broadcast' | 'payment' | 'system';
   replyToId?: string;
+  mentionedUserIds?: string[];
+  /** Pre-generated client message ID for optimistic insert + server dedupe */
+  clientMessageId: string;
 }
 
 /**
@@ -431,8 +434,43 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     }
   }, [isOffline, tripId, toast]);
 
-  // Create message mutation with rate limiting and offline support
+  // Create message mutation with rate limiting, offline support, and optimistic UI
   const createMessageMutation = useMutation({
+    onMutate: async (message: CreateMessageRequest) => {
+      // Skip optimistic insert for offline path (it handles its own cache update)
+      if (isOffline) return {};
+
+      // Cancel in-flight refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['tripChat', tripId] });
+
+      // Snapshot current cache for rollback on error
+      const previousMessages = queryClient.getQueryData<TripChatMessage[]>(['tripChat', tripId]);
+
+      // Build optimistic message from mutation variables
+      const now = new Date().toISOString();
+      const optimisticMsg: TripChatMessage & { client_message_id: string } = {
+        id: `optimistic-${message.clientMessageId}`,
+        trip_id: tripId!,
+        content: message.content,
+        author_name: message.author_name,
+        user_id: message.userId,
+        created_at: now,
+        updated_at: now,
+        message_type: message.messageType || 'text',
+        media_type: message.media_type,
+        media_url: message.media_url,
+        privacy_mode: message.privacyMode || 'standard',
+        client_message_id: message.clientMessageId,
+      };
+
+      // Insert optimistic message at end of list (newest)
+      queryClient.setQueryData<TripChatMessage[]>(['tripChat', tripId], (old = []) => [
+        ...old,
+        optimisticMsg,
+      ]);
+
+      return { previousMessages };
+    },
     mutationFn: async (message: CreateMessageRequest) => {
       // Rate limit check - 30 messages per minute per user
       const rateLimitKey = `chat_${tripId}_${message.author_name}`;
@@ -452,8 +490,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       }
 
       const sanitizedAuthorName = InputValidator.sanitizeText(message.author_name);
-      // Always generate client_message_id for idempotent sends (online and offline)
-      const clientMessageId = createClientMessageId();
+      // Use pre-generated client_message_id from variables (shared with onMutate for optimistic dedup)
+      const clientMessageId = message.clientMessageId;
 
       const messageData = {
         trip_id: tripId,
@@ -467,6 +505,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         media_type: message.media_type,
         media_url: message.media_url,
         reply_to_id: message.replyToId,
+        mentioned_user_ids: message.mentionedUserIds,
       };
 
       // If offline, queue the message using unified sync service
@@ -529,7 +568,33 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
 
       return data;
     },
-    onError: (error: unknown) => {
+    onSuccess: (serverMsg, variables) => {
+      // Replace optimistic message with the server-confirmed version.
+      // Match by client_message_id to handle all event orderings:
+      //   - optimistic still present → replaced by client_message_id
+      //   - realtime already arrived and deduped → replaced by server id match
+      const clientMsgId = variables.clientMessageId;
+      queryClient.setQueryData<TripChatMessage[]>(['tripChat', tripId], (old = []) =>
+        old.map(msg => {
+          const msgClientId = (msg as TripChatMessage & { client_message_id?: string })
+            .client_message_id;
+          if (msgClientId === clientMsgId || msg.id === serverMsg.id) {
+            return serverMsg as TripChatMessage;
+          }
+          return msg;
+        }),
+      );
+    },
+    onError: (
+      error: unknown,
+      _variables: CreateMessageRequest,
+      context: { previousMessages?: TripChatMessage[] } | undefined,
+    ) => {
+      // Roll back optimistic message on failure
+      if (context?.previousMessages) {
+        queryClient.setQueryData(['tripChat', tripId], context.previousMessages);
+      }
+
       messageEvents.sendFailed(tripId, (error as Error)?.message || 'Unknown error');
       if (import.meta.env.DEV) {
         console.error('[useTripChat] Message creation error:', error);
@@ -552,6 +617,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     privacyMode?: string,
     messageType?: 'text' | 'broadcast' | 'payment' | 'system',
     replyToId?: string,
+    mentionedUserIds?: string[],
   ) => {
     createMessageMutation.mutate({
       content,
@@ -562,6 +628,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       privacyMode,
       messageType,
       replyToId,
+      mentionedUserIds,
+      clientMessageId: createClientMessageId(),
     });
   };
 
@@ -574,6 +642,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     privacyMode?: string,
     messageType?: 'text' | 'broadcast' | 'payment' | 'system',
     replyToId?: string,
+    mentionedUserIds?: string[],
   ) => {
     return createMessageMutation.mutateAsync({
       content,
@@ -584,6 +653,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       privacyMode,
       messageType,
       replyToId,
+      mentionedUserIds,
+      clientMessageId: createClientMessageId(),
     });
   };
 
