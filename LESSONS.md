@@ -115,3 +115,24 @@
 - **Evidence:** Chravel voice sessions had intermittent setup instability while always sending empty sessionResumption; hardening changed to conditional inclusion only.
 - **Provenance:** March 2026 Gemini Live production hardening.
 - **Confidence:** medium
+
+### URL import modals stay stable when UI gating and submit normalization share one helper
+- **Tip:** Put URL trimming, protocol normalization, and scheme validation in one small utility used by both button-disabled logic and submit handlers; this prevents Enter-key/programmatic bypasses and keeps UX messages consistent.
+- **Applies when:** Import flows accept pasted URLs and have both click + keyboard submit paths.
+- **Evidence:** Calendar import modal had separate checks (`trim`, `new URL`, submit path) causing weak gating and inconsistent enabled state; consolidating with `validateImportUrl()` aligned UI state, Enter behavior, and submit normalization.
+- **Provenance:** March 2026 Calendar Import modal forensic fix.
+- **Confidence:** high
+
+### Demo-mode media should not depend on external uptime without a local fallback path
+- **Tip:** For demo-critical visuals (trip cards, hero surfaces), keep remote URLs as primary if needed but always provide deterministic local fallbacks and use a single automatic retry at the image component boundary.
+- **Applies when:** Demo mode relies on externally hosted images (Supabase Storage/CDN/third-party assets) that may be unavailable in some environments.
+- **Evidence:** Demo trip covers intermittently failed, showing broken alt text/empty headers. Adding `fallbackSrc` in `OptimizedImage` plus id-based local cover mapping restored card visuals without touching demo data semantics.
+- **Provenance:** March 2026 demo trip cover resilience hardening.
+- **Confidence:** high
+
+### CSS multi-background layering is a low-risk fallback for background-image cards
+- **Tip:** When cards use CSS `background-image` (not `<img>`), use layered values (`url(primary), url(fallback)`) via a shared helper to get graceful visual fallback without introducing extra runtime state/effects.
+- **Applies when:** Hero/media backgrounds are rendered as `div` overlays and you need fallback parity across desktop + mobile card variants.
+- **Evidence:** Pro/Event/Mobile event cards had direct `url(primary)` styles and could still show missing covers after TripCard image fallback improvements. Shared `buildCoverBackgroundImage` restored parity with minimal diff.
+- **Provenance:** March 2026 demo cover resilience follow-up.
+- **Confidence:** high

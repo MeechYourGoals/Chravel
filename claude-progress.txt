@@ -13,3 +13,20 @@
 - Implemented minimal protocol-safe fixes: removed empty sessionResumption payload, removed SILENT toolResponse scheduling, added startup timeout around gemini-voice-session bootstrap.
 - Added regression test `src/__tests__/geminiLiveProtocolSafety.test.ts` to lock protocol invariants.
 - Next follow-up: retire/undeploy gemini-voice-proxy in Supabase project environments to eliminate stale surface area.
+2026-03-17 — Calendar import modal forensic UI/validation hardening
+- Unified Import Calendar modal URL-row control sizing/shape/hover treatment (Choose File + URL input + Import) via a shared local class constant.
+- Added strict frontend URL gate helper (`validateImportUrl`) with trim + protocol normalization + explicit invalid feedback; import now enables only for valid http/https URLs and Enter key follows the same gate.
+- Replaced generic mail icon in Smart Import Gmail states with a local Gmail-branded SVG mark for recognizable but tasteful dark-theme integration.
+- Added targeted regression tests for URL validation edge cases (`src/features/calendar/utils/__tests__/importUrlValidation.test.ts`).
+- Next follow-up: optionally reuse `validateImportUrl` in Lineup/Agenda import modals to keep URL gate semantics fully consistent across smart-import surfaces.
+2026-03-17 — Demo trip cover resilience fix
+- Investigated missing/broken demo trip hero photos and traced issue to remote demo cover URL dependency failures rendering alt text/blank headers.
+- Added deterministic local fallback map for all demo trip ids and wired `TripCard` image rendering to auto-fallback when remote cover fails.
+- Extended `OptimizedImage` with a safe `fallbackSrc` retry path (single fallback attempt) to preserve existing behavior while recovering broken remote sources.
+- Added unit test for fallback map coverage + unknown-id behavior.
+- Next follow-up: optionally migrate demo cover source-of-truth to local assets entirely to remove external dependency from demo mode.
+2026-03-17 — Demo cover fallback parity across card variants
+- Extended demo cover fallback behavior beyond TripCard to ProTripCard, EventCard, and MobileEventCard so all dashboard card variants recover from remote cover failures.
+- Added shared utility `buildCoverBackgroundImage` to provide CSS layered primary+fallback background image style with minimal component logic.
+- Added unit test coverage for layered cover style builder edge cases.
+- Next follow-up: evaluate replacing `(trip as any).coverPhoto` in ProTripCard with typed cover field once `ProTripData` is normalized.
