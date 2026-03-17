@@ -67,6 +67,12 @@
 - **Priority:** high
 - **Provenance:** 2026-03 data evolution hardening audit
 
+## Internal/Admin Route Authorization
+- **Gap:** No end-to-end route authorization tests asserting `/admin/*` rejects authenticated non-admin users.
+- **Failure mode if untested:** Regressions can silently expose internal admin surfaces to all logged-in users.
+- **Recommended test:** Playwright test: authenticate non-admin -> open `/admin/scheduled-messages` -> assert redirect away from route; authenticate super admin -> assert page access.
+- **Priority:** P1
+- **Provenance:** March 2026 support/admin hardening pass
 ## Missing automated load + chaos pipelines for Tier-0 journeys
 - **Area:** CI/workflows + QA infrastructure (`.github/workflows`, `qa/`)
 - **Why this gap matters:** Functional tests can be green while event spikes/provider degradation still break launch-critical journeys.

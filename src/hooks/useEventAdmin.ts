@@ -3,12 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useJoinRequests } from './useJoinRequests';
 import { ALWAYS_ON_EVENT_TABS } from '@/lib/eventTabs';
+import {
+  canEnableEveryoneChat,
+  EVENT_OPEN_CHAT_MAX_ATTENDEES,
+  resolveEffectiveMainChatMode,
+  type ChatMode,
+  type TripType,
+} from '@/lib/eventChatPermissions';
 
 interface TripAdminData {
   privacy_mode: string | null;
   enabled_features: string[] | null;
   chat_mode: string | null;
   media_upload_mode: string | null;
+  trip_type: string | null;
 }
 
 interface MemberProfile {
@@ -18,7 +26,7 @@ interface MemberProfile {
   email: string | null;
 }
 
-export type ChatMode = 'broadcasts' | 'admin_only' | 'everyone';
+export type { ChatMode };
 export type MediaUploadMode = 'admin_only' | 'everyone';
 
 interface UseEventAdminProps {
@@ -29,6 +37,7 @@ interface UseEventAdminProps {
 export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) => {
   const [tripData, setTripData] = useState<TripAdminData | null>(null);
   const [members, setMembers] = useState<MemberProfile[]>([]);
+  const [attendeeCount, setAttendeeCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -53,7 +62,7 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
       const [tripResult, membersResult] = await Promise.all([
         supabase
           .from('trips')
-          .select('privacy_mode, enabled_features, chat_mode, media_upload_mode')
+          .select('privacy_mode, enabled_features, chat_mode, media_upload_mode, trip_type')
           .eq('id', eventId)
           .maybeSingle(),
         supabase.from('trip_members').select('user_id').eq('trip_id', eventId),
@@ -63,7 +72,8 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
 
       setTripData(tripResult.data as TripAdminData);
 
-      const memberUserIds = (membersResult.data || []).map((m: any) => m.user_id);
+      const memberUserIds = (membersResult.data || []).map((m: { user_id: string }) => m.user_id);
+      setAttendeeCount(memberUserIds.length);
       if (memberUserIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles_public')
@@ -95,6 +105,9 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
 
   const isPrivate = tripData?.privacy_mode === 'high';
   const chatMode: ChatMode = (tripData?.chat_mode as ChatMode) || 'broadcasts';
+  const tripType: TripType = tripData?.trip_type ?? null;
+  const canUseEveryoneChat = canEnableEveryoneChat(tripType, attendeeCount);
+  const effectiveChatMode = resolveEffectiveMainChatMode(chatMode, tripType, attendeeCount);
   const mediaUploadMode: MediaUploadMode =
     (tripData?.media_upload_mode as MediaUploadMode) || 'admin_only';
 
@@ -171,6 +184,13 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
     async (mode: ChatMode) => {
       if (!eventId || isSaving) return;
 
+      if (mode === 'everyone' && !canUseEveryoneChat) {
+        toast.error(
+          `Everyone can chat is only available for events with ${EVENT_OPEN_CHAT_MAX_ATTENDEES} attendees or fewer.`,
+        );
+        return;
+      }
+
       const prev = chatMode;
       setIsSaving(true);
       setTripData(p => (p ? { ...p, chat_mode: mode } : p));
@@ -191,7 +211,7 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
         setIsSaving(false);
       }
     },
-    [eventId, chatMode, isSaving],
+    [eventId, chatMode, isSaving, canUseEveryoneChat],
   );
 
   const setMediaUploadMode = useCallback(
@@ -225,11 +245,14 @@ export const useEventAdmin = ({ eventId, enabled = true }: UseEventAdminProps) =
     isPrivate,
     members,
     memberCount: members.length,
+    attendeeCount,
     joinRequests,
     isLoading: isLoading || requestsLoading,
     isSaving,
     isProcessing,
     chatMode,
+    effectiveChatMode,
+    canUseEveryoneChat,
     mediaUploadMode,
     toggleVisibility,
     toggleFeature,

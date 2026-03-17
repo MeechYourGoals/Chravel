@@ -168,24 +168,13 @@ export const useOrganization = () => {
 
   const inviteMember = async (orgId: string, email: string, role: 'admin' | 'member') => {
     try {
-      const token = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
-
-      const { data, error } = await supabase
-        .from('organization_invites')
-        .insert([
-          {
-            organization_id: orgId,
-            email,
-            invited_by: user?.id,
-            role,
-            token,
-            expires_at: expiresAt.toISOString(),
-          },
-        ])
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('invite-organization-member', {
+        body: {
+          organizationId: orgId,
+          email,
+          role,
+        },
+      });
 
       if (error) throw error;
       return { data, error: null };
