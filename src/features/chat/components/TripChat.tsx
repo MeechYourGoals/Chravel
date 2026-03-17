@@ -147,7 +147,7 @@ export const TripChat = React.memo(
 
     // Chat mode enforcement — UI layer (server-side RLS is authoritative)
     const {
-      chatMode,
+      effectiveChatMode,
       canPost: canPostToChat,
       canUploadMedia,
       isLoading: chatModeLoading,
@@ -290,7 +290,7 @@ export const TripChat = React.memo(
       !demoMode.isDemoMode &&
       !!user?.id &&
       !!resolvedTripId &&
-      (!chatMode || chatMode === 'everyone') &&
+      effectiveChatMode === 'everyone' &&
       tripMembers.length <= 50;
 
     useEffect(() => {
@@ -1058,9 +1058,9 @@ export const TripChat = React.memo(
         {messageFilter !== 'channels' && !canPostToChat && !chatModeLoading && (
           <div className="w-full border-t border-white/10 bg-black/40 px-4 py-3 text-center">
             <p className="text-sm text-white/60">
-              {chatMode === 'broadcasts'
+              {effectiveChatMode === 'broadcasts'
                 ? 'This chat is in announcements-only mode. Only admins can post.'
-                : chatMode === 'admin_only'
+                : effectiveChatMode === 'admin_only'
                   ? 'This chat is in admin-only mode. Only admins can post.'
                   : 'You do not have permission to post in this chat.'}
             </p>
