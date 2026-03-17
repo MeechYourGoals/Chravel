@@ -88,6 +88,12 @@ interface TripDetailFunctionResponse {
   error_code?: TripDetailErrorCode;
 }
 
+const isMissingStatusColumnError = (message?: string): boolean => {
+  if (!message) return false;
+  const normalized = message.toLowerCase();
+  return normalized.includes('status') || normalized.includes('does not exist');
+};
+
 const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null> => {
   const { data, error } = await supabase.functions.invoke('get-trip-detail', {
     body: { tripId },
@@ -116,6 +122,37 @@ const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null
   }
 
   return response.trip ?? null;
+};
+
+const hasActiveTripMembership = async (tripId: string): Promise<boolean> => {
+  // Preferred path: active membership rows only.
+  const activeMembershipQuery = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .or('status.is.null,status.eq.active')
+    .maybeSingle();
+
+  if (activeMembershipQuery.error) {
+    // Schema-drift fallback for environments where `status` has not been added yet.
+    if (isMissingStatusColumnError(activeMembershipQuery.error.message)) {
+      const fallbackQuery = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', tripId)
+        .maybeSingle();
+
+      if (fallbackQuery.error) {
+        throw fallbackQuery.error;
+      }
+
+      return !!fallbackQuery.data;
+    }
+
+    throw activeMembershipQuery.error;
+  }
+
+  return !!activeMembershipQuery.data;
 };
 
 export const tripService = {
@@ -466,10 +503,25 @@ export const tripService = {
     }
 
     if (data) {
-      return data;
+      try {
+        const hasMembership = await hasActiveTripMembership(tripId);
+        if (hasMembership) {
+          return data;
+        }
+      } catch (membershipError) {
+        // Fall through to the edge function check below. It uses service-role reads
+        // and returns canonical ACCESS_DENIED/TRIP_NOT_FOUND semantics.
+        if (import.meta.env.DEV) {
+          console.warn('[tripService.getTripById] Membership check failed, using edge fallback', {
+            tripId,
+            membershipError,
+          });
+        }
+      }
     }
 
-    // No error but no data could be RLS filtering; fall back to server-side access check
+    // If direct `trips` reads are available (e.g. pending preview policy), still enforce
+    // active membership before granting full trip detail access.
     return await fetchTripByIdViaEdgeFunction(tripId);
   },
 
