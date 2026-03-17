@@ -468,6 +468,7 @@ export const TripChat = React.memo(
           // Ensure system messages are never filtered out by dedupe/memoization layers
           // and can be rendered via the special system-message UI path.
           tags: message.message_type === 'system' ? (['system'] as string[]) : ([] as string[]),
+          linkPreview: message.link_preview,
           replyTo, // Pass resolved reply context
         };
       });
@@ -570,7 +571,7 @@ export const TripChat = React.memo(
       isBroadcast = false,
       isPayment = false,
       paymentData?: any,
-      linkPreview?: any,
+      _linkPreview?: any,
       mentionedUserIds?: string[],
     ) => {
       // Transform paymentData if needed to match useChatComposer expectations
@@ -620,6 +621,7 @@ export const TripChat = React.memo(
           effectivePrivacyMode,
           messageType as 'text' | 'broadcast' | 'payment' | 'system',
           replyingTo?.id,
+          mentionedUserIds,
         );
 
         // Auto-parse message for entities (dates, times, locations)
