@@ -115,3 +115,10 @@
 - **Evidence:** Chravel voice sessions had intermittent setup instability while always sending empty sessionResumption; hardening changed to conditional inclusion only.
 - **Provenance:** March 2026 Gemini Live production hardening.
 - **Confidence:** medium
+
+### Remove visual effects at the trigger class, not with clipping overrides
+- **Tip:** When a conditional animation class is the sole activation path for a decorative effect, remove the class usage in the component and delete the paired keyframes/utilities instead of masking with `overflow-hidden`/z-index patches.
+- **Applies when:** UI regressions from over-scoped pseudo-element effects tied to active/listening states.
+- **Evidence:** AI Concierge dictation regression came from `.dictation-ring-active` + `::after` conic-gradient rotation mounted during listening; removing class wiring and CSS definitions fully eliminated the oversized gold sweep without touching dictation behavior.
+- **Provenance:** March 2026 AI Concierge dictation visual rollback.
+- **Confidence:** high
