@@ -181,7 +181,7 @@ async function cleanupStorageBucket(
  * Process a single account deletion.
  */
 async function processAccountDeletion(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   userId: string,
   profileId: string,
 ): Promise<DeletionResult> {

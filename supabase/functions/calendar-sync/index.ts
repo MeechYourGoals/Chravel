@@ -219,7 +219,7 @@ async function updateEvent(
 }
 
 async function deleteEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   eventId: string | undefined,
   tripId: string,
   headers: Record<string, string>,
