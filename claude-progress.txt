@@ -3,3 +3,8 @@
 - Added reusable learning entry to `LESSONS.md` (migration compatibility API mindset).
 - Added high-priority migration compatibility test gap to `TEST_GAPS.md`.
 - Next follow-up: implement migration CI lint + compatibility window test harness.
+
+2026-03-17 — Org invite edge-function error UX hardening
+- Fixed org invite error handling to parse edge-function response body from `error.context.json()` and preserve actionable server messages.
+- Added shared helper `src/lib/edgeFunctionError.ts` + tests to prevent regressions in non-2xx function UX.
+- Verified with typecheck, focused lint, and targeted vitest suites.

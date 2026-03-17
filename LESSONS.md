@@ -79,3 +79,17 @@
 - **Evidence:** Repo migration corpus shows repeated edits of critical tables and mixed-purpose migrations, increasing rollout coupling risk.
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
+
+### Internal admin surfaces need route-level role guards, not auth-only protection
+- **Tip:** Treat internal pages as production-critical privileged surfaces. `ProtectedRoute` (auth only) is insufficient for `/admin/*`; use explicit role guard components and test redirects for non-admin users.
+- **Applies when:** Adding or updating any internal/admin route in `App.tsx`
+- **Evidence:** `/admin/scheduled-messages` was reachable by any authenticated account until `InternalAdminRoute` hardening.
+- **Provenance:** March 2026 support/admin hardening pass
+- **Confidence:** high
+
+### Parse Supabase Edge Function error.context for user-safe actionable messages
+- **Tip:** `supabase.functions.invoke` often returns a generic non-2xx error string while the real reason is in `error.context.json()`. Always extract `error/message` from context before showing UI toasts.
+- **Applies when:** Displaying errors from privileged edge-function actions (invites, joins, billing portal, recoveries).
+- **Evidence:** Organization invite failures surfaced only `Edge Function returned a non-2xx status code` until context parsing was added.
+- **Provenance:** March 2026 org invite hardening follow-up
+- **Confidence:** high

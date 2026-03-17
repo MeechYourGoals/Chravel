@@ -18,6 +18,7 @@ import { MobileAppLayout } from './components/mobile/MobileAppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LazyRoute } from './components/LazyRoute';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { InternalAdminRoute } from './components/InternalAdminRoute';
 import { performanceService } from './services/performanceService';
 import { useDemoModeStore } from './store/demoModeStore';
 import { errorTracking } from './services/errorTracking';
@@ -673,9 +674,9 @@ const App = () => {
                         path="/admin/scheduled-messages"
                         element={
                           <LazyRoute>
-                            <ProtectedRoute>
+                            <InternalAdminRoute>
                               <AdminDashboard />
-                            </ProtectedRoute>
+                            </InternalAdminRoute>
                           </LazyRoute>
                         }
                       />

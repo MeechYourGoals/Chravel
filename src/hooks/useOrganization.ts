@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useDemoMode } from './useDemoMode';
+import { extractEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 
 export interface Organization {
   id: string;
@@ -168,29 +169,26 @@ export const useOrganization = () => {
 
   const inviteMember = async (orgId: string, email: string, role: 'admin' | 'member') => {
     try {
-      const token = crypto.randomUUID();
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+      const { data, error } = await supabase.functions.invoke('invite-organization-member', {
+        body: {
+          organizationId: orgId,
+          email,
+          role,
+        },
+      });
 
-      const { data, error } = await supabase
-        .from('organization_invites')
-        .insert([
-          {
-            organization_id: orgId,
-            email,
-            invited_by: user?.id,
-            role,
-            token,
-            expires_at: expiresAt.toISOString(),
-          },
-        ])
-        .select()
-        .single();
+      if (error) {
+        const message = await extractEdgeFunctionErrorMessage(error, 'Failed to send invitation');
+        throw new Error(message);
+      }
 
-      if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      return { data: null, error };
+      if (error instanceof Error) {
+        return { data: null, error };
+      }
+
+      return { data: null, error: new Error('Failed to send invitation') };
     }
   };
 
