@@ -160,7 +160,7 @@ async function getEvents(
 }
 
 async function updateEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   eventData: Record<string, unknown> | undefined,
   tripId: string,
   userId: string,
