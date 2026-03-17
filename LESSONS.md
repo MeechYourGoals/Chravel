@@ -96,6 +96,11 @@
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
 
+### Internal admin surfaces need route-level role guards, not auth-only protection
+- **Tip:** Treat internal pages as production-critical privileged surfaces. `ProtectedRoute` (auth only) is insufficient for `/admin/*`; use explicit role guard components and test redirects for non-admin users.
+- **Applies when:** Adding or updating any internal/admin route in `App.tsx`
+- **Evidence:** `/admin/scheduled-messages` was reachable by any authenticated account until `InternalAdminRoute` hardening.
+- **Provenance:** March 2026 support/admin hardening pass
 ### QA confidence drift happens when docs describe planned suites as implemented
 - **Tip:** Keep E2E documentation split into explicit implemented vs planned sections and enforce with a lightweight CI doc-drift script.
 - **Applies when:** Large test architecture transitions where some suites are roadmap-only.
@@ -121,4 +126,9 @@
 - **Applies when:** Permission mode validity depends on dynamic counts (members/attendees) and legacy records may become invalid over time.
 - **Evidence:** Event chat `everyone` mode now degrades to effective `admin_only` above 50 members while DB trigger blocks setting invalid `chat_mode='everyone'` for large events.
 - **Provenance:** March 2026 event chat permission scaling implementation.
+### Mention chips inside themed chat bubbles should be bubble-context aware, not brand-accent aware
+- **Tip:** Keep mention styling separate from hyperlink styling and derive mention colors from bubble context (own/broadcast vs incoming) so text remains readable on colored surfaces; use font-weight + subtle background chip for distinction instead of a hardcoded accent text color.
+- **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
+- **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
+- **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
