@@ -578,7 +578,7 @@ export const ChatInput = ({
               {/* Broadcast - Deep Crimson Styling */}
               <DropdownMenuItem
                 onClick={() => setIsBroadcastMode(!isBroadcastMode)}
-                className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C]/10 rounded-lg mb-1 cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 border border-[#B91C1C]/60 text-[#B91C1C] font-medium hover:bg-[#B91C1C] hover:text-white rounded-lg mb-1 cursor-pointer"
               >
                 <Megaphone className="w-4 h-4" />
                 Broadcast
@@ -640,9 +640,9 @@ export const ChatInput = ({
             className={
               isBroadcastMode
                 ? cn(
-                    'size-11 min-w-[44px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90',
+                    'size-9 min-w-[36px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
                   )
-                : CTA_BUTTON
+                : CTA_BUTTON_SM
             }
           >
             {isFetchingPreview ? (

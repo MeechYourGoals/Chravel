@@ -13,12 +13,12 @@ const SEGMENT_COLORS = {
   },
   broadcasts: {
     active: 'bg-[#B91C1C] text-white shadow-md',
-    inactive: 'text-[#B91C1C]/70 hover:text-[#B91C1C] hover:bg-[#B91C1C]/10',
+    inactive: 'text-[#EF4444] hover:text-white hover:bg-[#B91C1C]',
     badge: 'bg-[#B91C1C] text-white',
   },
   channels: {
     active: 'bg-[#059669] text-white shadow-md',
-    inactive: 'text-[#059669]/70 hover:text-[#059669] hover:bg-[#059669]/10',
+    inactive: 'text-[#34D399] hover:text-white hover:bg-[#059669]',
   },
   search: {
     inactive: 'text-white/70 hover:text-white hover:bg-white/5',
