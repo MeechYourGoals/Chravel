@@ -66,7 +66,7 @@ export const VoiceButton = ({
           <button
             type="button"
             onClick={handleClick}
-            className={`relative ${small ? 'size-9' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
+            className={`relative ${small ? 'size-9 min-w-[36px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
             aria-label={getTooltip()}
           >
             {/* Animated pulse rings when dictating */}
