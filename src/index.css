@@ -490,14 +490,6 @@
   }
 }
 
-/* Dictation ring — reduced motion: static gold border, no rotation */
-@media (prefers-reduced-motion: reduce) {
-  .dictation-ring-active::after {
-    animation: none;
-    background: linear-gradient(135deg, #533517 0%, #c49746 40%, #feeaa5 70%, #c49746 100%);
-  }
-}
-
 /* AI Concierge: inline image grid (Gemini-like) when multiple images in markdown */
 .ai-markdown-content > a:has(img) {
   display: inline-block;
@@ -552,16 +544,6 @@
   100% {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-/* Dictation ring slow rotation */
-@keyframes dictation-ring-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 
@@ -695,45 +677,6 @@
     -webkit-mask-composite: xor;
     pointer-events: none;
     transition: opacity 0.2s ease;
-  }
-
-  /* Animated gold dictation ring — outer border only, tap-to-dictate */
-  .dictation-ring-active {
-    position: relative;
-  }
-  .dictation-ring-active::after {
-    content: '';
-    position: absolute;
-    inset: -1.5px;
-    border-radius: inherit;
-    padding: 1.5px;
-    background: conic-gradient(
-      from 0deg,
-      transparent 0%,
-      transparent 60%,
-      #533517 68%,
-      #c49746 76%,
-      #feeaa5 82%,
-      #e8af48 88%,
-      #c49746 93%,
-      transparent 100%
-    );
-    mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    animation: dictation-ring-rotate 10s linear infinite;
-    z-index: 1;
-  }
-  .dictation-ring-active.dictation-ring-visible::after {
-    opacity: 0.5;
   }
 
   /* Gold gradient spinner — brighter metallic gold */
