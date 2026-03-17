@@ -121,6 +121,11 @@
 - **Provenance:** March 2026 Gemini Live production hardening.
 - **Confidence:** medium
 
+### Remove visual effects at the trigger class, not with clipping overrides
+- **Tip:** When a conditional animation class is the sole activation path for a decorative effect, remove the class usage in the component and delete the paired keyframes/utilities instead of masking with `overflow-hidden`/z-index patches.
+- **Applies when:** UI regressions from over-scoped pseudo-element effects tied to active/listening states.
+- **Evidence:** AI Concierge dictation regression came from `.dictation-ring-active` + `::after` conic-gradient rotation mounted during listening; removing class wiring and CSS definitions fully eliminated the oversized gold sweep without touching dictation behavior.
+- **Provenance:** March 2026 AI Concierge dictation visual rollback.
 ### For event-scale chat gating, enforce threshold as both mode-resolution and write-validation
 - **Tip:** For size-based permission limits, add a single shared resolver (effective mode) for UI/runtime behavior and pair it with backend write validation (trigger/check) + send-path authorization. This prevents stale legacy values from silently bypassing product rules when group size changes.
 - **Applies when:** Permission mode validity depends on dynamic counts (members/attendees) and legacy records may become invalid over time.
