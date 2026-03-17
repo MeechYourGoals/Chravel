@@ -115,3 +115,10 @@
 - **Evidence:** Chravel voice sessions had intermittent setup instability while always sending empty sessionResumption; hardening changed to conditional inclusion only.
 - **Provenance:** March 2026 Gemini Live production hardening.
 - **Confidence:** medium
+
+### Mention chips inside themed chat bubbles should be bubble-context aware, not brand-accent aware
+- **Tip:** Keep mention styling separate from hyperlink styling and derive mention colors from bubble context (own/broadcast vs incoming) so text remains readable on colored surfaces; use font-weight + subtle background chip for distinction instead of a hardcoded accent text color.
+- **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
+- **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
+- **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
+- **Confidence:** high
