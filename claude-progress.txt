@@ -13,3 +13,8 @@
 - Implemented minimal protocol-safe fixes: removed empty sessionResumption payload, removed SILENT toolResponse scheduling, added startup timeout around gemini-voice-session bootstrap.
 - Added regression test `src/__tests__/geminiLiveProtocolSafety.test.ts` to lock protocol invariants.
 - Next follow-up: retire/undeploy gemini-voice-proxy in Supabase project environments to eliminate stale surface area.
+2026-03-17 — Chat mention contrast forensic fix
+- Audited mention rendering path and confirmed mentions were split/rendered in `MessageBubble` with hardcoded `text-blue-400` token independent of bubble context.
+- Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
+- Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
+- Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
