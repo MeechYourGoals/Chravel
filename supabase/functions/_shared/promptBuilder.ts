@@ -2,7 +2,7 @@
  * Sanitize user-provided text before injecting into AI prompts.
  * Strips XML-like tags that could be used for prompt injection boundary manipulation.
  */
-function sanitizeForPrompt(text: string): string {
+export function sanitizeForPrompt(text: string): string {
   if (!text) return '';
   return text
     .replace(/<\/?[a-zA-Z_][a-zA-Z0-9_-]*[^>]*>/g, '') // Strip XML/HTML tags

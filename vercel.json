@@ -3,7 +3,7 @@
   "version": 2,
   "buildCommand": "vite build",
   "devCommand": "npm run dev",
-  "installCommand": "npm install --no-audit --no-fund",
+  "installCommand": "npm ci",
   "framework": "vite",
   "outputDirectory": "dist",
   "build": {},

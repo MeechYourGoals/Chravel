@@ -24,6 +24,10 @@ interface EnvVarSpec {
   provider: string;
   canStubForTestFlight: boolean;
   stubValue?: string;
+  /** Optional regex to validate format (e.g., key prefix, URL pattern) */
+  format?: RegExp;
+  /** Human-readable format description for error messages */
+  formatHint?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +41,8 @@ const FRONTEND_VARS: EnvVarSpec[] = [
     description: 'Supabase project URL',
     provider: 'Supabase',
     canStubForTestFlight: false,
+    format: /^https:\/\/.+\.supabase\.co$/,
+    formatHint: 'https://<project>.supabase.co',
   },
   {
     name: 'VITE_SUPABASE_ANON_KEY',
@@ -44,6 +50,8 @@ const FRONTEND_VARS: EnvVarSpec[] = [
     description: 'Supabase anonymous (public) key',
     provider: 'Supabase',
     canStubForTestFlight: false,
+    format: /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/,
+    formatHint: 'JWT token (eyJ...)',
   },
   {
     name: 'VITE_GOOGLE_MAPS_API_KEY',
@@ -52,6 +60,8 @@ const FRONTEND_VARS: EnvVarSpec[] = [
     provider: 'Google Cloud Console',
     canStubForTestFlight: true,
     stubValue: 'STUB_MAPS_KEY',
+    format: /^AIza[A-Za-z0-9_-]{35}$/,
+    formatHint: 'AIza... (39 characters)',
   },
   {
     name: 'VITE_STRIPE_PUBLISHABLE_KEY',
@@ -60,6 +70,8 @@ const FRONTEND_VARS: EnvVarSpec[] = [
     provider: 'Stripe Dashboard',
     canStubForTestFlight: true,
     stubValue: 'pk_test_stub',
+    format: /^pk_(test|live)_/,
+    formatHint: 'pk_test_... or pk_live_...',
   },
   {
     name: 'VITE_VAPID_PUBLIC_KEY',
@@ -68,6 +80,8 @@ const FRONTEND_VARS: EnvVarSpec[] = [
     provider: 'Self-generated (npx tsx scripts/generate-vapid-keys.ts)',
     canStubForTestFlight: true,
     stubValue: '',
+    format: /^[A-Za-z0-9_-]{80,}$/,
+    formatHint: 'Base64url-encoded P-256 key (~87 characters)',
   },
 ];
 
@@ -138,6 +152,8 @@ const ANALYTICS_VARS: EnvVarSpec[] = [
     provider: 'Sentry',
     canStubForTestFlight: true,
     stubValue: '',
+    format: /^https:\/\/.+@.+\.ingest\.sentry\.io\//,
+    formatHint: 'https://<key>@<org>.ingest.sentry.io/<id>',
   },
   {
     name: 'VITE_POSTHOG_API_KEY',
@@ -146,6 +162,8 @@ const ANALYTICS_VARS: EnvVarSpec[] = [
     provider: 'PostHog',
     canStubForTestFlight: true,
     stubValue: '',
+    format: /^phc_/,
+    formatHint: 'phc_...',
   },
   {
     name: 'VITE_GA_MEASUREMENT_ID',
@@ -154,6 +172,8 @@ const ANALYTICS_VARS: EnvVarSpec[] = [
     provider: 'Google Analytics',
     canStubForTestFlight: true,
     stubValue: '',
+    format: /^G-[A-Z0-9]+$/,
+    formatHint: 'G-XXXXXXXXXX',
   },
   {
     name: 'VITE_MIXPANEL_TOKEN',
@@ -198,6 +218,76 @@ const REVENUECAT_VARS: EnvVarSpec[] = [
     provider: 'RevenueCat Dashboard',
     canStubForTestFlight: true,
     stubValue: '',
+  },
+  {
+    name: 'VITE_REVENUECAT_ANDROID_API_KEY',
+    required: false,
+    description: 'RevenueCat Android API key',
+    provider: 'RevenueCat Dashboard',
+    canStubForTestFlight: true,
+    stubValue: '',
+  },
+];
+
+const PAYMENT_VARS: EnvVarSpec[] = [
+  {
+    name: 'VITE_ENABLE_STRIPE_PAYMENTS',
+    required: false,
+    description: 'Enable Stripe payment processing',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'false',
+  },
+  {
+    name: 'VITE_VENMO_CLIENT_ID',
+    required: false,
+    description: 'Venmo payment client ID',
+    provider: 'Venmo Developer Portal',
+    canStubForTestFlight: true,
+    stubValue: '',
+  },
+];
+
+const ADDITIONAL_VARS: EnvVarSpec[] = [
+  {
+    name: 'VITE_UNFURL_BASE_URL',
+    required: false,
+    description: 'Link unfurl/preview service URL',
+    provider: 'Internal service',
+    canStubForTestFlight: true,
+    stubValue: '',
+  },
+  {
+    name: 'VITE_APP_VERSION',
+    required: false,
+    description: 'App version (injected at build time)',
+    provider: 'Build system',
+    canStubForTestFlight: true,
+    stubValue: '1.0.0',
+  },
+  {
+    name: 'VITE_VOICE_DEBUG',
+    required: false,
+    description: 'Enable voice debugging console output',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'false',
+  },
+  {
+    name: 'VITE_VOICE_AFFECTIVE_DIALOG',
+    required: false,
+    description: 'Enable emotional tone in voice responses',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'true',
+  },
+  {
+    name: 'VITE_VOICE_PROACTIVE_AUDIO',
+    required: false,
+    description: 'Enable model-initiated speech',
+    provider: 'Internal flag',
+    canStubForTestFlight: true,
+    stubValue: 'true',
   },
 ];
 
@@ -244,7 +334,13 @@ function validate(): void {
 
   const env = loadEnvFile();
 
-  let allVars = [...FRONTEND_VARS, ...FEATURE_FLAG_VARS, ...ANALYTICS_VARS];
+  let allVars = [
+    ...FRONTEND_VARS,
+    ...FEATURE_FLAG_VARS,
+    ...ANALYTICS_VARS,
+    ...PAYMENT_VARS,
+    ...ADDITIONAL_VARS,
+  ];
   if (isIos) {
     allVars = [...allVars, ...MOBILE_VARS, ...REVENUECAT_VARS];
   }
@@ -252,11 +348,22 @@ function validate(): void {
   const missing: EnvVarSpec[] = [];
   const optional: EnvVarSpec[] = [];
   const present: string[] = [];
+  const formatWarnings: Array<{ name: string; value: string; hint: string }> = [];
 
   for (const spec of allVars) {
     const value = env[spec.name];
     if (value && value.length > 0) {
       present.push(spec.name);
+      // Format validation (warn, don't fail — stubs and CI values may not match)
+      if (spec.format && !isCi && !spec.stubValue) {
+        if (!spec.format.test(value)) {
+          formatWarnings.push({
+            name: spec.name,
+            value: value.slice(0, 12) + '...',
+            hint: spec.formatHint || spec.format.source,
+          });
+        }
+      }
     } else if (spec.required) {
       missing.push(spec);
     } else {
@@ -283,6 +390,14 @@ function validate(): void {
         ? ` [can stub: ${spec.stubValue ?? 'empty string'}]`
         : '';
       console.log(`   ${spec.name} — ${spec.description}${stub}`);
+    }
+  }
+
+  if (formatWarnings.length > 0) {
+    console.log(`\n⚠️  Format warnings (${formatWarnings.length}):`);
+    for (const fw of formatWarnings) {
+      console.log(`   ${fw.name} = "${fw.value}"`);
+      console.log(`     Expected format: ${fw.hint}`);
     }
   }
 

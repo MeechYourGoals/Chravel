@@ -189,6 +189,22 @@
 3. Type results using generated `Database` types from Supabase CLI
 4. Use optimistic updates with rollback for insert/update mutations
 5. Clean up realtime channels in `useEffect` return
+6. All migrations MUST pass `npx tsx scripts/lint-migrations.ts`
+7. All migrations MUST be timestamped (`YYYYMMDDHHMMSS_description.sql`)
+8. All `CREATE TABLE` MUST use `IF NOT EXISTS`; all functions use `CREATE OR REPLACE`
+9. All `DROP` statements MUST use `IF EXISTS`
+10. Destructive changes (column drop, rename, type change) require two-phase migration with forward-fix documented
+11. Edge functions MUST validate required secrets using `requireSecrets()` from `_shared/validateSecrets.ts`
+
+---
+
+## FEATURE FLAG RULES
+
+1. Use `public.feature_flags` table for runtime kill switches — never require redeployment to disable a feature
+2. Frontend: `import { useFeatureFlag } from '@/lib/featureFlags'` — returns `boolean`, 60s cache
+3. Edge functions: `import { isFeatureEnabled } from '../_shared/featureFlags.ts'`
+4. New user-facing features SHOULD have a kill switch flag seeded in the migration
+5. Kill switch disables take effect within 60 seconds (client cache TTL)
 
 ---
 

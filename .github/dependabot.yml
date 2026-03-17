@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    groups:
+      security-patches:
+        applies-to: security-updates
+        update-types:
+          - patch
+          - minor
+    ignore:
+      - dependency-name: xlsx
+        reason: Replaced by exceljs in Stage B — do not reinstall

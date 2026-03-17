@@ -86,7 +86,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('trips');
   const [showTripTypeSwitcher, setShowTripTypeSwitcher] = useState(false);
 
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -167,11 +167,14 @@ const Index = () => {
       return;
     }
 
+    // Don't clear demo mode while auth is still hydrating — user may resolve to non-null
+    if (authLoading) return;
+
     // Not from /demo redirect - clear stale demo mode for unauthenticated users
     if (!user && demoView === 'app-preview') {
       useDemoModeStore.getState().setDemoView('off');
     }
-  }, [user, demoView, searchParams, setSearchParams]);
+  }, [user, authLoading, demoView, searchParams, setSearchParams]);
 
   // Counter to force re-renders when demo session state changes (archive/hide)
   const [demoRefreshCounter, setDemoRefreshCounter] = useState(0);

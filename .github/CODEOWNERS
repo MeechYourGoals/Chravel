@@ -1,0 +1,31 @@
+# Chravel CODEOWNERS
+# These owners are automatically requested for review on PRs that modify matching paths.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default — all PRs require at least one review
+* @MeechYourGoals
+
+# Database migrations — require explicit review for irreversible changes
+supabase/migrations/ @MeechYourGoals
+
+# Edge functions — backend review required
+supabase/functions/ @MeechYourGoals
+
+# CI/CD and infrastructure
+.github/workflows/ @MeechYourGoals
+vercel.json @MeechYourGoals
+render.yaml @MeechYourGoals
+
+# Supabase integration layer
+src/integrations/supabase/ @MeechYourGoals
+
+# Billing and payments
+src/billing/ @MeechYourGoals
+src/constants/revenuecat.ts @MeechYourGoals
+
+# Auth
+src/features/auth/ @MeechYourGoals
+
+# Environment and config
+.env* @MeechYourGoals
+scripts/validate-env.ts @MeechYourGoals

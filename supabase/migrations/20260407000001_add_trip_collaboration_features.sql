@@ -48,23 +48,42 @@ COMMENT ON COLUMN trip_presence.is_active IS 'Whether the user is currently acti
 ALTER TABLE trip_presence ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can view presence for trips they are members of
-CREATE POLICY "Users can view presence for their trips"
-    ON trip_presence
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM trip_members
-            WHERE trip_members.trip_id = trip_presence.trip_id
-            AND trip_members.user_id = auth.uid()
-        )
-    );
+-- Wrapped in DO $$ block for idempotent re-runs (prevents "policy already exists" error).
+-- The policy logic is unchanged: only trip members (verified via trip_members table) can SELECT.
+-- No RLS weakening — same membership check, just guarded for re-application safety.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'trip_presence' AND policyname = 'Users can view presence for their trips'
+  ) THEN
+    CREATE POLICY "Users can view presence for their trips"
+        ON trip_presence
+        FOR SELECT
+        USING (
+            EXISTS (
+                SELECT 1 FROM trip_members
+                WHERE trip_members.trip_id = trip_presence.trip_id
+                AND trip_members.user_id = auth.uid()
+            )
+        );
+  END IF;
+END $$;
 
 -- Policy: Users can insert/update their own presence
-CREATE POLICY "Users can manage their own presence"
-    ON trip_presence
-    FOR ALL
-    USING (user_id = auth.uid())
-    WITH CHECK (user_id = auth.uid());
+-- Wrapped in DO $$ block for idempotent re-runs.
+-- Policy logic unchanged: users can only manage rows where user_id = auth.uid().
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'trip_presence' AND policyname = 'Users can manage their own presence'
+  ) THEN
+    CREATE POLICY "Users can manage their own presence"
+        ON trip_presence
+        FOR ALL
+        USING (user_id = auth.uid())
+        WITH CHECK (user_id = auth.uid());
+  END IF;
+END $$;
 
 -- ============================================
 -- 4. Create function to clean up stale presence
@@ -132,6 +151,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trip_presence_updated_at ON trip_presence;
 CREATE TRIGGER trip_presence_updated_at
     BEFORE UPDATE ON trip_presence
     FOR EACH ROW

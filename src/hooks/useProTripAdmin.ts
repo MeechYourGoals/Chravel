@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
-import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 
 export interface AdminPermissions {
   can_manage_roles: boolean;
@@ -10,13 +9,21 @@ export interface AdminPermissions {
   can_designate_admins: boolean;
 }
 
+interface TripAdminPermissionsResult {
+  is_admin: boolean;
+  can_manage_roles: boolean;
+  can_manage_channels: boolean;
+  can_designate_admins: boolean;
+}
+
 /**
- * Hook to check Pro trip admin status and permissions
+ * Hook to check Pro trip admin status and permissions.
+ * Admin status is verified server-side via get_trip_admin_permissions() RPC
+ * (which handles super-admin logic through is_super_admin()).
  */
 export const useProTripAdmin = (tripId: string) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
-  const { isSuperAdmin } = useSuperAdmin();
   const [isAdmin, setIsAdmin] = useState(false);
   const [permissions, setPermissions] = useState<AdminPermissions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,19 +37,7 @@ export const useProTripAdmin = (tripId: string) => {
     try {
       setIsLoading(true);
 
-      // 🆕 SUPER ADMIN BYPASS - Full access to all trips
-      if (isSuperAdmin) {
-        setIsAdmin(true);
-        setPermissions({
-          can_manage_roles: true,
-          can_manage_channels: true,
-          can_designate_admins: true,
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // 🆕 FORCE ADMIN IN DEMO MODE
+      // Demo mode: grant full admin UI (Stage C will isolate this to demo trips only)
       if (isDemoMode) {
         setIsAdmin(true);
         setPermissions({
@@ -54,30 +49,39 @@ export const useProTripAdmin = (tripId: string) => {
         return;
       }
 
-      // Check if user is trip admin
-      const { data: adminData, error } = await supabase
-        .from('trip_admins')
-        .select('permissions')
-        .eq('trip_id', tripId)
-        .eq('user_id', user.id)
-        .single();
+      // Server-side verification: RPC handles super-admin + trip-admin checks
+      // intentional: get_trip_admin_permissions RPC not yet in generated Supabase types
+      const { data, error } = await (supabase as any).rpc('get_trip_admin_permissions', {
+        p_trip_id: tripId,
+      });
 
-      if (error || !adminData) {
+      if (error || !data) {
+        setIsAdmin(false);
+        setPermissions(null);
+        return;
+      }
+
+      const result = data as unknown as TripAdminPermissionsResult;
+
+      if (!result.is_admin) {
         setIsAdmin(false);
         setPermissions(null);
         return;
       }
 
       setIsAdmin(true);
-      setPermissions(adminData.permissions as any as AdminPermissions);
-    } catch (error) {
-      console.error('Error checking admin status:', error);
+      setPermissions({
+        can_manage_roles: result.can_manage_roles,
+        can_manage_channels: result.can_manage_channels,
+        can_designate_admins: result.can_designate_admins,
+      });
+    } catch (err) {
       setIsAdmin(false);
       setPermissions(null);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, tripId, isDemoMode, isSuperAdmin]);
+  }, [user?.id, tripId, isDemoMode]);
 
   useEffect(() => {
     checkAdminStatus();

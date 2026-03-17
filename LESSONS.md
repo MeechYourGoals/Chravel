@@ -31,6 +31,22 @@
 - **Provenance:** Messaging upgrade March 2026 — ChannelChatView threading + link preview parity
 - **Confidence:** high
 
+### Unified permission guard hook for multi-trip-type codebases
+- **Tip:** When permission models differ by trip type (consumer=open, pro=role-based, event=organizer-only), create a single `useMutationPermissions(tripId)` hook that resolves trip type once and returns flat boolean flags. Import this in every mutation hook rather than duplicating trip-type branching logic. The guard must be client-side UX only — RLS remains authoritative.
+- **Applies when:** Adding permission checks to shared hooks that serve consumer, pro, and event trips simultaneously
+- **Avoid when:** The permission model is identical across all trip types
+- **Evidence:** Stage B hardening added `useMutationPermissions` to 5 hooks (tasks, polls, calendar, basecamp, links) with zero call-site changes. Consumer trips return all-true by default, preserving existing behavior.
+- **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
+### AI tool writes should go through a pending buffer, not directly to shared state
+- **Tip:** When an AI agent (voice concierge, text concierge) wants to create shared objects (tasks, polls, calendar events), write to `trip_pending_actions` instead of directly to the target table. The user then confirms or rejects. This prevents AI hallucination-driven data corruption and gives users agency over their shared trip state. Use `tool_call_id` as idempotency key to prevent duplicate pending actions on retry.
+- **Applies when:** Any AI-initiated write to shared trip state (tasks, polls, calendar, basecamp)
+- **Avoid when:** Read-only AI operations (search, recommendations, summaries) or low-risk append-only operations (saving a link)
+- **Evidence:** Stage B routed `createTask`, `createPoll`, and `addToCalendar` through pending buffer in both `functionExecutor.ts` (edge function) and `useVoiceToolHandler.ts` (client). `savePlace` and `setBasecamp` left as direct writes (lower risk).
+- **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
 ## Recovery Tips
 
 ### Gate third-party SDK boot on preview/runtime compatibility
@@ -96,4 +112,18 @@
 - **Avoid when:** Throwaway prototypes with no continuity commitments
 - **Evidence:** March 2026 reliability constitution audit found multiple backup/DR docs present but explicit “action required” status and missing drill evidence.
 - **Provenance:** `docs/audits/reliability-resilience-constitution-2026-03-16.md`
+- **Confidence:** high
+
+### Vertex Live setup payloads should omit optional objects when unset
+- **Tip:** For Gemini/Vertex Live setup, avoid sending empty objects for optional fields (e.g., `sessionResumption: {}`); include optional sections only when populated.
+- **Applies when:** Building setup envelopes for bidirectional WS sessions with optional resumption handles/features.
+- **Evidence:** Chravel voice sessions had intermittent setup instability while always sending empty sessionResumption; hardening changed to conditional inclusion only.
+- **Provenance:** March 2026 Gemini Live production hardening.
+- **Confidence:** medium
+
+### Mention chips inside themed chat bubbles should be bubble-context aware, not brand-accent aware
+- **Tip:** Keep mention styling separate from hyperlink styling and derive mention colors from bubble context (own/broadcast vs incoming) so text remains readable on colored surfaces; use font-weight + subtle background chip for distinction instead of a hardcoded accent text color.
+- **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
+- **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
+- **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high

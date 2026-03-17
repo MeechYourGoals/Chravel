@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { parseICSContent } from './calendarImport';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export type LineupSourceFormat = 'url' | 'text' | 'ics' | 'csv' | 'excel' | 'pdf' | 'image';
 
@@ -164,12 +164,16 @@ async function parseCSVLineup(file: File): Promise<LineupParseResult> {
 
 async function parseExcelLineup(file: File): Promise<LineupParseResult> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-  if (workbook.SheetNames.length === 0) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  if (workbook.worksheets.length === 0) {
     return { names: [], errors: ['Excel has no sheets'], isValid: false, sourceFormat: 'excel' };
   }
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const jsonData = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 }) as unknown[][];
+  const worksheet = workbook.worksheets[0];
+  const jsonData: unknown[][] = [];
+  worksheet.eachRow({ includeEmpty: false }, row => {
+    jsonData.push((row.values as unknown[]).slice(1));
+  });
   if (jsonData.length < 1) {
     return {
       names: [],

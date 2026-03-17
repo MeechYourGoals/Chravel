@@ -416,7 +416,11 @@ export const calendarService = {
     }
   },
 
-  async updateEvent(eventId: string, updates: Partial<TripEvent>): Promise<boolean> {
+  async updateEvent(
+    eventId: string,
+    updates: Partial<TripEvent>,
+    currentVersion?: number,
+  ): Promise<boolean> {
     // Validate required parameter
     if (!eventId) {
       console.error('[calendarService] Missing eventId for update');
@@ -439,7 +443,8 @@ export const calendarService = {
     // Check if offline - queue the operation
     if (!navigator.onLine) {
       const tripId = updates.trip_id || '';
-      const version = (updates as Record<string, unknown>).version as number | undefined;
+      const version =
+        currentVersion ?? ((updates as Record<string, unknown>).version as number | undefined);
 
       await calendarOfflineQueue.queueUpdate(tripId, eventId, updates, version);
       await offlineSyncService.queueOperation(
@@ -462,7 +467,63 @@ export const calendarService = {
       throw new Error('You must be logged in to update events. Please sign in and try again.');
     }
 
-    // Use Supabase for authenticated users - use .select() to verify update happened
+    // Use versioned RPC when version is available to prevent concurrent overwrites.
+    // Falls back to direct UPDATE for events created before version column existed.
+    if (currentVersion != null) {
+      const { error: rpcError } = await supabase.rpc('update_event_with_version', {
+        p_event_id: eventId,
+        p_current_version: currentVersion,
+        p_title: updates.title ?? null,
+        p_description: updates.description ?? null,
+        p_start_time: updates.start_time ?? null,
+        p_end_time: updates.end_time ?? null,
+        p_location: updates.location ?? null,
+        p_event_category: updates.event_category ?? null,
+        p_include_in_itinerary: updates.include_in_itinerary ?? null,
+        p_is_all_day: updates.is_all_day ?? null,
+        p_source_data: updates.source_data ? (updates.source_data as unknown) : null,
+      });
+
+      if (rpcError) {
+        // Check for version conflict
+        if (rpcError.message?.includes('modified by another user') || rpcError.code === 'P0001') {
+          throw new Error(
+            'CONFLICT: This event was modified by another user. Please refresh and try again.',
+          );
+        }
+        if (rpcError.message?.includes('not found') || rpcError.code === 'P0002') {
+          throw new Error('Event not found. It may have been deleted.');
+        }
+
+        // If the RPC doesn't exist yet, fall through to direct UPDATE
+        const missingFn =
+          rpcError.message?.toLowerCase().includes('does not exist') || rpcError.code === '42883';
+
+        if (!missingFn) {
+          console.error('[calendarService] Versioned update RPC failed:', rpcError);
+          throw new Error(rpcError.message || 'Failed to update event. Please try again.');
+        }
+
+        console.warn(
+          '[calendarService] update_event_with_version RPC not found, falling back to direct UPDATE',
+        );
+      } else {
+        // RPC succeeded — update cache
+        const cached = await offlineSyncService.getCachedEntity('calendar_event', eventId);
+        if (cached) {
+          await offlineSyncService.cacheEntity(
+            'calendar_event',
+            eventId,
+            cached.tripId,
+            { ...cached.data, ...updates, version: (currentVersion || 1) + 1 },
+            (currentVersion || 1) + 1,
+          );
+        }
+        return true;
+      }
+    }
+
+    // Fallback: direct UPDATE (no version check — for backward compat or missing RPC)
     const { data, error } = await supabase
       .from('trip_events')
       .update({
@@ -475,7 +536,6 @@ export const calendarService = {
 
     if (error) {
       console.error('[calendarService] Update failed:', error);
-      // Provide more specific error messages based on error type
       if (
         error.code === '42501' ||
         error.message?.includes('RLS') ||
@@ -493,7 +553,6 @@ export const calendarService = {
       throw new Error(error.message || 'Failed to update event. Please try again.');
     }
 
-    // Verify we got data back (confirms update happened)
     if (!data) {
       console.error(
         '[calendarService] Update returned no data - likely RLS blocked or event not found',

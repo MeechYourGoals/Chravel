@@ -103,6 +103,44 @@ export async function readJsonBody<T>(
   }
 }
 
+// ── Security Audit Log ──────────────────────────────────────────────────────
+
+export type SecurityEventType =
+  | 'auth_failure'
+  | 'authz_denied'
+  | 'privilege_escalation'
+  | 'sensitive_operation'
+  | 'rate_limit_exceeded'
+  | 'tool_execution'
+  | 'tool_blocked'
+  | 'webhook_received'
+  | 'upload_rejected'
+  | 'invite_probe';
+
+/**
+ * Write a structured entry to the security_audit_log table.
+ * Fire-and-forget: never throws, so callers don't need try/catch around it.
+ */
+export async function logSecurityEvent(
+  supabaseClient: any,
+  eventType: SecurityEventType,
+  userId: string | null,
+  details: Record<string, unknown>,
+  ip?: string,
+): Promise<void> {
+  try {
+    await supabaseClient.from('security_audit_log').insert({
+      event_type: eventType,
+      user_id: userId,
+      details,
+      ip_address: ip ?? null,
+    });
+  } catch (err) {
+    // Logging must never break the calling code path
+    console.error('[SecurityLog] Failed to write audit event:', eventType, err);
+  }
+}
+
 // 🔒 SECURITY FIX: Distributed rate limiting using database
 // Previous in-memory Map doesn't work across distributed edge function instances
 
@@ -114,6 +152,8 @@ export async function readJsonBody<T>(
  * @param identifier - Unique identifier (user ID, IP address, etc.)
  * @param maxRequests - Maximum requests allowed in window
  * @param windowSeconds - Time window in seconds (default 60s)
+ * @param userId - Optional user ID for audit logging when limit is exceeded
+ * @param endpoint - Optional endpoint name for audit logging
  * @returns Promise with allowed status and remaining count
  */
 export async function checkRateLimit(
@@ -121,6 +161,8 @@ export async function checkRateLimit(
   identifier: string,
   maxRequests: number = 100,
   windowSeconds: number = 60,
+  userId?: string | null,
+  endpoint?: string,
 ): Promise<{ allowed: boolean; remaining: number }> {
   try {
     const { data, error } = await supabaseClient.rpc('increment_rate_limit', {
@@ -140,6 +182,19 @@ export async function checkRateLimit(
     }
 
     const result = data[0];
+
+    if (!result.allowed) {
+      // Fire-and-forget audit log entry for rate limit hits
+      logSecurityEvent(supabaseClient, 'rate_limit_exceeded', userId ?? null, {
+        identifier,
+        endpoint: endpoint ?? 'unknown',
+        max_requests: maxRequests,
+        window_seconds: windowSeconds,
+      }).catch(() => {
+        // intentionally swallow — logSecurityEvent already handles errors
+      });
+    }
+
     return {
       allowed: result.allowed,
       remaining: result.remaining,

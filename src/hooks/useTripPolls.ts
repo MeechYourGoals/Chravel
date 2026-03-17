@@ -9,6 +9,8 @@ import { pollStorageService } from '@/services/pollStorageService';
 import { getStorageItem, setStorageItem } from '@/platform/storage';
 import { offlineSyncService } from '@/services/offlineSyncService';
 import { cacheEntity, getCachedEntities } from '@/offline/cache';
+import { generateMutationId } from '@/utils/concurrencyUtils';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import * as haptics from '@/native/haptics';
 
 interface TripPoll {
@@ -96,6 +98,7 @@ export const useTripPolls = (tripId: string) => {
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
+  const permissions = useMutationPermissions(tripId);
 
   // Fetch polls from database or localStorage
   const { data: polls = [], isLoading } = useQuery({
@@ -258,6 +261,11 @@ export const useTripPolls = (tripId: string) => {
       return { previousPolls };
     },
     mutationFn: async (poll: CreatePollRequest) => {
+      // Permission guard: event trips restrict poll creation to organizers
+      if (!permissions.canCreatePoll && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to create polls in this trip.");
+      }
+
       if (isDemoMode) {
         return await pollStorageService.createPoll(tripId, poll);
       }
@@ -283,6 +291,8 @@ export const useTripPolls = (tripId: string) => {
         voters: [],
       }));
 
+      // Idempotency key: generated per mutationFn call. Safe because mutations use retry:false
+      // (TanStack default) and HTTP-level retries reuse the same request body.
       const { data, error } = await supabase
         .from('trip_polls')
         .insert({
@@ -296,6 +306,7 @@ export const useTripPolls = (tripId: string) => {
           is_anonymous: poll.settings?.is_anonymous || false,
           allow_vote_change: poll.settings?.allow_vote_change !== false,
           deadline_at: poll.settings?.deadline_at || null,
+          idempotency_key: generateMutationId(),
         })
         .select()
         .single();
@@ -309,13 +320,16 @@ export const useTripPolls = (tripId: string) => {
         description: 'Your poll has been added to the trip.',
       });
     },
-    onError: (_error: Error, _variables, context) => {
+    onError: (error: Error, _variables, context) => {
       if (context?.previousPolls) {
         queryClient.setQueryData(['tripPolls', tripId, isDemoMode], context.previousPolls);
       }
+      const msg = error?.message || '';
       toast({
-        title: 'Error',
-        description: 'Failed to create poll. Please try again.',
+        title: msg.includes('PERMISSION:') ? 'Permission Denied' : 'Error',
+        description: msg.includes('PERMISSION:')
+          ? msg.replace('PERMISSION: ', '')
+          : 'Failed to create poll. Please try again.',
         variant: 'destructive',
       });
     },
@@ -646,6 +660,11 @@ export const useTripPolls = (tripId: string) => {
   // Close poll mutation
   const closePollMutation = useMutation({
     mutationFn: async ({ pollId }: ClosePollRequest) => {
+      // Permission guard: event/pro trips restrict poll closing
+      if (!permissions.canClosePoll && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to close polls in this trip.");
+      }
+
       if (isDemoMode) {
         return await pollStorageService.closePoll(tripId, pollId);
       }
@@ -690,6 +709,11 @@ export const useTripPolls = (tripId: string) => {
   // Delete poll mutation - only creator can delete
   const deletePollMutation = useMutation({
     mutationFn: async (pollId: string) => {
+      // Permission guard: event/pro trips restrict poll deletion
+      if (!permissions.canDeletePoll && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to delete polls in this trip.");
+      }
+
       if (isDemoMode) {
         const success = await pollStorageService.deletePoll(tripId, pollId);
         if (!success) throw new Error('Failed to delete poll');
@@ -773,5 +797,10 @@ export const useTripPolls = (tripId: string) => {
     isRemovingVote: removeVoteMutation.isPending,
     isClosing: closePollMutation.isPending,
     isDeleting: deletePollMutation.isPending,
+
+    // Permissions (for UI gating)
+    canCreatePoll: permissions.canCreatePoll,
+    canClosePoll: permissions.canClosePoll,
+    canDeletePoll: permissions.canDeletePoll,
   };
 };

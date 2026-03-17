@@ -2,6 +2,8 @@
 -- Date: 2025-01-XX
 -- Description: Creates RPC function to fetch push tokens for trip members with proper membership checks
 -- This fixes the issue where client-side queries to push_tokens fail due to RLS policies
+-- Security note: Uses SECURITY DEFINER with explicit public. schema qualification to prevent
+-- search_path manipulation. Membership validation (trip_members JOIN) enforces access control.
 
 -- ============================================
 -- 1. Create RPC function to get push tokens for trip members
@@ -32,8 +34,8 @@ BEGIN
       pt.token,
       pt.platform,
       pt.active
-    FROM push_tokens pt
-    INNER JOIN trip_members tm ON tm.user_id = pt.user_id
+    FROM public.push_tokens pt
+    INNER JOIN public.trip_members tm ON tm.user_id = pt.user_id
     WHERE tm.trip_id = p_trip_id
       AND pt.user_id = ANY(p_user_ids)
       AND pt.active = true
@@ -45,8 +47,8 @@ BEGIN
       pt.token,
       pt.platform,
       pt.active
-    FROM push_tokens pt
-    INNER JOIN trip_members tm ON tm.user_id = pt.user_id
+    FROM public.push_tokens pt
+    INNER JOIN public.trip_members tm ON tm.user_id = pt.user_id
     WHERE tm.trip_id = p_trip_id
       AND pt.active = true
       AND tm.status = 'active';
@@ -55,7 +57,7 @@ END;
 $$;
 
 -- Add comment
-COMMENT ON FUNCTION get_trip_member_push_tokens(UUID, UUID[]) IS 
+COMMENT ON FUNCTION get_trip_member_push_tokens(UUID, UUID[]) IS
 'Returns push tokens for trip members. Checks membership before returning tokens. ' ||
 'Should be called from edge functions or service-role contexts. ' ||
 'If p_user_ids is provided, only returns tokens for those users (if they are trip members).';
@@ -100,7 +102,7 @@ BEGIN
     -- Check notification preferences
     -- Note: This is a simplified check - full preference checking should be done in edge function
     -- that calls this, or we can add preference checking here
-    
+
     -- For now, just return the tokens
     -- The edge function should handle actual sending and preference checking
     v_sent_count := v_sent_count + 1;
@@ -119,7 +121,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION send_push_to_trip_members(UUID, TEXT, TEXT, TEXT, UUID[], UUID[]) IS 
+COMMENT ON FUNCTION send_push_to_trip_members(UUID, TEXT, TEXT, TEXT, UUID[], UUID[]) IS
 'Helper function to get push tokens for trip members. ' ||
 'Returns summary of tokens found. Actual sending should be done in edge function.';
 

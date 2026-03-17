@@ -209,8 +209,6 @@ serve(async req => {
     if (resumptionToken) {
       setupConfig.sessionResumption = { handle: resumptionToken };
       console.log(`${tag} Including session resumption token`);
-    } else {
-      setupConfig.sessionResumption = {};
     }
 
     // Mode 2+: tools (OFF by default in Phase A)

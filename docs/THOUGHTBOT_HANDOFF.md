@@ -1,6 +1,6 @@
 # Chravel — Thoughtbot iOS Handoff Guide
 
-> Last updated: 2026-02-05 (automated audit)
+> Last updated: 2026-03-16
 
 ## What's Already Done (Code-Level)
 
@@ -189,7 +189,7 @@ Test accounts should be created via the Supabase dashboard or the demo mode:
 | Push notifications | `src/native/push.ts`, `src/services/notificationService.ts` |
 | Deep links | `src/hooks/useDeepLinks.ts` |
 | Build output | `dist/` |
-| Edge functions | `supabase/functions/` (69 functions) |
+| Edge functions | `supabase/functions/` (91 functions) |
 
 ---
 
@@ -206,5 +206,110 @@ Test accounts should be created via the Supabase dashboard or the demo mode:
 ## Emergency Contacts
 
 - **Codebase questions**: See `CLAUDE.md` in repo root for AI coding standards
-- **Architecture**: See `docs/APP_STORE_READINESS_REPORT.md` for full system overview
+- **Architecture**: See `SYSTEM_MAP.md` in repo root for subsystem topology and failure modes
 - **Env vars**: See `docs/ENV_AND_APIS_REQUIRED.md` for complete variable reference
+
+---
+
+## Backend Contracts & Invariants
+
+These 7 contracts are load-bearing. Violating any of them will cause regressions or security issues.
+
+### 1. Auth via Supabase Auth Only
+All authentication goes through Supabase Auth. Session tokens are JWTs. Every API call (edge functions, realtime, storage) uses the Supabase client with the anon key + JWT. The single auth provider is `src/hooks/useAuth.tsx`. Never introduce alternative auth flows.
+
+### 2. RLS Is Authoritative
+Row-Level Security policies on every table are the **only** enforcement layer. Client-side permission checks (`useMutationPermissions`, `useRolePermissions`) are UX hints only — they can be wrong and the DB will still block unauthorized access. Never weaken or bypass RLS policies. Never trust client-supplied `user_id`, `trip_id`, or role.
+
+### 3. Demo Mode Isolation
+Demo mode (`/demo`) uses local mock data and a synthetic session. Never cross-contaminate demo data paths with authenticated data paths. The `useDemoMode` hook and `demoModeService` manage this boundary. Demo data must never touch the real database.
+
+### 4. Trip Status Is Computed Client-Side
+Trip status (upcoming / active / past) is computed from `start_date` and `end_date` fields. The logic lives in `src/utils/tripStatsCalculator.ts`. If building a native iOS app, this logic must be exactly replicated — there is no server-computed status field.
+
+### 5. Idempotent Message Sends via `client_message_id`
+Every chat message send must include a `client_message_id` (UUID generated client-side). This is the idempotency key that prevents duplicate messages on retry or reconnect. The realtime subscription uses this for deduplication. Omitting it will cause duplicate messages.
+
+### 6. AI Writes Go Through Pending Actions Buffer
+AI concierge tool calls that write to shared trip state (tasks, polls, calendar events, places) go through the `trip_pending_actions` table. Users must confirm or reject each action. The `tool_call_id` serves as an idempotency key. Read-only operations (search, recommendations) bypass the buffer. Never allow AI to write directly to trip data tables.
+
+### 7. Subscription Truth Lives in the Database
+The `user_subscriptions` table, populated by webhooks from RevenueCat and Stripe, is the source of truth for subscription status. Never trust client-side SDK state (`Purchases.getCustomerInfo()` or Stripe client) as authoritative — it can drift. Gate premium features on DB subscription status queried via hooks.
+
+---
+
+## Risk Zones & Known Gotchas
+
+These are historically recurring issues. Awareness of them prevents repeat regressions.
+
+### 1. Auth Hydration Race → Trip Not Found Flash
+**The most common Chravel regression.** On hard refresh or direct URL navigation, Supabase Auth returns `null` during session hydration. If data fetches fire before auth resolves, the trip query returns nothing, causing a brief "Trip Not Found" flash before the real data loads. **Fix:** Gate all auth-dependent queries on session being fully hydrated (not just non-null). See `useAuth.tsx` hydration state.
+
+### 2. WebSocket Reconnect Gap → Message Loss
+Supabase Realtime does NOT replay missed events after a disconnect. If a user loses connectivity briefly, all messages sent during the gap are invisible until they refresh. **Fix:** On channel SUBSCRIBED status or `visibilitychange`, fetch messages since last known server timestamp and merge with dedup.
+
+### 3. Read Receipt Write Amplification
+A naive implementation marks ALL visible messages as read on every new message arrival. With 100+ messages in view, this creates N database writes per incoming message. **Fix:** Track which message IDs have already been marked read, and only write for new ones. Debounce at 1 second.
+
+### 4. RevenueCat Platform-Specific API Keys
+RevenueCat uses different API keys per platform: `appl_*` prefix for iOS, `rcb_*` for web. Using the wrong key will fail silently or return incorrect entitlements. The `revenuecatClient.ts` has platform detection — verify it uses the correct key for iOS builds.
+
+### 5. Deep Links Require AASA File
+Universal Links require an Apple App Site Association file hosted at `https://chravel.app/.well-known/apple-app-site-association`. The `api/aasa.ts` endpoint generates this. It needs the `APPLE_TEAM_ID` env var. Without it, deep links will open in Safari instead of the app. Supported paths: `/trip/*`, `/join/*`, `/tour/*`, `/event/*`, `/accept-invite/*`.
+
+### 6. Offline Queue Sync Contract
+The IndexedDB-based offline queue batches mutations when offline and replays them on connectivity restore. Each queued operation has an idempotency key. The sync orchestration is in `src/services/offlineSyncService.ts`. If building a native iOS offline layer, replicate the same sync contract (idempotency keys, replay order, conflict resolution).
+
+---
+
+## Architecture Mental Model
+
+For a quick overview of all 12 subsystems, their dependencies, failure modes, and sources of truth, see **`SYSTEM_MAP.md`** in the repo root.
+
+**Critical path:** Auth → Trips → Chat → Payments → AI Concierge → Calendar → Permissions → Notifications
+
+**State layers:**
+1. Auth state — `useAuth()` (Supabase session)
+2. Server state — TanStack Query with cache keys (`src/lib/queryKeys.ts`)
+3. Realtime — Supabase Realtime WebSocket subscriptions
+4. Client state — Zustand stores (entitlements, demo mode, concierge session, notifications)
+5. Feature flags — `public.feature_flags` table, 60s client cache
+
+---
+
+## iOS Feature Specs Reading Order
+
+14 detailed specs exist in `docs/ios/` mapping web features to native iOS equivalents with Swift code examples:
+
+| Order | File | Covers |
+|-------|------|--------|
+| 1 | `12-native-stack-mapping.md` | Web-to-iOS technology mapping (read first) |
+| 2 | `01-trip-management.md` | Core trip CRUD, membership, invites |
+| 3 | `03-chat-messaging.md` | Unified messaging, channels, reactions |
+| 4 | `02-collaboration-sharing.md` | Sharing, collaboration features |
+| 5 | `04-calendar-itinerary.md` | Calendar sync, events, RSVP |
+| 6 | `05-tasks-polls.md` | Tasks and polls |
+| 7 | `07-pro-team-tags-broadcasts.md` | Pro features, broadcasts |
+| 8 | `08-notifications.md` | Push, in-app, email notifications |
+| 9 | `10-billing-subscription.md` | RevenueCat/Stripe billing |
+| 10 | `06-media-storage-quotas.md` | Media upload, compression, quotas |
+| 11 | `09-settings-suite.md` | App settings |
+| 12 | `11-data-sync-architecture.md` | Offline sync, data architecture |
+
+**Appendices:**
+- `appendix-edge-functions.md` — Edge function API contracts for iOS
+- `appendix-supabase-tables.md` — Table schemas iOS must consume
+
+---
+
+## What NOT to Change Casually
+
+These areas have complex invariants. Changes require understanding the full dependency chain:
+
+- **`src/hooks/useAuth.tsx`** — Single auth provider. Changes can break every auth-gated route.
+- **RLS policies** (in `supabase/migrations/`) — Security enforcement layer. Changes can create data leaks.
+- **Payment hooks & services** — Revenue-critical. RevenueCat/Stripe webhook contracts are exact.
+- **Realtime subscriptions** — Channel setup/cleanup patterns prevent memory leaks and data loss.
+- **Demo mode boundaries** — `demoModeService.ts` and `useDemoMode` hook isolate demo from production data.
+- **`src/integrations/supabase/client.ts`** — Singleton. Every DB query flows through this.
+- **Message send pipeline** — `client_message_id` idempotency, realtime channel, offline queue all interlock.

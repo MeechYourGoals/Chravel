@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getTripLinks } from '@/services/tripLinksService';
 import { tripKeys } from '@/lib/queryKeys';
+import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import type { PlaceResult } from '@/features/chat/components/PlaceResultCards';
 import type { FlightResult } from '@/features/chat/components/FlightResultCards';
 import type { HotelResult } from '@/features/chat/components/HotelResultCards';
@@ -87,10 +88,8 @@ function normalizeFlightToPayload(flight: FlightResult): SavePayload {
 function dedupeKey(url: string): string {
   try {
     const parsed = new URL(url);
-    parsed.hostname = parsed.hostname.toLowerCase();
-    let normalized = parsed.toString();
-    if (normalized.endsWith('/')) normalized = normalized.slice(0, -1);
-    return normalized;
+    // Lowercase and strip all trailing slashes to match server-side normalize_link_url()
+    return parsed.toString().toLowerCase().replace(/\/+$/, '');
   } catch {
     return url.toLowerCase().replace(/\/+$/, '');
   }
@@ -126,11 +125,17 @@ export function useSaveToTripPlaces({
 }: UseSaveToTripPlacesOptions) {
   const queryClient = useQueryClient();
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
+  const permissions = useMutationPermissions(tripId);
 
   const tripLinksQueryKey = tripKeys.tripLinks(tripId, isDemoMode);
 
   const mutation = useMutation({
     mutationFn: async (payload: SavePayload): Promise<SaveResult> => {
+      // Permission guard: event trips restrict link saving to organizers
+      if (!permissions.canSaveLink && !isDemoMode) {
+        throw new Error("PERMISSION: You don't have permission to save links in this trip.");
+      }
+
       const normalizedUrl = dedupeKey(payload.url);
 
       const existingLinks = await getTripLinks(tripId, isDemoMode);
@@ -168,6 +173,17 @@ export function useSaveToTripPlaces({
         .single();
 
       if (error) {
+        // Handle server-side duplicate URL constraint (race condition between two users)
+        if (error.code === '23505' && error.message?.includes('normalized_url')) {
+          // Fetch the existing link to return it as a duplicate
+          const existingLinks = await getTripLinks(tripId, isDemoMode);
+          const existing = existingLinks.find(
+            link => dedupeKey(link.url) === dedupeKey(payload.url),
+          );
+          if (existing) {
+            return { link: existing, wasDuplicate: true };
+          }
+        }
         throw error;
       }
 
@@ -210,7 +226,12 @@ export function useSaveToTripPlaces({
           return next;
         });
       }
-      toast.error("Couldn't save. Try again.");
+      const errMsg = _error instanceof Error ? _error.message : '';
+      if (errMsg.includes('PERMISSION:')) {
+        toast.error(errMsg.replace('PERMISSION: ', ''));
+      } else {
+        toast.error("Couldn't save. Try again.");
+      }
     },
     onSuccess: (result: SaveResult) => {
       setSavedUrls(prev => new Set(prev).add(dedupeKey(result.link.url)));

@@ -12,7 +12,7 @@
 import { parseICSFile, ICSParsedEvent, ICSParseResult } from './calendarImport';
 import { formatLocalDate } from './dateHelpers';
 import { supabase } from '@/integrations/supabase/client';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export type ImportSourceFormat = 'ics' | 'csv' | 'excel' | 'pdf' | 'image' | 'text' | 'url';
 
@@ -292,9 +292,10 @@ export async function parseCSVCalendar(file: File): Promise<SmartParseResult> {
 
 export async function parseExcelCalendar(file: File): Promise<SmartParseResult> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
 
-  if (workbook.SheetNames.length === 0) {
+  if (workbook.worksheets.length === 0) {
     return {
       events: [],
       errors: ['Excel file has no sheets'],
@@ -303,8 +304,11 @@ export async function parseExcelCalendar(file: File): Promise<SmartParseResult> 
     };
   }
 
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const jsonData = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 }) as unknown[][];
+  const worksheet = workbook.worksheets[0];
+  const jsonData: unknown[][] = [];
+  worksheet.eachRow({ includeEmpty: false }, row => {
+    jsonData.push((row.values as unknown[]).slice(1));
+  });
 
   if (jsonData.length < 2) {
     return {
