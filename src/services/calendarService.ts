@@ -7,6 +7,7 @@ import { calendarStorageService } from './calendarStorageService';
 import { calendarOfflineQueue } from './calendarOfflineQueue';
 import { offlineSyncService } from './offlineSyncService';
 import { retryWithBackoff } from '@/utils/retry';
+import { withTimeout } from '@/utils/timeout';
 // SECURITY: Super admin access is now enforced entirely server-side via is_super_admin() RLS.
 // Client-side SUPER_ADMIN_EMAILS import removed to eliminate misleading bypass paths.
 import { normalizeCalendarCategory } from '@/constants/calendarCategories';
@@ -127,12 +128,12 @@ export const calendarService = {
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
 
-      // Check for conflicts first (non-blocking - just for notification)
-      const existingConflicts = await this.checkForConflicts(
-        eventData.trip_id,
-        eventData.start_time,
-        eventData.end_time,
-      );
+      // Conflict hints are nice-to-have; they should never block event creation.
+      const existingConflicts = await withTimeout(
+        this.checkForConflicts(eventData.trip_id, eventData.start_time, eventData.end_time),
+        2_000,
+        'Calendar conflict check timed out',
+      ).catch((): string[] => []);
       conflicts.push(...existingConflicts);
 
       if (isDemoMode) {
