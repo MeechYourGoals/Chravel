@@ -432,7 +432,7 @@ export const calendarService = {
     // Use versioned RPC when version is available to prevent concurrent overwrites.
     // Falls back to direct UPDATE for events created before version column existed.
     if (currentVersion != null) {
-      const { error: rpcError } = await supabase.rpc('update_event_with_version', {
+      const { error: rpcError } = await (supabase as any).rpc('update_event_with_version', { // intentional: RPC not in generated types yet
         p_event_id: eventId,
         p_current_version: currentVersion,
         p_title: updates.title ?? null,
