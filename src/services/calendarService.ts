@@ -360,7 +360,7 @@ export const calendarService = {
         // Swallow cache write errors — non-critical
       });
 
-      return events;
+      return events as unknown as TripEvent[];
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching events:', error);
