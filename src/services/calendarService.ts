@@ -150,7 +150,7 @@ export const calendarService = {
           'calendar_event',
           'create',
           eventData.trip_id,
-          eventData,
+          eventData as unknown as Record<string, unknown>,
         );
 
         // Return optimistic event for immediate UI update
