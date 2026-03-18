@@ -18,7 +18,8 @@ export function resolveEffectiveMainChatMode(
   tripType: TripType,
   attendeeCount: number,
 ): Exclude<ChatMode, null> {
-  const normalizedMode = chatMode ?? 'broadcasts';
+  // Keep null mode permissive to match existing server policy (`chat_mode IS NULL` allows posting).
+  const normalizedMode = chatMode ?? 'everyone';
   if (normalizedMode === 'everyone' && isLargeEvent(tripType, attendeeCount)) {
     return 'admin_only';
   }
