@@ -327,7 +327,7 @@ export const calendarService = {
           .order('start_time', { ascending: true });
 
         if (error) throw error;
-        return data || [];
+        return (data || []) as unknown as TripEvent[];
       }
 
       // Direct query - fast and reliable.
