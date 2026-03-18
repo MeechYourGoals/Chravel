@@ -269,7 +269,7 @@ export const calendarService = {
         createdEvent.version || 1,
       );
 
-      return { event: createdEvent, conflicts };
+      return { event: createdEvent as unknown as TripEvent, conflicts };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error creating event:', error);
