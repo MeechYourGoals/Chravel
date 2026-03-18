@@ -162,7 +162,7 @@ async function cleanupStorageBucket(
       return { deleted, errors };
     }
 
-    const filePaths = files.map(f => `${userId}/${f.name}`);
+    const filePaths = files.map((f: { name: string }) => `${userId}/${f.name}`);
     const { error: removeError } = await supabase.storage.from(bucket).remove(filePaths);
 
     if (removeError) {

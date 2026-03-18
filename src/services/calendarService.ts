@@ -150,7 +150,7 @@ export const calendarService = {
           'calendar_event',
           'create',
           eventData.trip_id,
-          eventData,
+          eventData as unknown as Record<string, unknown>,
         );
 
         // Return optimistic event for immediate UI update
@@ -269,7 +269,7 @@ export const calendarService = {
         createdEvent.version || 1,
       );
 
-      return { event: createdEvent, conflicts };
+      return { event: createdEvent as unknown as TripEvent, conflicts };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error creating event:', error);
@@ -327,7 +327,7 @@ export const calendarService = {
           .order('start_time', { ascending: true });
 
         if (error) throw error;
-        return data || [];
+        return (data || []) as unknown as TripEvent[];
       }
 
       // Direct query - fast and reliable.
@@ -360,7 +360,7 @@ export const calendarService = {
         // Swallow cache write errors — non-critical
       });
 
-      return events;
+      return events as unknown as TripEvent[];
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching events:', error);
@@ -432,7 +432,7 @@ export const calendarService = {
     // Use versioned RPC when version is available to prevent concurrent overwrites.
     // Falls back to direct UPDATE for events created before version column existed.
     if (currentVersion != null) {
-      const { error: rpcError } = await supabase.rpc('update_event_with_version', {
+      const { error: rpcError } = await (supabase as any).rpc('update_event_with_version', { // intentional: RPC not in generated types yet
         p_event_id: eventId,
         p_current_version: currentVersion,
         p_title: updates.title ?? null,
@@ -489,9 +489,9 @@ export const calendarService = {
     const { data, error } = await supabase
       .from('trip_events')
       .update({
-        ...updates,
+        ...(updates as Record<string, unknown>),
         updated_at: new Date().toISOString(),
-      })
+      } as any) // intentional: TripEvent partial lacks Json index signature
       .eq('id', eventId)
       .select()
       .single();
@@ -799,7 +799,7 @@ export const calendarService = {
           failedReasons.push(`${row.title}: ${error.message}`);
         } else if (data) {
           imported++;
-          allEvents.push(data);
+          allEvents.push(data as unknown as TripEvent);
         } else {
           failed++;
           failedReasons.push(`${row.title}: Insert returned no data`);
@@ -847,7 +847,7 @@ export const calendarService = {
     Promise.all(
       events.map(event =>
         offlineSyncService
-          .cacheEntity('calendar_event', event.id, event.trip_id, event, event.version || 1)
+          .cacheEntity('calendar_event', event.id, event.trip_id, event as unknown as Record<string, unknown>, event.version || 1)
           .catch(() => {}),
       ),
     ).catch(() => {});
@@ -868,7 +868,7 @@ export const calendarService = {
     )
       .then(({ data }) => {
         if (data && data.length > 0) {
-          this.cacheEventsInBackground(data);
+          this.cacheEventsInBackground(data as unknown as TripEvent[]);
         }
       })
       .catch(() => {});
