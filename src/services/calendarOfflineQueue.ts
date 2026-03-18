@@ -4,7 +4,7 @@
  */
 
 import { offlineSyncService } from './offlineSyncService';
-import type { CreateEventData, TripEvent } from './calendarService';
+import type { CreateEventData, TripEvent } from '@/types/calendar';
 
 export interface QueuedCalendarOperation {
   id: string;
@@ -83,7 +83,7 @@ class CalendarOfflineQueue {
    * Get failed operations
    */
   async getFailedOperations(tripId?: string): Promise<QueuedCalendarOperation[]> {
-    const filters: any = {
+    const filters: { status: string; entityType: string; tripId?: string } = {
       status: 'failed',
       entityType: 'calendar_event',
     };

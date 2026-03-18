@@ -10,7 +10,7 @@ import { CalendarGrid } from '@/features/calendar/components/CalendarGrid';
 import { AddEventModal } from '@/features/calendar/components/AddEventModal';
 import { EventList } from '@/features/calendar/components/EventList';
 import { CalendarImportModal } from '@/features/calendar/components/CalendarImportModal';
-import { exportTripEventsToICal } from '@/services/calendarSync';
+import { useCalendarExport } from '@/features/calendar/hooks/useCalendarExport';
 import { useToast } from '@/hooks/use-toast';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -66,6 +66,9 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
     startImport: startBackgroundImport,
     clearResult: clearBackgroundResult,
   } = useBackgroundImport();
+
+  // Shared ICS export
+  const { exportTripEvents } = useCalendarExport(tripId);
 
   // ICS Import modal state
   const [showImportModal, setShowImportModal] = useState(false);
@@ -155,11 +158,7 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
 
   const handleExport = async () => {
     try {
-      await exportTripEventsToICal(tripId, 'Trip Calendar');
-      toast({
-        title: 'Calendar exported',
-        description: 'Your calendar has been downloaded as an .ics file.',
-      });
+      await exportTripEvents(tripEvents);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Failed to export calendar:', error);

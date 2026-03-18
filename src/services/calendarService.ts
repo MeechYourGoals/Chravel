@@ -1,8 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck — Supabase generated types have Json/source_data mismatches; fix requires schema migration
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
-import { CalendarEvent } from '@/types/calendar';
+import type { CalendarEvent, TripEvent, CreateEventData } from '@/types/calendar';
 import { demoModeService } from './demoModeService';
 import { demoTripEventsByTripId } from '@/mockData/demoTripEvents';
 import { calendarStorageService } from './calendarStorageService';
@@ -13,44 +11,8 @@ import { retryWithBackoff } from '@/utils/retry';
 // Client-side SUPER_ADMIN_EMAILS import removed to eliminate misleading bypass paths.
 import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 
-export interface TripEvent {
-  id: string;
-  trip_id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time?: string;
-  location?: string;
-  event_category: string;
-  include_in_itinerary: boolean;
-  is_all_day?: boolean;
-  source_type: string;
-  source_data: Record<string, unknown> | null;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  version?: number;
-}
-
-export interface CreateEventData {
-  trip_id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time?: string;
-  location?: string;
-  event_category?: string;
-  include_in_itinerary?: boolean;
-  is_all_day?: boolean;
-  source_type?: string;
-  source_data?: Record<string, unknown>;
-  // Recurring event support
-  recurrence_rule?: string;
-  recurrence_exceptions?: string[];
-  // Busy/free time blocking
-  is_busy?: boolean;
-  availability_status?: 'busy' | 'free' | 'tentative';
-}
+// Re-export for backward compatibility — consumers should migrate to '@/types/calendar'
+export type { TripEvent, CreateEventData } from '@/types/calendar';
 
 export const calendarService = {
   /**

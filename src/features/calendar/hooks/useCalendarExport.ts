@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { calendarExporter } from '@/utils/calendarExport';
 import { openOrDownloadBlob } from '@/utils/download';
 import { toast } from 'sonner';
-import type { TripEvent } from '@/services/calendarService';
+import type { TripEvent } from '@/types/calendar';
 
 export interface ExportEvent {
   id: string;
