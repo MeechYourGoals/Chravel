@@ -799,7 +799,7 @@ export const calendarService = {
           failedReasons.push(`${row.title}: ${error.message}`);
         } else if (data) {
           imported++;
-          allEvents.push(data);
+          allEvents.push(data as unknown as TripEvent);
         } else {
           failed++;
           failedReasons.push(`${row.title}: Insert returned no data`);
