@@ -155,6 +155,30 @@
 - **Applies when:** Permission mode validity depends on dynamic counts (members/attendees) and legacy records may become invalid over time.
 - **Evidence:** Event chat `everyone` mode now degrades to effective `admin_only` above 50 members while DB trigger blocks setting invalid `chat_mode='everyone'` for large events.
 - **Provenance:** March 2026 event chat permission scaling implementation.
+### AI concierge tool declarations must be maintained as a single source of truth
+- **Tip:** When a tool-calling AI system has multiple entrypoints (text chat, voice, demo), define tool schemas once in a shared registry and import/filter as needed. Inline declaration in endpoint files causes drift — Chravel's text path had 19 tools while voice had 31, with ~12 voice tools having no backend implementation.
+- **Applies when:** Adding, modifying, or removing AI concierge tools; auditing tool parity across entrypoints
+- **Avoid when:** Tools are truly exclusive to one entrypoint with no shared backend
+- **Evidence:** `lovable-concierge/index.ts` defines 19 tools inline; `voiceToolDeclarations.ts` defines 31. Tools like `getWeatherForecast`, `convertCurrency`, `browseWebsite`, `settleExpense`, `generateTripImage` exist in voice declarations with no matching `case` in `functionExecutor.ts`, causing silent failures.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+### Conditional tool exposure beats always-on tool exposure for latency and accuracy
+- **Tip:** Exposing all tools to the model on every query wastes ~2000 tokens and forces the model to evaluate irrelevant options. Classify queries into classes (weather, restaurant, calendar, payment, etc.) in code before model invocation, then only expose relevant tool subsets. This is the single highest-leverage optimization for token cost and tool selection accuracy.
+- **Applies when:** AI concierge performance optimization, adding new tools, investigating wrong tool selection
+- **Avoid when:** Queries that genuinely span multiple domains (rare)
+- **Evidence:** A weather question currently forces Gemini to evaluate all 19+ tool schemas including payment, calendar, poll, and import tools. The model's context includes ~2000 extra tokens of irrelevant tool descriptions.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+### Always-on prompt layers should be audited for conditional value
+- **Tip:** Prompt blocks that are injected into every request (few-shot examples, user preferences, action plan schemas) accumulate into bloat over time. Audit each block and ask: "Does this help for this specific query class?" Few-shot examples for payment queries are noise when the user asks about weather. User dietary preferences are noise when the user asks what time their reservation is.
+- **Applies when:** Prompt optimization, investigating slow first-token time, reviewing system prompt length
+- **Avoid when:** The prompt is already small (<500 tokens)
+- **Evidence:** Chravel's trip-related system prompt injects few-shot (~300 tokens), preferences (~200 tokens), and action plan schema (~280 tokens) on every trip query regardless of relevance. Total system prompt reaches 3000-3500 tokens.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
 ### Mention chips inside themed chat bubbles should be bubble-context aware, not brand-accent aware
 - **Tip:** Keep mention styling separate from hyperlink styling and derive mention colors from bubble context (own/broadcast vs incoming) so text remains readable on colored surfaces; use font-weight + subtle background chip for distinction instead of a hardcoded accent text color.
 - **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
