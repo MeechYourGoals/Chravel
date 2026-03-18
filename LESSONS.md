@@ -96,6 +96,14 @@
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
 
+### Pending approval buffers must claim before side effects
+- **Tip:** If a shared-action approval queue (`trip_pending_actions`, moderation queue, AI confirm buffer) lets multiple actors fetch the same `pending` row and only marks it resolved after performing the live insert/update, duplicate side effects are inevitable under concurrent confirm clicks or retries. The queue row must be atomically claimed first, then materialized exactly once using the original command key.
+- **Applies when:** AI-confirmed shared writes, invite approvals, moderation queues, deferred workflow execution
+- **Avoid when:** Purely user-private drafts that never materialize shared state
+- **Evidence:** Chravel's pending AI action flow inserts the real task/poll/event before updating `trip_pending_actions.status`, so two members can confirm the same action and both create objects.
+- **Provenance:** 2026-03 platform constitution audit
+- **Confidence:** high
+
 ### Internal admin surfaces need route-level role guards, not auth-only protection
 - **Tip:** Treat internal pages as production-critical privileged surfaces. `ProtectedRoute` (auth only) is insufficient for `/admin/*`; use explicit role guard components and test redirects for non-admin users.
 - **Applies when:** Adding or updating any internal/admin route in `App.tsx`

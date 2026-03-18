@@ -89,3 +89,21 @@
 - **Suggested tests:** Scheduled staging drills that (1) inject provider outage, (2) force queue saturation, (3) execute restore rehearsal and verify Tier-0 journeys.
 - **Priority:** high
 - **Provenance:** March 2026 reliability constitution audit
+
+## Pending action exactly-once confirmation
+- **Area:** `src/hooks/usePendingActions.ts`, `trip_pending_actions`, AI concierge write surfaces
+- **Why this gap matters:** AI-confirmed shared writes are supposed to be buffered until a human confirms them, but the current flow performs the live insert before atomically claiming the pending row.
+- **Missing coverage:** No multi-actor race test where two users confirm the same pending action concurrently, and no test asserting queued AI actions render as pending rather than completed writes.
+- **Failure mode if untested:** Duplicate tasks/polls/events, misleading UI that says a shared object was created before confirmation, and untrusted audit/provenance trails.
+- **Suggested tests:** Integration test with two authenticated users confirming the same pending action at the same time; assert exactly one downstream object exists and the pending row records proposer + confirmer correctly.
+- **Priority:** high
+- **Provenance:** March 2026 platform constitution audit
+
+## Public preview and invite accounting contract suite
+- **Area:** `src/pages/TripPreview.tsx`, `src/hooks/useInviteLink.ts`, `supabase/functions/get-trip-preview/index.ts`, `supabase/functions/get-invite-preview/index.ts`, `supabase/functions/join-trip/index.ts`
+- **Why this gap matters:** Public preview/share and invite/join flows are separate trust boundaries, but the current code mixes raw `tripId` preview access with invite-based join semantics and inconsistent `current_uses` updates.
+- **Missing coverage:** No end-to-end tests for public preview -> auth -> join request, no assertions that invite rotation deactivates older links, and no invariant tests for `trip_invites.current_uses` across request, approval, rejection, and duplicate-join paths.
+- **Failure mode if untested:** Raw-ID metadata leakage, invite sprawl, exhausted `max_uses` from pending/rejected requests, and inconsistent join behavior across routes.
+- **Suggested tests:** E2E and RPC contract suite covering preview token access, revoked/expired invites, duplicate join attempts, request/approval/rejection counters, and correct route resolution for consumer/pro/event targets.
+- **Priority:** high
+- **Provenance:** March 2026 platform constitution audit
