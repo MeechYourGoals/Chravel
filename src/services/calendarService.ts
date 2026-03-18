@@ -489,9 +489,9 @@ export const calendarService = {
     const { data, error } = await supabase
       .from('trip_events')
       .update({
-        ...updates,
+        ...(updates as Record<string, unknown>),
         updated_at: new Date().toISOString(),
-      })
+      } as any) // intentional: TripEvent partial lacks Json index signature
       .eq('id', eventId)
       .select()
       .single();
