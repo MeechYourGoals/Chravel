@@ -37,6 +37,8 @@ import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
+import { usePendingActions } from '@/hooks/usePendingActions';
+import { PendingActionCard } from '@/features/chat/components/PendingActionCard';
 
 const EMPTY_SESSION: ConciergeSession = {
   tripId: '',
@@ -296,6 +298,14 @@ export const AIConciergeChat = ({
     isDemoMode,
     onNavigateToPlaces: handleNavigateToPlaces,
   });
+  const {
+    pendingActions,
+    confirmAction,
+    rejectAction,
+    isConfirming,
+    isRejecting,
+    hasPendingActions,
+  } = usePendingActions(tripId);
 
   // ── Google TTS ──────────────────────────────────────────────────────
   const {
@@ -1832,6 +1842,9 @@ export const AIConciergeChat = ({
     }
   };
 
+  const visiblePendingActions = pendingActions.slice(0, 3);
+  const hiddenPendingActionCount = Math.max(0, pendingActions.length - visiblePendingActions.length);
+
   return (
     <div className="flex flex-col overflow-hidden flex-1 min-h-0 h-full">
       <div className="rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] overflow-hidden flex flex-col flex-1">
@@ -2012,6 +2025,42 @@ export const AIConciergeChat = ({
                 onTTSStop={ttsStop}
               />
             )}
+          </div>
+        )}
+
+        {hasPendingActions && (
+          <div className="px-3 pb-2 flex-shrink-0">
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/90">
+                  Awaiting Your Confirmation
+                </p>
+                <p className="text-xs text-gray-400">
+                  The concierge drafted these changes but will not write them to the trip until you
+                  confirm.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {visiblePendingActions.map(action => (
+                  <PendingActionCard
+                    key={action.id}
+                    action={action}
+                    onConfirm={confirmAction}
+                    onReject={rejectAction}
+                    isConfirming={isConfirming}
+                    isRejecting={isRejecting}
+                  />
+                ))}
+              </div>
+
+              {hiddenPendingActionCount > 0 && (
+                <p className="text-[11px] text-gray-500">
+                  + {hiddenPendingActionCount} more pending suggestion
+                  {hiddenPendingActionCount === 1 ? '' : 's'}
+                </p>
+              )}
+            </div>
           </div>
         )}
 

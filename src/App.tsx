@@ -214,6 +214,21 @@ const OfflineIndicatorGate = () => {
   return <OfflineIndicator />;
 };
 
+const ErrorTrackingUserSync = () => {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.id) {
+      errorTracking.setUser(user.id);
+      return;
+    }
+
+    errorTracking.clearUser();
+  }, [user?.id]);
+
+  return null;
+};
+
 const App = () => {
   // ⚡ PERFORMANCE: Initialize demo mode synchronously on first render (not at module load)
   // Moving this inside the component prevents "dispatcher.useState" errors on some platforms
@@ -230,12 +245,6 @@ const App = () => {
   // Initialize error tracking with user context
   useEffect(() => {
     errorTracking.init({ environment: import.meta.env.MODE });
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        errorTracking.setUser(data.user.id);
-      }
-    });
   }, []);
 
   // Show toast when a new service worker is installed and waiting to activate
@@ -373,6 +382,7 @@ const App = () => {
                 {/* All components using react-router hooks must render inside <Router> */}
                 <Router>
                   <PageViewTracker />
+                  <ErrorTrackingUserSync />
                   <ExitDemoButtonWithNav />
                   <NativeLifecycleBridge client={queryClient} />
                   <OfflineIndicatorGate />

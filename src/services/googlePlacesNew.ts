@@ -43,6 +43,12 @@ let loaderPromise: Promise<typeof google.maps> | null = null;
 
 export type SearchOrigin = { lat: number; lng: number } | null;
 
+function runBestEffort(task: Promise<unknown>): void {
+  task.catch(() => {
+    // Best-effort observability/cache work should never block the user response path.
+  });
+}
+
 /**
  * API Quota Monitor
  * Tracks API usage and provides fallback mechanisms
@@ -518,7 +524,7 @@ export async function searchNearby(
 
   try {
     // Record API usage
-    await recordApiUsage('nearby-search');
+    runBestEffort(recordApiUsage('nearby-search'));
 
     // @ts-ignore - New API method
     const { places } = await Place.searchNearby(request);
@@ -547,13 +553,15 @@ export async function searchNearby(
     const results = converted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
     // Cache in Supabase (30-day TTL)
-    await setCachedPlace(
-      cacheKey,
-      'nearby-search',
-      `${location.lat},${location.lng}`,
-      results,
-      undefined,
-      { lat: location.lat, lng: location.lng },
+    runBestEffort(
+      setCachedPlace(
+        cacheKey,
+        'nearby-search',
+        `${location.lat},${location.lng}`,
+        results,
+        undefined,
+        { lat: location.lat, lng: location.lng },
+      ),
     );
 
     return results;
@@ -637,7 +645,7 @@ export async function searchByText(
 
   try {
     // Record API usage
-    await recordApiUsage('text-search');
+    runBestEffort(recordApiUsage('text-search'));
 
     // @ts-ignore - New API method not in @types yet
     const { places } = await Place.searchByText(request);
@@ -663,7 +671,7 @@ export async function searchByText(
     );
 
     // Cache in Supabase (30-day TTL)
-    await setCachedPlace(cacheKey, 'text-search', query, results, undefined, origin);
+    runBestEffort(setCachedPlace(cacheKey, 'text-search', query, results, undefined, origin));
 
     return results;
   } catch (error) {
@@ -699,15 +707,6 @@ export async function autocomplete(
   sessionToken: string,
   origin: SearchOrigin,
 ): Promise<ConvertedPrediction[]> {
-  await loadMaps();
-
-  // Check Supabase cache first (30-day TTL)
-  const cacheKey = generateCacheKey('autocomplete', input, origin);
-  const cached = await getCachedPlace<ConvertedPrediction[]>(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
   // Check client-side cache (1-hour TTL)
   const clientCacheKey = apiQuotaMonitor.generateCacheKey(`autocomplete:${input}`, origin);
   const clientCached = apiQuotaMonitor.getCachedResult(clientCacheKey);
@@ -725,6 +724,16 @@ export async function autocomplete(
     }
     // Note: OSM doesn't support autocomplete, so we return empty array
     return [];
+  }
+
+  await loadMaps();
+
+  // Check Supabase cache first (30-day TTL)
+  const cacheKey = generateCacheKey('autocomplete', input, origin);
+  const cached = await getCachedPlace<ConvertedPrediction[]>(cacheKey);
+  if (cached) {
+    apiQuotaMonitor.cacheResult(clientCacheKey, cached);
+    return cached;
   }
 
   const { AutocompleteSuggestion } = (await google.maps.importLibrary(
@@ -751,7 +760,7 @@ export async function autocomplete(
   try {
     // Record API request
     apiQuotaMonitor.recordRequest();
-    await recordApiUsage('autocomplete');
+    runBestEffort(recordApiUsage('autocomplete'));
 
     // Retry with exponential backoff
     const { suggestions } = await retryWithBackoff(async () => {
@@ -779,7 +788,7 @@ export async function autocomplete(
 
     // Cache results (both client-side and Supabase)
     apiQuotaMonitor.cacheResult(clientCacheKey, results);
-    await setCachedPlace(cacheKey, 'autocomplete', input, results, undefined, origin);
+    runBestEffort(setCachedPlace(cacheKey, 'autocomplete', input, results, undefined, origin));
 
     return results;
   } catch (error) {
@@ -825,7 +834,7 @@ export async function fetchPlaceDetails(
 
   try {
     // Record API usage
-    await recordApiUsage('place-details');
+    runBestEffort(recordApiUsage('place-details'));
 
     // @ts-ignore - New API
     const place = new Place({
@@ -862,7 +871,7 @@ export async function fetchPlaceDetails(
     });
 
     // Cache in Supabase (30-day TTL)
-    await setCachedPlace(cacheKey, 'place-details', placeId, result, placeId);
+    runBestEffort(setCachedPlace(cacheKey, 'place-details', placeId, result, placeId));
 
     return result;
   } catch (error) {
@@ -932,7 +941,7 @@ export async function resolveQuery(
   try {
     // Record API request
     apiQuotaMonitor.recordRequest();
-    await recordApiUsage('text-search');
+    runBestEffort(recordApiUsage('text-search'));
 
     // PHASE D: 1) Try nearby search for proximity queries
     if (isProximityQuery(query) && origin) {
@@ -945,7 +954,9 @@ export async function resolveQuery(
         const result = nearbyPlaces[0];
         // Cache result (both client-side and Supabase)
         apiQuotaMonitor.cacheResult(clientCacheKey, result);
-        await setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin);
+        runBestEffort(
+          setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin),
+        );
         return result;
       }
     }
@@ -963,12 +974,14 @@ export async function resolveQuery(
       const result = enriched || places[0];
       // Cache result (both client-side and Supabase)
       apiQuotaMonitor.cacheResult(clientCacheKey, result);
-      await setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin);
+      runBestEffort(
+        setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin),
+      );
       return result;
     }
 
     // 3) Fallback to geocode for addresses
-    await recordApiUsage('geocode');
+    runBestEffort(recordApiUsage('geocode'));
     const geocoder = new google.maps.Geocoder();
 
     const result = await retryWithBackoff(async () => {
@@ -1000,7 +1013,9 @@ export async function resolveQuery(
     if (result) {
       // Cache result (both client-side and Supabase)
       apiQuotaMonitor.cacheResult(clientCacheKey, result);
-      await setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin);
+      runBestEffort(
+        setCachedPlace(cacheKey, 'text-search', query, result, result.place_id, origin),
+      );
       return result;
     }
   } catch (error) {
