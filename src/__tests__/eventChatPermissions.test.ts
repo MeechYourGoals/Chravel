@@ -41,4 +41,18 @@ describe('eventChatPermissions', () => {
     expect(attendeeCanPost).toBe(false);
     expect(adminCanPost).toBe(true);
   });
+
+  it('treats null chat_mode as open chat for non-event trips', () => {
+    expect(resolveEffectiveMainChatMode(null, 'consumer', 4)).toBe('everyone');
+
+    const memberCanPost = canPostInMainChat({
+      chatMode: null,
+      tripType: 'consumer',
+      attendeeCount: 4,
+      userRole: 'member',
+      isLoading: false,
+    });
+
+    expect(memberCanPost).toBe(true);
+  });
 });
