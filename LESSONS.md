@@ -49,6 +49,13 @@
 
 ## Recovery Tips
 
+### CI env validators should have deterministic non-secret fallbacks for public frontend keys
+- **Tip:** If CI validates required frontend env vars, workflow steps must pass either repository secrets/vars or deterministic fallback values for public keys (`VITE_*` publishable config). Otherwise all PRs can fail before tests/build, creating a repo-wide false-negative gate.
+- **Applies when:** GitHub Actions runs `validate-env` on `pull_request` and `push` workflows.
+- **Avoid when:** The variable is a true server secret (service role keys, API secrets); those should never be stubbed in CI logs.
+- **Evidence:** CI runs for PR #1008 and recent `main` pushes failed at `scripts/validate-env.ts --ci` with missing `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_GOOGLE_MAPS_API_KEY` because workflow env wiring supplied empty values.
+- **Provenance:** March 2026 CI hardening fix in `.github/workflows/ci.yml`.
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
