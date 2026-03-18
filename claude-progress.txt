@@ -25,6 +25,11 @@
 - Extended `OptimizedImage` with a safe `fallbackSrc` retry path (single fallback attempt) to preserve existing behavior while recovering broken remote sources.
 - Added unit test for fallback map coverage + unknown-id behavior.
 - Next follow-up: optionally migrate demo cover source-of-truth to local assets entirely to remove external dependency from demo mode.
+2026-03-17 — Demo cover fallback parity across card variants
+- Extended demo cover fallback behavior beyond TripCard to ProTripCard, EventCard, and MobileEventCard so all dashboard card variants recover from remote cover failures.
+- Added shared utility `buildCoverBackgroundImage` to provide CSS layered primary+fallback background image style with minimal component logic.
+- Added unit test coverage for layered cover style builder edge cases.
+- Next follow-up: evaluate replacing `(trip as any).coverPhoto` in ProTripCard with typed cover field once `ProTripData` is normalized.
 2026-03-17 — Chat send pipeline + link preview forensic fix
 - Root-caused web send failure to client-side OG fetch lock in ChatInput (`isFetchingPreview` gated both Enter and send-button flow).
 - Removed pre-send preview fetch from composer so message send is immediate/non-blocking; preserved single send path and send lock.
