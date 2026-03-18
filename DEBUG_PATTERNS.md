@@ -118,6 +118,29 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Provenance:** CLAUDE.md § Security Gate; historical regression reports
 - **Confidence:** high
 
+## Trip readable without active membership causes chat send failure
+- **Status:** fixed
+- **Subsystem:** trip access resolution / chat permissions
+- **Bug class:** authorization source-of-truth mismatch
+- **Symptom:** User can open trip detail and chat UI, but message sends fail (RLS permission denied) after approval/join state changes.
+- **User-facing impact:** “Chat is broken” in valid-looking trip screens; inconsistent access behavior between read and write flows.
+- **Trigger conditions:** Direct `trips` read succeeds while no active `trip_members` row exists for the user (stale/pending/former-member edge states).
+- **Likely root cause:** Client `getTripById` trusted trip-row readability as access truth; write path correctly enforced active membership via RLS.
+- **Root cause chain:**
+  - Immediate cause: Send fails on `trip_chat_messages` write policy.
+  - Proximate cause: User entered chat UI without active membership.
+  - Underlying cause: Trip read path and chat write path used different access criteria.
+- **How to reproduce:**
+  1. Arrange a user who can read a trip row but has no active `trip_members` row.
+  2. Open trip detail and try sending in chat.
+  3. Observe send failure despite trip UI loading.
+- **How to confirm:** Add service test where `trips` returns data, membership query returns null, and canonical `get-trip-detail` returns `ACCESS_DENIED`.
+- **Smallest safe fix:** In `tripService.getTripById`, require active membership check before trusting direct trip read; on missing/ambiguous membership, defer to canonical `get-trip-detail` edge function.
+- **Regression risks:** Pre-migration environments without `trip_members.status` column; solved with fallback membership query without status filter.
+- **Related files:** `src/services/tripService.ts`, `src/services/__tests__/tripService.getTripById.test.ts`
+- **Fixed in:** March 2026 bug-resolution automation
+- **Confidence:** high
+
 ## Demo mode data contamination
 - **Status:** confirmed
 - **Subsystem:** demo mode / data layer
