@@ -145,6 +145,11 @@
 - **Applies when:** Any chat surface supports URL previews.
 - **Evidence:** Main chat web send path was blocked by `isFetchingPreview` in `ChatInput`, causing Enter/button sends to appear nonfunctional for link messages.
 - **Provenance:** March 2026 chat send + unfurl forensic fix.
+### Timeout-bound non-critical reads in mutation paths
+- **Tip:** If a mutation performs a non-critical preflight read (for hints/warnings only), wrap it in a short timeout and degrade gracefully. Optional reads should never block core writes.
+- **Applies when:** Create/update flows that fetch advisory data (conflicts, previews, analytics context) before write calls.
+- **Evidence:** Calendar event creation could sit on `Saving...` for minutes because conflict detection awaited a full `getTripEvents()` read before insert. Adding a short timeout fallback preserved conflict hints when fast and unblocked writes when slow.
+- **Provenance:** March 2026 calendar create-event latency fix.
 ### Remove visual effects at the trigger class, not with clipping overrides
 - **Tip:** When a conditional animation class is the sole activation path for a decorative effect, remove the class usage in the component and delete the paired keyframes/utilities instead of masking with `overflow-hidden`/z-index patches.
 - **Applies when:** UI regressions from over-scoped pseudo-element effects tied to active/listening states.
