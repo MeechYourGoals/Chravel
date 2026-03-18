@@ -83,9 +83,9 @@ class CalendarOfflineQueue {
    * Get failed operations
    */
   async getFailedOperations(tripId?: string): Promise<QueuedCalendarOperation[]> {
-    const filters: { status: string; entityType: string; tripId?: string } = {
-      status: 'failed',
-      entityType: 'calendar_event',
+    const filters: { status: 'failed' | 'pending' | 'syncing'; entityType: 'calendar_event'; tripId?: string } = {
+      status: 'failed' as const,
+      entityType: 'calendar_event' as const,
     };
     if (tripId) {
       filters.tripId = tripId;

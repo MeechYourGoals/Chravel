@@ -847,7 +847,7 @@ export const calendarService = {
     Promise.all(
       events.map(event =>
         offlineSyncService
-          .cacheEntity('calendar_event', event.id, event.trip_id, event, event.version || 1)
+          .cacheEntity('calendar_event', event.id, event.trip_id, event as unknown as Record<string, unknown>, event.version || 1)
           .catch(() => {}),
       ),
     ).catch(() => {});
