@@ -466,7 +466,54 @@ export const tripService = {
     }
 
     if (data) {
-      return data;
+      const authUser = await getCachedAuthUser();
+
+      // If auth state is ambiguous, defer to canonical server-side access check.
+      if (!authUser?.id) {
+        return await fetchTripByIdViaEdgeFunction(tripId);
+      }
+
+      const activeMembershipCheck = await supabase
+        .from('trip_members')
+        .select('id')
+        .eq('trip_id', tripId)
+        .eq('user_id', authUser.id)
+        .or('status.is.null,status.eq.active')
+        .maybeSingle();
+
+      if (activeMembershipCheck.error) {
+        const statusColumnError =
+          activeMembershipCheck.error.message?.toLowerCase().includes('status') ||
+          activeMembershipCheck.error.message?.toLowerCase().includes('does not exist');
+
+        if (!statusColumnError) {
+          return await fetchTripByIdViaEdgeFunction(tripId);
+        }
+
+        // Some environments may still be pre-status migration: retry without status filter.
+        const fallbackMembershipCheck = await supabase
+          .from('trip_members')
+          .select('id')
+          .eq('trip_id', tripId)
+          .eq('user_id', authUser.id)
+          .maybeSingle();
+
+        if (fallbackMembershipCheck.error) {
+          return await fetchTripByIdViaEdgeFunction(tripId);
+        }
+
+        if (fallbackMembershipCheck.data) {
+          return data;
+        }
+
+        return await fetchTripByIdViaEdgeFunction(tripId);
+      }
+
+      if (activeMembershipCheck.data) {
+        return data;
+      }
+
+      return await fetchTripByIdViaEdgeFunction(tripId);
     }
 
     // No error but no data could be RLS filtering; fall back to server-side access check
