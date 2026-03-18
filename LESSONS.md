@@ -59,6 +59,14 @@
 
 ## Optimization Tips
 
+### Prefetches only pay off when cache keys and fetchers exactly match the consuming hook
+- **Tip:** Treat prefetching as a cache-seeding contract, not just a “start this request early” hint. If the prefetch uses a different query key shape (for example, omitting auth/user scope or dynamic suffixes) or a different fetcher/response shape than the route hook, the user still sees a cold load even though the network work already happened.
+- **Applies when:** TanStack Query route prefetch, hover/focus warmups, tab preloading, card-to-detail transitions
+- **Avoid when:** Data is intentionally cached under a different key for a different surface
+- **Evidence:** `usePrefetchTrip` was warming `tripKeys.detail(tripId)` and raw member arrays while `useTripDetailData` consumed `['trip', tripId, authUserId]` and `['trip-members', tripId, demoAddedMembersCount]` with `getTripMembersWithCreator`, reducing prefetch hit rate on trip open.
+- **Provenance:** Weekly performance audit, March 2026
+- **Confidence:** high
+
 ### useEffect dependencies on array state cause O(N) re-execution storms
 - **Tip:** When a useEffect depends on a TanStack Query array (like `liveMessages`), it fires on every cache update. If the effect does work proportional to array length (fetching reactions for all messages, marking all as read), it creates O(N) work on every INSERT. Use a ref to track what's already been processed and only handle new items.
 - **Applies when:** Any useEffect that processes a growing array of messages, notifications, or list items

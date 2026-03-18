@@ -89,3 +89,12 @@
 - **Suggested tests:** Scheduled staging drills that (1) inject provider outage, (2) force queue saturation, (3) execute restore rehearsal and verify Tier-0 journeys.
 - **Priority:** high
 - **Provenance:** March 2026 reliability constitution audit
+
+## Pro/Event trip direct-load performance guard
+- **Area:** `src/pages/ProTripDetailDesktop.tsx`, `src/pages/MobileProTripDetail.tsx`, `src/pages/EventDetail.tsx`, `src/pages/MobileEventDetail.tsx`
+- **Why this gap matters:** Direct opens of a single Pro/Event trip should not depend on fetching the user’s entire trip list first.
+- **Missing coverage:** No regression test asserting detail routes use a trip-id-scoped fetch path instead of `useTrips()` + local `find()`.
+- **Failure mode if untested:** Large-account users see slower deep links and route loads degrade linearly with trip count.
+- **Suggested tests:** Route-level integration test that opens a Pro/Event detail page and asserts only a detail query is fired for the requested trip id, not a full trip-list fetch.
+- **Priority:** high
+- **Provenance:** Weekly performance audit, March 2026

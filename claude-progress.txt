@@ -52,3 +52,8 @@
 - Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
 - Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
 - Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
+2026-03-18 — Weekly performance audit + low-risk responsiveness fixes
+- Audited trip detail routing, tab switching, mutation confidence UX, heavy flows, and platform latency signals across frontend, Supabase, hosting, Google APIs, media, and AI concierge paths.
+- Implemented four low-risk wins: aligned `usePrefetchTrip` cache keys with `useTripDetailData`, removed an extra startup `supabase.auth.getUser()` round-trip by syncing error tracking from `useAuth`, made Google Places usage/cache writes best-effort instead of blocking response delivery, and surfaced AI `trip_pending_actions` inline in `AIConciergeChat`.
+- Added regression tests `src/hooks/usePrefetchTrip.test.tsx` and `src/features/chat/components/PendingActionCard.test.tsx`; validated with targeted tests plus `npm run lint && npm run typecheck && npm run build`.
+- Next follow-up: replace Pro/Event detail `useTrips()` overfetch with trip-id detail queries, reduce media signed-URL fanout and upload confirmation delays, and measure auth/health-check request churn on resume.
