@@ -8,6 +8,9 @@ export interface ExportEvent {
   id: string;
   title: string;
   date: Date;
+  endDate?: Date;
+  isAllDay?: boolean;
+  recurrenceRule?: string;
   location?: string;
   description?: string;
 }
@@ -23,6 +26,9 @@ export function useCalendarExport(tripId: string) {
         id: e.id,
         title: e.title,
         date: e.date instanceof Date ? e.date : new Date(e.date),
+        endDate: e.endDate,
+        isAllDay: e.isAllDay,
+        recurrenceRule: e.recurrenceRule,
         location: e.location || '',
         description: e.description || '',
       }));
@@ -46,6 +52,8 @@ export function useCalendarExport(tripId: string) {
         id: e.id,
         title: e.title,
         date: new Date(e.start_time),
+        endDate: e.end_time ? new Date(e.end_time) : undefined,
+        isAllDay: e.is_all_day,
         location: e.location || undefined,
         description: e.description || undefined,
       }));

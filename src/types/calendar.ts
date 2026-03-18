@@ -18,7 +18,16 @@ export type CalendarEventCategory =
 /**
  * Source type for calendar events — how the event was created.
  */
-export type CalendarSourceType = 'manual' | 'ai_extracted' | 'places_tab' | 'bulk_import';
+export type CalendarSourceType =
+  | 'manual'
+  | 'ai_extracted'
+  | 'places_tab'
+  | 'bulk_import'
+  | 'ai_concierge'
+  | 'voice_concierge'
+  | 'gmail_import'
+  | 'ai_concierge_import'
+  | 'demo';
 
 /**
  * Availability status for busy/free time blocking.
