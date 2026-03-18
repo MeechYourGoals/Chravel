@@ -868,7 +868,7 @@ export const calendarService = {
     )
       .then(({ data }) => {
         if (data && data.length > 0) {
-          this.cacheEventsInBackground(data);
+          this.cacheEventsInBackground(data as unknown as TripEvent[]);
         }
       })
       .catch(() => {});
