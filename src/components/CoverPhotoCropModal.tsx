@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, Check, X } from 'lucide-react';
 import { smartCropService } from '@/services/smartCropService';
+import { toScaledSourceCropRect } from '@/utils/coverCropMath';
 
 interface CoverPhotoCropModalProps {
   isOpen: boolean;
@@ -34,6 +35,16 @@ export const CoverPhotoCropModal = ({
   );
   const imgRef = useRef<HTMLImageElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const hasValidCrop = (value?: Crop): value is Crop & Required<Pick<Crop, 'x' | 'y' | 'width' | 'height'>> => {
+    return Boolean(
+      value &&
+        typeof value.x === 'number' &&
+        typeof value.y === 'number' &&
+        typeof value.width === 'number' &&
+        typeof value.height === 'number',
+    );
+  };
 
   const onImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -67,19 +78,24 @@ export const CoverPhotoCropModal = ({
   );
 
   const updatePreview = useCallback(() => {
-    if (!completedCrop || !imgRef.current || !previewCanvasRef.current) return;
+    if (!hasValidCrop(completedCrop) || !imgRef.current || !previewCanvasRef.current) return;
 
     const image = imgRef.current;
     const canvas = previewCanvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const pixelCrop = {
-      x: (completedCrop.x / 100) * image.naturalWidth,
-      y: (completedCrop.y / 100) * image.naturalHeight,
-      width: (completedCrop.width / 100) * image.naturalWidth,
-      height: (completedCrop.height / 100) * image.naturalHeight,
-    };
+    const sourceCrop = toScaledSourceCropRect({
+      crop: {
+        x: completedCrop.x,
+        y: completedCrop.y,
+        width: completedCrop.width,
+        height: completedCrop.height,
+      },
+      naturalWidth: image.naturalWidth,
+      naturalHeight: image.naturalHeight,
+      scale,
+    });
 
     // Dynamic preview size based on aspect ratio
     const previewWidth = 600;
@@ -87,13 +103,14 @@ export const CoverPhotoCropModal = ({
 
     canvas.width = previewWidth;
     canvas.height = previewHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.drawImage(
       image,
-      pixelCrop.x / scale,
-      pixelCrop.y / scale,
-      pixelCrop.width / scale,
-      pixelCrop.height / scale,
+      sourceCrop.x,
+      sourceCrop.y,
+      sourceCrop.width,
+      sourceCrop.height,
       0,
       0,
       canvas.width,
@@ -106,7 +123,7 @@ export const CoverPhotoCropModal = ({
   }, [updatePreview]);
 
   const handleSave = async () => {
-    if (!completedCrop || !imgRef.current) return;
+    if (!hasValidCrop(completedCrop) || !imgRef.current) return;
 
     setIsProcessing(true);
 
@@ -116,12 +133,17 @@ export const CoverPhotoCropModal = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('No canvas context');
 
-      const pixelCrop = {
-        x: (completedCrop.x / 100) * image.naturalWidth,
-        y: (completedCrop.y / 100) * image.naturalHeight,
-        width: (completedCrop.width / 100) * image.naturalWidth,
-        height: (completedCrop.height / 100) * image.naturalHeight,
-      };
+      const sourceCrop = toScaledSourceCropRect({
+        crop: {
+          x: completedCrop.x,
+          y: completedCrop.y,
+          width: completedCrop.width,
+          height: completedCrop.height,
+        },
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+        scale,
+      });
 
       // Dynamic output size based on aspect ratio (maintain 1200px width)
       const outputWidth = 1200;
@@ -132,10 +154,10 @@ export const CoverPhotoCropModal = ({
 
       ctx.drawImage(
         image,
-        pixelCrop.x / scale,
-        pixelCrop.y / scale,
-        pixelCrop.width / scale,
-        pixelCrop.height / scale,
+        sourceCrop.x,
+        sourceCrop.y,
+        sourceCrop.width,
+        sourceCrop.height,
         0,
         0,
         canvas.width,
