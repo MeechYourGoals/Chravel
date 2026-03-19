@@ -183,3 +183,26 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Trip detail read/write auth divergence (readable trip row, blocked chat writes)
+- **Status:** fixed
+- **Subsystem:** trip loading / chat permissions
+- **Bug class:** authorization contract mismatch
+- **Symptom:** User can open trip detail/chat UI but cannot send messages after approval or membership-state transitions
+- **User-facing impact:** Composer appears available but send fails under RLS, creating "chat is broken" reports
+- **Trigger conditions:** `tripService.getTripById` returns a trip from direct `trips` read while user lacks an active `trip_members` row
+- **Likely root cause:** Trip detail path trusts row readability as access truth; chat write path correctly enforces active membership via RLS
+- **Root cause chain:**
+  - Immediate cause: send mutation denied by RLS
+  - Proximate cause: detail fetch admits users without active membership
+  - Underlying cause: read path and write path use different authorization criteria
+- **How to reproduce:**
+  1. Make a trip row readable to a user without an active membership row (stale/pending/former-member state)
+  2. Open trip detail/chat
+  3. Attempt to send a message
+- **How to confirm:** Validate `getTripById` query path does not check active `trip_members` membership before returning direct trip read
+- **Smallest safe fix:** Require active membership check before trusting direct trip read; if missing/ambiguous, defer to canonical `get-trip-detail` edge function
+- **Regression risks:** False denies in pre-migration environments where `trip_members.status` is absent; must include fallback query without status filter
+- **Related files:** `src/services/tripService.ts`, `src/services/__tests__/tripService.getTripById.test.ts`
+- **Fixed in:** March 2026 Slack bug-thread remediation
+- **Confidence:** high
