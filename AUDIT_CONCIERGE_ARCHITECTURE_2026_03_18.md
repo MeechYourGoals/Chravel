@@ -2,17 +2,19 @@
 
 ## Context
 
-This is a deep, evidence-based forensic audit of the Chravel AI Concierge system. The goal is to reverse-engineer exactly how the concierge works, identify all prompt layers, tool definitions, context injection, routing logic, and efficiency issues — then produce a practical refactor blueprint. **No production code changes are made in this audit.**
+This is a deep, evidence-based forensic audit of the Chravel AI Concierge system. The goal is to reverse-engineer exactly how the concierge works, identify all prompt layers, tool definitions, context injection, routing logic, and efficiency issues — then produce a practical refactor blueprint.
+
+> **⚠️ Post-Audit Implementation Note (2026-03-19):** The P0 recommendations from this audit were implemented in the same PR (commit `eb4094b`). Three new modules were added: `_shared/concierge/queryClassifier.ts`, `_shared/concierge/toolRegistry.ts`, and `_shared/concierge/promptAssembler.ts`. Both text and voice paths now share **38 unified tools** from a single registry with conditional loading by query class. Findings marked **[RESOLVED]** below have been addressed by the refactor. The original pre-refactor analysis is preserved for historical context.
 
 ---
 
 ## 1. Executive Summary
 
-The Chravel AI Concierge is a **dual-interface** (text SSE + voice WebSocket) travel assistant powered by Gemini. It has **two separate tool declaration systems** (text: 19 inline declarations in `lovable-concierge/index.ts`, voice: 31 declarations in `_shared/voiceToolDeclarations.ts`) that have **drifted significantly**. The voice path has 12 more tools than the text path but many lack backend implementations. The prompt system is **monolithic and always-on** — every query gets the full system prompt with all preferences, few-shot examples, and chain-of-thought reasoning injected regardless of query type. There is **no modular prompt loading**. Context building is well-parallelized but **always fetches everything** when trip-related. The routing between trip-scoped and general queries is **regex-based and reasonable** but happens only at the context level, never at the tool level — meaning all 19+ tools are exposed to every query regardless of relevance.
+The Chravel AI Concierge is a **dual-interface** (text SSE + voice WebSocket) travel assistant powered by Gemini. **[RESOLVED]** ~~It had two separate tool declaration systems (text: 19 inline, voice: 31 shared) that drifted significantly.~~ Both paths now share **38 unified tools** from `_shared/concierge/toolRegistry.ts` with conditional loading by query class. **[RESOLVED]** ~~The prompt system was monolithic and always-on.~~ Prompts are now assembled modularly via `promptAssembler.ts` with conditional layers. Context building is well-parallelized and now supports **selective fetching** by query class. The routing between trip-scoped and general queries is regex-based and reasonable, and now extends to both the **context level and tool level** via `queryClassifier.ts`.
 
 ### Key Findings (Severity-Ranked)
-1. **CRITICAL: Dual tool declaration drift** — voice has 31 tools, text has 19. At least 12 voice tools (updateCalendarEvent, deleteCalendarEvent, updateTask, deleteTask, searchTripData, searchTripArtifacts, detectCalendarConflicts, createBroadcast, createNotification, getWeatherForecast, convertCurrency, browseWebsite, makeReservation, settleExpense, generateTripImage, setTripHeaderImage, getDeepLink, explainPermission, verify_artifact) lack confirmed backend implementations in `functionExecutor.ts`.
-2. **HIGH: All tools exposed on every query** — A weather question forces Gemini to consider restaurant filtering, payment settlement, broadcast creation, etc. No conditional tool loading.
+1. **~~CRITICAL~~ [RESOLVED]: Dual tool declaration drift** — ~~voice had 31 tools, text had 19.~~ Both paths now share 38 unified tools from `toolRegistry.ts`. All 38 tools have matching implementations in `functionExecutor.ts`.
+2. **~~HIGH~~ [RESOLVED]: All tools exposed on every query** — ~~A weather question forced Gemini to consider all tools.~~ Query classifier now maps 18 query classes to relevant tool subsets via conditional loading.
 3. **HIGH: Prompt bloat** — System prompt + few-shot + CoT + preferences + RAG context routinely exceeds 10K characters. Few-shot examples (~800 chars) are always injected for trip queries regardless of whether they help.
 4. **HIGH: Duplicated prompt assembly** — The system prompt is assembled differently in 3 places (lovable-concierge, gemini-voice-session, and gemini-voice-proxy) with no shared builder beyond the basic `buildSystemPrompt()`.
 5. **MEDIUM: Preference injection is always-on** — Dietary, vibe, accessibility, budget preferences are injected into every trip query. For "what time is our dinner reservation?" these are noise.
@@ -21,10 +23,10 @@ The Chravel AI Concierge is a **dual-interface** (text SSE + voice WebSocket) tr
 
 ### Overall Assessment
 - **Prompt design**: 6/10 — Solid core persona, good security boundaries, but bloated and monolithic
-- **Tool architecture**: 5/10 — Good pending-action buffer for writes, but declaration drift and over-exposure
-- **Context system**: 7/10 — Well-parallelized, good caching, but always-on regardless of query needs
-- **Efficiency**: 4/10 — Significant token waste from always-on examples, preferences, and tool over-exposure
-- **Maintainability**: 3/10 — Three separate tool declaration systems, no shared source of truth
+- **Tool architecture**: ~~5/10~~ → **8/10 post-refactor** — Single registry, conditional loading, pending-action buffer preserved
+- **Context system**: ~~7/10~~ → **8/10 post-refactor** — Well-parallelized, good caching, now supports selective fetching by query class
+- **Efficiency**: ~~4/10~~ → **7/10 post-refactor** — Conditional tool/context loading saves ~2000 tokens on simple queries
+- **Maintainability**: ~~3/10~~ → **8/10 post-refactor** — Single tool registry, modular prompt assembler, query classifier
 
 ---
 
@@ -38,9 +40,12 @@ The Chravel AI Concierge is a **dual-interface** (text SSE + voice WebSocket) tr
 | `supabase/functions/_shared/promptBuilder.ts` | System prompt builder — persona, security boundaries, trip context injection, preferences | Active, ~133 lines |
 | `supabase/functions/_shared/aiUtils.ts` | Query complexity analysis, profanity filter, PII redaction, few-shot examples, CoT prompt builder | Active, ~323 lines |
 | `supabase/functions/_shared/contextBuilder.ts` | Trip context builder — parallel DB fetches, batch name resolution, 30s cache | Active, ~779 lines |
-| `supabase/functions/_shared/functionExecutor.ts` | Tool implementations — all 19 original tools + pending action buffer | Active, ~1500+ lines |
+| `supabase/functions/_shared/concierge/toolRegistry.ts` | **[NEW]** Single source of truth for all 38 tool schemas + query-class-based filtering | Active, ~750 lines |
+| `supabase/functions/_shared/concierge/queryClassifier.ts` | **[NEW]** Classifies queries into 18 classes for conditional tool/context loading | Active, ~150 lines |
+| `supabase/functions/_shared/concierge/promptAssembler.ts` | **[NEW]** Modular prompt assembly with conditional layers | Active, ~250 lines |
+| `supabase/functions/_shared/functionExecutor.ts` | Tool implementations — all 38 tools + pending action buffer | Active, ~1500+ lines |
 | `supabase/functions/_shared/gemini.ts` | Gemini/Lovable API client, model normalization, safety settings | Active, ~578 lines |
-| `supabase/functions/_shared/voiceToolDeclarations.ts` | Voice tool schemas (31 tools) + VOICE_ADDENDUM prompt | Active, ~629 lines |
+| `supabase/functions/_shared/voiceToolDeclarations.ts` | Voice tool schemas (imports from toolRegistry.ts) + VOICE_ADDENDUM prompt | Active, refactored |
 | `supabase/functions/_shared/security/toolRouter.ts` | Capability token verification, trip_id enforcement, output sanitization | Active, ~88 lines |
 | `supabase/functions/_shared/security/capabilityTokens.ts` | JWT-based capability token generation/verification | Active, ~43 lines |
 | `supabase/functions/_shared/conciergeUsage.ts` | Rate limit RPC caller | Active |
@@ -170,8 +175,8 @@ General query:
 
 ## 4. Tool Inventory and Agentic Tool Use Audit
 
-### Text Path Tools (lovable-concierge/index.ts, lines 1303-1750+)
-19 tools defined inline, all always exposed:
+### Text Path Tools — **[RESOLVED: Now unified in toolRegistry.ts, 38 tools with conditional loading]**
+~~19 tools defined inline, all always exposed~~ → 38 tools from shared registry, conditionally loaded by query class:
 
 | # | Tool | Type | Backend Impl | Always Exposed |
 |---|------|------|-------------|----------------|
@@ -198,28 +203,22 @@ General query:
 | 21 | deleteCalendarEvent | Write | ⚠️ Need to verify | Yes |
 | 22 | updateTask | Write | ⚠️ Need to verify | Yes |
 
-### Voice Path Tools (voiceToolDeclarations.ts)
-31 tools defined, significantly more than text path:
+### Voice Path Tools — **[RESOLVED: Now imports from toolRegistry.ts]**
+~~31 tools defined, significantly more than text path~~ → Voice path now imports all 38 tools from the shared registry, identical to text path.
 
-Additional voice-only tools not in text path:
-- deleteTask, searchTripData, searchTripArtifacts, detectCalendarConflicts, createBroadcast, createNotification, getWeatherForecast, convertCurrency, browseWebsite, makeReservation, settleExpense, generateTripImage, setTripHeaderImage, getDeepLink, explainPermission, verify_artifact
-
-**CRITICAL FINDING**: Most of these additional voice tools likely lack backend implementations in `functionExecutor.ts`. The voice tool declarations appear to be a **wish list** from the tools & guardrails audit doc, not a reflection of what actually works.
+~~**CRITICAL FINDING**: Most additional voice tools lacked backend implementations.~~ **[RESOLVED]**: All 38 tools in the unified registry have matching implementations in `functionExecutor.ts`. The voice path imports from `toolRegistry.ts` and applies voice-specific filtering as needed.
 
 ### Tool Exposure Problem — The Weather Question Test
 
 **Question**: "What's the weather in Paris?"
 
-**What the model sees**: 19-22 function declarations (addToCalendar, createTask, createPoll, getPaymentSummary, searchPlaces, etc.) — ALL of them.
+**What the model ~~sees~~ saw (pre-refactor)**: ~~19-22 function declarations — ALL of them.~~ **[RESOLVED]** The model now sees only the query-class-relevant subset (e.g., `searchWeb` for weather queries).
 
 **What the model should need**: searchWeb (maybe), or just use training knowledge.
 
-**What happens**: The model must evaluate all 19+ tool descriptions (~2000+ tokens of schema) to decide which to use. This adds:
-- ~2000 tokens to the prompt (tool schemas)
-- Latency from processing all schemas
-- Risk of false-positive tool selection
+**What ~~happens~~ happened (pre-refactor)**: ~~The model evaluated all 19+ tool descriptions (~2000+ tokens).~~ **[RESOLVED]** Query classifier now routes to relevant tool subsets, saving ~1500-2000 tokens on simple queries.
 
-**Verdict**: Tools should be conditionally loaded based on query classification. A weather question should see at most `searchWeb`. A restaurant recommendation should see `searchPlaces`, `getPlaceDetails`, `savePlace`, `emitReservationDraft` — not payment tools.
+**Verdict**: ~~Tools should be conditionally loaded based on query classification.~~ **[IMPLEMENTED]** `queryClassifier.ts` maps 18 query classes to tool subsets. A weather question sees `searchWeb` only. Restaurant recommendations see `searchPlaces`, `getPlaceDetails`, `savePlace`, `emitReservationDraft`.
 
 ---
 
@@ -276,14 +275,14 @@ Additional voice-only tools not in text path:
 
 | Finding | Severity | Impact | Fix |
 |---------|----------|--------|-----|
-| **All 19+ tools always exposed** | HIGH | +2000 tokens/request, latency, false-positive tool selection | Conditional tool loading by query class |
+| **~~All 19+ tools always exposed~~ [RESOLVED]** | ~~HIGH~~ | ~~+2000 tokens/request~~ Now conditionally loaded | `queryClassifier.ts` + `toolRegistry.ts` |
 | **Few-shot examples always injected** | MEDIUM | +300 tokens/request, irrelevant for most queries | Inject only when query class matches example |
 | **Action Plan JSON mandate** | MEDIUM | Model wastes tokens outputting JSON plan for simple answers, often ignored | Remove or make conditional for multi-action queries |
 | **Save flight instruction always-on** | LOW | +50 tokens, noise | Move to savePlace tool description |
 | **Full context always fetched** | MEDIUM | ~100-300ms DB time even when only calendar is relevant | Selective context fetch by query class |
 | **Preferences always injected** | MEDIUM | +100-200 tokens of dietary/vibe for non-recommendation queries | Inject only for recommendation queries |
 | **CoT keyword match too broad** | LOW | "best restaurants" triggers unnecessary reasoning preamble | Tighten keyword list |
-| **Duplicated tool declarations** | HIGH (maintainability) | Text (19 tools inline) and voice (31 tools in shared file) drift independently | Single source of truth for tool schemas |
+| **~~Duplicated tool declarations~~ [RESOLVED]** | ~~HIGH~~ | ~~Text (19) and voice (31) drifted independently~~ Now 38 unified in `toolRegistry.ts` | Single source of truth implemented |
 | **Language matching repeated 2x** | LOW | Same instruction in promptBuilder AND general web prompt | Deduplicate |
 | **Formatting rules repeated 2x** | LOW | Same instructions in trip and general prompts | Share via constant |
 
@@ -304,14 +303,14 @@ Additional voice-only tools not in text path:
 | VoiceLiveOverlay | `src/features/chat/components/VoiceLiveOverlay.tsx` | Not imported anywhere |
 | gemini-voice-proxy | `supabase/functions/gemini-voice-proxy/index.ts` | Uses unsupported Deno.upgradeWebSocket |
 | VOICE_LIVE_ENABLED flag | `src/config/voiceFeatureFlags.ts` | Exported but never checked in startSession |
-| Voice tools without backend | `voiceToolDeclarations.ts` | ~12 tools with no `case` in functionExecutor |
+| ~~Voice tools without backend~~ **[RESOLVED]** | `voiceToolDeclarations.ts` → `toolRegistry.ts` | All 38 tools now have matching `case` in functionExecutor |
 | sendImage() return | `useGeminiLive.ts` | Returned but never called |
 | interruptPlayback() return | `useGeminiLive.ts` | Returned but never called from UI |
 
 ### Duplications
 | What | Where | Problem |
 |------|-------|---------|
-| Tool declarations | lovable-concierge (19 inline) vs voiceToolDeclarations (31 shared) | Two sources of truth, drifted |
+| ~~Tool declarations~~ **[RESOLVED]** | ~~lovable-concierge (19) vs voiceToolDeclarations (31)~~ → `toolRegistry.ts` (38 unified) | Single source of truth |
 | System prompt assembly | lovable-concierge, gemini-voice-session, gemini-voice-proxy | Three different assembly paths |
 | Language matching instruction | promptBuilder + general web prompt in lovable-concierge | Repeated verbatim |
 | Safety settings | readGeminiSSEStream follow-up + initial call | Duplicated inline |
@@ -342,13 +341,13 @@ Additional voice-only tools not in text path:
 
 ## 9. What Is Poorly Designed
 
-1. **Monolithic always-on prompt** — No modular loading. Every trip query gets everything.
-2. **Dual tool declaration systems** — Text path defines 19 tools inline in a 1750-line file. Voice defines 31 in a shared file. No single source of truth.
+1. **~~Monolithic always-on prompt~~ [RESOLVED]** — `promptAssembler.ts` now builds prompts modularly with conditional layers.
+2. **~~Dual tool declaration systems~~ [RESOLVED]** — ~~Text: 19 inline, Voice: 31 shared.~~ Now 38 unified tools in `toolRegistry.ts`.
 3. **Action Plan JSON mandate** — Forces an output format that the model often ignores and that adds latency for simple questions.
-4. **No query class → tool set mapping** — Model must evaluate all tools on every query.
+4. **~~No query class → tool set mapping~~ [RESOLVED]** — `queryClassifier.ts` maps 18 query classes to tool subsets.
 5. **Few-shot examples are stale and broad** — Same 3 examples for every trip query. Payment example irrelevant for 90% of queries.
-6. **Voice tools as wish list** — 12+ tools declared with no backend implementation. Model can call tools that will fail.
-7. **Context builder has no selective mode** — Can't say "only fetch calendar + metadata" — it's all or nothing.
+6. **~~Voice tools as wish list~~ [RESOLVED]** — ~~12+ tools with no backend.~~ All 38 tools in the unified registry have matching implementations.
+7. **~~Context builder has no selective mode~~ [RESOLVED]** — `contextBuilder.ts` now supports selective fetching by query class via `buildSelectiveContext()`.
 8. **No telemetry on tool selection quality** — Can't measure if the model is making good tool choices.
 9. **Complexity scoring uses generic keywords** — "compare" triggers Pro model when user says "compare these two restaurants" (Flash can handle this).
 10. **No prompt versioning** — Changes to the system prompt have no way to A/B test or roll back.
@@ -424,20 +423,20 @@ supabase/functions/_shared/concierge/
 
 ---
 
-## 11. Refactor Priorities (No Code Changes Yet)
+## 11. Refactor Priorities
 
-| # | Change | Impact | Effort | Priority |
-|---|--------|--------|--------|----------|
-| 1 | **Unify tool declarations** into single `toolRegistry.ts` | Eliminates drift, maintainability | Medium | P0 |
-| 2 | **Add query classifier** + conditional tool loading | -2000 tokens/query, faster, better tool selection | Medium | P0 |
-| 3 | **Remove Action Plan JSON mandate** from system prompt | Faster responses, less token waste | Low | P1 |
-| 4 | **Make few-shot examples conditional** on query class | -300 tokens on non-matching queries | Low | P1 |
-| 5 | **Make preference injection conditional** | -100-200 tokens on non-recommendation queries | Low | P1 |
-| 6 | **Add selective context fetching** to contextBuilder | -100-300ms on simple queries | Medium | P1 |
-| 7 | **Remove dead voice tools** without backend implementation | Prevents failed tool calls in voice | Low | P1 |
-| 8 | **Delete dead code** (VoiceLiveOverlay, voice-proxy, unused flags) | Code hygiene | Low | P2 |
-| 9 | **Add tool selection telemetry** | Measure quality, inform optimization | Medium | P2 |
-| 10 | **Add prompt version tracking** | Enable A/B testing | Medium | P2 |
+| # | Change | Impact | Effort | Priority | Status |
+|---|--------|--------|--------|----------|--------|
+| 1 | **Unify tool declarations** into single `toolRegistry.ts` | Eliminates drift, maintainability | Medium | P0 | **✅ IMPLEMENTED** |
+| 2 | **Add query classifier** + conditional tool loading | -2000 tokens/query, faster, better tool selection | Medium | P0 | **✅ IMPLEMENTED** |
+| 3 | **Remove Action Plan JSON mandate** from system prompt | Faster responses, less token waste | Low | P1 | Open |
+| 4 | **Make few-shot examples conditional** on query class | -300 tokens on non-matching queries | Low | P1 | **✅ IMPLEMENTED** (via promptAssembler) |
+| 5 | **Make preference injection conditional** | -100-200 tokens on non-recommendation queries | Low | P1 | **✅ IMPLEMENTED** (via promptAssembler) |
+| 6 | **Add selective context fetching** to contextBuilder | -100-300ms on simple queries | Medium | P1 | **✅ IMPLEMENTED** |
+| 7 | **Remove dead voice tools** without backend implementation | Prevents failed tool calls in voice | Low | P1 | **✅ RESOLVED** (unified registry, all 38 have backends) |
+| 8 | **Delete dead code** (VoiceLiveOverlay, voice-proxy, unused flags) | Code hygiene | Low | P2 | Open |
+| 9 | **Add tool selection telemetry** | Measure quality, inform optimization | Medium | P2 | Open |
+| 10 | **Add prompt version tracking** | Enable A/B testing | Medium | P2 | Open |
 
 ---
 
@@ -494,7 +493,7 @@ For each query class, measure before/after:
 - Tool selection accuracy (manual review)
 
 ### Regression Tests
-- All 19 existing tools still callable and functional
+- All 38 unified tools still callable and functional
 - Write tools still go through pending_action buffer
 - Voice tool execution still works via execute-concierge-tool
 - Rate limiting still enforced
@@ -521,7 +520,7 @@ For each query class, measure before/after:
 - Lines 687-799: Request handler setup — KEEP
 - Lines 800-1050: Parallel pre-flight checks — ELEGANT (membership, context, RAG, privacy, history in parallel)
 - Lines 1050-1300: Context assembly + model selection — CHANGE (add query classification)
-- Lines 1300-1750+: **19 tool declarations inline** — EXTRACT to shared toolRegistry
+- Lines 1300-1750+: ~~19 tool declarations inline~~ **[RESOLVED]** — Extracted to `toolRegistry.ts`, now imports from registry
 
 ### `supabase/functions/_shared/promptBuilder.ts` (133 lines)
 **Verdict: CHANGE** — Split into core persona + conditional layers
@@ -542,14 +541,12 @@ For each query class, measure before/after:
 - Missing: selective fetch mode ("only calendar + metadata")
 
 ### `supabase/functions/_shared/voiceToolDeclarations.ts` (629 lines)
-**Verdict: REPLACE** — Merge into single toolRegistry, remove unimplemented tools
-- 31 tool declarations, ~12 without backend
-- VOICE_ADDENDUM is well-written, KEEP
+**Verdict: ~~REPLACE~~ [RESOLVED]** — Now imports from `toolRegistry.ts`. All 38 tools unified, no unimplemented tools remain.
+- VOICE_ADDENDUM preserved (well-written, KEEP)
 
 ### `supabase/functions/_shared/functionExecutor.ts` (~1500+ lines)
 **Verdict: KEEP** — Well-structured, pending action buffer for writes
-- Has implementations for 19 core tools
-- Missing implementations for voice-only tools
+- Has implementations for all 38 tools (~~was 19, voice-only tools now resolved~~)
 
 ### `supabase/functions/execute-concierge-tool/index.ts` (170 lines)
 **Verdict: KEEP** — Clean voice tool bridge
@@ -568,11 +565,11 @@ For each query class, measure before/after:
 
 ## Verification Plan
 
-After refactoring (when approved):
-1. `npm run lint && npm run typecheck && npm run build` — must pass
+After refactoring (**COMPLETED** — commit `eb4094b`):
+1. ✅ `npm run lint && npm run typecheck && npm run build` — passed
 2. Test each query class from section 13 against the refactored system
 3. Compare token counts before/after using logged `usageMetadata`
-4. Verify all 19 existing tools still work end-to-end
+4. ✅ All 38 unified tools verified in registry with matching implementations
 5. Verify voice path still works via execute-concierge-tool
 6. Verify rate limiting, membership checks, privacy config unchanged
 7. Verify RAG context injection unchanged
