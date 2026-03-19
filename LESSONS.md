@@ -73,6 +73,14 @@
 - **Provenance:** March 2026 trip creation forensic fix.
 - **Confidence:** high
 
+### Secured Supabase storage buckets require signed URLs for client previews
+- **Tip:** When a storage bucket transitions from public read to RLS-protected read, any UI code still using `getPublicUrl()` will silently regress into broken images/files. Resolve previews via `createSignedUrl()` (or a shared resolver) at read time.
+- **Applies when:** Rendering files from `trip-media` (or any bucket with authenticated `SELECT` policies) in event tabs, galleries, chat attachments, or media cards.
+- **Avoid when:** The bucket is intentionally public and policy explicitly allows anonymous read for that path.
+- **Evidence:** Line-up file thumbnails showed broken image placeholders while metadata loaded correctly because `useEventLineupFiles` used public object URLs after `trip-media` hardening.
+- **Provenance:** March 2026 Line-up image loading bug fix.
+- **Confidence:** high
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
