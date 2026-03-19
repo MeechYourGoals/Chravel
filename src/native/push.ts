@@ -179,7 +179,7 @@ export function onNotificationReceived(
 
   const listener = PushNotifications.addListener('pushNotificationReceived', callback);
   return () => {
-    listener.then(l => l.remove()).catch(console.error);
+    listener.then(l => l.remove()).catch(() => {});
   };
 }
 
@@ -196,7 +196,7 @@ export function onNotificationActionPerformed(
 
   const listener = PushNotifications.addListener('pushNotificationActionPerformed', callback);
   return () => {
-    listener.then(l => l.remove()).catch(console.error);
+    listener.then(l => l.remove()).catch(() => {});
   };
 }
 
