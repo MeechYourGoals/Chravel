@@ -81,7 +81,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
       toast.success('Link copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      // Clipboard copy failed — user notified via toast
       toast.error('Failed to copy link');
     }
   };
@@ -97,7 +97,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
     } catch (error) {
       // User cancelled or error - silently ignore AbortError
       if ((error as Error).name !== 'AbortError') {
-        console.error('Share failed:', error);
+        // Native share failed — non-AbortError
       }
     } finally {
       setIsSharing(false);

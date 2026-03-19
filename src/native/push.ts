@@ -243,7 +243,9 @@ export async function getDeliveredNotifications(): Promise<PushNotificationSchem
     const result = await PushNotifications.getDeliveredNotifications();
     return result.notifications;
   } catch (error) {
-    console.error('[NativePush] Get delivered failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush get delivered failed
+    }
     return [];
   }
 }
@@ -257,6 +259,8 @@ export async function removeAllDeliveredNotifications(): Promise<void> {
   try {
     await PushNotifications.removeAllDeliveredNotifications();
   } catch (error) {
-    console.error('[NativePush] Remove delivered failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush remove delivered failed
+    }
   }
 }

@@ -75,7 +75,7 @@ export function handleNotificationNavigation(
   navigate: NavigateFn,
 ): void {
   const route = buildRouteFromPayload(payload);
-  console.log('[PushRouting] Navigating to:', route);
+  // Navigate to route from push notification tap
   navigate(route);
 }
 

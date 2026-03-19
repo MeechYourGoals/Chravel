@@ -207,15 +207,35 @@ export const Broadcasts = () => {
 
   const filteredBroadcasts = applyFilters(recentBroadcasts);
 
+  // Count scheduled (pending) broadcasts
+  const scheduledBroadcasts = isDemoMode
+    ? []
+    : dbBroadcasts.filter(
+        b => b.scheduled_for && !b.is_sent && new Date(b.scheduled_for) > new Date(),
+      );
+
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Radio size={24} className="text-blue-400" />
+        <Radio size={24} className="text-blue-400 flex-shrink-0" />
         <div>
           <h2 className="text-xl font-semibold text-white">Broadcasts</h2>
           <p className="text-slate-400 text-sm">Quick updates and alerts for the group</p>
         </div>
       </div>
+
+      {/* Scheduled broadcasts indicator */}
+      {scheduledBroadcasts.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg">
+          <div className="flex items-center gap-2 text-blue-400 text-sm">
+            <Clock size={14} />
+            <span>
+              {scheduledBroadcasts.length} scheduled broadcast
+              {scheduledBroadcasts.length > 1 ? 's' : ''} pending
+            </span>
+          </div>
+        </div>
+      )}
 
       <BroadcastComposer
         participants={participants}
