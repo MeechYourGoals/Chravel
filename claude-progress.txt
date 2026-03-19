@@ -52,3 +52,8 @@
 - Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
 - Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
 - Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
+2026-03-19 — CreateTripModal event-label regression coverage
+- Investigated PR #1011 scope (`Create New Trip` modal event-specific copy) and confirmed runtime behavior patch is present.
+- Added focused regression test `src/components/__tests__/CreateTripModal.test.tsx` asserting default trip copy and event-toggle copy (`Create New Event` + `Event Title`).
+- Validation passed: `npm run test:run -- src/components/__tests__/CreateTripModal.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build`.
+- Next follow-up: consider adding one additional assertion for event-specific placeholder copy if product copy requirements expand beyond labels.
