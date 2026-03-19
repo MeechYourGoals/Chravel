@@ -8,6 +8,7 @@ const MAX_LINEUP_FILES = 5;
 const MAX_FILE_SIZE_MB = 25;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const VALID_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 function getPrefix(eventId: string): string {
   return `${eventId}/lineup-files`;
@@ -54,11 +55,11 @@ export function useEventLineupFiles({ eventId, enabled = true }: UseEventLineupF
     let data: any[] | null = null;
     let error: any = null;
 
+    const mediaBucket = supabase.storage.from('trip-media');
+
     try {
       const result = await withTimeout(
-        supabase.storage
-          .from('trip-media')
-          .list(prefix, { sortBy: { column: 'created_at', order: 'asc' } }),
+        mediaBucket.list(prefix, { sortBy: { column: 'created_at', order: 'asc' } }),
         5000,
         'Lineup files request timed out',
       );
@@ -81,24 +82,38 @@ export function useEventLineupFiles({ eventId, enabled = true }: UseEventLineupF
       return;
     }
 
-    const mapped: AgendaFile[] = data
-      .filter(f => f.name !== '.emptyFolderPlaceholder')
-      .map(f => {
+    const mapped: AgendaFile[] = await Promise.all(
+      data.filter(f => f.name !== '.emptyFolderPlaceholder').map(async f => {
         const storagePath = `${prefix}/${f.name}`;
-        const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(storagePath);
+        let signedUrl: string | undefined;
+
+        try {
+          const { data: signedData, error: signedError } = await mediaBucket.createSignedUrl(
+            storagePath,
+            SIGNED_URL_TTL_SECONDS,
+          );
+          if (!signedError) {
+            signedUrl = signedData?.signedUrl;
+          }
+        } catch {
+          // Fallback to the legacy public URL in environments where signing fails.
+        }
+
+        const { data: urlData } = mediaBucket.getPublicUrl(storagePath);
 
         return {
           id: f.id ?? f.name,
           name: parseOriginalName(f.name),
           storagePath,
-          publicUrl: urlData.publicUrl,
+          publicUrl: signedUrl ?? urlData.publicUrl,
           mimeType:
             ((f.metadata as Record<string, unknown>)?.mimetype as string) ??
             'application/octet-stream',
           size: ((f.metadata as Record<string, unknown>)?.size as number) ?? 0,
           createdAt: f.created_at ?? '',
         };
-      });
+      }),
+    );
 
     setFiles(mapped);
     setIsLoading(false);
