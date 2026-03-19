@@ -78,3 +78,10 @@
 - Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
 - Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.
+2026-03-19 — Event line-up/agenda file access fix for private trip-media bucket
+- Investigated Slack-reported line-up save/view failure and confirmed production `storage.buckets.trip-media` is private (`public = false`) while event file hooks were still generating `getPublicUrl()` links.
+- Root cause: private bucket + public URL path mismatch caused hard 404 responses (`Bucket not found`) for uploaded line-up/agenda file previews/downloads.
+- Fix: updated `useEventLineupFiles` and `useEventAgendaFiles` to generate signed URLs via `createSignedUrl` (with fallback to public URL for compatibility), preserving existing UX while restoring access.
+- Added regression tests in `src/hooks/__tests__/useEventFileSignedUrls.test.tsx` to assert signed URL generation for both hooks.
+- Verification: `npm run lint && npm run typecheck && npm run build` and `npm run test -- --run src/hooks/__tests__/useEventFileSignedUrls.test.tsx` all pass.
+- Next follow-up: migrate AI file import parsers (`calendarImportParsers`, `agendaImportParsers`, `lineupImportParsers`) off `getPublicUrl` to signed URLs for full private-bucket parity.
