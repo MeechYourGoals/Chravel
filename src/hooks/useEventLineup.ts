@@ -308,43 +308,55 @@ export function useEventLineup({
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
 
-      let namesToInsert = normalized;
+      type ExistingRow = { id: string; name: string };
+      const { data: existingRows, error: existingError } = await supabase
+        .from('event_lineup_members')
+        .select('id, name')
+        .eq('event_id', eventId);
 
-      if (payload.mode === 'replace') {
+      if (existingError) throw existingError;
+
+      const existingByKey = new Map(
+        (existingRows || []).map((row: ExistingRow) => [
+          (row.name || '').trim().toLocaleLowerCase(),
+          row,
+        ]),
+      );
+      const incomingKeys = new Set(normalized.map(name => name.toLocaleLowerCase()));
+
+      // Safety invariant: in replace mode, never delete first.
+      // Insert missing rows before deleting stale rows to avoid destructive partial failures.
+      const namesToInsert = normalized.filter(name => !existingByKey.has(name.toLocaleLowerCase()));
+      const idsToDelete =
+        payload.mode === 'replace'
+          ? (existingRows || [])
+              .filter((row: ExistingRow) => !incomingKeys.has((row.name || '').toLocaleLowerCase()))
+              .map((row: ExistingRow) => row.id)
+          : [];
+
+      if (namesToInsert.length > 0) {
+        const rows = namesToInsert.map(name => ({
+          event_id: eventId,
+          name,
+          performer_type: 'speaker' as const,
+          created_by: userId || null,
+        }));
+
+        const { error: insertError } = await supabase.from('event_lineup_members').insert(rows);
+        if (insertError) throw insertError;
+      }
+
+      if (idsToDelete.length > 0) {
         const { error: deleteError } = await supabase
           .from('event_lineup_members')
           .delete()
-          .eq('event_id', eventId);
+          .eq('event_id', eventId)
+          .in('id', idsToDelete);
 
         if (deleteError) throw deleteError;
-      } else {
-        const { data: existingRows, error: existingError } = await supabase
-          .from('event_lineup_members')
-          .select('name')
-          .eq('event_id', eventId);
-
-        if (existingError) throw existingError;
-
-        type Row = { name: string };
-        const existing = new Set(
-          (existingRows || []).map((row: Row) => (row.name || '').toLocaleLowerCase()),
-        );
-        namesToInsert = normalized.filter(name => !existing.has(name.toLocaleLowerCase()));
       }
 
-      if (namesToInsert.length === 0) return 0;
-
-      const rows = namesToInsert.map(name => ({
-        event_id: eventId,
-        name,
-        performer_type: 'speaker' as const,
-        created_by: userId || null,
-      }));
-
-      const { error: insertError } = await supabase.from('event_lineup_members').insert(rows);
-      if (insertError) throw insertError;
-
-      return namesToInsert.length;
+      return payload.mode === 'replace' ? normalized.length : namesToInsert.length;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });

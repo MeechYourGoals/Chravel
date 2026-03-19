@@ -224,3 +224,21 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Replace-mode smart import can cause destructive partial writes
+- **Status:** fixed
+- **Subsystem:** events / lineup smart import
+- **Bug class:** partial persistence / data loss
+- **Symptom:** Organizer runs Line-up Smart Import in **replace** mode, import fails, and existing lineup appears wiped.
+- **User-facing impact:** Existing speaker/artist records can be deleted even though import reports failure.
+- **Trigger conditions:** `replace` mode path performs `delete(event_id)` before inserting new names; insert fails due transient network/RLS/constraint error.
+- **Likely root cause:** Non-transactional two-step mutation in client code with destructive step first.
+- **Root cause chain:**
+  - Immediate cause: Existing rows removed.
+  - Proximate cause: Insert request fails after delete request already committed.
+  - Underlying cause: Replace flow ordered as delete-then-insert in separate API calls.
+- **Smallest safe fix:** Fetch existing rows, insert missing incoming rows first, then delete stale rows. Never run destructive delete before insert in replace flows.
+- **Regression risks:** If post-insert delete fails, result is a temporary superset (safe) rather than data loss.
+- **Related files:** `src/hooks/useEventLineup.ts` (`importMembers` mutation)
+- **Fixed in:** March 2026 post-merge forensic review
+- **Confidence:** high
