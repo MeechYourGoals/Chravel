@@ -224,3 +224,16 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Cover photo crop output drift with zoom
+- **Status:** fixed
+- **Subsystem:** media / trip cover editing
+- **Bug class:** UI math / transform coordinate mismatch
+- **Symptom:** User adjusts crop in the cover-photo modal and saves, but resulting hero/card image appears shifted or zoomed differently than the selected crop box/preview.
+- **Trigger conditions:** Non-default zoom (`scale > 1`) in `CoverPhotoCropModal` with center-origin transform.
+- **Likely root cause:** Crop mapping used `pixelCrop / scale` only, but zoomed image used `transform-origin: center`, which requires offset compensation before scaling back into source coordinates.
+- **Smallest safe fix:** Convert percent crop to source coordinates with center offsets: `sourceX = (pixelX + ((scale - 1) * naturalWidth) / 2) / scale` and equivalent Y formula; reuse the same helper for both preview and final export.
+- **Regression risks:** Any future cropper that mixes CSS transforms with separate crop coordinate systems.
+- **Related files:** `src/components/CoverPhotoCropModal.tsx`, `src/utils/coverCropMath.ts`
+- **Fixed in:** March 2026 Slack bug report (event cover photo not reflecting expected crop)
+- **Confidence:** high
