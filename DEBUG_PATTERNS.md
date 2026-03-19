@@ -183,3 +183,16 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Trip creation leaks raw browser `TypeError` from edge-function fetch failures
+- **Status:** fixed
+- **Subsystem:** trip creation / edge functions
+- **Bug class:** error mapping / UX leakage
+- **Symptom:** UI surfaces low-level browser/network text like `Failed to fetch` when `create-trip` edge function is unreachable.
+- **Trigger conditions:** `supabase.functions.invoke('create-trip')` throws `FunctionsFetchError` where `error.context` is a `TypeError`, not an HTTP `Response`.
+- **Likely root cause:** Error parser treated any `error.context` as parseable payload and read `.message` from `TypeError`, leaking transport-layer wording to end users.
+- **Smallest safe fix:** Parse response body only when `error.context instanceof Response`; map `FunctionsFetchError` to a user-friendly network message.
+- **Required tests:** Regression tests covering both `FunctionsFetchError` and `FunctionsHttpError` response-body code mapping.
+- **Related files:** `src/services/tripService.ts`, `src/services/__tests__/tripService.createTripErrorHandling.test.ts`
+- **Fixed in:** March 2026 PR #1017 follow-up hardening
+- **Confidence:** high

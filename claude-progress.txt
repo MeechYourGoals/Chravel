@@ -1,4 +1,11 @@
 2026-03-15 — Data evolution constitution audit
+2026-03-19 — Trip creation edge-function error parsing regression coverage
+- Investigated PR #1016 bug surface where `create-trip` failures previously leaked raw browser `TypeError` text to users.
+- Added focused regression tests in `src/services/__tests__/tripService.createTripErrorHandling.test.ts` for:
+  - `FunctionsFetchError` (network/CORS/offline path) -> user-friendly message
+  - `FunctionsHttpError` with response-body upgrade code -> preserves product gating behavior
+- Validated with `npm run test:run -- src/services/__tests__/tripService.createTripErrorHandling.test.ts` plus full `npm run lint && npm run typecheck && npm run build`.
+2026-03-15 — Data evolution constitution audit
 - Completed exhaustive schema/migration/lifecycle audit and produced `docs/audits/data-evolution-constitution-2026-03-15.md`.
 - Added reusable learning entry to `LESSONS.md` (migration compatibility API mindset).
 - Added high-priority migration compatibility test gap to `TEST_GAPS.md`.
