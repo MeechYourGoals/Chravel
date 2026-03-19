@@ -90,7 +90,7 @@ export const ConsumerAIConciergeSection = () => {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <Sparkles size={24} className="text-yellow-400" />
+            <Sparkles size={24} className="text-gold-primary" />
             <h2 className="text-2xl font-bold text-white">Concierge Settings</h2>
           </div>
           <p className="text-gray-400">
@@ -112,10 +112,30 @@ export const ConsumerAIConciergeSection = () => {
           How Concierge Works
         </h3>
         <ul className="space-y-1.5 text-gray-300 text-sm">
-          <li>✨ Set your preferences below (dietary, vibe, budget, accessibility)</li>
-          <li>🤖 AI remembers them across ALL your trips</li>
-          <li>🎯 Get personalized suggestions filtered to YOUR needs</li>
-          <li>⚡ No need to repeat preferences for each trip</li>
+          <li className="flex items-start gap-2">
+            <span className="text-gold-primary leading-5" aria-hidden="true">
+              ✦
+            </span>
+            <span>Set your preferences below (dietary, vibe, budget, accessibility)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-gold-primary leading-5" aria-hidden="true">
+              ✦
+            </span>
+            <span>AI remembers them across ALL your trips</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-gold-primary leading-5" aria-hidden="true">
+              ✦
+            </span>
+            <span>Get personalized suggestions filtered to YOUR needs</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-gold-primary leading-5" aria-hidden="true">
+              ✦
+            </span>
+            <span>No need to repeat preferences for each trip</span>
+          </li>
         </ul>
       </div>
 

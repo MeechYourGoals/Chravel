@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, MapPin, Users, Eye, CheckCircle2 } from 'lucide-react';
+import { Clock, MapPin, Users, Eye, CheckCircle2, Link } from 'lucide-react';
 import { broadcastService } from '@/services/broadcastService';
+
+interface LinkPreview {
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  domain?: string;
+}
 
 interface BroadcastItemProps {
   id: string;
@@ -17,6 +25,7 @@ interface BroadcastItemProps {
   };
   userResponse?: 'coming' | 'wait' | 'cant';
   attachmentUrls?: string[];
+  linkPreview?: LinkPreview;
   readCount?: number;
   onRespond: (broadcastId: string, response: 'coming' | 'wait' | 'cant') => void;
 }
@@ -32,6 +41,7 @@ export const BroadcastItem = ({
   responses,
   userResponse,
   attachmentUrls = [],
+  linkPreview,
   readCount: initialReadCount,
   onRespond,
 }: BroadcastItemProps) => {
@@ -112,6 +122,42 @@ export const BroadcastItem = ({
 
       {/* Message */}
       <p className="text-white mb-3 leading-relaxed font-bold">{message}</p>
+
+      {/* Link preview */}
+      {linkPreview && (
+        <a
+          href={linkPreview.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-3 block bg-slate-900/70 border border-slate-600/60 hover:bg-slate-800/80 rounded-lg overflow-hidden transition-colors"
+        >
+          {linkPreview.image && (
+            <img
+              src={linkPreview.image}
+              alt={linkPreview.title || 'Link preview'}
+              className="w-full h-40 object-cover"
+            />
+          )}
+          <div className="p-3">
+            <div className="flex items-start gap-2">
+              <Link size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-white truncate">
+                  {linkPreview.title || linkPreview.domain || 'Link'}
+                </h4>
+                {linkPreview.description && (
+                  <p className="text-xs text-slate-300 mt-1 line-clamp-2">
+                    {linkPreview.description}
+                  </p>
+                )}
+                {linkPreview.domain && (
+                  <p className="text-xs text-slate-400 mt-1 truncate">{linkPreview.domain}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </a>
+      )}
 
       {/* Attachments */}
       {attachmentUrls && attachmentUrls.length > 0 && (

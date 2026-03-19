@@ -139,7 +139,7 @@ export const SettingsMenu = ({
                   onClick={() => setSettingsType('consumer')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'consumer'
-                      ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                      ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -149,7 +149,7 @@ export const SettingsMenu = ({
                   onClick={() => setSettingsType('enterprise')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'enterprise'
-                      ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                      ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -159,7 +159,7 @@ export const SettingsMenu = ({
                   onClick={() => setSettingsType('events')}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'events'
-                      ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                      ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -170,7 +170,7 @@ export const SettingsMenu = ({
                     onClick={() => setSettingsType('advertiser')}
                     className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                       settingsType === 'advertiser'
-                        ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                        ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
@@ -202,8 +202,8 @@ export const SettingsMenu = ({
             {user ? (
               // Logged In: Show user info only (Sign Out is in Profile > Account section)
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary" />
+                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gold-primary/20 flex items-center justify-center">
+                  <User className="h-5 w-5 text-gold-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-gray-400">Signed in as</p>

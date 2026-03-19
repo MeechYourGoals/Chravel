@@ -108,7 +108,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
         <div className="flex items-start justify-between mb-4">
           <div>
             <h4 className="text-base font-semibold text-white flex items-center gap-2">
-              <FileJson className="h-5 w-5 text-glass-orange" />
+              <FileJson className="h-5 w-5 text-gold-primary" />
               Export Your Data
             </h4>
             <p className="text-sm text-gray-400 mt-1">
@@ -134,7 +134,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
             <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
               <AlertDialogTrigger asChild>
                 <Button
-                  className="w-full bg-black hover:bg-black/80 text-white"
+                  className="w-full bg-red-600 hover:bg-red-500 text-white shadow-none hover:shadow-none"
                   disabled={isExporting}
                 >
                   <Download className="h-4 w-4 mr-2" />
@@ -172,7 +172,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
                   </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleExportRequest}
-                    className="bg-glass-orange hover:bg-glass-orange/90"
+                    className="bg-gold-primary hover:bg-gold-mid text-black"
                   >
                     Start Export
                   </AlertDialogAction>
@@ -219,7 +219,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
             <div className="flex gap-2">
               <Button
                 onClick={handleDownload}
-                className="flex-1 bg-glass-orange hover:bg-glass-orange/90"
+                className="flex-1 bg-gold-primary hover:bg-gold-mid text-black"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download ({result.filename})
@@ -305,7 +305,7 @@ export const DataExportSection: React.FC<DataExportSectionProps> = ({ className 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction className="bg-glass-orange hover:bg-glass-orange/90">
+            <AlertDialogAction className="bg-gold-primary hover:bg-gold-mid text-black">
               Got it
             </AlertDialogAction>
           </AlertDialogFooter>
