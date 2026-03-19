@@ -565,8 +565,8 @@ export const ChatInput = ({
           {/* + Button with Dropdown Menu — right side */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={CTA_BUTTON_SM} aria-label="Message options">
-                <Plus size={18} className="text-white" />
+              <button className={CTA_BUTTON} aria-label="Message options">
+                <Plus size={CTA_ICON_SIZE} className="text-white" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -640,9 +640,9 @@ export const ChatInput = ({
             className={
               isBroadcastMode
                 ? cn(
-                    'size-9 min-w-[36px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
+                    'size-11 min-w-[44px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
                   )
-                : CTA_BUTTON_SM
+                : CTA_BUTTON
             }
           >
             {isFetchingPreview ? (

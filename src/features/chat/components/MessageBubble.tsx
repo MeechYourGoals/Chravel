@@ -302,7 +302,7 @@ export const MessageBubble = memo(
           return (
             <span
               key={index}
-              className="text-blue-400 font-medium bg-blue-500/10 px-1 rounded inline-block"
+              className="text-black font-semibold bg-white/90 px-1 rounded inline-block"
             >
               {part}
             </span>
