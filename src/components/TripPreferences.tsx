@@ -134,7 +134,7 @@ export const TripPreferences = ({
         <div
           className={`bg-gradient-to-r from-${accentColors.primary}/30 to-${accentColors.secondary}/30 p-2 rounded-xl`}
         >
-          <Sparkles size={20} className={`text-${accentColors.primary}`} />
+          <Sparkles size={20} className="text-gold-primary" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-white">Trip Preferences</h3>
@@ -144,7 +144,7 @@ export const TripPreferences = ({
           <div
             className={`bg-gradient-to-r from-${accentColors.primary}/20 to-${accentColors.secondary}/20 px-3 py-1 rounded-full`}
           >
-            <span className={`text-${accentColors.primary} text-sm font-medium`}>
+            <span className="text-gold-primary text-sm font-medium">
               {isDemoMode ? 'DEMO MODE' : 'PLUS'}
             </span>
           </div>

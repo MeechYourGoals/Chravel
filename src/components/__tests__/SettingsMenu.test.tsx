@@ -254,6 +254,31 @@ describe('SettingsMenu hardening (never crash across modes)', () => {
     });
   });
 
+  it('keeps selected settings tab text white for strong contrast', async () => {
+    const user = userEvent.setup();
+    renderMenu();
+
+    const myTripsTab = screen.getByRole('button', { name: 'My Trips' });
+    const proTab = screen.getByRole('button', { name: 'Pro' });
+    const eventsTab = screen.getByRole('button', { name: 'Events' });
+
+    expect(myTripsTab).toHaveClass('text-white');
+    expect(proTab).toHaveClass('text-gray-400');
+    expect(eventsTab).toHaveClass('text-gray-400');
+
+    await user.click(proTab);
+    await waitFor(() => {
+      expect(proTab).toHaveClass('text-white');
+      expect(myTripsTab).toHaveClass('text-gray-400');
+    });
+
+    await user.click(eventsTab);
+    await waitFor(() => {
+      expect(eventsTab).toHaveClass('text-white');
+      expect(proTab).toHaveClass('text-gray-400');
+    });
+  });
+
   it('does not take down Settings when a child panel crashes (Consumer)', () => {
     mockConsumerThrows = true;
     renderMenu();
