@@ -30,6 +30,19 @@ Known security anti-patterns discovered during audits. Reference this before int
 
 ---
 
+## 3. Scheme-Only Validation on Server-Side Fetch Tools
+
+**Symptom:** AI or import tools can fetch attacker-chosen URLs as long as they begin with `http://` or `https://`.
+**Risk:** HIGH — SSRF against metadata/internal hosts, including DNS-rebinding paths that look public at parse time.
+**Root Cause:** Tool handlers validate only the URL scheme or hostname string, then call `fetch()` with redirects enabled.
+**How to Confirm:** Look for `fetch(targetUrl)` or similar in edge functions after only a `startsWith('http')` check. Test with `https://169.254.169.254/...` or a hostname that resolves to a private IP.
+**Smallest Safe Fix:** Gate every server-side external fetch with `validateExternalUrlBeforeFetch()` (or equivalent DNS-aware helper) and prefer `redirect: 'error'` unless redirect targets are revalidated.
+**Required Tests:** Reject direct private-IP URLs and hostnames whose DNS resolves to private/link-local addresses; ensure fetch is never attempted.
+**Regression Surfaces:** AI concierge web-browsing tools, OG/unfurl fetchers, import/scrape functions, receipt/document/image proxies.
+**Fixed in:** `supabase/functions/_shared/functionExecutor.ts` + `supabase/functions/_shared/urlSafety.ts` (March 2026 audit)
+
+---
+
 ## 3. React Spread Props Silently Override Earlier Handlers
 
 **Symptom:** Event handlers appear wired but silently never fire. Clicks or touches do nothing despite correct-looking code.

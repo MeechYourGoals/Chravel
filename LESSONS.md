@@ -57,6 +57,14 @@
 - **Provenance:** March 2026 trip creation forensic fix.
 - **Confidence:** high
 
+### Server-side web-browsing tools need DNS-aware URL validation plus redirect blocking
+- **Tip:** For any edge function that fetches user- or model-provided URLs, scheme checks are not enough. Validate with a DNS-aware helper before fetch and use `redirect: 'error'` unless you revalidate every redirect hop.
+- **Applies when:** AI browse tools, import scrapers, OG/unfurl fetchers, image/document proxies, or any external fetch driven by user/model input.
+- **Avoid when:** The URL is built entirely from trusted constants or a hardcoded allowlist.
+- **Evidence:** Concierge `browseWebsite` accepted any `http(s)` URL, which allowed direct metadata IP targets and DNS-rebinding-class hosts until it was switched to `validateExternalUrlBeforeFetch()` and redirect blocking.
+- **Provenance:** March 2026 repo-wide bug audit.
+- **Confidence:** high
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
