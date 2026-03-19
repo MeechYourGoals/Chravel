@@ -1,3 +1,10 @@
+2026-03-19 — Event trip cover photo stale homepage fix
+- Investigated Slack bug report where Event cover uploaded in Create Trip modal did not appear on homepage cards immediately.
+- Root cause: create flow performed a second direct `trips` table update for `cover_image_url` after `createTrip`, but that path bypassed `useTrips` mutation invalidation and `useUserTripsRealtime` does not subscribe to `trips` updates.
+- Fix: routed post-upload cover update through `useTrips.updateTrip(...)` in `CreateTripModal`, which invalidates `['trips']` and refreshes dashboard/event card data.
+- Added regression test `src/components/__tests__/CreateTripModal.coverPhoto.test.tsx` to lock expected behavior (cover upload must call shared updater with `cover_image_url`).
+- Verification: `npm test -- --run src/components/__tests__/CreateTripModal.coverPhoto.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
 2026-03-19 — Trip creation "Failed to fetch" forensic fix
 - Completed end-to-end audit of CreateTripModal -> useTrips -> tripService -> create-trip edge function -> trips insert path.
 - Identified primary runtime failure class as Edge Function CORS origin mismatch causing browser-level fetch rejection (surfaced as generic "Failed to fetch"), especially on `*.lovable.dev`.
