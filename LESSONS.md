@@ -73,6 +73,14 @@
 - **Provenance:** March 2026 trip creation forensic fix.
 - **Confidence:** high
 
+### Secured Supabase storage buckets require signed URLs for client previews
+- **Tip:** When a storage bucket transitions from public read to RLS-protected read, any UI code still using `getPublicUrl()` will silently regress into broken images/files. Resolve previews via `createSignedUrl()` (or a shared resolver) at read time.
+- **Applies when:** Rendering files from `trip-media` (or any bucket with authenticated `SELECT` policies) in event tabs, galleries, chat attachments, or media cards.
+- **Avoid when:** The bucket is intentionally public and policy explicitly allows anonymous read for that path.
+- **Evidence:** Line-up file thumbnails showed broken image placeholders while metadata loaded correctly because `useEventLineupFiles` used public object URLs after `trip-media` hardening.
+- **Provenance:** March 2026 Line-up image loading bug fix.
+- **Confidence:** high
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
@@ -215,4 +223,22 @@
 - **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
+- **Confidence:** high
+
+### Resolve trip-media URLs at shared renderer boundaries
+- **Tip:** When `trip-media` storage is private, always run URL signing/resolution in shared media renderers (tile + fullscreen modal), not only in one legacy surface. This prevents preview drift where one screen works and another shows "Unable to preview."
+- **Applies when:** Any UI renders records from `trip_media_index` using `media_url` (`MediaGrid`, mobile media tiles, media viewer modals).
+- **Avoid when:** Demo/local blob URLs (resolver already no-ops safely).
+- **Evidence:** Media tab thumbnails failed for chat-uploaded photos while chat rendering still worked because `MediaTile`/`MediaViewerModal` used raw URLs and bypassed `useResolvedTripMediaUrl`.
+- **Provenance:** March 2026 forensic fix for media preview failure in `UnifiedMediaHub`.
+### Keep hidden file inputs mounted when multiple CTAs share one upload ref
+- **Tip:** If more than one button triggers `fileInputRef.current?.click()`, mount the hidden `<input type="file">` outside transient UI branches (modals/forms/toggles) so the ref remains live across layout state changes.
+- **Applies when:** Upload flows have both header-level and inline "Add more" actions, or when upload controls remain visible while another panel/form opens.
+- **Evidence:** Event Line-up tab rendered "Add more" while the add-member form was open, but the hidden file input lived inside `!isAddingMember` and unmounted. Result: click no-op with no error.
+- **Provenance:** March 2026 Line-up file upload bug fix in `LineupTab`.
+### Dark-themed native time inputs need an explicit affordance when browser indicators look ambiguous
+- **Tip:** If a dark, rounded custom input uses `type="time"` and the native picker indicator becomes a tiny square/blank artifact, keep native time behavior but hide the browser indicator and render a clear explicit clock affordance in the component. Scope CSS to a local class instead of globally restyling every time input.
+- **Applies when:** Modal/forms with branded input styling that wraps native time controls.
+- **Evidence:** Calendar Add Event modal showed a confusing blue square/blank indicator slot in the Start Time field; adding a scoped `.calendar-time-input` style plus explicit `Clock3` icon resolved clarity without changing time data semantics.
+- **Provenance:** March 2026 calendar invite time-input forensic fix.
 - **Confidence:** high
