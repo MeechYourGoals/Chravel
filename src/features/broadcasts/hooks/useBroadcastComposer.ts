@@ -29,8 +29,8 @@ export const useBroadcastComposer = () => {
       return { isValid: false, error: 'Message is required' };
     }
 
-    if (message.length > 140) {
-      return { isValid: false, error: 'Message must be 140 characters or less' };
+    if (message.length > 500) {
+      return { isValid: false, error: 'Message must be 500 characters or less' };
     }
 
     return { isValid: true };
