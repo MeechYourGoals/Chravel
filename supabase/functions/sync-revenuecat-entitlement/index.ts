@@ -1,28 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-
-// Entitlement ID to plan mapping (must match RevenueCat dashboard)
-const ENTITLEMENT_TO_PLAN: Record<string, string> = {
-  chravel_explorer: 'explorer',
-  chravel_frequent_chraveler: 'frequent-chraveler',
-  chravel_pro_starter: 'pro-starter',
-  chravel_pro_growth: 'pro-growth',
-  chravel_pro_enterprise: 'pro-enterprise',
-};
-
-interface SyncRequest {
-  customerInfo: {
-    originalAppUserId: string;
-    entitlements: {
-      active: Record<
-        string,
-        { isActive: boolean; expirationDate: string | null; periodType?: string }
-      >;
-    };
-    latestExpirationDate: string | null;
-  };
-}
+import { createMissingSecretResponse } from '../_shared/validateSecrets.ts';
+import {
+  deriveRevenueCatEntitlementState,
+  fetchRevenueCatSubscriber,
+  resolveRevenueCatServerApiKey,
+} from './revenuecat.ts';
 
 serve(async req => {
   const corsHeaders = getCorsHeaders(req);
@@ -64,66 +48,24 @@ serve(async req => {
       });
     }
 
-    // Parse request body
-    const body: SyncRequest = await req.json();
-    const { customerInfo } = body;
-
-    if (!customerInfo) {
-      return new Response(JSON.stringify({ error: 'Missing customerInfo' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let revenueCatApiKey: string;
+    try {
+      revenueCatApiKey = resolveRevenueCatServerApiKey();
+    } catch (secretError) {
+      return createMissingSecretResponse(secretError, corsHeaders);
     }
 
     console.log('[sync-rc] Syncing entitlements for user:', user.id);
+
+    const subscriber = await fetchRevenueCatSubscriber(fetch, revenueCatApiKey, user.id);
+    const { plan, status, currentPeriodEnd, entitlementIds, revenueCatCustomerId } =
+      deriveRevenueCatEntitlementState(subscriber);
+
+    console.log('[sync-rc] Active entitlements:', entitlementIds);
     console.log(
-      '[sync-rc] Active entitlements:',
-      Object.keys(customerInfo.entitlements?.active || {}),
+      '[sync-rc] RevenueCat customer resolved:',
+      revenueCatCustomerId ?? 'subscriber_not_found',
     );
-
-    // Derive plan from entitlements
-    let plan = 'free';
-    let status = 'active';
-    let currentPeriodEnd: string | null = null;
-    const entitlementIds: string[] = [];
-
-    const activeEntitlements = customerInfo.entitlements?.active || {};
-
-    // Find highest tier entitlement
-    for (const [entitlementId, info] of Object.entries(activeEntitlements)) {
-      if (info.isActive) {
-        entitlementIds.push(entitlementId);
-        const mappedPlan = ENTITLEMENT_TO_PLAN[entitlementId];
-        if (mappedPlan) {
-          // Priority: pro-enterprise > pro-growth > pro-starter > frequent-chraveler > explorer
-          const planPriority = [
-            'free',
-            'explorer',
-            'frequent-chraveler',
-            'pro-starter',
-            'pro-growth',
-            'pro-enterprise',
-          ];
-          if (planPriority.indexOf(mappedPlan) > planPriority.indexOf(plan)) {
-            plan = mappedPlan;
-          }
-        }
-        if (info.expirationDate) {
-          currentPeriodEnd = info.expirationDate;
-        }
-        if (info.periodType === 'trial') {
-          status = 'trialing';
-        }
-      }
-    }
-
-    // If no active entitlements, check if expired
-    if (entitlementIds.length === 0 && customerInfo.latestExpirationDate) {
-      const expDate = new Date(customerInfo.latestExpirationDate);
-      if (expDate < new Date()) {
-        status = 'expired';
-      }
-    }
 
     // Use service role client to upsert (bypasses RLS)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -172,7 +114,7 @@ serve(async req => {
         purchase_type: 'subscription',
         current_period_end: currentPeriodEnd,
         entitlements: entitlementIds,
-        revenuecat_customer_id: customerInfo.originalAppUserId,
+        revenuecat_customer_id: revenueCatCustomerId,
         updated_at: new Date().toISOString(),
       },
       {
