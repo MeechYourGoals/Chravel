@@ -22,8 +22,10 @@ Known security anti-patterns discovered during audits. Reference this before int
 **Symptom:** Cross-origin requests succeed from unauthorized domains (e.g., attacker-controlled *.vercel.app site).
 **Risk:** HIGH — edge functions callable from any project on allowed hosting platforms.
 **Root Cause:** `.vercel.app` suffix matcher allows `evil-site.vercel.app` to pass CORS validation.
+**Recent regression signal:** Adding `.lovable.app` / `.lovableproject.com` to default `ALLOWED_ORIGINS` reintroduces the same wildcard trust problem for a multi-tenant hosting platform.
 **How to Confirm:** Deploy a test page to a random *.vercel.app URL and attempt `fetch()` to a Chravel edge function.
 **Smallest Safe Fix:** Replace suffix matchers with exact production origins. Use `ADDITIONAL_ALLOWED_ORIGINS` env var for preview deployments.
+**Prevention guardrail:** Keep hosted preview origins out of default allowlists; require explicit, exact origins via `ADDITIONAL_ALLOWED_ORIGINS` and keep `cors.security.test.ts` passing.
 **Required Tests:** Unit test that `isOriginAllowed('https://random.vercel.app')` returns false.
 **Regression Surfaces:** Vercel preview deployments, Lovable preview deployments — configure ADDITIONAL_ALLOWED_ORIGINS.
 **Fixed in:** `supabase/functions/_shared/cors.ts` (March 2026 audit)
