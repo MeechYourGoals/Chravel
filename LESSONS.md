@@ -39,12 +39,28 @@
 - **Provenance:** Shared mutation audit Stage B, March 2026
 - **Confidence:** high
 
+### Post-create follow-up writes must go through the same invalidating mutation path
+- **Tip:** If a create flow performs a second write (for example, uploading a cover image and then updating the created row), route that second write through the same shared hook/service mutation path used elsewhere (`useTrips.updateTrip`) instead of raw table updates in component code.
+- **Applies when:** Multi-step create UX where metadata/media is attached after the primary create mutation.
+- **Avoid when:** The follow-up write is fully server-side and already emits an event/query invalidation consumed by the UI.
+- **Evidence:** Event trip cover photos uploaded in `CreateTripModal` were persisted to `trips.cover_image_url`, but homepage cards stayed stale because the direct `supabase.from('trips').update(...)` bypassed query invalidation. Switching to `updateTrip(...)` fixed immediate homepage reflection.
+- **Provenance:** March 2026 Event trip cover photo regression fix.
+- **Confidence:** high
+
 ### AI tool writes should go through a pending buffer, not directly to shared state
 - **Tip:** When an AI agent (voice concierge, text concierge) wants to create shared objects (tasks, polls, calendar events), write to `trip_pending_actions` instead of directly to the target table. The user then confirms or rejects. This prevents AI hallucination-driven data corruption and gives users agency over their shared trip state. Use `tool_call_id` as idempotency key to prevent duplicate pending actions on retry.
 - **Applies when:** Any AI-initiated write to shared trip state (tasks, polls, calendar, basecamp)
 - **Avoid when:** Read-only AI operations (search, recommendations, summaries) or low-risk append-only operations (saving a link)
 - **Evidence:** Stage B routed `createTask`, `createPoll`, and `addToCalendar` through pending buffer in both `functionExecutor.ts` (edge function) and `useVoiceToolHandler.ts` (client). `savePlace` and `setBasecamp` left as direct writes (lower risk).
 - **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
+### AI concierge write tools need explicit React Query invalidation mapping per affected surface
+- **Tip:** Treat each concierge write tool as a mutation source that must map to cache keys for every dependent UI surface (trip detail tabs and dashboard lists). Keep this mapping centralized so new tools cannot silently skip cache refresh.
+- **Applies when:** Adding/updating concierge tools that mutate trip data (`execute-concierge-tool`, streamed `onFunctionCall` handlers)
+- **Avoid when:** Read-only tools with no state mutation
+- **Evidence:** `setTripHeaderImage` successfully updated `trips.cover_image_url` but homepage cards stayed stale because `AIConciergeChat` invalidated other write actions yet omitted `['trips']` for this tool; adding centralized mapping + regression test restored refresh behavior.
+- **Provenance:** March 2026 Event cover photo homepage refresh regression fix
 - **Confidence:** high
 
 ## Recovery Tips
@@ -55,6 +71,14 @@
 - **Avoid when:** The function responds with a normal 4xx/5xx payload (that indicates handler executed and CORS likely passed).
 - **Evidence:** Trip creation path (`CreateTripModal -> useTrips -> tripService -> create-trip`) surfaced only `Failed to fetch` until `.lovable.dev` was re-added to shared CORS origins and error mapping was made actionable.
 - **Provenance:** March 2026 trip creation forensic fix.
+- **Confidence:** high
+
+### Secured Supabase storage buckets require signed URLs for client previews
+- **Tip:** When a storage bucket transitions from public read to RLS-protected read, any UI code still using `getPublicUrl()` will silently regress into broken images/files. Resolve previews via `createSignedUrl()` (or a shared resolver) at read time.
+- **Applies when:** Rendering files from `trip-media` (or any bucket with authenticated `SELECT` policies) in event tabs, galleries, chat attachments, or media cards.
+- **Avoid when:** The bucket is intentionally public and policy explicitly allows anonymous read for that path.
+- **Evidence:** Line-up file thumbnails showed broken image placeholders while metadata loaded correctly because `useEventLineupFiles` used public object URLs after `trip-media` hardening.
+- **Provenance:** March 2026 Line-up image loading bug fix.
 - **Confidence:** high
 
 ### Gate third-party SDK boot on preview/runtime compatibility
@@ -96,6 +120,13 @@
 - **Avoid when:** First session initialization before any successful connection
 - **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
 - **Provenance:** March 2026 concierge live-mode hardening
+### Notification deep-link mappers should read both metadata and first-class columns
+- **Tip:** When notification rows store routing identifiers in both dedicated columns (e.g., `notifications.trip_id`) and metadata JSON, mapping code should prefer metadata but fall back to column values. Legacy rows and mixed writer paths (RPC helper vs direct inserts) often populate only one.
+- **Applies when:** Building in-app notification lists, badge payload mappers, or tap-to-route logic.
+- **Avoid when:** The schema enforces a single canonical field and legacy data is guaranteed migrated.
+- **Evidence:** Join approval notifications were visible but lacked actionable routing in-app because mapper read only `metadata.trip_id` and ignored `trip_id` column from direct inserts.
+- **Provenance:** March 2026 join approval forensic fix (`useNotificationRealtime` mapping hardening).
+- **Confidence:** high
 ### Treat schema migrations as a product compatibility API, not just SQL files
 - **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
 - **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
@@ -199,4 +230,22 @@
 - **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
+- **Confidence:** high
+
+### Resolve trip-media URLs at shared renderer boundaries
+- **Tip:** When `trip-media` storage is private, always run URL signing/resolution in shared media renderers (tile + fullscreen modal), not only in one legacy surface. This prevents preview drift where one screen works and another shows "Unable to preview."
+- **Applies when:** Any UI renders records from `trip_media_index` using `media_url` (`MediaGrid`, mobile media tiles, media viewer modals).
+- **Avoid when:** Demo/local blob URLs (resolver already no-ops safely).
+- **Evidence:** Media tab thumbnails failed for chat-uploaded photos while chat rendering still worked because `MediaTile`/`MediaViewerModal` used raw URLs and bypassed `useResolvedTripMediaUrl`.
+- **Provenance:** March 2026 forensic fix for media preview failure in `UnifiedMediaHub`.
+### Keep hidden file inputs mounted when multiple CTAs share one upload ref
+- **Tip:** If more than one button triggers `fileInputRef.current?.click()`, mount the hidden `<input type="file">` outside transient UI branches (modals/forms/toggles) so the ref remains live across layout state changes.
+- **Applies when:** Upload flows have both header-level and inline "Add more" actions, or when upload controls remain visible while another panel/form opens.
+- **Evidence:** Event Line-up tab rendered "Add more" while the add-member form was open, but the hidden file input lived inside `!isAddingMember` and unmounted. Result: click no-op with no error.
+- **Provenance:** March 2026 Line-up file upload bug fix in `LineupTab`.
+### Dark-themed native time inputs need an explicit affordance when browser indicators look ambiguous
+- **Tip:** If a dark, rounded custom input uses `type="time"` and the native picker indicator becomes a tiny square/blank artifact, keep native time behavior but hide the browser indicator and render a clear explicit clock affordance in the component. Scope CSS to a local class instead of globally restyling every time input.
+- **Applies when:** Modal/forms with branded input styling that wraps native time controls.
+- **Evidence:** Calendar Add Event modal showed a confusing blue square/blank indicator slot in the Start Time field; adding a scoped `.calendar-time-input` style plus explicit `Clock3` icon resolved clarity without changing time data semantics.
+- **Provenance:** March 2026 calendar invite time-input forensic fix.
 - **Confidence:** high

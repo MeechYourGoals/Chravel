@@ -34,6 +34,8 @@ export const MediaTile = React.memo(function MediaTile({
   onDelete,
   onView,
 }: MediaTileProps) {
+  const resolvedUrl = useResolvedTripMediaUrl({ url, metadata });
+  const mediaUrl = resolvedUrl ?? url;
   const isVideo = mimeType.startsWith('video/');
   const isImage = mimeType.startsWith('image/');
   const isMedia = isVideo || isImage;
@@ -42,7 +44,7 @@ export const MediaTile = React.memo(function MediaTile({
 
   const handleClick = () => {
     if (onView && isMedia) {
-      onView({ id, url: effectiveUrl, mimeType, fileName });
+      onView({ id, url: mediaUrl, mimeType, fileName });
     }
   };
 
@@ -68,7 +70,7 @@ export const MediaTile = React.memo(function MediaTile({
           aria-label={isVideo ? 'Play video' : 'View image'}
         >
           <TripMediaRenderer
-            url={effectiveUrl}
+            url={mediaUrl}
             mimeType={mimeType}
             mode="thumbnail"
             alt={fileName ?? 'Trip media'}
@@ -82,7 +84,7 @@ export const MediaTile = React.memo(function MediaTile({
         <div className="flex items-center justify-between p-4">
           <div className="truncate text-sm text-white">{fileName ?? 'File'}</div>
           <a
-            href={effectiveUrl}
+            href={mediaUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 text-sm hover:text-blue-300"

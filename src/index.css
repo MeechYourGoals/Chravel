@@ -475,6 +475,17 @@
   height: calc(100vh - var(--keyboard-height, 0px));
 }
 
+/* Calendar modal: replace browser time square with explicit clock affordance */
+.calendar-time-input {
+  color-scheme: dark;
+}
+
+.calendar-time-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 /* Improved iOS animations */
 @media (prefers-reduced-motion: no-preference) {
   .ios-bounce {

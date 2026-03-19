@@ -17,16 +17,18 @@ import { useNotificationRealtimeStore } from '@/store/notificationRealtimeStore'
 import { formatDistanceToNow } from 'date-fns';
 import type { NotificationItem } from '@/store/notificationRealtimeStore';
 
-const NOTIFICATION_COLUMNS = 'id, type, title, message, is_read, is_visible, metadata, created_at';
+const NOTIFICATION_COLUMNS =
+  'id, type, title, message, is_read, is_visible, metadata, trip_id, created_at';
 
-function mapRowToNotification(row: Record<string, unknown>): NotificationItem {
+export function mapRowToNotification(row: Record<string, unknown>): NotificationItem {
   const metadata = (row.metadata as Record<string, unknown>) || {};
   return {
     id: row.id as string,
     type: (row.type || 'system') as NotificationItem['type'],
     title: (row.title as string) || '',
     description: (row.message as string) || '',
-    tripId: (metadata.trip_id as string) || '',
+    // Prefer metadata for modern notifications, but fall back to column for legacy rows.
+    tripId: (metadata.trip_id as string) || (row.trip_id as string) || '',
     tripName: (metadata.trip_name as string) || '',
     timestamp: formatDistanceToNow(new Date((row.created_at as string) || Date.now()), {
       addSuffix: true,
