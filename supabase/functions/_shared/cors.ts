@@ -20,10 +20,9 @@ const ALLOWED_ORIGINS = [
   'capacitor://localhost',
   'ionic://localhost',
   'http://localhost',
-  // Lovable preview/published domains (trusted platform)
-  '.lovable.app',
+  // Lovable dev previews used by current trip-creation QA path.
+  // Keep published/custom domains explicit via ADDITIONAL_ALLOWED_ORIGINS.
   '.lovable.dev',
-  '.lovableproject.com',
 ];
 
 const ENV_ALLOWED_ORIGINS = (Deno.env.get('ADDITIONAL_ALLOWED_ORIGINS') || '')

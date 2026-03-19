@@ -57,6 +57,14 @@
 - **Provenance:** March 2026 trip creation forensic fix.
 - **Confidence:** high
 
+### CORS allowlist changes need security-suite verification to catch wildcard drift
+- **Tip:** After adding a new preview origin class (for example `.lovable.dev`) to restore functionality, immediately run the CORS security tests to ensure no unrelated wildcard trust remains enabled (e.g., legacy `.lovable.app`/`.lovableproject.com` patterns). Functional fixes can silently reopen broader cross-origin access if this check is skipped.
+- **Applies when:** Editing `supabase/functions/_shared/cors.ts` allowlist or `ADDITIONAL_ALLOWED_ORIGINS` behavior.
+- **Avoid when:** No CORS policy changes were made.
+- **Evidence:** Trip creation fix validation surfaced failing `cors.security.test` because wildcard `.lovable.app` was still allowed while tests required rejection; removing legacy wildcards preserved trip creation and restored security expectations.
+- **Provenance:** March 2026 trip creation CORS hardening follow-up.
+- **Confidence:** high
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
