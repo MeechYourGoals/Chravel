@@ -1,3 +1,10 @@
+2026-03-19 — Event cover-photo crop/output mismatch forensic fix
+- Investigated Slack report: “cover photo to Event trip loaded, but hasn’t reflected in trip homepage,” with screenshots from the crop modal flow.
+- Root cause: `CoverPhotoCropModal` used center-origin CSS zoom (`transform: scale`) but crop export math only divided by scale, omitting center offset compensation; this caused saved output drift vs selected crop.
+- Implemented surgical fix by introducing shared helper `src/utils/coverCropMath.ts` (`toScaledSourceCropRect`) and wiring both modal preview and final save paths through it.
+- Added regression test `src/utils/__tests__/coverCropMath.test.ts` to lock scale=1 behavior, center-offset behavior at scale>1, and invalid-scale fallback.
+- Validation: `npm run test:run -- src/utils/__tests__/coverCropMath.test.ts`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+- Branch: `cursor/chravelapp-bug-resolution-67f4`, commit `bc4ce3be`.
 2026-03-19 — Trip creation "Failed to fetch" forensic fix
 - Completed end-to-end audit of CreateTripModal -> useTrips -> tripService -> create-trip edge function -> trips insert path.
 - Identified primary runtime failure class as Edge Function CORS origin mismatch causing browser-level fetch rejection (surfaced as generic "Failed to fetch"), especially on `*.lovable.dev`.

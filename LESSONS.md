@@ -193,3 +193,10 @@
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
+
+### Center-origin image zoom must include offset-aware crop math
+- **Tip:** When implementing image crop previews with CSS zoom (`transform: scale(...)`) and `transform-origin: center`, do not map crop coordinates with `x/scale` and `y/scale` alone. Add center offsets `((scale - 1) * dimension) / 2` before dividing by scale to keep saved output aligned with the visual crop box.
+- **Applies when:** Cropper UIs that combine `react-image-crop` percent coordinates with zoom sliders and canvas output.
+- **Evidence:** Event trip cover updates looked incorrect after save because the crop math ignored center-origin zoom offset in `CoverPhotoCropModal`, causing preview/output drift.
+- **Provenance:** March 2026 event cover-photo forensic fix.
+- **Confidence:** high
