@@ -78,3 +78,9 @@
 - Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
 - Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.
+2026-03-19 — Line-up "Add more" click no-op while editing member
+- Root-caused `Add more` file-upload no-op to hidden file input lifecycle mismatch: input was only mounted in header actions (`!isAddingMember`), but inline `Add more` button stayed visible while add-member form was open.
+- Implemented surgical fix in `LineupTab`: keep hidden file input mounted whenever uploads are allowed, and keep inline add-more CTA behind `canCreate && canUploadMore`.
+- Added regression test `src/components/events/__tests__/LineupTab.test.tsx` to lock behavior that file picker still opens while `Add to Line-up` form is open and bio is being edited.
+- Verification: `npm run test:run -- src/components/events/__tests__/LineupTab.test.tsx`, `npm run lint`, `npm run typecheck`, and `npm run build` all pass.
+- Next follow-up: scan other ref-driven upload CTAs for similar mount/lifecycle mismatches when edit/add panels toggle.

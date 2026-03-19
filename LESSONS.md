@@ -136,6 +136,13 @@
 - **Provenance:** March 2026 Calendar Import modal forensic fix.
 - **Confidence:** high
 
+### Keep ref-targeted file inputs mounted across edit-mode toggles
+- **Tip:** If upload CTAs call `fileInputRef.current?.click()`, the referenced `<input type="file">` must remain mounted in every UI mode where those CTAs are visible. Conditionally mounting the input in one mode and showing the CTA in another creates silent no-op clicks.
+- **Applies when:** Event/admin tabs with collapsible add/edit forms and shared upload triggers (`Add more`, `Upload`, inline file buttons).
+- **Evidence:** Line-up tab `Add more` button stopped opening file picker while `Add to Line-up` form was open because `isAddingMember` hid the only hidden file input.
+- **Provenance:** March 2026 Line-up file upload forensic fix (`LineupTab`).
+- **Confidence:** high
+
 ### Demo-mode media should not depend on external uptime without a local fallback path
 - **Tip:** For demo-critical visuals (trip cards, hero surfaces), keep remote URLs as primary if needed but always provide deterministic local fallbacks and use a single automatic retry at the image component boundary.
 - **Applies when:** Demo mode relies on externally hosted images (Supabase Storage/CDN/third-party assets) that may be unavailable in some environments.
