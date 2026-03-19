@@ -10,7 +10,7 @@ import { formatLocalDate } from '@/utils/dateHelpers';
  * Normalizes date input to YYYY-MM-DD format for database date columns
  * Accepts: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601 datetime strings
  * Returns date-only format (YYYY-MM-DD) expected by Postgres date columns
- */h
+ */
 function _normalizeDateInput(dateStr?: string): string | undefined {
   if (!dateStr) return undefined;
 
