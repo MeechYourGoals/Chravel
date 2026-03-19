@@ -62,7 +62,9 @@ export async function requestPermissions(): Promise<PermissionResult> {
     const result = await PushNotifications.requestPermissions();
     return normalizePermission(result.receive);
   } catch (error) {
-    console.error('[NativePush] Permission request failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush permission request failed
+    }
     return 'denied';
   }
 }
@@ -79,7 +81,9 @@ export async function checkPermissions(): Promise<PermissionResult> {
     const result = await PushNotifications.checkPermissions();
     return normalizePermission(result.receive);
   } catch (error) {
-    console.error('[NativePush] Check permissions failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush check permissions failed
+    }
     return 'denied';
   }
 }

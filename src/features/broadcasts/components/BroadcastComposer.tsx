@@ -228,7 +228,7 @@ export const BroadcastComposer = ({
             value={message}
             onChange={e => setMessage(e.target.value)}
             placeholder="Share an update with the group..."
-            maxLength={140}
+            maxLength={500}
             rows={2}
             className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-primary resize-none"
           />

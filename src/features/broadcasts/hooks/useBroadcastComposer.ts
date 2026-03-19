@@ -85,7 +85,7 @@ export const useBroadcastComposer = () => {
     // Computed
     isValid: validateBroadcast().isValid,
     characterCount: message.length,
-    maxCharacters: 140,
+    maxCharacters: 500,
 
     // Actions
     setMessage,
