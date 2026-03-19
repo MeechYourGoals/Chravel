@@ -58,3 +58,9 @@
 - Updated selected Settings top-tab text color (My Trips / Pro / Events / Advertiser) from pale gold to pure white for stronger active-state contrast.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` all pass.
 - Next follow-up: capture updated UI screenshot artifact when browser screenshot tooling is available in this environment.
+2026-03-19 — Settings gold unification follow-up + Export Data CTA restyle
+- Updated `DataExportSection` to remove glowing black CTA treatment by switching "Export My Data" button to solid red with white text and explicit `shadow-none`.
+- Standardized Data Export accent tokens from `glass-orange` to canonical `gold-primary` (`FileJson` icon, Start Export/Download/Got it actions).
+- Applied requested emoji-to-glyph cleanup in settings-adjacent surfaces: replaced billing/upgrade emoji strings with `✦` bullets and aligned recurring highlight accents in `ConsumerBillingSection` + `StorageQuotaBar` to `gold-primary` family.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings).
+- Next follow-up: capture post-change Settings screenshots when browser screenshot tooling is available.
