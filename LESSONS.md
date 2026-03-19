@@ -23,6 +23,14 @@
 - **Provenance:** AGENTS.md § 5.2 Field Name Mismatches
 - **Confidence:** high
 
+### Lock shared CTA sizing and mention contrast with focused component regression tests
+- **Tip:** For chat UI styling regressions, add a targeted component test that asserts the shared CTA token classes (`size-11`/`min-w-[44px]`) for Send/+ and asserts mention pill contrast classes (`text-black` + `bg-white/90`). This catches visual drift introduced by class swaps without requiring brittle snapshots.
+- **Applies when:** Composer button hierarchy changes, mention styling changes, class-token refactors in chat components
+- **Avoid when:** Non-UI backend-only fixes
+- **Evidence:** PR #1028 bug class was caused by class-level drift (`CTA_BUTTON` → `CTA_BUTTON_SM`) and mention contrast mismatch; test added in `src/features/chat/components/__tests__/ChatComposerVisualRegression.test.tsx`.
+- **Provenance:** Chat UI bug forensic pass (March 2026)
+- **Confidence:** high
+
 ### When adding feature parity to a secondary surface, use the existing data layer before adding schema
 - **Tip:** When a feature exists in surface A (e.g., TripChat) and needs to be added to surface B (e.g., Channels), first check what shared components and data services already exist. Often the components are reusable but the data layer wiring is missing. Use JSON metadata fields for lightweight data (reply context, link previews) before resorting to schema migrations.
 - **Applies when:** Adding threading, link previews, or other chat features to Channels or Broadcasts
