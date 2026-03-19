@@ -64,3 +64,10 @@
 - Applied requested emoji-to-glyph cleanup in settings-adjacent surfaces: replaced billing/upgrade emoji strings with `✦` bullets and aligned recurring highlight accents in `ConsumerBillingSection` + `StorageQuotaBar` to `gold-primary` family.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings).
 - Next follow-up: capture post-change Settings screenshots when browser screenshot tooling is available.
+2026-03-19 — Cross-surface link unfurl parity hardening (chat + channels + broadcasts + concierge)
+- Added non-blocking client-side link preview fallback in main TripChat (`useLinkPreviews`) so URL messages can render unfurl cards even when DB `link_preview` arrives late/missing.
+- Added link preview fallback wiring in shared `ChatMessages`, enabling AI Concierge user/assistant URL messages to display preview cards via existing `MessageRenderer`.
+- Added broadcast unfurl support by wiring `BroadcastList` through `useLinkPreviews` and rendering rich preview cards in `BroadcastItem`.
+- Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
+- Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.

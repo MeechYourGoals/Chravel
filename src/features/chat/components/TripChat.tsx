@@ -46,6 +46,7 @@ import {
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
+import { useLinkPreviews } from '../hooks/useLinkPreviews';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -856,6 +857,23 @@ export const TripChat = React.memo(
       return [...filteredMessages, ...failedFormatted];
     }, [filteredMessages, failedMessages, user?.id, user?.avatar]);
 
+    const linkPreviewFallbacks = useLinkPreviews(
+      messagesWithFailed.map(message => ({
+        id: message.id,
+        text: message.text || '',
+        linkPreview: message.linkPreview,
+      })),
+    );
+
+    const messagesWithPreviewFallbacks = useMemo(
+      () =>
+        messagesWithFailed.map(message => ({
+          ...message,
+          linkPreview: message.linkPreview || linkPreviewFallbacks[message.id],
+        })),
+      [messagesWithFailed, linkPreviewFallbacks],
+    );
+
     const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
     // Scroll to specific message with highlight animation
@@ -962,7 +980,7 @@ export const TripChat = React.memo(
                   </div>
                 ) : (
                   <VirtualizedMessageContainer
-                    messages={messagesWithFailed as any}
+                    messages={messagesWithPreviewFallbacks as any}
                     renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
                       <div data-message-id={message.id}>
                         <MessageItem
