@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   X,
   Calendar,
@@ -24,6 +25,7 @@ import { toast } from 'sonner';
 import { PrivacyMode, getDefaultPrivacyMode } from '../types/privacy';
 import { ProCategoryEnum, PRO_CATEGORIES_ORDERED } from '../types/proCategories';
 import { getAllProTripColors } from '../utils/proTripColors';
+import { tripKeys } from '@/lib/queryKeys';
 
 interface CreateTripModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ interface CreateTripModalProps {
 
 export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [tripType, setTripType] = useState<'consumer' | 'pro' | 'event'>('consumer');
@@ -206,24 +209,45 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
         // Upload cover image if selected
         if (coverImage && !isDemoMode) {
           try {
-            const fileExt = coverImage.name.split('.').pop();
-            const filePath = `${newTrip.id}/cover.${fileExt}`;
+            const fileExt = coverImage.name.split('.').pop() || 'jpg';
+            const filePath = `trip-covers/${newTrip.id}/cover-${Date.now()}.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
-              .from('trip-covers')
-              .upload(filePath, coverImage);
+              .from('trip-media')
+              .upload(filePath, coverImage, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: coverImage.type || 'image/jpeg',
+              });
 
             if (uploadError) throw uploadError;
 
             const {
               data: { publicUrl },
-            } = supabase.storage.from('trip-covers').getPublicUrl(filePath);
+            } = supabase.storage.from('trip-media').getPublicUrl(filePath);
 
             // Update trip with cover image URL
-            await supabase
+            const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
+            const { data: updatedTripRow, error: coverUpdateError } = await supabase
               .from('trips')
-              .update({ cover_image_url: publicUrl })
-              .eq('id', newTrip.id);
+              .update({ cover_image_url: cacheBustedUrl })
+              .eq('id', newTrip.id)
+              .select('id')
+              .maybeSingle();
+
+            if (coverUpdateError) throw coverUpdateError;
+            if (!updatedTripRow) {
+              throw new Error("You don't have permission to update this trip's cover photo");
+            }
+
+            // Keep list/detail caches in sync so new trip pages reflect the uploaded cover.
+            queryClient.invalidateQueries({ queryKey: ['trips'] });
+            queryClient.invalidateQueries({
+              predicate: query =>
+                Array.isArray(query.queryKey) &&
+                query.queryKey[0] === tripKeys.detail(newTrip.id)[0] &&
+                query.queryKey[1] === newTrip.id,
+            });
           } catch (uploadError) {
             console.error('Error uploading cover image:', uploadError);
             toast.error('Trip created, but failed to upload cover image');
