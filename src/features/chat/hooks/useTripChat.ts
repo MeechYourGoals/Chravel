@@ -11,6 +11,10 @@ import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { messageEvents } from '@/telemetry/events';
 import { sendChatMessage } from '@/services/chatService';
 import { privacyService } from '@/services/privacyService';
+import {
+  getOptimisticMessageId,
+  removeOptimisticMessageByClientId,
+} from './optimisticMessageUtils';
 
 interface TripChatMessage {
   id: string;
@@ -443,13 +447,10 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       // Cancel in-flight refetches so they don't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey: ['tripChat', tripId] });
 
-      // Snapshot current cache for rollback on error
-      const previousMessages = queryClient.getQueryData<TripChatMessage[]>(['tripChat', tripId]);
-
       // Build optimistic message from mutation variables
       const now = new Date().toISOString();
       const optimisticMsg: TripChatMessage & { client_message_id: string } = {
-        id: `optimistic-${message.clientMessageId}`,
+        id: getOptimisticMessageId(message.clientMessageId),
         trip_id: tripId!,
         content: message.content,
         author_name: message.author_name,
@@ -469,7 +470,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         optimisticMsg,
       ]);
 
-      return { previousMessages };
+      return { optimisticClientMessageId: message.clientMessageId };
     },
     mutationFn: async (message: CreateMessageRequest) => {
       // Rate limit check - 30 messages per minute per user
@@ -588,12 +589,13 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     onError: (
       error: unknown,
       _variables: CreateMessageRequest,
-      context: { previousMessages?: TripChatMessage[] } | undefined,
+      context: { optimisticClientMessageId?: string } | undefined,
     ) => {
-      // Roll back optimistic message on failure
-      if (context?.previousMessages) {
-        queryClient.setQueryData(['tripChat', tripId], context.previousMessages);
-      }
+      // Remove only this mutation's optimistic placeholder so concurrent realtime
+      // messages stay in cache.
+      queryClient.setQueryData(['tripChat', tripId], (current: TripChatMessage[] = []) =>
+        removeOptimisticMessageByClientId(current, context?.optimisticClientMessageId),
+      );
 
       messageEvents.sendFailed(tripId, (error as Error)?.message || 'Unknown error');
       if (import.meta.env.DEV) {
