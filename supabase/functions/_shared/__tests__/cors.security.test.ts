@@ -55,6 +55,11 @@ describe('CORS Security Tests', () => {
       expect(isOriginAllowed('https://malicious.lovable.app')).toBe(false);
     });
 
+    it('should reject random *.lovableproject.com origins', async () => {
+      const isOriginAllowed = await getIsOriginAllowed();
+      expect(isOriginAllowed('https://attacker.lovableproject.com')).toBe(false);
+    });
+
     it('should reject random *.supabase.co origins', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
       expect(isOriginAllowed('https://attacker-project.supabase.co')).toBe(false);
