@@ -1,3 +1,18 @@
+2026-03-19 — Calendar create-event timeout forensic fix
+- Reproduced the `Saving...` hang with a new failing regression test (`src/services/__tests__/calendarService.createEvent.test.ts`) that simulates a slow conflict check and verifies insert should continue.
+- Added bounded advisory conflict handling in `calendarService.createEvent` via `getConflictsForCreateEvent` (2s timeout fallback to `[]`) so event writes are never blocked by slow overlap reads.
+- Aligned `useCalendarManagement` to the shared calendar query timeout default by switching to `createCalendarQueryFn(tripId)` with no tighter override.
+- Validation passed: targeted calendar tests + full `npm run lint && npm run typecheck && npm run build`.
+- Next follow-up: consider emitting a lightweight non-blocking telemetry event when conflict checks time out to monitor frequency in production.
+
+2026-03-19 — Calendar create-event saving timeout fix
+- Reproduced the `Saving...` hang with a focused regression test that simulates slow advisory conflict checks.
+- Updated `calendarService.createEvent` to use timeout-bounded advisory conflict detection (2s fallback) so inserts are not blocked by slow reads.
+- Aligned `useCalendarManagement` to shared calendar query timeout defaults via `createCalendarQueryFn(tripId)`.
+- Added regression test: `src/services/__tests__/calendarService.createEvent.test.ts`.
+- Validation: targeted calendar tests + full `npm run lint && npm run typecheck && npm run build` all passed.
+- Next follow-up: consider lightweight telemetry around conflict-check timeout frequency to tune threshold based on production data.
+
 2026-03-15 — Data evolution constitution audit
 - Completed exhaustive schema/migration/lifecycle audit and produced `docs/audits/data-evolution-constitution-2026-03-15.md`.
 - Added reusable learning entry to `LESSONS.md` (migration compatibility API mindset).
