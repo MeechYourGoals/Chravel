@@ -97,6 +97,13 @@
 - Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
 - Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.
+
+2026-03-19 — Media tab photo preview forensic fix (chat-upload path)
+- Reproduced failure with a focused regression test showing `MediaTile` did not use signed URL resolution (`src/components/media/__tests__/MediaTile.resolvedUrl.test.tsx`).
+- Root cause: Unified media surfaces (`MediaTile`, `MediaViewerModal`, and mobile `MediaGridItem`) rendered raw `trip_media_index.media_url` values and bypassed `useResolvedTripMediaUrl`, so private `trip-media` objects failed to load.
+- Implemented surgical fix by resolving URLs in those shared renderer boundaries before passing to `<img>/<video>` or download actions.
+- Verification: `npm run lint && npm run typecheck && npm run build` and targeted test `npm run test -- --run src/components/media/__tests__/MediaTile.resolvedUrl.test.tsx` pass.
+- Next follow-up: optional integration test around signed URL fallback in `UnifiedMediaHub` to guard future refactors.
 2026-03-19 — Event cover photo homepage refresh regression fix (AI concierge path)
 - Root-caused stale Event/Trip card cover photos on homepage to missing client cache invalidation after concierge `setTripHeaderImage` tool writes.
 - Confirmed `useUserTripsRealtime` only listens to `trip_join_requests` and `trip_members` (not `trips` updates), so this write path needs explicit `['trips']` invalidation.

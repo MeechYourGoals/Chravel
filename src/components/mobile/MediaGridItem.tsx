@@ -4,6 +4,7 @@ import { useLongPress } from '../../hooks/useLongPress';
 import { useSwipeToDelete } from '../../hooks/useSwipeToDelete';
 import { hapticService } from '../../services/hapticService';
 import { TripMediaRenderer } from '../media/TripMediaRenderer';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaGridItemProps {
   item: {
@@ -24,6 +25,9 @@ interface MediaGridItemProps {
  * Supports swipe-to-delete and long-press gestures.
  */
 export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onLongPress }) => {
+  const resolvedUrl = useResolvedTripMediaUrl({ url: item.url, metadata: item.metadata });
+  const mediaUrl = resolvedUrl ?? item.url;
+
   const longPressHandlers = useLongPress({
     onLongPress: async () => {
       await hapticService.medium();
@@ -79,7 +83,7 @@ export const MediaGridItem: React.FC<MediaGridItemProps> = ({ item, onPress, onL
         }}
       >
         <TripMediaRenderer
-          url={item.url}
+          url={mediaUrl}
           mimeType={mimeType}
           mode="thumbnail"
           className="w-full h-full"
