@@ -293,8 +293,9 @@ export function useWebSpeechVoice(
         return;
       }
 
-      // iOS auto-restart: recognition ended but user didn't tap stop
-      if (isIOS && activeRef.current && restartCountRef.current < IOS_MAX_RESTARTS) {
+      // iOS and Android auto-restart: recognition ended but user didn't tap stop.
+      // Android Chrome also fires onend after silence periods, similar to iOS.
+      if ((isIOS || isAndroid) && activeRef.current && restartCountRef.current < IOS_MAX_RESTARTS) {
         restartCountRef.current++;
         restartWithoutResultRef.current++;
 

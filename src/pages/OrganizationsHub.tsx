@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, Plus, Users, ChevronRight } from 'lucide-react';
+import { Building, Plus, Users, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -12,7 +12,7 @@ import { SUBSCRIPTION_TIERS } from '@/types/pro';
 export const OrganizationsHub = () => {
   const navigate = useNavigate();
   const { user: _user } = useAuth();
-  const { organizations, loading, fetchUserOrganizations } = useOrganization();
+  const { organizations, loading, error, fetchUserOrganizations } = useOrganization();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
@@ -24,6 +24,25 @@ export const OrganizationsHub = () => {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <LoadingSpinner size="lg" text="Loading organizations..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle size={64} className="text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Failed to Load Organizations</h2>
+          <p className="text-gray-400 mb-6">{error.message}</p>
+          <Button
+            onClick={fetchUserOrganizations}
+            className="bg-glass-orange hover:bg-glass-orange/80"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }

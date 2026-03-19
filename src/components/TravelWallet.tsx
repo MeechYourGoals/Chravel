@@ -320,7 +320,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
         throw new Error('Failed to save program');
       }
     } catch (error) {
-      console.error('Error adding program:', error);
+      if (import.meta.env.DEV) console.error('Error adding program:', error);
       toast({
         title: 'Error',
         description: 'Failed to save loyalty program. Please try again.',
@@ -401,7 +401,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
         throw new Error('Failed to delete');
       }
     } catch (error) {
-      console.error('Error deleting program:', error);
+      if (import.meta.env.DEV) console.error('Error deleting program:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete loyalty program. Please try again.',

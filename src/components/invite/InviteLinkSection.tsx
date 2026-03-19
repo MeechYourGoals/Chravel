@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Copy, Check, RotateCcw, AlertTriangle, Share2 } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Copy, Check, RotateCcw, AlertTriangle, Share2, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { isDemoInviteLink } from '@/lib/inviteLinkUtils';
 
@@ -102,8 +102,16 @@ export const InviteLinkSection = ({
         )}
       </div>
 
+      {/* Success feedback after copy */}
+      {copied && (
+        <div className="mt-2 flex items-center gap-2 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-2 py-1.5">
+          <CheckCircle2 size={14} className="shrink-0" />
+          <span>Link copied! Share it with your group to invite them.</span>
+        </div>
+      )}
+
       {/* Demo mode indicator */}
-      {(isDemoMode || isDemoLink) && inviteLink && (
+      {(isDemoMode || isDemoLink) && inviteLink && !copied && (
         <div className="mt-2 flex items-center gap-2 text-xs text-gold-primary bg-gold-primary/10 border border-gold-primary/20 rounded-lg px-2 py-1.5">
           <AlertTriangle size={14} className="shrink-0" />
           <span>Demo Mode: Link is for demonstration only.</span>

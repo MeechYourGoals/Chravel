@@ -49,7 +49,7 @@ export const useOrganization = () => {
       }
 
       if (!user || !user.id) {
-        console.warn('[useOrganization] No user ID available, skipping org fetch');
+        // No user ID available, skipping org fetch
         setOrganizations([]);
         setCurrentOrg(null);
         setLoading(false);
@@ -84,7 +84,9 @@ export const useOrganization = () => {
         setCurrentOrg(null);
       }
     } catch (err) {
-      console.error('Error fetching organizations:', err);
+      if (import.meta.env.DEV) {
+        // Organization fetch failed
+      }
       setError(err instanceof Error ? err : new Error('Failed to load organizations'));
     } finally {
       setLoading(false);
@@ -117,7 +119,9 @@ export const useOrganization = () => {
       if (error) throw error;
       setMembers((data as OrganizationMember[]) || []);
     } catch (error) {
-      console.error('Error fetching org members:', error);
+      if (import.meta.env.DEV) {
+        // Org members fetch failed
+      }
     }
   }, []);
 

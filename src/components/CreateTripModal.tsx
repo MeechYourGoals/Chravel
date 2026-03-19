@@ -456,10 +456,22 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               }`}
               placeholder="e.g., Summer in Paris"
               required
+              maxLength={80}
             />
-            {validationErrors.title && (
-              <p className="text-red-400 text-xs mt-1">{validationErrors.title}</p>
-            )}
+            <div className="flex items-center justify-between mt-1">
+              {validationErrors.title ? (
+                <p className="text-red-400 text-xs">{validationErrors.title}</p>
+              ) : !formData.title.trim() ? (
+                <p className="text-gray-500 text-xs">Required</p>
+              ) : (
+                <span />
+              )}
+              <p
+                className={`text-xs ${formData.title.length > 70 ? 'text-amber-400' : 'text-gray-500'}`}
+              >
+                {formData.title.length}/80
+              </p>
+            </div>
           </div>
 
           {/* Organizer - Only for Event trips */}
@@ -613,9 +625,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
+              maxLength={500}
               className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#c49746] focus:outline-none transition-colors resize-none"
               placeholder="Tell us about your trip..."
             />
+            {formData.description.length > 0 && (
+              <p
+                className={`text-xs mt-1 text-right ${formData.description.length > 450 ? 'text-amber-400' : 'text-gray-500'}`}
+              >
+                {formData.description.length}/500
+              </p>
+            )}
           </div>
 
           {/* Cover Photo */}

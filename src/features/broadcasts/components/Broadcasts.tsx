@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BroadcastComposer } from './BroadcastComposer';
 import { BroadcastList } from './BroadcastList';
@@ -12,6 +12,7 @@ import { useBroadcastFilters } from '../hooks/useBroadcastFilters';
 import { broadcastService } from '@/services/broadcastService';
 import type { Broadcast } from '@/services/broadcastService';
 import { tripKeys } from '@/lib/queryKeys';
+import { toast } from 'sonner';
 
 const participants = beyonceCowboyCarterTour.participants;
 
@@ -136,7 +137,64 @@ export const Broadcasts = () => {
   const handleResponse = (broadcastId: string, response: 'coming' | 'wait' | 'cant') => {
     const _prevResponse = userResponses[broadcastId];
     setUserResponses(prev => ({ ...prev, [broadcastId]: response }));
+
+    // Persist response to database as a reaction
+    if (!isDemoMode) {
+      broadcastService.addReaction(broadcastId, response).catch(() => {
+        // Revert on failure (best-effort)
+      });
+    }
   };
+
+  const handleDeleteBroadcast = useCallback(
+    async (broadcastId: string) => {
+      if (isDemoMode) {
+        setDemoBroadcasts(prev => prev.filter(b => b.id !== broadcastId));
+        return;
+      }
+
+      // Soft-delete by updating the broadcast
+      const success = await broadcastService.updateBroadcast(broadcastId, {
+        is_sent: false,
+        metadata: { deleted: true },
+      });
+
+      if (success) {
+        queryClient.setQueryData<Broadcast[]>(tripKeys.broadcasts(currentTripId), (prev = []) =>
+          prev.filter(b => b.id !== broadcastId),
+        );
+        toast.success('Broadcast deleted');
+      } else {
+        toast.error('Failed to delete broadcast');
+      }
+    },
+    [isDemoMode, currentTripId, queryClient],
+  );
+
+  const handleEditBroadcast = useCallback(
+    async (broadcastId: string, newMessage: string) => {
+      if (isDemoMode) {
+        setDemoBroadcasts(prev =>
+          prev.map(b => (b.id === broadcastId ? { ...b, message: newMessage } : b)),
+        );
+        return;
+      }
+
+      const success = await broadcastService.updateBroadcast(broadcastId, {
+        message: newMessage,
+      });
+
+      if (success) {
+        queryClient.setQueryData<Broadcast[]>(tripKeys.broadcasts(currentTripId), (prev = []) =>
+          prev.map(b => (b.id === broadcastId ? { ...b, message: newMessage } : b)),
+        );
+        toast.success('Broadcast updated');
+      } else {
+        toast.error('Failed to update broadcast');
+      }
+    },
+    [isDemoMode, currentTripId, queryClient],
+  );
 
   const recentBroadcasts = broadcasts.filter(broadcast => {
     const hoursDiff = (Date.now() - new Date(broadcast.timestamp).getTime()) / (1000 * 60 * 60);
@@ -178,6 +236,8 @@ export const Broadcasts = () => {
           broadcasts={filteredBroadcasts}
           userResponses={userResponses}
           onRespond={handleResponse}
+          onDelete={handleDeleteBroadcast}
+          onEdit={handleEditBroadcast}
         />
       )}
 

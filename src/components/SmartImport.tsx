@@ -353,31 +353,33 @@ export const SmartImport = ({
   );
 };
 
-// Helper function to process imported data based on type
-function processImportedData(data: any, targetType: string): any[] {
+/**
+ * Extract structured data from AI parser response based on target type.
+ * Handles multiple common response shapes from the file-ai-parser edge function.
+ * Returns empty array (never throws) — callers should check length and show appropriate UI.
+ */
+function processImportedData(data: unknown, targetType: string): unknown[] {
   if (!data) return [];
+  if (Array.isArray(data)) return data;
 
-  switch (targetType) {
-    case 'roster':
-      if (data.roster_members) return data.roster_members;
-      if (data.players) return data.players;
-      if (data.members) return data.members;
-      if (Array.isArray(data)) return data;
-      break;
+  // AI parser may wrap results in a named key — try common shapes
+  const record = data as Record<string, unknown>;
 
-    case 'schedule':
-      if (data.games) return data.games;
-      if (data.events) return data.events;
-      if (data.schedule) return data.schedule;
-      if (Array.isArray(data)) return data;
-      break;
+  const keysByType: Record<string, string[]> = {
+    roster: ['roster_members', 'players', 'members', 'team', 'roster', 'participants'],
+    schedule: ['games', 'events', 'schedule', 'matches', 'fixtures'],
+    events: ['sessions', 'events', 'schedule', 'items', 'agenda'],
+  };
 
-    case 'events':
-      if (data.sessions) return data.sessions;
-      if (data.events) return data.events;
-      if (data.schedule) return data.schedule;
-      if (Array.isArray(data)) return data;
-      break;
+  const keysToTry = keysByType[targetType] || [];
+  for (const key of keysToTry) {
+    const value = record[key];
+    if (Array.isArray(value) && value.length > 0) return value;
+  }
+
+  // Last resort: check if any top-level value is a non-empty array
+  for (const value of Object.values(record)) {
+    if (Array.isArray(value) && value.length > 0) return value;
   }
 
   return [];

@@ -8,13 +8,15 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { safeReload } from '@/utils/safeReload';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import { PersonalBalance } from '../../services/paymentBalanceService';
 import { supabase } from '../../integrations/supabase/client';
 import { toast } from '../ui/use-toast';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import * as haptics from '@/native/haptics';
 import { formatCurrency } from '../../services/currencyService';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ConfirmPaymentDialogProps {
   open: boolean;
@@ -27,8 +29,10 @@ export const ConfirmPaymentDialog = ({
   open,
   onOpenChange,
   balance,
-  tripId: _tripId,
+  tripId,
 }: ConfirmPaymentDialogProps) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currency = balance.amountOwedCurrency || 'USD';
@@ -68,8 +72,13 @@ export const ConfirmPaymentDialog = ({
 
       onOpenChange(false);
 
-      // Refresh the page to show updated balances
-      await safeReload();
+      // Invalidate payment queries to refresh balances without full page reload
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }),
+        queryClient.invalidateQueries({
+          queryKey: tripKeys.paymentBalances(tripId, user?.id || ''),
+        }),
+      ]);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error confirming payment:', error);

@@ -8,8 +8,10 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { safeReload } from '@/utils/safeReload';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queryKeys';
 import { PersonalBalance } from '../../services/paymentBalanceService';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '../../integrations/supabase/client';
 import { useToast } from '../ui/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -26,9 +28,11 @@ export const SettlePaymentDialog = ({
   open,
   onOpenChange,
   balance,
-  tripId: _tripId,
+  tripId,
 }: SettlePaymentDialogProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [settling, setSettling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currency = balance.amountOwedCurrency || 'USD';
@@ -89,7 +93,13 @@ export const SettlePaymentDialog = ({
       }
 
       onOpenChange(false);
-      await safeReload();
+      // Invalidate payment queries to refresh balances without full page reload
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: tripKeys.payments(tripId) }),
+        queryClient.invalidateQueries({
+          queryKey: tripKeys.paymentBalances(tripId, user?.id || ''),
+        }),
+      ]);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error settling payment:', error);

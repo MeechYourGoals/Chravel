@@ -207,6 +207,21 @@ export const UnifiedMediaHub = React.memo(
         {/* Storage Quota */}
         <StorageQuotaBar tripId={tripId} showDetails={true} />
 
+        {/* Total count */}
+        {filteredMediaItems.length > 0 && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {filteredMediaItems.length} item{filteredMediaItems.length !== 1 ? 's' : ''} in
+              gallery
+            </span>
+            {searchQuery && searchFilteredItems.length !== filteredMediaItems.length && (
+              <span>
+                {searchFilteredItems.length} matching &ldquo;{searchQuery}&rdquo;
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Search Bar */}
         <MediaSearchBar
           tripId={tripId}

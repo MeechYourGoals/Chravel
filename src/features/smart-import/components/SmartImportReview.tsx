@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import type { SmartImportCandidate } from '../types';
+import type { SmartImportCandidate, ImportProgress } from '../types';
 
 // Map Gmail extraction types → artifact-ingest artifact_type overrides
 const RESERVATION_TO_ARTIFACT_TYPE: Record<string, string> = {
@@ -99,6 +99,8 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
+  const [failedCandidateIds, setFailedCandidateIds] = useState<Set<string>>(new Set());
 
   const visibleCandidates = useMemo(() => {
     if (activeFilter === 'all') return candidates;
@@ -130,47 +132,63 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     setSelectedIds(next);
   };
 
+  const ingestCandidate = async (candidate: SmartImportCandidate): Promise<string> => {
+    const resData = candidate.reservation_data || {};
+    const reservationType = resData.type as string | undefined;
+    const artifactTypeOverride = reservationType
+      ? RESERVATION_TO_ARTIFACT_TYPE[reservationType]
+      : undefined;
+
+    const { data, error } = await supabase.functions.invoke('artifact-ingest', {
+      body: {
+        tripId,
+        sourceType: 'gmail_import',
+        text: JSON.stringify(resData),
+        artifactTypeOverride,
+        metadata: {
+          gmail_message_id: resData._gmail_message_id,
+          email_subject: resData._email_subject,
+          smart_import_candidate_id: candidate.id,
+        },
+      },
+    });
+
+    if (error || !data?.success) {
+      throw new Error(error?.message || data?.error || 'artifact-ingest returned failure');
+    }
+
+    return candidate.id;
+  };
+
   const handleAccept = async () => {
     setIsSubmitting(true);
+    setImportProgress(null);
     try {
       const accepted = candidates.filter(c => selectedIds.has(c.id));
       const rejected = candidates.filter(c => !selectedIds.has(c.id));
 
-      // Persist accepted candidates as trip artifacts.
-      // A candidate is only marked 'accepted' after artifact-ingest confirms success.
-      // Candidates whose ingest call fails are left as 'pending' so the user can retry.
       let persistedCount = 0;
       let failedCount = 0;
       const succeededIds: string[] = [];
+      const newFailedIds: string[] = [];
 
       if (tripId && accepted.length > 0) {
+        const progress: ImportProgress = {
+          total: accepted.length,
+          completed: 0,
+          succeeded: 0,
+          failed: 0,
+          failedCandidateIds: [],
+        };
+        setImportProgress({ ...progress });
+
         const ingestResults = await Promise.allSettled(
           accepted.map(async candidate => {
-            const resData = candidate.reservation_data || {};
-            const reservationType = resData.type as string | undefined;
-            const artifactTypeOverride = reservationType
-              ? RESERVATION_TO_ARTIFACT_TYPE[reservationType]
-              : undefined;
-
-            const { data, error } = await supabase.functions.invoke('artifact-ingest', {
-              body: {
-                tripId,
-                sourceType: 'gmail_import',
-                text: JSON.stringify(resData),
-                artifactTypeOverride,
-                metadata: {
-                  gmail_message_id: resData._gmail_message_id,
-                  email_subject: resData._email_subject,
-                  smart_import_candidate_id: candidate.id,
-                },
-              },
-            });
-
-            if (error || !data?.success) {
-              throw new Error(error?.message || data?.error || 'artifact-ingest returned failure');
-            }
-
-            return candidate.id;
+            const id = await ingestCandidate(candidate);
+            progress.completed++;
+            progress.succeeded++;
+            setImportProgress({ ...progress });
+            return id;
           }),
         );
 
@@ -181,16 +199,14 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
             persistedCount++;
           } else {
             failedCount++;
-            console.error(
-              '[SmartImportReview] artifact-ingest failed for candidate',
-              accepted[i].id,
-              result.reason,
-            );
+            newFailedIds.push(accepted[i].id);
+            progress.completed++;
+            progress.failed++;
+            progress.failedCandidateIds.push(accepted[i].id);
+            setImportProgress({ ...progress });
           }
         }
 
-        // Only mark candidates as 'accepted' if artifact-ingest succeeded.
-        // Failed candidates remain 'pending' so the user can retry.
         if (succeededIds.length > 0) {
           await supabase
             .from('smart_import_candidates')
@@ -199,7 +215,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
         }
       }
 
-      // Mark rejected candidates (regardless of whether tripId is present)
+      // Mark rejected candidates
       if (rejected.length > 0) {
         await supabase
           .from('smart_import_candidates')
@@ -210,25 +226,63 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           );
       }
 
+      setFailedCandidateIds(new Set(newFailedIds));
+
       if (failedCount > 0) {
         toast.warning(
           `${persistedCount} of ${accepted.length} item${accepted.length !== 1 ? 's' : ''} saved.`,
           {
-            description: `${failedCount} item${failedCount !== 1 ? 's' : ''} may not have been fully indexed.`,
+            description: `${failedCount} item${failedCount !== 1 ? 's' : ''} failed. You can retry them.`,
           },
         );
       } else if (accepted.length > 0) {
         toast.success(
           `Added ${accepted.length} item${accepted.length !== 1 ? 's' : ''} to your trip`,
         );
+        await onAccept(accepted);
       }
-
-      await onAccept(accepted);
     } catch (error: unknown) {
       toast.error('Failed to save imported items', { description: (error as Error)?.message });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRetryFailed = async () => {
+    if (failedCandidateIds.size === 0) return;
+    setIsSubmitting(true);
+
+    const toRetry = candidates.filter(c => failedCandidateIds.has(c.id));
+    let retrySucceeded = 0;
+    const stillFailed: string[] = [];
+
+    for (const candidate of toRetry) {
+      try {
+        await ingestCandidate(candidate);
+        retrySucceeded++;
+      } catch {
+        stillFailed.push(candidate.id);
+      }
+    }
+
+    if (retrySucceeded > 0) {
+      const retriedIds = toRetry.filter(c => !stillFailed.includes(c.id)).map(c => c.id);
+      await supabase
+        .from('smart_import_candidates')
+        .update({ status: 'accepted' })
+        .in('id', retriedIds);
+    }
+
+    setFailedCandidateIds(new Set(stillFailed));
+
+    if (stillFailed.length === 0) {
+      toast.success(`All ${retrySucceeded} item${retrySucceeded !== 1 ? 's' : ''} saved on retry`);
+      await onAccept(candidates.filter(c => selectedIds.has(c.id)));
+    } else {
+      toast.warning(`${retrySucceeded} succeeded, ${stillFailed.length} still failing`);
+    }
+
+    setIsSubmitting(false);
   };
 
   if (!candidates || candidates.length === 0) {
@@ -451,10 +505,38 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
         })}
       </div>
 
+      {/* Progress indicator during submission */}
+      {isSubmitting && importProgress && importProgress.total > 0 && (
+        <div className="pt-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+            <span>
+              Importing {importProgress.completed}/{importProgress.total}
+            </span>
+            {importProgress.failed > 0 && (
+              <span className="text-red-400">{importProgress.failed} failed</span>
+            )}
+          </div>
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-300"
+              style={{
+                width: `${Math.round((importProgress.completed / importProgress.total) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end gap-3 pt-4 border-t mt-6">
         <Button variant="ghost" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
+        {failedCandidateIds.size > 0 && !isSubmitting && (
+          <Button variant="outline" onClick={handleRetryFailed} className="min-w-[100px]">
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            Retry {failedCandidateIds.size} Failed
+          </Button>
+        )}
         <Button
           onClick={handleAccept}
           disabled={selectedIds.size === 0 || isSubmitting}

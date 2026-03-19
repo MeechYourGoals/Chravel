@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Building, Users, Briefcase, Settings, UserPlus, ChevronLeft } from 'lucide-react';
+import {
+  Building,
+  Users,
+  Briefcase,
+  Settings,
+  UserPlus,
+  ChevronLeft,
+  Trash2,
+  AlertTriangle,
+} from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -34,10 +43,14 @@ export const OrganizationDashboard = () => {
     setCurrentOrg,
     fetchUserOrganizations,
     updateOrganization,
+    deleteOrganization,
   } = useOrganization();
 
   const [activeTab, setActiveTab] = useState('overview');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [linkedTrips, setLinkedTrips] = useState<any[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
 
@@ -122,6 +135,28 @@ export const OrganizationDashboard = () => {
       });
       if (orgId) fetchOrgMembers(orgId);
     }
+  };
+
+  const handleDeleteOrganization = async () => {
+    if (!orgId || deleteConfirmText !== currentOrg?.display_name) return;
+
+    setIsDeleting(true);
+    const { error } = await deleteOrganization(orgId);
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete organization',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Organization Deleted',
+        description: 'Organization has been permanently deleted',
+      });
+      navigate('/organizations');
+    }
+    setIsDeleting(false);
+    setShowDeleteConfirm(false);
   };
 
   if (loading) {
@@ -497,6 +532,70 @@ export const OrganizationDashboard = () => {
                     seatLimit: currentOrg.seat_limit,
                   }}
                 />
+
+                {/* Danger Zone */}
+                <Card className="bg-red-500/5 border-red-500/20">
+                  <CardHeader>
+                    <CardTitle className="text-red-400 flex items-center gap-2">
+                      <AlertTriangle size={20} />
+                      Danger Zone
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {!showDeleteConfirm ? (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-white font-medium">Delete Organization</p>
+                          <p className="text-sm text-gray-400">
+                            Permanently delete this organization and remove all members
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowDeleteConfirm(true)}
+                          className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                        <p className="text-red-300 text-sm">
+                          This action cannot be undone. Type{' '}
+                          <strong className="text-white">{currentOrg.display_name}</strong> to
+                          confirm.
+                        </p>
+                        <input
+                          type="text"
+                          value={deleteConfirmText}
+                          onChange={e => setDeleteConfirmText(e.target.value)}
+                          placeholder="Type organization name to confirm"
+                          className="w-full bg-gray-800/50 border border-red-500/30 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowDeleteConfirm(false);
+                              setDeleteConfirmText('');
+                            }}
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleDeleteOrganization}
+                            disabled={deleteConfirmText !== currentOrg.display_name || isDeleting}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                          >
+                            {isDeleting ? 'Deleting...' : 'Delete Forever'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           )}

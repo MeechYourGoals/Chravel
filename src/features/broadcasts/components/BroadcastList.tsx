@@ -22,9 +22,17 @@ interface BroadcastListProps {
   broadcasts: BroadcastData[];
   userResponses: Record<string, 'coming' | 'wait' | 'cant'>;
   onRespond: (broadcastId: string, response: 'coming' | 'wait' | 'cant') => void;
+  onDelete?: (broadcastId: string) => void;
+  onEdit?: (broadcastId: string, newMessage: string) => void;
 }
 
-export const BroadcastList = ({ broadcasts, userResponses, onRespond }: BroadcastListProps) => {
+export const BroadcastList = ({
+  broadcasts,
+  userResponses,
+  onRespond,
+  onDelete,
+  onEdit,
+}: BroadcastListProps) => {
   if (broadcasts.length === 0) {
     return (
       <div className="text-center py-12">

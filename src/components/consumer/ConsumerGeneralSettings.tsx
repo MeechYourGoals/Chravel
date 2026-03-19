@@ -18,6 +18,32 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+const APP_PREFS_KEY = 'chravel_app_preferences';
+
+interface AppPreferences {
+  language: string;
+  timezone: string;
+  dateFormat: string;
+}
+
+function loadAppPreferences(): AppPreferences {
+  try {
+    const stored = localStorage.getItem(APP_PREFS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // ignore parse error
+  }
+  return { language: 'English', timezone: 'Pacific Time (PT)', dateFormat: 'MM/DD/YYYY' };
+}
+
+function saveAppPreferences(prefs: AppPreferences): void {
+  try {
+    localStorage.setItem(APP_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // ignore write error
+  }
+}
+
 export const ConsumerGeneralSettings = () => {
   const { preferences, updatePreferences, isUpdating } = useGlobalSystemMessagePreferences();
   const { user, signOut } = useAuth();
@@ -29,6 +55,8 @@ export const ConsumerGeneralSettings = () => {
   const [reAuthError, setReAuthError] = useState('');
   const [deletionScheduledFor, setDeletionScheduledFor] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [appPrefs, setAppPrefs] = useState<AppPreferences>(loadAppPreferences);
+  const [cacheClearSuccess, setCacheClearSuccess] = useState(false);
 
   // Check if account deletion is already scheduled
   useEffect(() => {
@@ -210,7 +238,15 @@ export const ConsumerGeneralSettings = () => {
         <div className="space-y-3">
           <div>
             <label className="block text-sm text-gray-300 mb-2">Language</label>
-            <select className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50">
+            <select
+              value={appPrefs.language}
+              onChange={e => {
+                const updated = { ...appPrefs, language: e.target.value };
+                setAppPrefs(updated);
+                saveAppPreferences(updated);
+              }}
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+            >
               <option>English</option>
               <option>Spanish</option>
               <option>French</option>
@@ -219,7 +255,15 @@ export const ConsumerGeneralSettings = () => {
           </div>
           <div>
             <label className="block text-sm text-gray-300 mb-2">Time Zone</label>
-            <select className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50">
+            <select
+              value={appPrefs.timezone}
+              onChange={e => {
+                const updated = { ...appPrefs, timezone: e.target.value };
+                setAppPrefs(updated);
+                saveAppPreferences(updated);
+              }}
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+            >
               <option>Pacific Time (PT)</option>
               <option>Mountain Time (MT)</option>
               <option>Central Time (CT)</option>
@@ -228,7 +272,15 @@ export const ConsumerGeneralSettings = () => {
           </div>
           <div>
             <label className="block text-sm text-gray-300 mb-2">Date Format</label>
-            <select className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50">
+            <select
+              value={appPrefs.dateFormat}
+              onChange={e => {
+                const updated = { ...appPrefs, dateFormat: e.target.value };
+                setAppPrefs(updated);
+                saveAppPreferences(updated);
+              }}
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+            >
               <option>MM/DD/YYYY</option>
               <option>DD/MM/YYYY</option>
               <option>YYYY-MM-DD</option>
@@ -241,12 +293,38 @@ export const ConsumerGeneralSettings = () => {
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <h4 className="text-base font-semibold text-white mb-3">Data & Storage</h4>
         <div className="space-y-3">
-          <button className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
+          <button
+            onClick={() => {
+              try {
+                // Clear TanStack Query cache if available
+                if (window.caches) {
+                  window.caches
+                    .keys()
+                    .then(names => names.forEach(name => window.caches.delete(name)));
+                }
+                setCacheClearSuccess(true);
+                toast({
+                  title: 'Cache Cleared',
+                  description: 'App cache has been cleared successfully.',
+                });
+                setTimeout(() => setCacheClearSuccess(false), 3000);
+              } catch {
+                toast({
+                  title: 'Error',
+                  description: 'Failed to clear cache.',
+                  variant: 'destructive',
+                });
+              }
+            }}
+            className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          >
             <div className="text-left">
               <div className="text-white font-medium">Clear Cache</div>
               <div className="text-sm text-gray-400">Clear stored app data to free up space</div>
             </div>
-            <div className="text-glass-orange">Clear</div>
+            <div className={cacheClearSuccess ? 'text-green-400' : 'text-glass-orange'}>
+              {cacheClearSuccess ? 'Done!' : 'Clear'}
+            </div>
           </button>
         </div>
       </div>

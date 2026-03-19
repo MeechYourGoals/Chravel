@@ -306,6 +306,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     isLoading,
     isProcessing,
     createRole,
+    updateRole,
     deleteRole,
     refetch,
   };

@@ -563,13 +563,17 @@ export const AIConciergeChat = ({
           } as any);
 
           if (persistError) {
-            console.error('[Voice] Failed to persist voice turn:', persistError.message);
+            if (import.meta.env.DEV) {
+              console.error('[Voice] Failed to persist voice turn:', persistError.message);
+            }
             toast.warning('Voice turn not saved', {
               description: 'Your voice conversation could not be saved to history.',
             });
           }
         } catch (err) {
-          console.error('[Voice] Unexpected error persisting voice turn:', err);
+          if (import.meta.env.DEV) {
+            console.error('[Voice] Unexpected error persisting voice turn:', err);
+          }
           toast.warning('Voice turn not saved', {
             description: 'Your voice conversation could not be saved to history.',
           });
@@ -737,7 +741,9 @@ export const AIConciergeChat = ({
     if (isHistoryLoading || hasHydratedRef.current) return;
 
     if (historyError) {
-      console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
+      if (import.meta.env.DEV) {
+        console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
+      }
       // Fallback: try localStorage cache (covers offline + RPC failure scenarios)
       const userId = user?.id ?? 'anonymous';
       const cached = conciergeCacheService.getCachedMessages(tripId, userId);
@@ -819,7 +825,9 @@ export const AIConciergeChat = ({
 
     const timeout = setTimeout(() => {
       if (isMounted.current && aiStatus === 'checking') {
-        console.warn('[AIConciergeChat] Initialization timeout - showing fallback');
+        if (import.meta.env.DEV) {
+          console.warn('[AIConciergeChat] Initialization timeout - showing fallback');
+        }
         setAiStatus('timeout');
       }
     }, 8000);

@@ -296,6 +296,11 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         onImport={handleImport}
       />
 
+      {/* Google Calendar Sync Status */}
+      <div className="mb-4 px-1">
+        <GoogleCalendarSync tripId={tripId} />
+      </div>
+
       {isError ? (
         <CalendarErrorState
           error={error instanceof Error ? error : error ? new Error(String(error)) : undefined}
