@@ -51,6 +51,9 @@ export const BroadcastList = ({
           {...broadcast}
           userResponse={userResponses[broadcast.id]}
           onRespond={onRespond}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          isOwner={true}
         />
       ))}
     </div>
