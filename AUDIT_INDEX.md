@@ -1,8 +1,8 @@
 # Audit Index
 
-> Quick-reference for 8 audit documents (5,050+ lines total).
+> Quick-reference for 9 audit documents (5,500+ lines total).
 > Read specific sections by line number instead of entire files.
-> Last updated: 2026-03-16
+> Last updated: 2026-03-18
 
 ---
 
@@ -17,6 +17,7 @@
 | 2026-03-15 | PLATFORM_AUDIT_CONSTITUTION.md | Full-stack 9-domain audit (66 tables) | 55% readiness | 923 |
 | 2026-03-15 | NOTIFICATION_AUDIT.md | Notification generation, delivery, scale | Fragmented | 1190 |
 | undated | RECOMMENDATIONS_AUDIT.md | Recommendations/ads feature productionization | Hybrid mock/real | 650 |
+| 2026-03-18 | AUDIT_CONCIERGE_ARCHITECTURE_2026_03_18.md | AI Concierge prompt + tool + context forensic audit | 10 refactor priorities | ~450 |
 | 2026-03 | YC_APPLICATION_SHOWCASE.md | AI agent orchestration — 311K LOC showcase | Narrative | 557 |
 
 ---
