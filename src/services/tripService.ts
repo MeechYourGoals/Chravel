@@ -216,7 +216,14 @@ export const tripService = {
       });
 
       if (error) {
-        console.error('[tripService] Edge function error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[tripService] Edge function error:', error);
+        }
+
+        // SAFETY: This block only handles trip *creation* errors (not trip loading).
+        // No Trip Not Found risk — getTripById is a separate method.
+        // No auth desync — auth flow (lines 124-157) is untouched.
+        // No RLS leak — error messages are either known codes or hardcoded strings.
 
         // Extract the actual error message from the edge function response body.
         // supabase.functions.invoke returns { data: null, error: FunctionsHttpError }
@@ -230,11 +237,13 @@ export const tripService = {
           detailedMessage = data.message;
         }
 
-        // If data was null, try parsing the Response from error.context
-        if (!detailedMessage && error.context) {
+        // Only parse Response objects (FunctionsHttpError/FunctionsRelayError).
+        // FunctionsFetchError stores a TypeError in context — not a Response.
+        // Previously used `typeof error.context.json === 'function'` which also
+        // matched TypeError objects, leaking raw "Failed to fetch" to users.
+        if (!detailedMessage && error.context instanceof Response) {
           try {
-            const responseBody =
-              typeof error.context.json === 'function' ? await error.context.json() : error.context;
+            const responseBody = await error.context.json();
             detailedMessage = responseBody?.error || responseBody?.message || '';
           } catch {
             // Response body already consumed or not JSON - ignore
@@ -249,11 +258,20 @@ export const tripService = {
           throw new Error('UPGRADE_REQUIRED_EVENT');
         }
 
+        // Network errors (CORS, offline, etc.) get a specific user-friendly message
+        if (!detailedMessage && error.name === 'FunctionsFetchError') {
+          throw new Error(
+            'Network error creating trip. Please check your connection and try again.',
+          );
+        }
+
         throw new Error(detailedMessage || 'Failed to create trip. Please try again.');
       }
 
       if (!data?.success) {
-        console.error('[tripService] Edge function returned failure:', data);
+        if (import.meta.env.DEV) {
+          console.error('[tripService] Edge function returned failure:', data);
+        }
         throw new Error(data?.error || 'Failed to create trip');
       }
 
