@@ -521,8 +521,9 @@ export const AIConciergeChat = ({
               if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
               assistantMsg.conciergeActions.push({
                 actionType: (tr.result.actionType as string) || tr.name,
+                success: !!tr.result.success,
                 message: (tr.result.message as string) || '',
-              } as any);
+              });
             }
           }
         }
@@ -553,6 +554,7 @@ export const AIConciergeChat = ({
           const voiceAssistantMsg = newMessages.find(m => m.type === 'assistant');
           const richMeta = extractRichMetadata(voiceAssistantMsg);
 
+          // Type assertion needed: metadata column exists in DB but may not be in generated types
           const { error: persistError } = await supabase.from('ai_queries').insert({
             trip_id: tripId,
             user_id: user.id,
@@ -560,7 +562,7 @@ export const AIConciergeChat = ({
             response_text: assistantText,
             created_at: now,
             ...(richMeta ? { metadata: richMeta } : {}),
-          } as any);
+          } as Record<string, unknown>);
 
           if (persistError) {
             if (import.meta.env.DEV) {
@@ -589,11 +591,15 @@ export const AIConciergeChat = ({
 
   const {
     state: liveState,
+    error: liveError,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
+    conversationHistory: liveConversationHistory,
     diagnostics: liveDiagnostics,
     startSession: startLiveSession,
     endSession: endLiveSession,
+    circuitBreakerOpen: liveCircuitBreakerOpen,
+    resetCircuitBreaker: liveResetCircuitBreaker,
   } = useGeminiLive({
     tripId,
     onToolCall: handleToolCall,
@@ -1659,7 +1665,7 @@ export const AIConciergeChat = ({
                   if (richMeta && user?.id) {
                     supabase
                       .from('ai_queries')
-                      .update({ metadata: richMeta } as any)
+                      .update({ metadata: richMeta } as Record<string, unknown>)
                       .eq('trip_id', tripId)
                       .eq('user_id', user.id)
                       .eq('query_text', currentInput)
@@ -1867,22 +1873,26 @@ export const AIConciergeChat = ({
                 <button
                   type="button"
                   onClick={handleLiveToggle}
-                  className={`relative h-7 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
+                  className={`relative min-h-[44px] min-w-[44px] h-8 px-3 rounded-full flex items-center justify-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
                     isLiveSessionActive
                       ? 'bg-gradient-to-br from-[#533517] to-[#c49746] text-white shadow-md shadow-[#c49746]/25 border-transparent'
                       : 'bg-gray-800/80 text-white hover:bg-gray-700/80'
                   }`}
-                  aria-label={isLiveSessionActive ? 'Stop live voice' : 'Start live voice'}
+                  aria-label={
+                    isLiveSessionActive ? 'Stop live voice session' : 'Start live voice session'
+                  }
+                  role="switch"
+                  aria-checked={isLiveSessionActive}
                 >
                   {isLiveSessionActive && (
                     <span
-                      aria-hidden
+                      aria-hidden="true"
                       className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#c49746]/30 to-[#feeaa5]/20 blur-sm"
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-1">
-                    <Sparkles size={12} />
-                    <span className="text-[10px] font-medium leading-none">Live</span>
+                    <Sparkles size={14} aria-hidden="true" />
+                    <span className="text-xs font-medium leading-none">Live</span>
                   </span>
                 </button>
               )}
@@ -1970,7 +1980,12 @@ export const AIConciergeChat = ({
             userTranscript={liveUserTranscript}
             assistantTranscript={liveAssistantTranscript}
             diagnostics={liveDiagnostics}
+            error={liveError}
+            circuitBreakerOpen={liveCircuitBreakerOpen}
+            conversationEmpty={liveConversationHistory.length === 0}
             onEndSession={() => void handleEndLiveSession()}
+            onRetry={() => void startLiveSession()}
+            onResetCircuitBreaker={liveResetCircuitBreaker}
           />
         ) : (
           <div

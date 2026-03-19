@@ -46,7 +46,8 @@ export const getVisibleTabs = (
 
     // Defensive check: if category is invalid, log error and show all tabs
     if (!categoryConfig) {
-      console.error(`Invalid ProTripCategory: "${category}". Showing all tabs.`);
+      if (import.meta.env.DEV)
+        console.error(`Invalid ProTripCategory: "${category}". Showing all tabs.`);
       return proTabs;
     }
 

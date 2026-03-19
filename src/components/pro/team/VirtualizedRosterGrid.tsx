@@ -63,7 +63,13 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
   };
 
   return (
-    <div ref={parentRef} className="h-[500px] overflow-auto" style={{ contain: 'strict' }}>
+    <div
+      ref={parentRef}
+      className="h-[500px] overflow-auto overflow-x-hidden"
+      style={{ contain: 'strict' }}
+      role="grid"
+      aria-label="Team roster grid"
+    >
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -118,6 +124,8 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
                           {allRolePills.map((pill, index) => (
                             <span
                               key={`${pill.name}-${index}`}
+                              role="status"
+                              aria-label={`Role: ${pill.name}${pill.isAdmin ? ' (admin)' : ''}`}
                               className={`${
                                 pill.isAdmin
                                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -129,6 +137,8 @@ export const VirtualizedRosterGrid: React.FC<VirtualizedRosterGridProps> = ({
                           ))}
                           {showFallbackRole && (
                             <span
+                              role="status"
+                              aria-label={`Role: ${member.role}`}
                               className={`${getRoleColorClass(member.role, category)} px-1.5 py-0.5 rounded text-xs font-medium`}
                             >
                               {member.role}

@@ -21,9 +21,23 @@ interface TravelWalletProps {
   userId: string;
 }
 
+type TabId = 'airlines' | 'hotels' | 'rentals';
+
+/** Shape passed from AddProgramForm to save handlers */
+interface ProgramFormData {
+  id: string;
+  company: string;
+  programName: string;
+  membershipNumber: string;
+  tier: string;
+  isPreferred: boolean;
+  airline?: string;
+  hotelChain?: string;
+}
+
 export const TravelWallet = ({ userId }: TravelWalletProps) => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'airlines' | 'hotels' | 'rentals'>('airlines');
+  const [activeTab, setActiveTab] = useState<TabId>('airlines');
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [_isSaving, setIsSaving] = useState(false);
@@ -35,36 +49,35 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
   const [rentalCarPrograms, setRentalCarPrograms] = useState<RentalCarProgram[]>([]);
 
   // Load loyalty programs from database
-  useEffect(() => {
-    const loadPrograms = async () => {
-      if (!userId) return;
-      setIsLoading(true);
-      setLoadError(null);
-      try {
-        const programs = await loyaltyProgramService.getUserPrograms(userId);
+  const loadPrograms = async () => {
+    if (!userId) return;
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const programs = await loyaltyProgramService.getUserPrograms(userId);
 
-        setAirlinePrograms(
-          programs
-            .filter(p => p.program_type === 'airline')
-            .map(loyaltyProgramService.toAirlineProgram),
-        );
-        setHotelPrograms(
-          programs
-            .filter(p => p.program_type === 'hotel')
-            .map(loyaltyProgramService.toHotelProgram),
-        );
-        setRentalCarPrograms(
-          programs
-            .filter(p => p.program_type === 'rental')
-            .map(loyaltyProgramService.toRentalCarProgram),
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to load loyalty programs';
-        setLoadError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      setAirlinePrograms(
+        programs
+          .filter(p => p.program_type === 'airline')
+          .map(loyaltyProgramService.toAirlineProgram),
+      );
+      setHotelPrograms(
+        programs.filter(p => p.program_type === 'hotel').map(loyaltyProgramService.toHotelProgram),
+      );
+      setRentalCarPrograms(
+        programs
+          .filter(p => p.program_type === 'rental')
+          .map(loyaltyProgramService.toRentalCarProgram),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load loyalty programs';
+      setLoadError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadPrograms();
   }, [userId]);
 
@@ -74,7 +87,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     onCancel,
   }: {
     type: string;
-    onSave: (data: any) => void;
+    onSave: (data: ProgramFormData) => void;
     onCancel: () => void;
   }) => {
     const [formData, setFormData] = useState({
@@ -87,11 +100,12 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      const companyKey =
+        type === 'airlines' ? 'airline' : type === 'hotels' ? 'hotelChain' : 'company';
       onSave({
         id: Date.now().toString(),
         ...formData,
-        [type === 'airlines' ? 'airline' : type === 'hotels' ? 'hotelChain' : 'company']:
-          formData.company,
+        [companyKey]: formData.company,
       });
       setFormData({
         company: '',
@@ -128,83 +142,96 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     };
 
     const placeholders = getPlaceholders();
+    const companyLabel =
+      type === 'airlines' ? 'Airline' : type === 'hotels' ? 'Hotel Chain' : 'Rental Company';
+    const companyInputId = `program-company-${type}`;
+    const programInputId = `program-name-${type}`;
+    const membershipInputId = `program-membership-${type}`;
+    const tierInputId = `program-tier-${type}`;
+    const preferredInputId = `program-preferred-${type}`;
 
     return (
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <h4 className="text-white font-semibold mb-4">Add New {type.slice(0, -1)} Program</h4>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">
-              {type === 'airlines'
-                ? 'Airline'
-                : type === 'hotels'
-                  ? 'Hotel Chain'
-                  : 'Rental Company'}
+            <label htmlFor={companyInputId} className="block text-sm text-gray-300 mb-2">
+              {companyLabel}
             </label>
             <input
+              id={companyInputId}
               type="text"
               value={formData.company}
               onChange={e => setFormData({ ...formData, company: e.target.value })}
               placeholder={placeholders.company}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-3 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Program Name</label>
+            <label htmlFor={programInputId} className="block text-sm text-gray-300 mb-2">
+              Program Name
+            </label>
             <input
+              id={programInputId}
               type="text"
               value={formData.programName}
               onChange={e => setFormData({ ...formData, programName: e.target.value })}
               placeholder={placeholders.program}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-3 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Membership Number</label>
+            <label htmlFor={membershipInputId} className="block text-sm text-gray-300 mb-2">
+              Membership Number
+            </label>
             <input
+              id={membershipInputId}
               type="text"
               value={formData.membershipNumber}
               onChange={e => setFormData({ ...formData, membershipNumber: e.target.value })}
               placeholder={placeholders.number}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-3 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Tier/Status (Optional)</label>
+            <label htmlFor={tierInputId} className="block text-sm text-gray-300 mb-2">
+              Tier/Status (Optional)
+            </label>
             <input
+              id={tierInputId}
               type="text"
               value={formData.tier}
               onChange={e => setFormData({ ...formData, tier: e.target.value })}
               placeholder="Gold, Platinum, etc."
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-3 py-3 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-h-[44px]">
             <input
               type="checkbox"
-              id="preferred"
+              id={preferredInputId}
               checked={formData.isPreferred}
               onChange={e => setFormData({ ...formData, isPreferred: e.target.checked })}
-              className="rounded"
+              className="rounded w-5 h-5"
             />
-            <label htmlFor="preferred" className="text-sm text-gray-300">
+            <label htmlFor={preferredInputId} className="text-sm text-gray-300">
               Set as preferred
             </label>
           </div>
           <div className="flex gap-3">
             <button
               type="submit"
-              className="bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              className="bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-3 min-h-[44px] rounded-lg font-medium transition-colors"
             >
               Save Program
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 min-h-[44px] rounded-lg font-medium transition-colors"
             >
               Cancel
             </button>
@@ -244,22 +271,32 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
       return program.company;
     };
 
+    const companyName = getCompanyName();
+
     return (
       <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             {getIcon()}
             <div>
-              <h4 className="text-white font-semibold">{getCompanyName()}</h4>
+              <h4 className="text-white font-semibold">{companyName}</h4>
               <p className="text-gray-400 text-sm">{program.programName}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {program.isPreferred && <Star size={16} className="text-yellow-500 fill-current" />}
-            <button onClick={onEdit} className="text-gray-400 hover:text-white p-1">
+            <button
+              onClick={onEdit}
+              className="text-gray-400 hover:text-white p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label={`Edit ${companyName} loyalty program`}
+            >
               <Edit size={14} />
             </button>
-            <button onClick={onDelete} className="text-gray-400 hover:text-red-400 p-1">
+            <button
+              onClick={onDelete}
+              className="text-gray-400 hover:text-red-400 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label={`Delete ${companyName} loyalty program`}
+            >
               <Trash2 size={14} />
             </button>
           </div>
@@ -280,7 +317,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     );
   };
 
-  const handleAddProgram = async (data: any) => {
+  const handleAddProgram = async (data: ProgramFormData) => {
     if (!userId) return;
 
     setIsSaving(true);
@@ -327,12 +364,13 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
         variant: 'destructive',
       });
     } finally {
-      setIsSaving(false);
+      setIsSaving(true);
       setShowAddForm(false);
+      setIsSaving(false);
     }
   };
 
-  const handleEditProgram = async (programId: string, data: any) => {
+  const handleEditProgram = async (programId: string, data: ProgramFormData) => {
     if (!userId) return;
 
     setIsSaving(true);
@@ -423,7 +461,9 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     }
   };
 
-  const tabs = [
+  const totalPrograms = airlinePrograms.length + hotelPrograms.length + rentalCarPrograms.length;
+
+  const tabs: Array<{ id: TabId; label: string; icon: typeof Plane; count: number }> = [
     { id: 'airlines', label: 'Airlines', icon: Plane, count: airlinePrograms.length },
     { id: 'hotels', label: 'Hotels', icon: Building, count: hotelPrograms.length },
     { id: 'rentals', label: 'Car Rentals', icon: Car, count: rentalCarPrograms.length },
@@ -431,6 +471,33 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Wallet Summary */}
+      <div className="bg-gradient-to-br from-glass-orange/20 to-glass-orange/5 border border-glass-orange/30 rounded-2xl p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <Wallet size={24} className="text-glass-orange" />
+          <h2 className="text-lg font-bold text-white">Travel Wallet</h2>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-white">{airlinePrograms.length}</p>
+            <p className="text-xs text-gray-400">Airlines</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-white">{hotelPrograms.length}</p>
+            <p className="text-xs text-gray-400">Hotels</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-white">{rentalCarPrograms.length}</p>
+            <p className="text-xs text-gray-400">Car Rentals</p>
+          </div>
+        </div>
+        {totalPrograms === 0 && !isLoading && (
+          <p className="text-sm text-gray-400 mt-3 text-center">
+            Add your loyalty programs to keep all your travel rewards in one place.
+          </p>
+        )}
+      </div>
+
       {/* Loyalty Programs */}
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 overflow-hidden">
         <div className="flex items-center justify-between mb-6">
@@ -440,7 +507,8 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
           </h3>
           <button
             onClick={() => setShowAddForm(true)}
-            className="bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors"
+            className="bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-3 min-h-[44px] rounded-lg flex items-center gap-2 font-medium transition-colors"
+            aria-label="Add a new loyalty program"
           >
             <Plus size={16} />
             Add Program
@@ -448,14 +516,21 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
         </div>
 
         {/* Tabs - stack on mobile, horizontal on larger screens; ensure all fit within box */}
-        <div className="flex flex-col sm:flex-row sm:border-b border-white/20 mb-6 gap-0 overflow-hidden">
+        <div
+          className="flex flex-col sm:flex-row sm:border-b border-white/20 mb-6 gap-0 overflow-hidden"
+          role="tablist"
+          aria-label="Loyalty program categories"
+        >
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center justify-center sm:justify-start gap-2 px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base font-medium transition-colors min-w-0 shrink-0 ${
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`tabpanel-${tab.id}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center justify-center sm:justify-start gap-2 px-3 py-3 sm:px-4 sm:py-3 min-h-[44px] text-sm sm:text-base font-medium transition-colors min-w-0 shrink-0 ${
                   activeTab === tab.id
                     ? 'text-glass-orange sm:border-b-2 sm:border-glass-orange bg-white/5 sm:bg-transparent'
                     : 'text-gray-400 hover:text-white'
@@ -490,35 +565,9 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
               <p className="text-red-300 font-medium">Failed to load programs</p>
               <p className="text-red-400/80 text-sm mt-1">{loadError}</p>
               <button
-                onClick={() => {
-                  setLoadError(null);
-                  setIsLoading(true);
-                  loyaltyProgramService
-                    .getUserPrograms(userId)
-                    .then(programs => {
-                      setAirlinePrograms(
-                        programs
-                          .filter(p => p.program_type === 'airline')
-                          .map(loyaltyProgramService.toAirlineProgram),
-                      );
-                      setHotelPrograms(
-                        programs
-                          .filter(p => p.program_type === 'hotel')
-                          .map(loyaltyProgramService.toHotelProgram),
-                      );
-                      setRentalCarPrograms(
-                        programs
-                          .filter(p => p.program_type === 'rental')
-                          .map(loyaltyProgramService.toRentalCarProgram),
-                      );
-                      setIsLoading(false);
-                    })
-                    .catch(() => {
-                      setLoadError('Still unable to load programs. Please try again later.');
-                      setIsLoading(false);
-                    });
-                }}
-                className="mt-2 text-sm text-glass-orange hover:underline"
+                onClick={loadPrograms}
+                className="mt-2 text-sm text-glass-orange hover:underline min-h-[44px] px-3 py-2 -ml-3"
+                aria-label="Retry loading loyalty programs"
               >
                 Try Again
               </button>
@@ -531,43 +580,44 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
           <div className="mb-6">
             <AddProgramForm
               type={activeTab}
-              onSave={(data: any) => handleEditProgram(editingProgram, data)}
+              onSave={(data: ProgramFormData) => handleEditProgram(editingProgram, data)}
               onCancel={() => setEditingProgram(null)}
             />
           </div>
         )}
 
         {/* Programs Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-            <span className="ml-2 text-gray-400">Loading programs...</span>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-4">
-            {getCurrentPrograms().map(program => (
-              <ProgramCard
-                key={program.id}
-                program={program}
-                type={activeTab}
-                onEdit={() => setEditingProgram(program.id)}
-                onDelete={() => handleDeleteProgram(program.id)}
-              />
-            ))}
-          </div>
-        )}
-
-        {!isLoading && getCurrentPrograms().length === 0 && (
-          <div className="text-center py-8">
-            <div className="text-gray-400 mb-4">No {activeTab} programs added yet</div>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Add Your First Program
-            </button>
-          </div>
-        )}
+        <div id={`tabpanel-${activeTab}`} role="tabpanel" aria-label={`${activeTab} programs`}>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <span className="ml-2 text-gray-400">Loading programs...</span>
+            </div>
+          ) : getCurrentPrograms().length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-400 mb-4">No {activeTab} programs added yet</div>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-3 min-h-[44px] rounded-lg font-medium transition-colors"
+                aria-label={`Add your first ${activeTab.slice(0, -1)} program`}
+              >
+                Add Your First Program
+              </button>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {getCurrentPrograms().map(program => (
+                <ProgramCard
+                  key={program.id}
+                  program={program}
+                  type={activeTab}
+                  onEdit={() => setEditingProgram(program.id)}
+                  onDelete={() => handleDeleteProgram(program.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Payment Methods for Trip Expenses */}

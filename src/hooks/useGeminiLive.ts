@@ -630,12 +630,8 @@ export function useGeminiLive({
         audioCtxRef.current.sampleRate,
         VOICE_DIAGNOSTICS_ENABLED,
       );
-      if (needsResample && VOICE_DIAGNOSTICS_ENABLED) {
-        console.log(
-          '[useGeminiLive] Capture will resample to',
-          AUDIO_CONTRACT.expectedSampleRateHz,
-          'Hz',
-        );
+      if (needsResample && VOICE_DIAGNOSTICS_ENABLED && import.meta.env.DEV) {
+        voiceLog('capture:resample', { targetHz: AUDIO_CONTRACT.expectedSampleRateHz });
       }
 
       // Kick off resume synchronously

@@ -138,7 +138,7 @@ export const CreateRoleDialog: React.FC<CreateRoleDialogProps> = ({
       onOpenChange(false);
       onRoleCreated();
     } catch (error) {
-      console.error('Error creating role:', error);
+      if (import.meta.env.DEV) console.error('Error creating role:', error);
       toast({
         title: 'Failed to Create Role',
         description: error instanceof Error ? error.message : 'An error occurred',

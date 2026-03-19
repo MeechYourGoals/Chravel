@@ -173,7 +173,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
         await promoteInvalidate();
         return result;
       } catch (err) {
-        console.error('Error creating role:', err);
+        if (import.meta.env.DEV) console.error('Error creating role:', err);
         toast.error(err instanceof Error ? err.message : 'Failed to create role');
         throw err;
       } finally {
@@ -291,7 +291,7 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
         await promoteInvalidate();
         return result;
       } catch (err) {
-        console.error('Error deleting role:', err);
+        if (import.meta.env.DEV) console.error('Error deleting role:', err);
         toast.error(err instanceof Error ? err.message : 'Failed to delete role');
         throw err;
       } finally {

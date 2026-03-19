@@ -319,7 +319,7 @@ export const paymentBalanceService = {
         throw error;
       }
 
-      console.error('Error calculating balance summary:', error);
+      if (import.meta.env.DEV) console.error('Error calculating balance summary:', error);
       return {
         totalOwed: 0,
         totalOwedToYou: 0,

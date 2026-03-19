@@ -28,24 +28,30 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
   const { toast } = useToast();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
 
   // Load payment methods from database
-  useEffect(() => {
-    const loadPaymentMethods = async () => {
-      if (!userId) return;
-      setIsLoading(true);
-      try {
-        const methods = await paymentService.getUserPaymentMethods(userId);
-        setPaymentMethods(methods);
-      } catch (error) {
+  const loadPaymentMethods = async () => {
+    if (!userId) return;
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const methods = await paymentService.getUserPaymentMethods(userId);
+      setPaymentMethods(methods);
+    } catch (error) {
+      if (import.meta.env.DEV) {
         console.error('Error loading payment methods:', error);
-      } finally {
-        setIsLoading(false);
       }
-    };
+      setLoadError('Failed to load payment methods. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadPaymentMethods();
   }, [userId]);
 
@@ -109,7 +115,9 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
       }
       resetForm();
     } catch (error) {
-      console.error('Error saving payment method:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error saving payment method:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to save payment method. Please try again.',
@@ -157,7 +165,9 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
         throw new Error('Failed to delete');
       }
     } catch (error) {
-      console.error('Error deleting payment method:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting payment method:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to delete payment method. Please try again.',
@@ -197,6 +207,18 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Loading payment methods...</span>
+          </div>
+        ) : loadError ? (
+          <div className="text-center py-8">
+            <CreditCard size={32} className="mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground mb-3">{loadError}</p>
+            <Button
+              variant="outline"
+              onClick={loadPaymentMethods}
+              aria-label="Retry loading payment methods"
+            >
+              Retry
+            </Button>
           </div>
         ) : (
           <>
@@ -343,16 +365,18 @@ export const PaymentMethodsSettings = ({ userId }: PaymentMethodsSettingsProps) 
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 min-h-8 min-w-8 p-0"
+                          className="h-11 w-11 min-h-[44px] min-w-[44px] p-0"
                           onClick={() => handleEdit(method)}
+                          aria-label={`Edit payment method: ${method.displayName || getDefaultDisplayName(method.type)}`}
                         >
                           <Edit size={14} />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-8 w-8 min-h-8 min-w-8 p-0"
+                          className="h-11 w-11 min-h-[44px] min-w-[44px] p-0"
                           onClick={() => handleDelete(method.id)}
+                          aria-label={`Delete payment method: ${method.displayName || getDefaultDisplayName(method.type)}`}
                         >
                           <Trash2 size={14} />
                         </Button>

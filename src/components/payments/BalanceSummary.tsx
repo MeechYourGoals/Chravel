@@ -25,28 +25,48 @@ export const BalanceSummary = ({ summary }: BalanceSummaryProps) => {
   };
 
   return (
-    <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 rounded-lg">
+    <Card
+      className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 rounded-lg"
+      role="region"
+      aria-label="Payment balance summary"
+    >
       <CardContent className="py-3 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* You Owe */}
           <div className="text-center space-y-0.5">
-            <p className="text-xs text-muted-foreground">You Owe</p>
-            <p className="text-2xl font-bold text-orange-600">{formatAmount(summary.totalOwed)}</p>
+            <p className="text-xs text-muted-foreground" id="balance-you-owe">
+              You Owe
+            </p>
+            <p className="text-2xl font-bold text-orange-600" aria-labelledby="balance-you-owe">
+              {formatAmount(summary.totalOwed)}
+            </p>
           </div>
 
           {/* You Are Owed */}
           <div className="text-center space-y-0.5">
-            <p className="text-xs text-muted-foreground">You Are Owed</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-xs text-muted-foreground" id="balance-owed-to-you">
+              You Are Owed
+            </p>
+            <p className="text-2xl font-bold text-green-600" aria-labelledby="balance-owed-to-you">
               {formatAmount(summary.totalOwedToYou)}
             </p>
           </div>
 
           {/* Net Balance */}
           <div className="text-center space-y-0.5">
-            <p className="text-xs text-muted-foreground">Net Balance</p>
+            <p className="text-xs text-muted-foreground" id="balance-net">
+              Net Balance
+            </p>
             <div
               className={`flex items-center justify-center gap-2 text-2xl font-bold ${getNetBalanceColor()}`}
+              aria-labelledby="balance-net"
+              aria-description={
+                summary.netBalance > 0
+                  ? 'positive balance'
+                  : summary.netBalance < 0
+                    ? 'negative balance'
+                    : 'balanced'
+              }
             >
               {getNetBalanceIcon()}
               {formatAmount(Math.abs(summary.netBalance))}

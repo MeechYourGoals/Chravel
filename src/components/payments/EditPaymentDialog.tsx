@@ -114,7 +114,9 @@ export const EditPaymentDialog = ({
         });
       }
     } catch (error) {
-      console.error('Error updating payment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating payment:', error);
+      }
       toast({
         title: 'Error',
         description: 'An unexpected error occurred.',

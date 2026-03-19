@@ -38,22 +38,76 @@ export interface UseGeminiVoiceReturn {
   startVoice: () => Promise<void>;
   stopVoice: () => void;
   toggleVoice: () => void;
+  /** Clear the current error state and return to idle */
+  clearError: () => void;
+}
+
+// ---------- Web Speech API types ----------
+// The Web Speech API is not fully standardized in TypeScript's lib.dom.
+// These interfaces cover the subset we use, avoiding `any` throughout.
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  readonly [index: number]: { readonly transcript: string; readonly confidence: number };
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  readonly [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly results: SpeechRecognitionResultList;
+  readonly resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+  readonly message: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  onaudiostart: (() => void) | null;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onnomatch: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
 }
 
 // ---------- Platform detection ----------
 const isIOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
 
 const isIOSPWA =
-  isIOS && typeof window !== 'undefined' && (window.navigator as any).standalone === true;
+  isIOS &&
+  typeof window !== 'undefined' &&
+  (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
 const isFirefox = typeof navigator !== 'undefined' && /Firefox\/\d+/.test(navigator.userAgent);
 
 const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
 // ---------- Browser support ----------
-const SpeechRecognitionClass =
+const SpeechRecognitionClass: SpeechRecognitionConstructor | null =
   typeof window !== 'undefined'
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    ? (((window as unknown as Record<string, unknown>).SpeechRecognition as
+        | SpeechRecognitionConstructor
+        | undefined) ??
+      ((window as unknown as Record<string, unknown>).webkitSpeechRecognition as
+        | SpeechRecognitionConstructor
+        | undefined) ??
+      null)
     : null;
 
 // iOS Safari caps continuous recognition at ~60s and fires onend on every pause.
@@ -68,7 +122,7 @@ export function useWebSpeechVoice(
   const [userTranscript, setUserTranscript] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const activeRef = useRef(false);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noAudioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -179,7 +233,7 @@ export function useWebSpeechVoice(
       setVoiceState('listening');
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       // Any result means audio is working — clear no-audio timer
       if (noAudioTimerRef.current) {
         clearTimeout(noAudioTimerRef.current);
@@ -243,7 +297,7 @@ export function useWebSpeechVoice(
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (!activeRef.current) return;
       const errType = event.error;
 
@@ -450,6 +504,12 @@ export function useWebSpeechVoice(
     }
   }, [cleanup, finalizeTranscript]);
 
+  // ── Clear error — dismiss error state and return to idle ─────────────────
+  const clearError = useCallback(() => {
+    setErrorMessage(null);
+    setVoiceState('idle');
+  }, []);
+
   // ── Toggle voice ────────────────────────────────────────────────────────
   const toggleVoice = useCallback(() => {
     if (voiceState === 'idle' || voiceState === 'error') {
@@ -468,5 +528,6 @@ export function useWebSpeechVoice(
     startVoice,
     stopVoice,
     toggleVoice,
+    clearError,
   };
 }

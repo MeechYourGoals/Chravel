@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
@@ -11,6 +11,7 @@ import {
   Settings,
   Upload,
   Globe,
+  Loader2,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -59,6 +60,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     endDate?: string;
     location?: string;
   }>({});
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const { createTrip, trips } = useTrips();
 
