@@ -58,3 +58,7 @@
 - Updated selected Settings top-tab text color (My Trips / Pro / Events / Advertiser) from pale gold to pure white for stronger active-state contrast.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` all pass.
 - Next follow-up: capture updated UI screenshot artifact when browser screenshot tooling is available in this environment.
+2026-03-19 — Settings tab contrast regression test hardening
+- Added targeted assertion coverage in `src/components/__tests__/SettingsMenu.test.tsx` to lock selected-tab text contrast behavior (`text-white` for active, gray for inactive across My Trips/Pro/Events).
+- Verified with full gate: `npm run lint && npm run typecheck && npm run build` and focused suite `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` (all passing).
+- External dependency note: Slack integration is unavailable in this automation environment, so bug-thread readback could not be completed from `#debugging`.
