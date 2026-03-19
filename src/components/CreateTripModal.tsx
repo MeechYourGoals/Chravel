@@ -368,7 +368,9 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           className="flex items-center justify-between mb-6"
           style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
         >
-          <h2 className="text-2xl font-bold text-white">Create New Trip</h2>
+          <h2 className="text-2xl font-bold text-white">
+            {tripType === 'event' ? 'Create New Event' : 'Create New Trip'}
+          </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
             <X size={24} />
           </button>
@@ -437,9 +439,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           onSubmit={handleSubmit}
           className="space-y-4 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
         >
-          {/* Trip Title */}
+          {/* Trip Title / Event Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Trip Title</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              {tripType === 'event' ? 'Event Title' : 'Trip Title'}
+            </label>
             <input
               type="text"
               name="title"

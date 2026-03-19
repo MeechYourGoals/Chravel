@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { errorTracking } from '@/utils/errorTracking';
-import { CalendarEvent, AddToCalendarData } from '@/types/calendar';
-import { calendarService, TripEvent } from '@/services/calendarService';
+import type { CalendarEvent, AddToCalendarData, TripEvent } from '@/types/calendar';
+import { calendarService } from '@/services/calendarService';
 import { demoModeService } from '@/services/demoModeService';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useToast } from '@/hooks/use-toast';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
-import { withTimeout } from '@/utils/timeout';
+import { createCalendarQueryFn } from './calendarQueryFn';
 import { useCalendarRealtime } from './useCalendarRealtime';
 
 export type ViewMode = 'calendar' | 'itinerary' | 'grid';
@@ -41,7 +40,7 @@ export const useCalendarManagement = (tripId: string) => {
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
 
-  // ⚡ PERFORMANCE: Use TanStack Query for caching
+  // ⚡ PERFORMANCE: Use TanStack Query for caching (shared queryFn with useCalendarEvents)
   const {
     data: tripEvents = [],
     isLoading,
@@ -51,64 +50,7 @@ export const useCalendarManagement = (tripId: string) => {
     refetch: refreshEvents,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId),
-    queryFn: async () => {
-      const startTime = performance.now();
-      const startTimestamp = new Date().toISOString();
-      const queryKey = tripKeys.calendar(tripId).join('-');
-      errorTracking.addBreadcrumb({
-        category: 'api-call',
-        message: 'calendar fetch start',
-        level: 'info',
-        data: { trip_id: tripId, start_timestamp: startTimestamp, query_key: queryKey },
-      });
-
-      try {
-        const result = await withTimeout(
-          calendarService.getTripEvents(tripId),
-          10000,
-          'Failed to load calendar events: Timeout',
-        );
-
-        const endTimeMs = performance.now();
-        const durationMs = Math.round(endTimeMs - startTime);
-        errorTracking.addBreadcrumb({
-          category: 'api-call',
-          message: 'calendar fetch finish',
-          level: durationMs > 3000 ? 'warning' : 'info',
-          data: {
-            trip_id: tripId,
-            count: result.length,
-            duration_ms: durationMs,
-            start_timestamp: startTimestamp,
-            end_timestamp: new Date().toISOString(),
-            query_key: queryKey,
-            status: 'success',
-          },
-        });
-
-        return result;
-      } catch (err: unknown) {
-        const endTimeMs = performance.now();
-        const durationMs = Math.round(endTimeMs - startTime);
-        const errObj = err as { message?: string; name?: string };
-        const isTimeout = errObj?.message?.includes('Timeout') || errObj?.name === 'TimeoutError';
-        errorTracking.addBreadcrumb({
-          category: 'api-call',
-          message: isTimeout ? 'calendar fetch timeout' : 'calendar fetch finish',
-          level: 'error',
-          data: {
-            trip_id: tripId,
-            duration_ms: durationMs,
-            start_timestamp: startTimestamp,
-            end_timestamp: new Date().toISOString(),
-            query_key: queryKey,
-            status: isTimeout ? 'timeout' : 'error',
-            error: errObj?.message || String(err),
-          },
-        });
-        throw err;
-      }
-    },
+    queryFn: createCalendarQueryFn(tripId, 10_000),
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,

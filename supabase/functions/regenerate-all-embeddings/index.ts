@@ -209,7 +209,7 @@ serve(async req => {
 });
 
 async function fetchSourceData(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep generic inference (TS2345)
   tripId: string,
   sourceType: string,
 ): Promise<SourceData[]> {
