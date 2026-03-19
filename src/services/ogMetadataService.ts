@@ -50,7 +50,9 @@ export async function fetchOGMetadata(url: string): Promise<OGMetadata> {
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('[ogMetadataService] Error fetching metadata:', error);
+    if (import.meta.env.DEV) {
+      // OG metadata fetch failed
+    }
     return {
       error: error instanceof Error ? error.message : 'Unknown error',
     };
