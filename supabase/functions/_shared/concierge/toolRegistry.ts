@@ -677,7 +677,7 @@ export const ALL_TOOL_DECLARATIONS: ToolDeclaration[] = [
         idempotency_key: { type: 'string' },
         url: {
           type: 'string',
-          description: 'Full URL to browse (must start with http:// or https://)',
+          description: 'Full URL to browse (must be a public HTTPS URL)',
         },
         instruction: {
           type: 'string',

@@ -1,3 +1,11 @@
+2026-03-19 — Concierge browseWebsite SSRF hardening
+- Completed repo-wide bug audit focused on auth, backend mutations, payments, AI/tooling, and high-risk fetch surfaces.
+- Confirmed a high-severity SSRF path in `supabase/functions/_shared/functionExecutor.ts` where `browseWebsite` accepted any `http(s)` URL and followed redirects server-side.
+- Applied surgical fix by extracting shared URL safety helpers into `supabase/functions/_shared/urlSafety.ts`, gating `browseWebsite` with `validateExternalUrlBeforeFetch()`, and switching upstream fetch to `redirect: 'error'`.
+- Added regression tests covering direct private-IP targets and DNS resolution to link-local/private addresses; refreshed stale `createTask` expectations in the same test file to match the current pending-action architecture.
+- Verification: `npm test -- --run supabase/functions/_shared/__tests__/functionExecutor.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` all pass.
+- Ranked follow-up (not fixed here): `sync-revenuecat-entitlement` still trusts client-supplied `customerInfo` and should be moved to a trusted RevenueCat verification/webhook path.
+
 2026-03-19 — Trip creation "Failed to fetch" forensic fix
 - Completed end-to-end audit of CreateTripModal -> useTrips -> tripService -> create-trip edge function -> trips insert path.
 - Identified primary runtime failure class as Edge Function CORS origin mismatch causing browser-level fetch rejection (surfaced as generic "Failed to fetch"), especially on `*.lovable.dev`.

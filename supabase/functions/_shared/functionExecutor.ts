@@ -1,4 +1,5 @@
 import { withCircuitBreaker } from './circuitBreaker.ts';
+import { validateExternalUrlBeforeFetch } from './urlSafety.ts';
 
 const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 const GOOGLE_CUSTOM_SEARCH_CX = Deno.env.get('GOOGLE_CUSTOM_SEARCH_CX');
@@ -1582,9 +1583,9 @@ async function _executeImpl(
       }
 
       const targetUrl = String(url).trim();
-      // Basic URL validation
-      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-        return { error: 'URL must start with http:// or https://' };
+      // Reuse shared SSRF protection used by other external fetchers.
+      if (!(await validateExternalUrlBeforeFetch(targetUrl))) {
+        return { error: 'URL must be a public HTTPS URL' };
       }
 
       // Fetch the page content
@@ -1596,7 +1597,7 @@ async function _executeImpl(
             Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
           signal: AbortSignal.timeout(15_000),
-          redirect: 'follow',
+          redirect: 'error',
         }),
       );
 
