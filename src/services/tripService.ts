@@ -387,12 +387,26 @@ export const tripService = {
         ...pendingTrips,
       ];
 
-      // Also fetch trips where user is an active member (not creator)
-      const { data: memberTrips, error: memberError } = await supabase
+      // Also fetch trips where user is an active member (not creator).
+      // Compatibility fallback: older environments may not have trip_members.status yet.
+      let memberTripsQueryResult = await supabase
         .from('trip_members')
         .select('trip_id')
         .eq('user_id', activeUserId)
         .or('status.is.null,status.eq.active');
+
+      const memberStatusColumnMissing =
+        memberTripsQueryResult.error?.message?.toLowerCase().includes('status') ||
+        memberTripsQueryResult.error?.message?.toLowerCase().includes('does not exist');
+
+      if (memberStatusColumnMissing) {
+        memberTripsQueryResult = await supabase
+          .from('trip_members')
+          .select('trip_id')
+          .eq('user_id', activeUserId);
+      }
+
+      const { data: memberTrips, error: memberError } = memberTripsQueryResult;
 
       if (!memberError && memberTrips && memberTrips.length > 0) {
         const memberTripIds = memberTrips

@@ -13,6 +13,7 @@ import {
   DollarSign,
   UserPlus,
   MapPin,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -21,6 +22,7 @@ import { mockNotifications } from '@/mockData/notifications';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -72,6 +74,24 @@ interface TripActionBarProps {
   onAuthRequired?: () => void;
 }
 
+function isJoinRequestApprovedNotification(notification: Notification): boolean {
+  const action = String(notification.data?.action ?? '').toLowerCase();
+  const type = String(notification.type ?? '').toLowerCase();
+  const title = notification.title.toLowerCase();
+
+  return (
+    action === 'join_approved' ||
+    type === 'join_approved' ||
+    type === 'join_request_approved' ||
+    title.includes('join request approved')
+  );
+}
+
+function extractTripNameFromApprovalDescription(description: string): string | null {
+  const match = description.match(/join\s+"([^"]+)"/i);
+  return match?.[1]?.trim() || null;
+}
+
 export const TripActionBar = ({
   onSettings,
   onCreateTrip,
@@ -100,13 +120,60 @@ export const TripActionBar = ({
       await markAsRead(notification.id);
     }
 
-    // Determine base route based on trip type
-    const tripType = notification.data?.tripType || notification.data?.trip_type;
-    let baseRoute = `/trip/${notification.tripId}`;
+    const notificationData = notification.data || {};
+    let resolvedTripId =
+      notification.tripId || (notificationData.trip_id as string | undefined) || '';
+    let tripType =
+      (notificationData.tripType as string | undefined) ||
+      (notificationData.trip_type as string | undefined) ||
+      '';
+
+    // Backward compatibility: older approval notifications can lack trip_id.
+    // Resolve by trip name only for "Join Request Approved" safety-net navigation.
+    if (!resolvedTripId && isJoinRequestApprovedNotification(notification)) {
+      const tripNameCandidate =
+        notification.tripName ||
+        (notificationData.trip_name as string | undefined) ||
+        extractTripNameFromApprovalDescription(notification.description) ||
+        '';
+
+      if (tripNameCandidate) {
+        const { data: exactNameMatch } = await supabase
+          .from('trips')
+          .select('id, trip_type, created_at')
+          .eq('name', tripNameCandidate)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (exactNameMatch && exactNameMatch.length > 0) {
+          resolvedTripId = exactNameMatch[0].id;
+          tripType = tripType || (exactNameMatch[0].trip_type as string);
+        } else {
+          const { data: fuzzyNameMatch } = await supabase
+            .from('trips')
+            .select('id, trip_type, created_at')
+            .ilike('name', tripNameCandidate)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (fuzzyNameMatch && fuzzyNameMatch.length > 0) {
+            resolvedTripId = fuzzyNameMatch[0].id;
+            tripType = tripType || (fuzzyNameMatch[0].trip_type as string);
+          }
+        }
+      }
+    }
+
+    if (!resolvedTripId) {
+      setIsNotificationsOpen?.(false);
+      return;
+    }
+
+    let baseRoute = `/trip/${resolvedTripId}`;
     if (tripType === 'pro') {
-      baseRoute = `/pro-trip/${notification.tripId}`;
+      baseRoute = `/tour/pro/${resolvedTripId}`;
     } else if (tripType === 'event') {
-      baseRoute = `/events/${notification.tripId}`;
+      baseRoute = `/event/${resolvedTripId}`;
     }
 
     // Navigate based on notification type with appropriate tab
@@ -125,7 +192,7 @@ export const TripActionBar = ({
     };
 
     const tab = tabMap[notification.type];
-    if (tab) {
+    if (!isJoinRequestApprovedNotification(notification) && tab) {
       navigate(`${baseRoute}?tab=${tab}`);
     } else {
       navigate(baseRoute);
@@ -331,11 +398,15 @@ export const TripActionBar = ({
                       <p className="text-xs text-muted-foreground mb-1 truncate">
                         {notification.description}
                       </p>
+                      {isJoinRequestApprovedNotification(notification) && (
+                        <p className="text-[11px] text-primary/85 mb-1">Tap to open trip</p>
+                      )}
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-muted-foreground/70">{notification.tripName}</p>
                         <p className="text-xs text-muted-foreground/70">{notification.timestamp}</p>
                       </div>
                     </div>
+                    <ChevronRight size={16} className="mt-1 text-muted-foreground/60" />
                   </div>
                 </div>
               ))

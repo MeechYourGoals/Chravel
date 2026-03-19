@@ -73,6 +73,14 @@
 - **Provenance:** March 2026 trip creation forensic fix.
 - **Confidence:** high
 
+### Secured Supabase storage buckets require signed URLs for client previews
+- **Tip:** When a storage bucket transitions from public read to RLS-protected read, any UI code still using `getPublicUrl()` will silently regress into broken images/files. Resolve previews via `createSignedUrl()` (or a shared resolver) at read time.
+- **Applies when:** Rendering files from `trip-media` (or any bucket with authenticated `SELECT` policies) in event tabs, galleries, chat attachments, or media cards.
+- **Avoid when:** The bucket is intentionally public and policy explicitly allows anonymous read for that path.
+- **Evidence:** Line-up file thumbnails showed broken image placeholders while metadata loaded correctly because `useEventLineupFiles` used public object URLs after `trip-media` hardening.
+- **Provenance:** March 2026 Line-up image loading bug fix.
+- **Confidence:** high
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
@@ -112,6 +120,13 @@
 - **Avoid when:** First session initialization before any successful connection
 - **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
 - **Provenance:** March 2026 concierge live-mode hardening
+### Notification deep-link mappers should read both metadata and first-class columns
+- **Tip:** When notification rows store routing identifiers in both dedicated columns (e.g., `notifications.trip_id`) and metadata JSON, mapping code should prefer metadata but fall back to column values. Legacy rows and mixed writer paths (RPC helper vs direct inserts) often populate only one.
+- **Applies when:** Building in-app notification lists, badge payload mappers, or tap-to-route logic.
+- **Avoid when:** The schema enforces a single canonical field and legacy data is guaranteed migrated.
+- **Evidence:** Join approval notifications were visible but lacked actionable routing in-app because mapper read only `metadata.trip_id` and ignored `trip_id` column from direct inserts.
+- **Provenance:** March 2026 join approval forensic fix (`useNotificationRealtime` mapping hardening).
+- **Confidence:** high
 ### Treat schema migrations as a product compatibility API, not just SQL files
 - **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
 - **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
@@ -215,6 +230,17 @@
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
 
+### Resolve trip-media URLs at shared renderer boundaries
+- **Tip:** When `trip-media` storage is private, always run URL signing/resolution in shared media renderers (tile + fullscreen modal), not only in one legacy surface. This prevents preview drift where one screen works and another shows "Unable to preview."
+- **Applies when:** Any UI renders records from `trip_media_index` using `media_url` (`MediaGrid`, mobile media tiles, media viewer modals).
+- **Avoid when:** Demo/local blob URLs (resolver already no-ops safely).
+- **Evidence:** Media tab thumbnails failed for chat-uploaded photos while chat rendering still worked because `MediaTile`/`MediaViewerModal` used raw URLs and bypassed `useResolvedTripMediaUrl`.
+- **Provenance:** March 2026 forensic fix for media preview failure in `UnifiedMediaHub`.
+### Keep hidden file inputs mounted when multiple CTAs share one upload ref
+- **Tip:** If more than one button triggers `fileInputRef.current?.click()`, mount the hidden `<input type="file">` outside transient UI branches (modals/forms/toggles) so the ref remains live across layout state changes.
+- **Applies when:** Upload flows have both header-level and inline "Add more" actions, or when upload controls remain visible while another panel/form opens.
+- **Evidence:** Event Line-up tab rendered "Add more" while the add-member form was open, but the hidden file input lived inside `!isAddingMember` and unmounted. Result: click no-op with no error.
+- **Provenance:** March 2026 Line-up file upload bug fix in `LineupTab`.
 ### Dark-themed native time inputs need an explicit affordance when browser indicators look ambiguous
 - **Tip:** If a dark, rounded custom input uses `type="time"` and the native picker indicator becomes a tiny square/blank artifact, keep native time behavior but hide the browser indicator and render a clear explicit clock affordance in the component. Scope CSS to a local class instead of globally restyling every time input.
 - **Applies when:** Modal/forms with branded input styling that wraps native time controls.
