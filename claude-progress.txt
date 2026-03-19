@@ -1,3 +1,10 @@
+2026-03-19 — Line-up image preview loading fix (secured storage signed URLs)
+- Reproduced `#debugging` report where Line-up file cards showed broken image thumbnails while file names and imported speaker text rendered correctly.
+- Root cause: `useEventLineupFiles` generated preview URLs with `getPublicUrl(...)` from `trip-media`, but `trip-media` has been secured (non-public except specific cover path), so public object URLs were inaccessible.
+- Fix: updated `src/hooks/useEventLineupFiles.ts` to resolve each listed file to a signed URL via `createSignedUrl(...)` with fallback to existing URL only if signing fails.
+- Added regression test `src/hooks/__tests__/useEventLineupFiles.test.tsx` that fails on public-URL-only behavior and passes when signed URLs are used.
+- Verification: `npm test -- --run src/hooks/__tests__/useEventLineupFiles.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
 2026-03-19 — Line-up "Add more images" no-op forensic fix
 - Reproduced reported Slack bug with a focused regression test (`LineupTab.test.tsx`) simulating the exact state: existing lineup file + "Add to Line-up" form open.
 - Root cause: hidden file input was conditionally mounted inside `!isAddingMember`; opening the add-member form unmounted the input while the inline "Add more" button remained visible, leaving `fileInputRef` null.
