@@ -52,6 +52,16 @@ const DEFAULT_VOICE = 'Charon';
 // Keepalive interval for upstream Vertex WebSocket (30s per gist recommendation)
 const UPSTREAM_KEEPALIVE_MS = 30_000;
 
+// Base64-encoded 20ms PCM16 silence (320 samples @ 16kHz) — empty data can cause upstream rejection
+const SILENT_KEEPALIVE_B64 = (() => {
+  const samples = 320;
+  const pcm16 = new Int16Array(samples);
+  const bytes = new Uint8Array(pcm16.buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+})();
+
 // ── OAuth2 token minting — import from shared module ──
 import { createVertexAccessToken, parseServiceAccountKey } from '../_shared/vertexAuth.ts';
 
@@ -259,7 +269,7 @@ serve(async (req: Request) => {
           inputAudioTranscription: {},
           outputAudioTranscription: {},
           contextWindowCompression: { slidingWindow: {} },
-          sessionResumption: resumptionToken ? { handle: resumptionToken } : {},
+          ...(resumptionToken ? { sessionResumption: { handle: resumptionToken } } : {}),
         };
 
         // Mode 2+: tools (OFF by default in Phase A)
@@ -323,7 +333,7 @@ serve(async (req: Request) => {
                     mediaChunks: [
                       {
                         mimeType: 'audio/pcm;rate=16000',
-                        data: '',
+                        data: SILENT_KEEPALIVE_B64,
                       },
                     ],
                   },

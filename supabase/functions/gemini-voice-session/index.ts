@@ -205,7 +205,7 @@ serve(async req => {
       contextWindowCompression: { slidingWindow: {} },
     };
 
-    // Session resumption
+    // Session resumption — omit when no token (empty object can cause setup rejection)
     if (resumptionToken) {
       setupConfig.sessionResumption = { handle: resumptionToken };
       console.log(`${tag} Including session resumption token`);
@@ -216,11 +216,11 @@ serve(async req => {
       setupConfig.tools = [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }];
     }
 
-    // Mode 4+: affective dialog (OFF by default in Phase A)
+    // Mode 4+: affective dialog — only add if explicitly enabled (preview feature)
     if (VOICE_AFFECTIVE_DIALOG) {
       (setupConfig.generationConfig as Record<string, unknown>).enableAffectiveDialog = true;
     }
-    // Mode 5+: proactive audio (OFF by default in Phase A)
+    // Mode 5+: proactive audio — only add if explicitly enabled (preview feature)
     if (VOICE_PROACTIVE_AUDIO) {
       setupConfig.proactivity = { proactiveAudio: true };
     }
