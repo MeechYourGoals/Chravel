@@ -46,7 +46,9 @@ function mapPriorityToCategory(
   }
 }
 
-function mapBroadcastToDisplay(b: Broadcast): BroadcastData {
+function mapBroadcastToDisplay(
+  b: Broadcast,
+): BroadcastData & { scheduledFor?: string; createdBy?: string } {
   const metadata = (b.metadata as Record<string, unknown>) || {};
   return {
     id: b.id,
@@ -57,6 +59,8 @@ function mapBroadcastToDisplay(b: Broadcast): BroadcastData {
     category: mapPriorityToCategory(b.priority),
     recipients: (metadata.recipients as string) || 'everyone',
     responses: { coming: 0, wait: 0, cant: 0 },
+    scheduledFor: b.scheduled_for,
+    createdBy: b.created_by,
   };
 }
 

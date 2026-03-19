@@ -123,7 +123,7 @@ export async function register(): Promise<PushNotificationResult> {
       };
 
       const timeoutId = setTimeout(() => {
-        console.warn('[NativePush] Registration timed out after 15s');
+        // NativePush registration timed out after 15s
         safeResolve({ token: null, error: 'Registration timed out' });
       }, REGISTRATION_TIMEOUT_MS);
 
@@ -132,7 +132,7 @@ export async function register(): Promise<PushNotificationResult> {
       });
 
       errorListener = await PushNotifications.addListener('registrationError', error => {
-        console.error('[NativePush] Registration error:', error);
+        // NativePush registration error occurred
         safeResolve({ token: null, error: error.error });
       });
 
