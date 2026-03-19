@@ -168,6 +168,32 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             </div>
           </div>
 
+          {/* Social Share Buttons */}
+          <div className="flex gap-2 mb-3">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + previewLink)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 rounded-lg py-2 text-xs font-medium transition-colors"
+            >
+              WhatsApp
+            </a>
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(previewLink)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 text-[#1DA1F2] border border-[#1DA1F2]/30 rounded-lg py-2 text-xs font-medium transition-colors"
+            >
+              Twitter
+            </a>
+            <a
+              href={`mailto:?subject=${encodeURIComponent(trip.title)}&body=${encodeURIComponent(shareText + '\n\n' + previewLink)}`}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-foreground border border-border rounded-lg py-2 text-xs font-medium transition-colors"
+            >
+              Email
+            </a>
+          </div>
+
           {/* Preview Link */}
           <div>
             <label className="block text-foreground text-xs font-medium mb-1">Preview Link</label>

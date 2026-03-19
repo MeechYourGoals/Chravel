@@ -126,7 +126,7 @@ export const AcceptOrganizationInvite = () => {
         email: invite.email,
       });
     } catch (error) {
-      console.error('Error fetching invite details:', error);
+      // Error fetching invite details — displayed in UI error state
       setError('Failed to load invitation details');
     } finally {
       setLoading(false);
@@ -158,7 +158,7 @@ export const AcceptOrganizationInvite = () => {
         navigate(`/organization/${inviteDetails?.organization_id}`);
       }, 2000);
     } catch (error) {
-      console.error('Error accepting invite:', error);
+      // Error accepting invite — displayed in UI error state
       setError('Failed to accept invitation. Please try again.');
     } finally {
       setAccepting(false);
