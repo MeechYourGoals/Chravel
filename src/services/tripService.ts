@@ -88,6 +88,11 @@ interface TripDetailFunctionResponse {
   error_code?: TripDetailErrorCode;
 }
 
+interface MembershipCheckResult {
+  hasActiveMembership: boolean;
+  isAmbiguous: boolean;
+}
+
 const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null> => {
   const { data, error } = await supabase.functions.invoke('get-trip-detail', {
     body: { tripId },
@@ -116,6 +121,54 @@ const fetchTripByIdViaEdgeFunction = async (tripId: string): Promise<Trip | null
   }
 
   return response.trip ?? null;
+};
+
+const isStatusColumnSchemaError = (error: { message?: string } | null): boolean => {
+  const message = error?.message?.toLowerCase() ?? '';
+  return message.includes('status') && message.includes('does not exist');
+};
+
+const checkActiveMembership = async (
+  tripId: string,
+  userId: string,
+): Promise<MembershipCheckResult> => {
+  const membershipResult = await supabase
+    .from('trip_members')
+    .select('id')
+    .eq('trip_id', tripId)
+    .eq('user_id', userId)
+    .or('status.is.null,status.eq.active')
+    .maybeSingle();
+
+  if (!membershipResult.error) {
+    return { hasActiveMembership: !!membershipResult.data, isAmbiguous: false };
+  }
+
+  if (isStatusColumnSchemaError(membershipResult.error)) {
+    const fallbackMembership = await supabase
+      .from('trip_members')
+      .select('id')
+      .eq('trip_id', tripId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!fallbackMembership.error) {
+      return { hasActiveMembership: !!fallbackMembership.data, isAmbiguous: false };
+    }
+  }
+
+  if (import.meta.env.DEV) {
+    console.warn(
+      '[tripService.getTripById] Membership check ambiguous, deferring to edge function',
+      {
+        tripId,
+        userId,
+        error: membershipResult.error.message,
+      },
+    );
+  }
+
+  return { hasActiveMembership: false, isAmbiguous: true };
 };
 
 export const tripService = {
@@ -466,10 +519,40 @@ export const tripService = {
     }
 
     if (data) {
-      return data;
+      const user = await getCachedAuthUser();
+      if (!user?.id) {
+        return await fetchTripByIdViaEdgeFunction(tripId);
+      }
+
+      const membershipCheck = await checkActiveMembership(tripId, user.id);
+      if (membershipCheck.hasActiveMembership) {
+        return data;
+      }
+
+      if (import.meta.env.DEV) {
+        console.warn(
+          '[tripService.getTripById] Trip row readable but active membership missing/ambiguous; deferring to edge function',
+          {
+            tripId,
+            userId: user.id,
+            membershipAmbiguous: membershipCheck.isAmbiguous,
+          },
+        );
+      }
+
+      return await fetchTripByIdViaEdgeFunction(tripId);
     }
 
-    // No error but no data could be RLS filtering; fall back to server-side access check
+    if (import.meta.env.DEV) {
+      console.warn(
+        '[tripService.getTripById] Trip not directly readable; deferring to edge function',
+        {
+          tripId,
+        },
+      );
+    }
+
+    // No row from direct query could be RLS filtering; fall back to server-side access check
     return await fetchTripByIdViaEdgeFunction(tripId);
   },
 
