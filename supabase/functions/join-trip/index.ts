@@ -479,10 +479,33 @@ serve(async req => {
         logStep('Pro/Event trip: Notifying creator + admins', { count: recipientIds.length });
       } else {
         // Consumer trips (My Trips): Notify ALL current trip members
-        const { data: members } = await supabaseClient
+        let { data: members, error: membersError } = await supabaseClient
           .from('trip_members')
           .select('user_id')
-          .eq('trip_id', invite.trip_id);
+          .eq('trip_id', invite.trip_id)
+          .or('status.is.null,status.eq.active');
+
+        // Backward compatibility: in environments missing trip_members.status,
+        // fall back to the legacy query so join requests are still deliverable.
+        const statusColumnMissing =
+          !!membersError &&
+          (membersError.message?.toLowerCase().includes('status') ||
+            membersError.message?.toLowerCase().includes('does not exist'));
+        if (statusColumnMissing) {
+          const fallbackResult = await supabaseClient
+            .from('trip_members')
+            .select('user_id')
+            .eq('trip_id', invite.trip_id);
+          members = fallbackResult.data;
+          membersError = fallbackResult.error;
+        }
+
+        if (membersError) {
+          logStep('WARNING: Failed to fetch active members for notifications', {
+            error: membersError.message,
+            tripId: invite.trip_id,
+          });
+        }
 
         if (members && members.length > 0) {
           recipientIds = members.map(m => m.user_id);
