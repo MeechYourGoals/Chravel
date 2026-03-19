@@ -52,3 +52,8 @@
 - Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
 - Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
 - Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
+2026-03-19 — CORS wildcard regression hotfix
+- Ran forensic review on recent landed commits and found a security regression in `supabase/functions/_shared/cors.ts` where `.lovable.app` and `.lovableproject.com` were added as suffix-matched origins.
+- Removed hosted-platform wildcard origins from default allowlist to restore exact-origin policy.
+- Verified with targeted regression test `supabase/functions/_shared/__tests__/cors.security.test.ts` and full gate `npm run lint && npm run typecheck && npm run build`.
+- Next follow-up: if Lovable previews need access, add exact preview origins via `ADDITIONAL_ALLOWED_ORIGINS` instead of suffix wildcards.
