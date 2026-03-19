@@ -193,3 +193,10 @@
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
+
+### Dark-themed native time inputs need an explicit affordance when browser indicators look ambiguous
+- **Tip:** If a dark, rounded custom input uses `type="time"` and the native picker indicator becomes a tiny square/blank artifact, keep native time behavior but hide the browser indicator and render a clear explicit clock affordance in the component. Scope CSS to a local class instead of globally restyling every time input.
+- **Applies when:** Modal/forms with branded input styling that wraps native time controls.
+- **Evidence:** Calendar Add Event modal showed a confusing blue square/blank indicator slot in the Start Time field; adding a scoped `.calendar-time-input` style plus explicit `Clock3` icon resolved clarity without changing time data semantics.
+- **Provenance:** March 2026 calendar invite time-input forensic fix.
+- **Confidence:** high

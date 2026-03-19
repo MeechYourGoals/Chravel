@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AddToCalendarData } from '@/types/calendar';
 import { format } from 'date-fns';
+import { Clock3 } from 'lucide-react';
 
 interface AddEventModalProps {
   open: boolean;
@@ -70,27 +71,39 @@ export function AddEventModal({
               <Label htmlFor="modal-start-time" className="text-gray-300 text-sm">
                 Start Time
               </Label>
-              <Input
-                id="modal-start-time"
-                type="time"
-                className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
-                value={newEvent.time}
-                onChange={e => onUpdateField('time', e.target.value)}
-                disabled={isSubmitting}
-              />
+              <div className="relative mt-1.5">
+                <Input
+                  id="modal-start-time"
+                  type="time"
+                  className="calendar-time-input bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 pr-10"
+                  value={newEvent.time}
+                  onChange={e => onUpdateField('time', e.target.value)}
+                  disabled={isSubmitting}
+                />
+                <Clock3
+                  className="calendar-time-icon pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
             <div>
               <Label htmlFor="modal-end-time" className="text-gray-300 text-sm">
                 End Time
               </Label>
-              <Input
-                id="modal-end-time"
-                type="time"
-                className="mt-1.5 bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
-                value={newEvent.endTime || ''}
-                onChange={e => onUpdateField('endTime', e.target.value)}
-                disabled={isSubmitting}
-              />
+              <div className="relative mt-1.5">
+                <Input
+                  id="modal-end-time"
+                  type="time"
+                  className="calendar-time-input bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 pr-10"
+                  value={newEvent.endTime || ''}
+                  onChange={e => onUpdateField('endTime', e.target.value)}
+                  disabled={isSubmitting}
+                />
+                <Clock3
+                  className="calendar-time-icon pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
           </div>
 
