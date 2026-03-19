@@ -117,7 +117,7 @@ describe('CreateTripModal cover photo upload', () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Event' }));
+    await user.click(screen.getByRole('radio', { name: 'Event' }));
 
     const titleInput = container.querySelector<HTMLInputElement>('input[name="title"]');
     const startDateInput = container.querySelector<HTMLInputElement>('input[name="startDate"]');
