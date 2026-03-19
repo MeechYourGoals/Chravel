@@ -2,9 +2,9 @@ services:
   - type: web
     name: chravel
     runtime: static
-    # Use npm install with legacy peer deps for maximum compatibility
-    # Bump Node version to 22 to match dev environment and avoid EOL issues
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    # Use lockfile-based install for deterministic deploys across environments
+    # Keep legacy-peer-deps compatibility while preserving reproducibility
+    buildCommand: npm ci --legacy-peer-deps && npm run build
     staticPublishPath: ./dist
     envVars:
       - key: NODE_VERSION
