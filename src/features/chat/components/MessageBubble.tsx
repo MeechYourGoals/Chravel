@@ -300,10 +300,6 @@ export const MessageBubble = memo(
         if (part.match(MENTION_REGEX)) {
           // It's a mention
           return (
-            <span
-              key={index}
-              className="text-black font-semibold bg-white/90 px-1 rounded inline-block"
-            >
             <span key={index} className={getMentionClassName({ isOwnMessage, isBroadcast })}>
               {part}
             </span>
