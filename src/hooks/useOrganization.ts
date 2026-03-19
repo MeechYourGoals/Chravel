@@ -218,6 +218,66 @@ export const useOrganization = () => {
     }
   };
 
+  const deleteOrganization = async (orgId: string) => {
+    try {
+      // First remove all members
+      const { error: membersError } = await supabase
+        .from('organization_members')
+        .delete()
+        .eq('organization_id', orgId);
+
+      if (membersError) throw membersError;
+
+      // Then delete the organization
+      const { error: orgError } = await supabase.from('organizations').delete().eq('id', orgId);
+
+      if (orgError) throw orgError;
+
+      // Refresh the organizations list
+      await fetchUserOrganizations();
+      if (currentOrg?.id === orgId) {
+        setCurrentOrg(null);
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const transferOwnership = async (orgId: string, newOwnerId: string) => {
+    try {
+      // Demote current owner to admin
+      if (user) {
+        const { error: demoteError } = await supabase
+          .from('organization_members')
+          .update({ role: 'admin' })
+          .eq('organization_id', orgId)
+          .eq('user_id', user.id)
+          .eq('role', 'owner');
+
+        if (demoteError) throw demoteError;
+      }
+
+      // Promote new owner
+      const { error: promoteError } = await supabase
+        .from('organization_members')
+        .update({ role: 'owner' })
+        .eq('organization_id', orgId)
+        .eq('user_id', newOwnerId);
+
+      if (promoteError) throw promoteError;
+
+      if (currentOrg) {
+        await fetchOrgMembers(currentOrg.id);
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   return {
     organizations,
     currentOrg,

@@ -23,6 +23,44 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+/** Common timezones for the timezone picker */
+const COMMON_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Toronto',
+  'America/Vancouver',
+  'America/Mexico_City',
+  'America/Sao_Paulo',
+  'America/Argentina/Buenos_Aires',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Madrid',
+  'Europe/Rome',
+  'Europe/Amsterdam',
+  'Europe/Istanbul',
+  'Europe/Moscow',
+  'Africa/Cairo',
+  'Africa/Johannesburg',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Bangkok',
+  'Asia/Singapore',
+  'Asia/Hong_Kong',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  'Australia/Sydney',
+  'Australia/Melbourne',
+  'Pacific/Auckland',
+  'Pacific/Fiji',
+  'UTC',
+];
+
 interface CalendarEventModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,7 +79,9 @@ export const CalendarEventModal = ({
   editEvent,
 }: CalendarEventModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<AddToCalendarData>({
+  const [formData, setFormData] = useState<
+    AddToCalendarData & { timezone?: string; reminder_minutes?: number }
+  >({
     title: prefilledData?.title || editEvent?.title || '',
     date: prefilledData?.date || editEvent?.date || new Date(),
     time: prefilledData?.time || editEvent?.time || '',
@@ -51,6 +91,9 @@ export const CalendarEventModal = ({
     include_in_itinerary:
       prefilledData?.include_in_itinerary ?? editEvent?.include_in_itinerary ?? true,
     is_all_day: prefilledData?.is_all_day ?? editEvent?.is_all_day ?? false,
+    recurrence_rule: prefilledData?.recurrence_rule ?? editEvent?.recurrence_rule,
+    timezone: undefined,
+    reminder_minutes: undefined,
   });
 
   // Update form data when editEvent changes
@@ -65,6 +108,9 @@ export const CalendarEventModal = ({
         category: editEvent.event_category || 'other',
         include_in_itinerary: editEvent.include_in_itinerary ?? true,
         is_all_day: editEvent.is_all_day ?? false,
+        recurrence_rule: editEvent.recurrence_rule,
+        timezone: undefined,
+        reminder_minutes: undefined,
       });
     } else if (prefilledData) {
       setFormData({
@@ -76,6 +122,9 @@ export const CalendarEventModal = ({
         category: prefilledData.category || 'other',
         include_in_itinerary: prefilledData.include_in_itinerary ?? true,
         is_all_day: prefilledData.is_all_day ?? false,
+        recurrence_rule: prefilledData.recurrence_rule,
+        timezone: undefined,
+        reminder_minutes: undefined,
       });
     }
   }, [editEvent, prefilledData]);
@@ -142,7 +191,13 @@ export const CalendarEventModal = ({
           include_in_itinerary: formData.include_in_itinerary ?? true,
           is_all_day: formData.is_all_day ?? false,
           source_type: 'manual',
-          source_data: {},
+          source_data: {
+            ...(formData.timezone ? { timezone: formData.timezone } : {}),
+            ...(formData.reminder_minutes != null
+              ? { reminder_minutes: formData.reminder_minutes }
+              : {}),
+          },
+          recurrence_rule: formData.recurrence_rule,
         });
 
         if (result.event) {
@@ -184,6 +239,9 @@ export const CalendarEventModal = ({
       category: 'other',
       include_in_itinerary: true,
       is_all_day: false,
+      recurrence_rule: undefined,
+      timezone: undefined,
+      reminder_minutes: undefined,
     });
     onClose();
   };

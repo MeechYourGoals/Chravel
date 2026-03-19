@@ -199,6 +199,18 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
               onEditTask={task => setEditingTask(task)}
             />
           )}
+
+          {/* Task Summary Footer */}
+          {displayTasks.length > 0 && (
+            <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-white/5">
+              <span>
+                {openTasks.length} open, {completedTasks.length} completed
+              </span>
+              {completedTasks.length > 0 && displayTasks.length > 0 && (
+                <span>{Math.round((completedTasks.length / displayTasks.length) * 100)}% done</span>
+              )}
+            </div>
+          )}
         </>
       )}
 

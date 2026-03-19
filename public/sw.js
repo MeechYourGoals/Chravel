@@ -151,3 +151,114 @@ if (self.workbox) {
     }
   });
 }
+
+// ============================================================================
+// Push Notification Handlers (outside Workbox block — always active)
+// ============================================================================
+
+/**
+ * Handle incoming push events from the server.
+ * Parses the payload and shows a notification via the Notification API.
+ */
+self.addEventListener('push', function (event) {
+  if (!event.data) return;
+
+  var payload;
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    payload = {
+      title: 'ChravelApp',
+      body: event.data.text() || 'You have a new notification',
+    };
+  }
+
+  var title = payload.title || 'ChravelApp';
+  var options = {
+    body: payload.body || '',
+    icon: payload.icon || '/chravel-logo.png',
+    badge: payload.badge || '/chravel-badge.png',
+    image: payload.image || undefined,
+    data: payload.data || {},
+    actions: payload.actions || [],
+    tag: payload.tag || 'chravel-push-' + Date.now(),
+    requireInteraction: payload.requireInteraction || false,
+    renotify: true,
+    vibrate: [100, 50, 100],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+/**
+ * Handle notification click — navigate to the relevant trip/page.
+ * Security: This only constructs client-side URLs. Auth and RLS are enforced
+ * by the app's normal auth hydration and Supabase RLS on data fetch.
+ * Notification payloads originate from our server-controlled edge functions.
+ */
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+
+  var data = event.notification.data || {};
+  var action = event.action;
+  var targetUrl = '/';
+
+  // Build target URL from notification data
+  if (data.tripId) {
+    var type = data.type || '';
+    switch (type) {
+      case 'chat_message':
+        targetUrl = '/trip/' + data.tripId + '?tab=chat';
+        break;
+      case 'broadcast':
+        targetUrl = '/trip/' + data.tripId + '?tab=chat&view=broadcasts';
+        break;
+      case 'calendar_event':
+      case 'itinerary_update':
+        targetUrl = '/trip/' + data.tripId + '?tab=calendar';
+        break;
+      case 'payment_request':
+      case 'payment_split':
+        targetUrl = '/trip/' + data.tripId + '?tab=payments';
+        if (data.paymentId) targetUrl += '&payment=' + data.paymentId;
+        break;
+      case 'task_assigned':
+        targetUrl = '/trip/' + data.tripId + '?tab=tasks';
+        break;
+      case 'poll_vote':
+        targetUrl = '/trip/' + data.tripId + '?tab=polls';
+        break;
+      case 'trip_invite':
+      case 'trip_reminder':
+      default:
+        targetUrl = '/trip/' + data.tripId;
+        break;
+    }
+  } else if (data.url) {
+    targetUrl = data.url;
+  }
+
+  // Handle specific button actions
+  if (action === 'dismiss') return;
+  if (action === 'pay' && data.tripId && data.paymentId) {
+    targetUrl = '/trip/' + data.tripId + '?tab=payments&payment=' + data.paymentId + '&action=pay';
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      // Focus existing window if available
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          client.navigate(targetUrl);
+          return;
+        }
+      }
+      // Open new window
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    }),
+  );
+});

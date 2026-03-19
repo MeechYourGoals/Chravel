@@ -84,7 +84,7 @@ export const OrganizationDashboard = () => {
       const trips = data?.map(item => item.trips).filter(Boolean) || [];
       setLinkedTrips(trips);
     } catch (error) {
-      console.error('Error fetching linked trips:', error);
+      // Error fetching linked trips — non-critical, UI shows empty state
     } finally {
       setLoadingTrips(false);
     }
@@ -318,7 +318,7 @@ export const OrganizationDashboard = () => {
               <CardTitle className="text-sm font-medium text-gray-400">Active Trips</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">0</div>
+              <div className="text-2xl font-bold text-white">{linkedTrips.length}</div>
               <div className="text-sm text-gray-400">Pro trips</div>
             </CardContent>
           </Card>

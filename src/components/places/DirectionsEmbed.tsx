@@ -66,6 +66,17 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
 
   const canGetDirections = fromText.trim() && toText.trim();
 
+  // Open directions in Google Maps app/website (for mobile)
+  const handleOpenInMaps = () => {
+    if (!fromText.trim() || !toText.trim()) return;
+    const saddr = encodeURIComponent(fromText.trim());
+    const daddr = encodeURIComponent(toText.trim());
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&origin=${saddr}&destination=${daddr}`,
+      '_blank',
+    );
+  };
+
   // Directions view
   if (showDirections && directionsUrl) {
     return (
@@ -78,12 +89,20 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
               {fromText} → {toText}
             </span>
           </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-white transition-colors p-1"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleOpenInMaps}
+              className="text-xs text-primary hover:text-primary/80 underline underline-offset-2 transition-colors mr-2"
+            >
+              Open in Maps
+            </button>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-white transition-colors p-1"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Directions Embed */}

@@ -116,13 +116,30 @@ export const Poll = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-white">{poll.question}</h3>
-        {poll.status === 'closed' && (
-          <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">Closed</span>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {poll.is_anonymous && (
+            <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
+              Anonymous
+            </span>
+          )}
+          {poll.allow_multiple && (
+            <span className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
+              Multi-select
+            </span>
+          )}
+          {poll.status === 'closed' && (
+            <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">Closed</span>
+          )}
+          {isDeadlinePassed && poll.status !== 'closed' && (
+            <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+              Expired
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Deadline */}
@@ -135,18 +152,28 @@ export const Poll = ({
 
       {/* Options */}
       <div className="space-y-2">
-        {(Array.isArray(poll.options) ? poll.options : []).map(option => (
-          <PollOption
-            key={option.id}
-            option={option}
-            totalVotes={poll.totalVotes}
-            userVote={poll.userVote}
-            selectedOptions={selectedOptions}
-            onVote={handleVote}
-            disabled={!canVote && !canChangeVote}
-            isMultiple={poll.allow_multiple}
-          />
-        ))}
+        {(() => {
+          const options = Array.isArray(poll.options) ? poll.options : [];
+          const maxVotes = Math.max(0, ...options.map(o => o.votes));
+          const hasVotes = poll.totalVotes > 0;
+          return options.map(option => (
+            <PollOption
+              key={option.id}
+              option={option}
+              totalVotes={poll.totalVotes}
+              userVote={poll.userVote}
+              selectedOptions={selectedOptions}
+              onVote={handleVote}
+              disabled={!canVote && !canChangeVote}
+              isMultiple={poll.allow_multiple}
+              isLeading={
+                hasVotes &&
+                option.votes === maxVotes &&
+                options.filter(o => o.votes === maxVotes).length === 1
+              }
+            />
+          ));
+        })()}
       </div>
 
       {/* Submit button for multiple choice */}

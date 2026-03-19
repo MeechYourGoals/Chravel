@@ -70,7 +70,7 @@ export async function getMessageReadStatus(messageId: string): Promise<ReadStatu
     .order('read_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to get read status:', error);
+    if (import.meta.env.DEV) console.error('Failed to get read status:', error);
     return [];
   }
 
@@ -89,7 +89,7 @@ export async function getMessagesReadStatus(
     .in('message_id', messageIds);
 
   if (error) {
-    console.error('Failed to get read statuses:', error);
+    if (import.meta.env.DEV) console.error('Failed to get read statuses:', error);
     return {};
   }
 

@@ -39,8 +39,17 @@ export const ConsumerGeneralSettings = () => {
       .rpc('get_account_deletion_status' as never)
       .then(({ data, error }: { data: unknown; error: unknown }) => {
         if (cancelled || error) return;
-        const result = data as { status?: string; deletion_scheduled_for?: string } | null;
-        if (result?.status === 'scheduled' && result?.deletion_scheduled_for) {
+        const result = data as {
+          pending_deletion?: boolean;
+          scheduled_for?: string;
+          // Legacy shape fallback
+          status?: string;
+          deletion_scheduled_for?: string;
+        } | null;
+        if (result?.pending_deletion && result?.scheduled_for) {
+          setDeletionScheduledFor(result.scheduled_for);
+        } else if (result?.status === 'scheduled' && result?.deletion_scheduled_for) {
+          // Legacy shape fallback
           setDeletionScheduledFor(result.deletion_scheduled_for);
         }
       });

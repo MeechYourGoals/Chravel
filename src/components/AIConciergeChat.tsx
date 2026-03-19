@@ -187,6 +187,8 @@ interface FallbackTripContext {
 }
 
 const FAST_RESPONSE_TIMEOUT_MS = 60_000;
+const MAX_CHAT_HISTORY_MESSAGES = 10;
+const MAX_SINGLE_MESSAGE_LENGTH = 3000;
 const _MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 under 6 MB server limit
 const _ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
@@ -1036,16 +1038,15 @@ export const AIConciergeChat = ({
         attachments = await Promise.all(selectedImages.map(fileToAttachmentPayload));
       }
 
-      const MAX_MESSAGE_LENGTH = 3000;
-      // Slice the last 5 prior messages (not 6). The current user message is
-      // appended separately by the edge function, so 5 prior + 1 current = 6
-      // messages of context. Using -6 here previously caused an off-by-one where
-      // the most recent assistant reply was dropped from the context window.
-      const chatHistory = messages.slice(-5).map(msg => ({
+      // Slice the last N prior messages. The current user message is
+      // appended separately by the edge function, so N prior + 1 current = N+1
+      // messages of context. Cap at MAX_CHAT_HISTORY_MESSAGES to avoid
+      // exceeding Gemini's context window with long conversations.
+      const chatHistory = messages.slice(-MAX_CHAT_HISTORY_MESSAGES).map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content:
-          msg.content.length > MAX_MESSAGE_LENGTH
-            ? msg.content.substring(0, MAX_MESSAGE_LENGTH) + '...[truncated]'
+          msg.content.length > MAX_SINGLE_MESSAGE_LENGTH
+            ? msg.content.substring(0, MAX_SINGLE_MESSAGE_LENGTH) + '...[truncated]'
             : msg.content,
       }));
 

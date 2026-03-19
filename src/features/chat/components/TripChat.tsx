@@ -748,7 +748,8 @@ export const TripChat = React.memo(
       // Persist to database
       const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
       if (result.error) {
-        console.error('[TripChat] Failed to toggle reaction:', result.error);
+        if (import.meta.env.DEV)
+          console.error('[TripChat] Failed to toggle reaction:', result.error);
         // Revert on failure - refetch reactions
         const messageIds = liveMessages.map(m => m.id);
         const freshReactions = await getMessagesReactions(messageIds, user.id);

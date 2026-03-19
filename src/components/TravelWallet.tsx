@@ -10,6 +10,7 @@ import {
   CreditCard,
   Wallet,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { AirlineProgram, HotelProgram, RentalCarProgram } from '../types/pro';
 import { PaymentMethodsSettings } from './payments/PaymentMethodsSettings';
@@ -26,6 +27,8 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [_isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [editingProgram, setEditingProgram] = useState<string | null>(null);
 
   const [airlinePrograms, setAirlinePrograms] = useState<AirlineProgram[]>([]);
   const [hotelPrograms, setHotelPrograms] = useState<HotelProgram[]>([]);
@@ -36,6 +39,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     const loadPrograms = async () => {
       if (!userId) return;
       setIsLoading(true);
+      setLoadError(null);
       try {
         const programs = await loyaltyProgramService.getUserPrograms(userId);
 
@@ -55,7 +59,8 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
             .map(loyaltyProgramService.toRentalCarProgram),
         );
       } catch (error) {
-        console.error('Error loading loyalty programs:', error);
+        const message = error instanceof Error ? error.message : 'Failed to load loyalty programs';
+        setLoadError(message);
       } finally {
         setIsLoading(false);
       }
@@ -324,6 +329,55 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
     } finally {
       setIsSaving(false);
       setShowAddForm(false);
+    }
+  };
+
+  const handleEditProgram = async (programId: string, data: any) => {
+    if (!userId) return;
+
+    setIsSaving(true);
+    try {
+      const companyName = data.airline || data.hotelChain || data.company;
+      const success = await loyaltyProgramService.updateProgram(programId, {
+        company_name: companyName,
+        program_name: data.programName,
+        membership_number: data.membershipNumber,
+        tier: data.tier,
+        is_preferred: data.isPreferred || false,
+      });
+
+      if (success) {
+        // Reload programs from service to get fresh state
+        const programs = await loyaltyProgramService.getUserPrograms(userId);
+        setAirlinePrograms(
+          programs
+            .filter(p => p.program_type === 'airline')
+            .map(loyaltyProgramService.toAirlineProgram),
+        );
+        setHotelPrograms(
+          programs
+            .filter(p => p.program_type === 'hotel')
+            .map(loyaltyProgramService.toHotelProgram),
+        );
+        setRentalCarPrograms(
+          programs
+            .filter(p => p.program_type === 'rental')
+            .map(loyaltyProgramService.toRentalCarProgram),
+        );
+        toast({ title: 'Program updated', description: 'Your loyalty program has been updated.' });
+      } else {
+        throw new Error('Failed to update program');
+      }
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : 'Failed to update loyalty program';
+      toast({
+        title: 'Error',
+        description: errMsg + '. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+      setEditingProgram(null);
     }
   };
 

@@ -46,6 +46,10 @@ const isIOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigato
 const isIOSPWA =
   isIOS && typeof window !== 'undefined' && (window.navigator as any).standalone === true;
 
+const isFirefox = typeof navigator !== 'undefined' && /Firefox\/\d+/.test(navigator.userAgent);
+
+const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
 // ---------- Browser support ----------
 const SpeechRecognitionClass =
   typeof window !== 'undefined'
@@ -156,7 +160,9 @@ export function useWebSpeechVoice(
     // We handle iOS restarts via onend.
     recognition.continuous = !isIOS;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    // Use the browser's language preference; fall back to en-US for safety.
+    // Android Chrome may produce better results with the full locale (e.g. en-GB).
+    recognition.lang = navigator?.language || 'en-US';
     // iOS Safari may support maxAlternatives but we only need the best result
     recognition.maxAlternatives = 1;
 
@@ -270,7 +276,9 @@ export function useWebSpeechVoice(
         return;
       }
 
-      console.error('[useWebSpeechVoice] Recognition error:', errType);
+      if (import.meta.env.DEV) {
+        console.error('[useWebSpeechVoice] Recognition error:', errType);
+      }
       setErrorMessage(`Voice error: ${errType}`);
       setVoiceState('error');
       activeRef.current = false;
@@ -316,7 +324,9 @@ export function useWebSpeechVoice(
             recognitionRef.current = newRecognition;
             newRecognition.start();
           } catch (err) {
-            console.error('[useWebSpeechVoice] iOS restart failed:', err);
+            if (import.meta.env.DEV) {
+              console.error('[useWebSpeechVoice] iOS restart failed:', err);
+            }
             if (accumulatedTranscriptRef.current.trim()) {
               finalizeTranscript();
             } else {
@@ -350,8 +360,12 @@ export function useWebSpeechVoice(
         setErrorMessage(
           'Voice dictation may not be available in this app mode. Try opening in Safari, or use the keyboard.',
         );
+      } else if (isFirefox) {
+        setErrorMessage(
+          'Voice dictation is not supported in Firefox. Please use Chrome, Edge, or Safari.',
+        );
       } else {
-        setErrorMessage('Voice not supported in this browser. Try Chrome or Safari.');
+        setErrorMessage('Voice not supported in this browser. Try Chrome, Edge, or Safari.');
       }
       setVoiceState('error');
       return;
@@ -405,7 +419,9 @@ export function useWebSpeechVoice(
             attemptStart(true);
           }, 300);
         } else {
-          console.error('[useWebSpeechVoice] Failed to start recognition:', err);
+          if (import.meta.env.DEV) {
+            console.error('[useWebSpeechVoice] Failed to start recognition:', err);
+          }
           setErrorMessage('Failed to start voice recognition. Please try again.');
           setVoiceState('error');
           activeRef.current = false;

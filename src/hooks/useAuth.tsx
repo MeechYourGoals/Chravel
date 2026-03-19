@@ -1289,6 +1289,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         signIn,
         signInWithGoogle,
+        signInWithApple,
         signInWithPhone,
         signUp,
         signOut,

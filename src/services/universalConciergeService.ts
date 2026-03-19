@@ -234,7 +234,9 @@ export class UniversalConciergeService {
           isFromFallback: false,
         };
       } catch (edgeFunctionError) {
-        console.error('Edge function failed, falling back to mock service:', edgeFunctionError);
+        if (import.meta.env.DEV) {
+          console.error('Edge function failed, falling back to mock service:', edgeFunctionError);
+        }
 
         // Fallback to mock knowledge service
         if (isDemoMode) {
@@ -258,7 +260,9 @@ export class UniversalConciergeService {
         throw edgeFunctionError;
       }
     } catch (error) {
-      console.error('Concierge processing error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Concierge processing error:', error);
+      }
       return {
         content:
           "I'm having trouble processing your request right now. Please try again in a moment.",
