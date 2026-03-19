@@ -1,3 +1,9 @@
+2026-03-19 — Line-up "Add more images" no-op forensic fix
+- Reproduced reported Slack bug with a focused regression test (`LineupTab.test.tsx`) simulating the exact state: existing lineup file + "Add to Line-up" form open.
+- Root cause: hidden file input was conditionally mounted inside `!isAddingMember`; opening the add-member form unmounted the input while the inline "Add more" button remained visible, leaving `fileInputRef` null.
+- Implemented minimal fix in `LineupTab`: keep hidden file input mounted whenever organizer upload is allowed, and gate inline "Add more" button by `canCreate && canUploadMore`.
+- Validation: `npm test -- --run src/components/events/__tests__/LineupTab.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+- Next follow-up: optional test hardening to remove existing Radix tooltip act() warnings in this test area (non-blocking).
 2026-03-19 — Calendar Add Event time input indicator clarity fix
 - Reproduced reported UI artifact from #debugging screenshot in `AddEventModal` where native `input[type="time"]` indicator rendered as a confusing blue square/blank slot in dark mode.
 - Root cause: browser-native picker indicator styling conflicted with pill input treatment, leaving an unclear affordance inside the time field.
