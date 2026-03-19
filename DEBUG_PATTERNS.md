@@ -118,6 +118,29 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Provenance:** CLAUDE.md § Security Gate; historical regression reports
 - **Confidence:** high
 
+## Trip readable without active membership causes chat send failure
+- **Status:** fixed
+- **Subsystem:** trip access resolution / chat permissions
+- **Bug class:** authorization source-of-truth mismatch
+- **Symptom:** User can open trip detail and chat UI, but message sends fail (RLS permission denied) after approval/join state changes.
+- **User-facing impact:** “Chat is broken” in valid-looking trip screens; inconsistent access behavior between read and write flows.
+- **Trigger conditions:** Direct `trips` read succeeds while no active `trip_members` row exists for the user (stale/pending/former-member edge states).
+- **Likely root cause:** Client `getTripById` trusted trip-row readability as access truth; write path correctly enforced active membership via RLS.
+- **Root cause chain:**
+  - Immediate cause: Send fails on `trip_chat_messages` write policy.
+  - Proximate cause: User entered chat UI without active membership.
+  - Underlying cause: Trip read path and chat write path used different access criteria.
+- **How to reproduce:**
+  1. Arrange a user who can read a trip row but has no active `trip_members` row.
+  2. Open trip detail and try sending in chat.
+  3. Observe send failure despite trip UI loading.
+- **How to confirm:** Add service test where `trips` returns data, membership query returns null, and canonical `get-trip-detail` returns `ACCESS_DENIED`.
+- **Smallest safe fix:** In `tripService.getTripById`, require active membership check before trusting direct trip read; on missing/ambiguous membership, defer to canonical `get-trip-detail` edge function.
+- **Regression risks:** Pre-migration environments without `trip_members.status` column; solved with fallback membership query without status filter.
+- **Related files:** `src/services/tripService.ts`, `src/services/__tests__/tripService.getTripById.test.ts`
+- **Fixed in:** March 2026 bug-resolution automation
+- **Confidence:** high
+
 ## Demo mode data contamination
 - **Status:** confirmed
 - **Subsystem:** demo mode / data layer
@@ -170,6 +193,47 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Smallest safe fix:** Fetch reactions once on initial load, rely on realtime subscription for incremental updates
 - **Related files:** `src/features/chat/components/TripChat.tsx`
 - **Fixed in:** March 2026 chat reliability audit
+- **Confidence:** high
+
+## Voice tool call fails silently due to unimplemented declaration
+- **Status:** confirmed (latent)
+- **Subsystem:** AI concierge / voice tools
+- **Bug class:** declaration/implementation mismatch
+- **Symptom:** Voice concierge says it completed an action but nothing happens in the trip. No error shown to user.
+- **User-facing impact:** Lost trust — user thinks AI did something but no data was created/changed
+- **Trigger conditions:** Model selects a tool from `voiceToolDeclarations.ts` that has no matching `case` in `functionExecutor.ts`
+- **Known affected tools:** getWeatherForecast, convertCurrency, browseWebsite, makeReservation, settleExpense, generateTripImage, setTripHeaderImage, getDeepLink, explainPermission, verify_artifact, createBroadcast, createNotification
+- **Likely root cause:** Voice tool declarations were expanded from a roadmap document without corresponding backend implementation
+- **Smallest safe fix:** Remove unimplemented tools from `voiceToolDeclarations.ts`, or implement them in `functionExecutor.ts`
+- **Regression risks:** Removing tools may cause model to verbally refuse requests it previously "handled" (but silently failed)
+- **Related files:** `supabase/functions/_shared/voiceToolDeclarations.ts`, `supabase/functions/_shared/functionExecutor.ts`
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+## Action Plan JSON mandate ignored by model
+- **Status:** confirmed (design issue)
+- **Subsystem:** AI concierge / prompt design
+- **Bug class:** prompt compliance
+- **Symptom:** System prompt mandates a JSON `plan_version: 1.0` block at the start of every response, but model frequently skips it for simple queries
+- **User-facing impact:** Inconsistent response format; wasted tokens when model does comply; no functional benefit since the plan is not machine-parsed
+- **Trigger conditions:** Any simple query where the model decides the JSON plan adds no value
+- **Likely root cause:** Instruction conflicts — "be concise" vs "always output a JSON plan first"
+- **Smallest safe fix:** Remove the Action Plan mandate from the system prompt entirely, or make it conditional for multi-action requests
+- **Related files:** `supabase/functions/_shared/promptBuilder.ts` (lines 29-50)
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+## Preference injection on irrelevant queries wastes tokens
+- **Status:** confirmed (inefficiency)
+- **Subsystem:** AI concierge / context injection
+- **Bug class:** performance / token bloat
+- **Symptom:** Dietary preferences, vibe preferences, budget preferences injected into every trip-related query, even "what time is our reservation?"
+- **User-facing impact:** Slower time-to-first-token from larger prompt; no quality benefit for non-recommendation queries
+- **Trigger conditions:** Any trip-related query for a paid user with preferences set
+- **Likely root cause:** Preference injection in `promptBuilder.ts` is always-on when `tripContext.userPreferences` exists, with no query-type filter
+- **Smallest safe fix:** Only inject preferences when query matches recommendation/food/activity/venue patterns
+- **Related files:** `supabase/functions/_shared/promptBuilder.ts` (lines 101-117), `supabase/functions/_shared/contextBuilder.ts` (resolveUserPreferences)
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
 - **Confidence:** high
 
 ## Chat messages lost during websocket reconnect
