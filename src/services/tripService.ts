@@ -10,7 +10,7 @@ import { formatLocalDate } from '@/utils/dateHelpers';
  * Normalizes date input to YYYY-MM-DD format for database date columns
  * Accepts: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601 datetime strings
  * Returns date-only format (YYYY-MM-DD) expected by Postgres date columns
- */
+ */h
 function _normalizeDateInput(dateStr?: string): string | undefined {
   if (!dateStr) return undefined;
 
@@ -225,6 +225,17 @@ export const tripService = {
         // No auth desync — auth flow (lines 124-157) is untouched.
         // No RLS leak — error messages are either known codes or hardcoded strings.
 
+        const rawErrorMessage =
+          error && typeof error === 'object' && 'message' in error
+            ? String(error.message ?? '')
+            : '';
+        const isFetchFailure = /failed to fetch/i.test(rawErrorMessage);
+        if (isFetchFailure) {
+          throw new Error(
+            'Unable to reach trip creation service. If this happens on a preview domain, add that origin to Edge Function CORS allowlist (ADDITIONAL_ALLOWED_ORIGINS) and redeploy create-trip.',
+          );
+        }
+
         // Extract the actual error message from the edge function response body.
         // supabase.functions.invoke returns { data: null, error: FunctionsHttpError }
         // for non-2xx responses. The response body is in error.context (raw Response).
@@ -279,6 +290,17 @@ export const tripService = {
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[tripService] Error creating trip:', error);
+      }
+      // Handle network-level errors (FunctionsFetchError) with a user-friendly message.
+      // When supabase.functions.invoke cannot reach the function, it throws with
+      // message "Failed to fetch" rather than returning { error: FunctionsHttpError }.
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (
+        errMsg === 'Failed to fetch' ||
+        errMsg.toLowerCase().includes('networkerror') ||
+        errMsg.toLowerCase().includes('failed to fetch')
+      ) {
+        throw new Error('Network error creating trip. Please check your connection and try again.');
       }
       // Re-throw to preserve error message for UI
       throw error;
