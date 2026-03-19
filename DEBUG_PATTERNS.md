@@ -224,3 +224,26 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Former members can still moderate join requests
+- **Status:** fixed
+- **Subsystem:** join requests / authorization
+- **Bug class:** auth/permission breakage
+- **Symptom:** A user who left a consumer trip can still reject or dismiss new join requests.
+- **User-facing impact:** Unauthorized moderation of membership intake, blocked onboarding for legitimate requesters.
+- **Trigger conditions:** User leaves trip (`trip_members.status = 'left'`), then later calls `reject_join_request` or `dismiss_join_request` for that trip.
+- **Likely root cause:** SECURITY DEFINER RPCs checked only `trip_id + user_id` existence in `trip_members`, not active status.
+- **Root cause chain:**
+  - Immediate: RPC authorization passes for non-active rows.
+  - Proximate: Consumer-branch authorization lacks `(status IS NULL OR status = 'active')`.
+  - Underlying: Soft-leave model (`status='left'`) not reflected in all moderation guards.
+- **How to reproduce:**
+  1. User A joins a consumer trip, then leaves (row remains with `status='left'`).
+  2. User C submits a join request to that trip.
+  3. User A invokes `reject_join_request` or `dismiss_join_request` with the request id.
+  4. Action succeeds when it should be denied.
+- **Smallest safe fix:** Require active membership in consumer authorization checks for both RPCs; also notify only active members in `join-trip` request fanout.
+- **Regression risks:** Blocking legitimate moderators if environment lacks `trip_members.status` (mitigate with backward-compatible fallback in edge function fanout).
+- **Related files:** `supabase/migrations/20260322000000_fix_join_request_active_member_checks.sql`, `supabase/functions/join-trip/index.ts`
+- **Fixed in:** March 2026 post-merge forensic review
+- **Confidence:** high
