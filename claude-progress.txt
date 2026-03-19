@@ -1,3 +1,9 @@
+2026-03-19 — Calendar Add Event time input indicator clarity fix
+- Reproduced reported UI artifact from #debugging screenshot in `AddEventModal` where native `input[type="time"]` indicator rendered as a confusing blue square/blank slot in dark mode.
+- Root cause: browser-native picker indicator styling conflicted with pill input treatment, leaving an unclear affordance inside the time field.
+- Applied surgical fix by adding explicit clock affordance in `src/features/calendar/components/AddEventModal.tsx` and hiding only the native WebKit indicator via scoped `.calendar-time-input` CSS in `src/index.css`.
+- Added regression test `src/features/calendar/components/__tests__/AddEventModal.test.tsx` to lock explicit time-input affordance wiring.
+- Verification: `npm test -- --run src/features/calendar/components/__tests__/AddEventModal.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass (existing repo lint warnings remain).
 2026-03-19 — Event trip cover photo stale homepage fix
 - Investigated Slack bug report where Event cover uploaded in Create Trip modal did not appear on homepage cards immediately.
 - Root cause: create flow performed a second direct `trips` table update for `cover_image_url` after `createTrip`, but that path bypassed `useTrips` mutation invalidation and `useUserTripsRealtime` does not subscribe to `trips` updates.
