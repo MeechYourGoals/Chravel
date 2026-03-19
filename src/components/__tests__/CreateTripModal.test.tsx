@@ -77,7 +77,7 @@ describe('CreateTripModal labels', () => {
     expect(screen.getByRole('heading', { name: 'Create New Trip' })).toBeInTheDocument();
     expect(screen.getByText('Trip Title')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Event' }));
+    await user.click(screen.getByRole('radio', { name: 'Event' }));
 
     expect(screen.getByRole('heading', { name: 'Create New Event' })).toBeInTheDocument();
     expect(screen.getByText('Event Title')).toBeInTheDocument();
