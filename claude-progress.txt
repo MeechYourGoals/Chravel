@@ -78,3 +78,11 @@
 - Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
 - Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.
+
+2026-03-19 — Event trip cover photo not reflecting after create (Slack bug thread)
+- Reproduced with a focused component regression test showing `CreateTripModal` uploads to legacy `trip-covers` bucket instead of canonical `trip-media`.
+- Root cause: create-flow cover upload path drifted from edit/header flow contract (`trip-media/trip-covers/<tripId>/...`) and did not refresh trip detail cache after post-create `cover_image_url` write.
+- Fix: switched create-flow upload/getPublicUrl to `trip-media`, verified DB update success with `.select('id').maybeSingle()`, and invalidated both `['trips']` and trip-detail query keys.
+- Added regression test: `src/components/__tests__/CreateTripModal.coverPhoto.test.tsx`.
+- Verification: `npm test -- --run src/components/__tests__/CreateTripModal.coverPhoto.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+- Next follow-up: consider extracting a shared `uploadTripCoverPhoto` helper to prevent future create/edit drift.

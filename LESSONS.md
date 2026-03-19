@@ -23,6 +23,14 @@
 - **Provenance:** AGENTS.md § 5.2 Field Name Mismatches
 - **Confidence:** high
 
+### Keep create-flow uploads on the same storage contract as edit-flow uploads
+- **Tip:** If the same asset type can be uploaded during both create and edit flows, enforce one canonical bucket/path contract (e.g., `trip-media/trip-covers/<tripId>/...`) across both paths. Also invalidate both list and detail caches after post-create asset writes; list-only invalidation can leave detail pages stale.
+- **Applies when:** New entity creation includes optional media uploads that are saved after the primary record insert.
+- **Avoid when:** Media is uploaded through one shared abstraction already used by all entry points.
+- **Evidence:** Event cover photo uploads in `CreateTripModal` drifted to `trip-covers` bucket while edit/header used `trip-media`, causing missing hero images on event detail pages despite successful trip creation.
+- **Provenance:** March 2026 #debugging thread fix (`cover photo to Event trip loaded, but hasn't reflected in trip homepage`)
+- **Confidence:** high
+
 ### When adding feature parity to a secondary surface, use the existing data layer before adding schema
 - **Tip:** When a feature exists in surface A (e.g., TripChat) and needs to be added to surface B (e.g., Channels), first check what shared components and data services already exist. Often the components are reusable but the data layer wiring is missing. Use JSON metadata fields for lightweight data (reply context, link previews) before resorting to schema migrations.
 - **Applies when:** Adding threading, link previews, or other chat features to Channels or Broadcasts

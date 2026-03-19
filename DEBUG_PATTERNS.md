@@ -78,6 +78,19 @@ Known security anti-patterns discovered during audits. Reference this before int
 
 ---
 
+## 5. New-Trip Cover Upload Drift (Create flow vs Edit flow)
+
+**Symptom:** Cover photo looks selected in trip creation but does not appear on the event/trip homepage after creation.
+**Risk:** MEDIUM — users think cover upload is broken; event hero remains blank.
+**Root Cause:** `CreateTripModal` used legacy `trip-covers` bucket while the canonical upload path is `trip-media` + `trip-covers/<tripId>/...`. The flow also updated `cover_image_url` without verifying the row update and did not invalidate trip-detail caches after the post-create write.
+**How to Confirm:** Compare bucket/path usage between `CreateTripModal` and edit/header cover upload paths (`TripHeader` / `TripCoverPhotoUpload`). If they differ, create/edit behavior can drift.
+**Smallest Safe Fix:** Upload via `trip-media` at `trip-covers/<tripId>/...`, verify DB update with `.select('id').maybeSingle()`, then invalidate both list and detail trip caches.
+**Required Tests:** Component regression test asserting create flow uses `trip-media` bucket.
+**Regression Surfaces:** Any duplicated upload logic across create and edit surfaces.
+**Fixed in:** `src/components/CreateTripModal.tsx`, `src/components/__tests__/CreateTripModal.coverPhoto.test.tsx` (March 2026 bug thread fix)
+
+---
+
 ## General Anti-Patterns to Avoid
 
 - **Never use `|| 'default'` for security-sensitive env vars** — fail loudly instead
