@@ -1,3 +1,10 @@
+2026-03-19 — Line-up "Add more images" no-op forensic fix
+- Reproduced reported Slack bug with a focused regression test (`LineupTab.test.tsx`) simulating the exact state: existing lineup file + "Add to Line-up" form open.
+- Root cause: hidden file input was conditionally mounted inside `!isAddingMember`; opening the add-member form unmounted the input while the inline "Add more" button remained visible, leaving `fileInputRef` null.
+- Implemented minimal fix in `LineupTab`: keep hidden file input mounted whenever organizer upload is allowed, and gate inline "Add more" button by `canCreate && canUploadMore`.
+- Validation: `npm test -- --run src/components/events/__tests__/LineupTab.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+- Next follow-up: optional test hardening to remove existing Radix tooltip act() warnings in this test area (non-blocking).
+
 2026-03-19 — Trip creation "Failed to fetch" forensic fix
 - Completed end-to-end audit of CreateTripModal -> useTrips -> tripService -> create-trip edge function -> trips insert path.
 - Identified primary runtime failure class as Edge Function CORS origin mismatch causing browser-level fetch rejection (surfaced as generic "Failed to fetch"), especially on `*.lovable.dev`.
