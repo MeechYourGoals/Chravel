@@ -161,3 +161,10 @@
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
+
+### Keep deployment build commands identical to the repo’s canonical build script
+- **Tip:** For multi-host deployments (Vercel, Render, CI, Capacitor), point every deploy target at `npm run build` rather than host-specific shortcuts like `vite build`; this preserves post-build steps (e.g., service worker generation) and prevents platform-only regressions.
+- **Applies when:** The project has additional build pipeline steps (asset injection, workbox, codegen, post-processing) beyond the raw bundler command.
+- **Evidence:** Chravel had cross-environment command drift (`vercel.json` used `vite build` while local/CI used `npm run build`), creating a path where Vercel skipped `scripts/build-sw.cjs` and produced deployment artifacts that diverged from tested output.
+- **Provenance:** March 2026 build-stability forensic audit.
+- **Confidence:** high
