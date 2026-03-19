@@ -127,3 +127,9 @@
 - Added focused regression test `src/lib/__tests__/conciergeInvalidation.test.ts` to lock tool-to-query-key mapping, including `setTripHeaderImage -> ['trips']`.
 - Verification: `npm test -- --run src/lib/__tests__/conciergeInvalidation.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
 - Next follow-up: if we add more trip-mutating concierge tools, keep this central mapping in sync to avoid silent stale UI on dashboard surfaces.
+2026-03-19 — PR1044 merge regression fix (`MediaTile` duplicate resolver declaration)
+- Investigated PR #1044 readiness diff and reproduced a hard syntax failure in `MediaTile` tests: `Identifier 'resolvedUrl' has already been declared`.
+- Root cause: post-merge file state contained both the old `mediaUrl` resolver block and a newly added `effectiveUrl` resolver block, duplicating `const resolvedUrl` in the same scope.
+- Applied surgical fix in `src/components/media/MediaTile.tsx` by removing the duplicate resolver declarations and keeping a single signed-URL path.
+- Verification: `npm run test -- --run src/components/media/__tests__/MediaTile.signedUrl.test.tsx`, `npm run test -- --run src/components/media/__tests__/MediaTile.resolvedUrl.test.tsx`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
+- Follow-up posted: inline blocking review comment on PR #1044; fix published in branch `cursor/chravelapp-bug-fixing-bf06` and PR #1050.

@@ -59,6 +59,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
     url: currentItem?.url ?? null,
     metadata: currentItem?.metadata,
   });
+  const effectiveCurrentUrl = resolvedCurrentUrl ?? currentItem?.url ?? '';
   const currentMediaUrl = resolvedCurrentUrl ?? currentItem?.url ?? '';
   const category = currentItem ? getMediaCategory(currentItem.mimeType) : 'document';
   const canGoPrev = currentIndex > 0;
