@@ -52,3 +52,9 @@
 - Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
 - Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
 - Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
+2026-03-18 — Calendar add-event save hang + timeout hardening
+- Reproduced a blocking path where `calendarService.createEvent` awaited full conflict detection before insert, allowing slow reads to hold the modal in `Saving...`.
+- Added conflict-check timeout fallback in `createEvent` so advisory conflict lookup cannot block writes when reads are slow/hanging.
+- Added regression test `src/services/__tests__/calendarService.createEvent.test.ts` to lock non-blocking behavior.
+- Aligned `useCalendarManagement` calendar query timeout to the shared default via `createCalendarQueryFn(tripId)` (removes tighter 10s path).
+- Validation: targeted calendar tests + `npm run lint && npm run typecheck && npm run build` all passing.

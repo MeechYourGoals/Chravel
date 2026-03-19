@@ -50,7 +50,7 @@ export const useCalendarManagement = (tripId: string) => {
     refetch: refreshEvents,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId),
-    queryFn: createCalendarQueryFn(tripId, 10_000),
+    queryFn: createCalendarQueryFn(tripId),
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
