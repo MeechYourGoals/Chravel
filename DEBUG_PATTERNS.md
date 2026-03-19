@@ -224,3 +224,21 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Private Storage Bucket + `getPublicUrl()` causes hard 404s
+- **Status:** fixed
+- **Subsystem:** event agenda / lineup file viewing
+- **Bug class:** storage contract mismatch
+- **Symptom:** Uploaded event agenda/line-up files render broken previews and downloads return `{"statusCode":"404","error":"Bucket not found"}`.
+- **User-facing impact:** Organizers and attendees cannot view/download uploaded event files in critical planning flows.
+- **Trigger conditions:** `trip-media` bucket is private (`public = false`) and UI code generates links via `supabase.storage.from('trip-media').getPublicUrl(...)`.
+- **Likely root cause:** Hooks assumed a public bucket contract after storage hardening changed bucket visibility.
+- **Root cause chain:**
+  - Immediate: Browser requests `/storage/v1/object/public/trip-media/...` and gets 404.
+  - Proximate: Event file hooks map listed objects to public URLs.
+  - Underlying: Private bucket access requires signed URLs, not public URL helpers.
+- **Smallest safe fix:** Generate signed URLs (`createSignedUrl`) for event file list objects and only fall back to public URL as a compatibility fallback.
+- **Regression risks:** Signed URLs expire; refresh on list reload and keep TTL reasonable.
+- **Related files:** `src/hooks/useEventLineupFiles.ts`, `src/hooks/useEventAgendaFiles.ts`
+- **Fixed in:** March 2026 post-merge forensic audit
+- **Confidence:** high
