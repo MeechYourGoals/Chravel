@@ -187,7 +187,6 @@ export const SmartImport = ({
         throw new Error('No valid data could be extracted from the URL');
       }
     } catch (error) {
-      console.error('URL import error:', error);
       setLastResult({ success: false, count: 0 });
       toast({
         title: 'Import Failed',

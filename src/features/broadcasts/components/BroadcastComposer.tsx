@@ -260,14 +260,15 @@ export const BroadcastComposer = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setShowDetails(!showDetails)}
                 className="text-slate-400 hover:text-white text-sm flex items-center gap-1"
               >
                 <MapPin size={14} />
-                Add details
+                <span className="hidden sm:inline">Add details</span>
+                <span className="sm:hidden">Details</span>
               </button>
               <button
                 onClick={() => setShowScheduler(!showScheduler)}
@@ -295,10 +296,10 @@ export const BroadcastComposer = ({
                 className="hidden"
               />
               {!isConsumerTrip && (
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-2">
                   <Languages size={14} className="text-slate-400" />
                   <Select value={translateTo} onValueChange={setTranslateTo}>
-                    <SelectTrigger className="w-32 h-6 bg-slate-700 border-slate-600 text-white text-xs">
+                    <SelectTrigger className="w-28 sm:w-32 h-6 bg-slate-700 border-slate-600 text-white text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -316,7 +317,7 @@ export const BroadcastComposer = ({
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Recipient selector - only for Pro/Event trips */}
               <RecipientSelector
                 participants={participants}
