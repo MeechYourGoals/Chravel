@@ -853,6 +853,7 @@ export const TripChat = React.memo(
         sender: { id: user?.id || 'unknown', name: fm.authorName, avatar: user?.avatar },
         createdAt: new Date().toISOString(),
         status: 'failed' as const,
+        linkPreview: undefined as undefined,
       }));
       return [...filteredMessages, ...failedFormatted];
     }, [filteredMessages, failedMessages, user?.id, user?.avatar]);
