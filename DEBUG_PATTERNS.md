@@ -224,3 +224,17 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Media tab photo tiles show "Unable to preview" for chat uploads
+- **Status:** fixed
+- **Subsystem:** media hub / storage URL resolution
+- **Bug class:** URL resolution drift
+- **Symptom:** A photo uploaded from chat appears in Media tab counts but tile fails to load and renders "Unable to preview"
+- **User-facing impact:** Photos look broken in Media while chat message may still render, reducing trust in upload reliability
+- **Trigger conditions:** `trip-media` bucket is private or public URL access is restricted; media tile uses raw `media_url` without signing
+- **Likely root cause:** New `MediaGrid` + `MediaTile` path bypassed `useResolvedTripMediaUrl`, while older paths still resolved signed URLs
+- **Smallest safe fix:** Resolve signed URLs at the canonical tile/viewer boundary (`MediaTile`, `MediaViewerModal`, mobile `MediaGridItem`) before rendering `<img>/<video>`
+- **Regression risks:** Signed URL expiration in long-lived sessions (mitigated by existing resolver cache/refresh logic)
+- **Related files:** `src/components/media/MediaTile.tsx`, `src/components/media/MediaViewerModal.tsx`, `src/components/mobile/MediaGridItem.tsx`, `src/hooks/useResolvedTripMediaUrl.ts`
+- **Fixed in:** March 2026 media forensic fix
+- **Confidence:** high
