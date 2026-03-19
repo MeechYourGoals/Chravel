@@ -1,3 +1,22 @@
+2026-03-19 — Line-up "Add more images" no-op forensic fix
+- Reproduced reported Slack bug with a focused regression test (`LineupTab.test.tsx`) simulating the exact state: existing lineup file + "Add to Line-up" form open.
+- Root cause: hidden file input was conditionally mounted inside `!isAddingMember`; opening the add-member form unmounted the input while the inline "Add more" button remained visible, leaving `fileInputRef` null.
+- Implemented minimal fix in `LineupTab`: keep hidden file input mounted whenever organizer upload is allowed, and gate inline "Add more" button by `canCreate && canUploadMore`.
+- Validation: `npm test -- --run src/components/events/__tests__/LineupTab.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+- Next follow-up: optional test hardening to remove existing Radix tooltip act() warnings in this test area (non-blocking).
+2026-03-19 — Calendar Add Event time input indicator clarity fix
+- Reproduced reported UI artifact from #debugging screenshot in `AddEventModal` where native `input[type="time"]` indicator rendered as a confusing blue square/blank slot in dark mode.
+- Root cause: browser-native picker indicator styling conflicted with pill input treatment, leaving an unclear affordance inside the time field.
+- Applied surgical fix by adding explicit clock affordance in `src/features/calendar/components/AddEventModal.tsx` and hiding only the native WebKit indicator via scoped `.calendar-time-input` CSS in `src/index.css`.
+- Added regression test `src/features/calendar/components/__tests__/AddEventModal.test.tsx` to lock explicit time-input affordance wiring.
+- Verification: `npm test -- --run src/features/calendar/components/__tests__/AddEventModal.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass (existing repo lint warnings remain).
+2026-03-19 — Event trip cover photo stale homepage fix
+- Investigated Slack bug report where Event cover uploaded in Create Trip modal did not appear on homepage cards immediately.
+- Root cause: create flow performed a second direct `trips` table update for `cover_image_url` after `createTrip`, but that path bypassed `useTrips` mutation invalidation and `useUserTripsRealtime` does not subscribe to `trips` updates.
+- Fix: routed post-upload cover update through `useTrips.updateTrip(...)` in `CreateTripModal`, which invalidates `['trips']` and refreshes dashboard/event card data.
+- Added regression test `src/components/__tests__/CreateTripModal.coverPhoto.test.tsx` to lock expected behavior (cover upload must call shared updater with `cover_image_url`).
+- Verification: `npm test -- --run src/components/__tests__/CreateTripModal.coverPhoto.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
 2026-03-19 — Trip creation "Failed to fetch" forensic fix
 - Completed end-to-end audit of CreateTripModal -> useTrips -> tripService -> create-trip edge function -> trips insert path.
 - Identified primary runtime failure class as Edge Function CORS origin mismatch causing browser-level fetch rejection (surfaced as generic "Failed to fetch"), especially on `*.lovable.dev`.
@@ -85,3 +104,10 @@
 - Implemented surgical fix by resolving URLs in those shared renderer boundaries before passing to `<img>/<video>` or download actions.
 - Verification: `npm run lint && npm run typecheck && npm run build` and targeted test `npm run test -- --run src/components/media/__tests__/MediaTile.resolvedUrl.test.tsx` pass.
 - Next follow-up: optional integration test around signed URL fallback in `UnifiedMediaHub` to guard future refactors.
+2026-03-19 — Event cover photo homepage refresh regression fix (AI concierge path)
+- Root-caused stale Event/Trip card cover photos on homepage to missing client cache invalidation after concierge `setTripHeaderImage` tool writes.
+- Confirmed `useUserTripsRealtime` only listens to `trip_join_requests` and `trip_members` (not `trips` updates), so this write path needs explicit `['trips']` invalidation.
+- Added shared concierge invalidation mapping utility and wired `AIConciergeChat` to treat `setTripHeaderImage` as a write action that invalidates `['trips']`.
+- Added focused regression test `src/lib/__tests__/conciergeInvalidation.test.ts` to lock tool-to-query-key mapping, including `setTripHeaderImage -> ['trips']`.
+- Verification: `npm test -- --run src/lib/__tests__/conciergeInvalidation.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
+- Next follow-up: if we add more trip-mutating concierge tools, keep this central mapping in sync to avoid silent stale UI on dashboard surfaces.
