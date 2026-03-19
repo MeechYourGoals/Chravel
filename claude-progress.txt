@@ -1,3 +1,10 @@
+2026-03-19 — Trip creation "Failed to fetch" forensic fix
+- Completed end-to-end audit of CreateTripModal -> useTrips -> tripService -> create-trip edge function -> trips insert path.
+- Identified primary runtime failure class as Edge Function CORS origin mismatch causing browser-level fetch rejection (surfaced as generic "Failed to fetch"), especially on `*.lovable.dev`.
+- Applied surgical fix by re-allowlisting `.lovable.dev` in shared CORS config and improving tripService network error mapping to emit actionable diagnostics for CORS/origin misconfiguration.
+- Added CORS regression test coverage for lovable.dev preview origins.
+- Next follow-up: set/verify `ADDITIONAL_ALLOWED_ORIGINS` in Supabase Edge Functions for every active non-production frontend origin and redeploy `create-trip`.
+
 2026-03-15 — Data evolution constitution audit
 - Completed exhaustive schema/migration/lifecycle audit and produced `docs/audits/data-evolution-constitution-2026-03-15.md`.
 - Added reusable learning entry to `LESSONS.md` (migration compatibility API mindset).
@@ -57,3 +64,22 @@
 - Identified deploy-command drift as a primary instability vector: `vercel.json` used `vite build` (skipping service-worker generation) while repo standard is `npm run build`; `render.yaml` used non-deterministic `npm install --legacy-peer-deps`.
 - Applied minimal hardening: switched Vercel build command to `npm run build`; switched Render install step to `npm ci --legacy-peer-deps` for lockfile reproducibility.
 - Next follow-up: apply identical build command parity check in CI/deploy-safety automation to prevent future drift.
+2026-03-19 — Concierge Settings gold consistency + tab contrast polish
+- Replaced emoji bullets in "How Concierge Works" with gold sparkle glyph bullets for visual consistency with section headers.
+- Standardized canonical gold usage (`text-gold-primary`) across Concierge header sparkle, Trip Preferences sparkle, PLUS label text, and signed-in account icon color treatment in Settings header.
+- Updated selected Settings top-tab text color (My Trips / Pro / Events / Advertiser) from pale gold to pure white for stronger active-state contrast.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` all pass.
+- Next follow-up: capture updated UI screenshot artifact when browser screenshot tooling is available in this environment.
+2026-03-19 — Settings gold unification follow-up + Export Data CTA restyle
+- Updated `DataExportSection` to remove glowing black CTA treatment by switching "Export My Data" button to solid red with white text and explicit `shadow-none`.
+- Standardized Data Export accent tokens from `glass-orange` to canonical `gold-primary` (`FileJson` icon, Start Export/Download/Got it actions).
+- Applied requested emoji-to-glyph cleanup in settings-adjacent surfaces: replaced billing/upgrade emoji strings with `✦` bullets and aligned recurring highlight accents in `ConsumerBillingSection` + `StorageQuotaBar` to `gold-primary` family.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings).
+- Next follow-up: capture post-change Settings screenshots when browser screenshot tooling is available.
+2026-03-19 — Cross-surface link unfurl parity hardening (chat + channels + broadcasts + concierge)
+- Added non-blocking client-side link preview fallback in main TripChat (`useLinkPreviews`) so URL messages can render unfurl cards even when DB `link_preview` arrives late/missing.
+- Added link preview fallback wiring in shared `ChatMessages`, enabling AI Concierge user/assistant URL messages to display preview cards via existing `MessageRenderer`.
+- Added broadcast unfurl support by wiring `BroadcastList` through `useLinkPreviews` and rendering rich preview cards in `BroadcastItem`.
+- Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
+- Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.

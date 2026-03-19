@@ -22,6 +22,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost',
   // Lovable preview/published domains (trusted platform)
   '.lovable.app',
+  '.lovable.dev',
   '.lovableproject.com',
 ];
 

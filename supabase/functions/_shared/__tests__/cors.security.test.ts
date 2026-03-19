@@ -37,6 +37,11 @@ describe('CORS Security Tests', () => {
       const isOriginAllowed = await getIsOriginAllowed();
       expect(isOriginAllowed('https://jmjiyekmxwsxkfnqwyaa.supabase.co')).toBe(true);
     });
+
+    it('should allow lovable.dev preview origins', async () => {
+      const isOriginAllowed = await getIsOriginAllowed();
+      expect(isOriginAllowed('https://preview-123.lovable.dev')).toBe(true);
+    });
   });
 
   describe('Wildcard subdomain rejection', () => {
