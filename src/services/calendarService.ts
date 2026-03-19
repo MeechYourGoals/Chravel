@@ -11,6 +11,8 @@ import { retryWithBackoff } from '@/utils/retry';
 // Client-side SUPER_ADMIN_EMAILS import removed to eliminate misleading bypass paths.
 import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 
+const CONFLICT_CHECK_TIMEOUT_MS = 2_000;
+
 // Re-export for backward compatibility — consumers should migrate to '@/types/calendar'
 export type { TripEvent, CreateEventData } from '@/types/calendar';
 
@@ -104,6 +106,41 @@ export const calendarService = {
     }
   },
 
+  async getConflictsForCreateEvent(
+    tripId: string,
+    startTime: string,
+    endTime?: string,
+  ): Promise<string[]> {
+    let timedOut = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const timeoutFallback = new Promise<string[]>(resolve => {
+      timeoutId = setTimeout(() => {
+        timedOut = true;
+        resolve([]);
+      }, CONFLICT_CHECK_TIMEOUT_MS);
+    });
+
+    try {
+      const conflicts = await Promise.race([
+        this.checkForConflicts(tripId, startTime, endTime).catch(() => []),
+        timeoutFallback,
+      ]);
+
+      if (timedOut && import.meta.env.DEV) {
+        console.warn(
+          `[calendarService] Conflict detection exceeded ${CONFLICT_CHECK_TIMEOUT_MS}ms; continuing event creation without advisory conflicts.`,
+        );
+      }
+
+      return conflicts;
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  },
+
   async createEvent(
     eventData: CreateEventData,
   ): Promise<{ event: TripEvent | null; conflicts: string[] }> {
@@ -128,7 +165,7 @@ export const calendarService = {
       const isDemoMode = await demoModeService.isDemoModeEnabled();
 
       // Check for conflicts first (non-blocking - just for notification)
-      const existingConflicts = await this.checkForConflicts(
+      const existingConflicts = await this.getConflictsForCreateEvent(
         eventData.trip_id,
         eventData.start_time,
         eventData.end_time,

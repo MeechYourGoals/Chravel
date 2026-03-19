@@ -224,3 +224,26 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Calendar create-event hangs on advisory conflict reads
+- **Status:** fixed
+- **Subsystem:** calendar / create event
+- **Bug class:** latency / sequencing
+- **Symptom:** Creating an event can remain in `Saving...` and eventually surface timeout errors.
+- **User-facing impact:** Event creation appears frozen even when write permissions are valid.
+- **Trigger conditions:** Slow `getTripEvents` read path during pre-insert conflict detection.
+- **Likely root cause:** `createEvent` awaits `checkForConflicts` (advisory-only) before insert, so a slow read blocks the write path.
+- **Root cause chain:**
+  - Immediate: modal remains in saving state
+  - Proximate: conflict read does not return quickly
+  - Underlying: advisory pre-check is treated as a hard prerequisite for insert
+- **How to reproduce:**
+  1. Start creating a calendar event
+  2. Introduce latency on `checkForConflicts/getTripEvents`
+  3. Observe that insert does not fire until read completes
+- **How to confirm:** Add a regression test that advances timers beyond the conflict timeout window and verifies insert already fired.
+- **Smallest safe fix:** Bound advisory conflict detection with a short timeout and fallback to `[]`, then continue insert.
+- **Regression risks:** Conflict warning toasts can be missed when read times out, but data correctness and write completion are preserved.
+- **Related files:** `src/services/calendarService.ts`, `src/features/calendar/hooks/useCalendarManagement.ts`
+- **Fixed in:** March 2026 calendar timeout forensic fix
+- **Confidence:** high

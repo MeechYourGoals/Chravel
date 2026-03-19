@@ -145,6 +145,12 @@
 - **Applies when:** Any chat surface supports URL previews.
 - **Evidence:** Main chat web send path was blocked by `isFetchingPreview` in `ChatInput`, causing Enter/button sends to appear nonfunctional for link messages.
 - **Provenance:** March 2026 chat send + unfurl forensic fix.
+### Advisory reads must be timeout-bounded when they precede writes
+- **Tip:** If a pre-write read is informational (warnings, overlap hints, previews), bound it with a short timeout and fallback so write operations never block on slow advisory paths.
+- **Applies when:** Create/update flows run optional pre-check queries before insert/update.
+- **Avoid when:** The read is a true correctness gate (permission checks, uniqueness enforcement not backed by DB constraints).
+- **Evidence:** Calendar event creation hung in `Saving...` because `createEvent` awaited advisory conflict reads before insert; adding a 2s timeout fallback preserved writes and removed hangs.
+- **Provenance:** March 2026 calendar create-event timeout fix.
 ### Remove visual effects at the trigger class, not with clipping overrides
 - **Tip:** When a conditional animation class is the sole activation path for a decorative effect, remove the class usage in the component and delete the paired keyframes/utilities instead of masking with `overflow-hidden`/z-index patches.
 - **Applies when:** UI regressions from over-scoped pseudo-element effects tied to active/listening states.
