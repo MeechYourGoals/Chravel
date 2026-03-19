@@ -39,12 +39,28 @@
 - **Provenance:** Shared mutation audit Stage B, March 2026
 - **Confidence:** high
 
+### Post-create follow-up writes must go through the same invalidating mutation path
+- **Tip:** If a create flow performs a second write (for example, uploading a cover image and then updating the created row), route that second write through the same shared hook/service mutation path used elsewhere (`useTrips.updateTrip`) instead of raw table updates in component code.
+- **Applies when:** Multi-step create UX where metadata/media is attached after the primary create mutation.
+- **Avoid when:** The follow-up write is fully server-side and already emits an event/query invalidation consumed by the UI.
+- **Evidence:** Event trip cover photos uploaded in `CreateTripModal` were persisted to `trips.cover_image_url`, but homepage cards stayed stale because the direct `supabase.from('trips').update(...)` bypassed query invalidation. Switching to `updateTrip(...)` fixed immediate homepage reflection.
+- **Provenance:** March 2026 Event trip cover photo regression fix.
+- **Confidence:** high
+
 ### AI tool writes should go through a pending buffer, not directly to shared state
 - **Tip:** When an AI agent (voice concierge, text concierge) wants to create shared objects (tasks, polls, calendar events), write to `trip_pending_actions` instead of directly to the target table. The user then confirms or rejects. This prevents AI hallucination-driven data corruption and gives users agency over their shared trip state. Use `tool_call_id` as idempotency key to prevent duplicate pending actions on retry.
 - **Applies when:** Any AI-initiated write to shared trip state (tasks, polls, calendar, basecamp)
 - **Avoid when:** Read-only AI operations (search, recommendations, summaries) or low-risk append-only operations (saving a link)
 - **Evidence:** Stage B routed `createTask`, `createPoll`, and `addToCalendar` through pending buffer in both `functionExecutor.ts` (edge function) and `useVoiceToolHandler.ts` (client). `savePlace` and `setBasecamp` left as direct writes (lower risk).
 - **Provenance:** Shared mutation audit Stage B, March 2026
+- **Confidence:** high
+
+### AI concierge write tools need explicit React Query invalidation mapping per affected surface
+- **Tip:** Treat each concierge write tool as a mutation source that must map to cache keys for every dependent UI surface (trip detail tabs and dashboard lists). Keep this mapping centralized so new tools cannot silently skip cache refresh.
+- **Applies when:** Adding/updating concierge tools that mutate trip data (`execute-concierge-tool`, streamed `onFunctionCall` handlers)
+- **Avoid when:** Read-only tools with no state mutation
+- **Evidence:** `setTripHeaderImage` successfully updated `trips.cover_image_url` but homepage cards stayed stale because `AIConciergeChat` invalidated other write actions yet omitted `['trips']` for this tool; adding centralized mapping + regression test restored refresh behavior.
+- **Provenance:** March 2026 Event cover photo homepage refresh regression fix
 - **Confidence:** high
 
 ## Recovery Tips
