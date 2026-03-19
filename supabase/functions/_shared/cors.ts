@@ -20,10 +20,6 @@ const ALLOWED_ORIGINS = [
   'capacitor://localhost',
   'ionic://localhost',
   'http://localhost',
-  // Lovable preview/published domains (trusted platform)
-  '.lovable.app',
-  '.lovable.dev',
-  '.lovableproject.com',
 ];
 
 const ENV_ALLOWED_ORIGINS = (Deno.env.get('ADDITIONAL_ALLOWED_ORIGINS') || '')

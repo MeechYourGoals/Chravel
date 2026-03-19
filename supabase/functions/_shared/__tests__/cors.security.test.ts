@@ -37,11 +37,6 @@ describe('CORS Security Tests', () => {
       const isOriginAllowed = await getIsOriginAllowed();
       expect(isOriginAllowed('https://jmjiyekmxwsxkfnqwyaa.supabase.co')).toBe(true);
     });
-
-    it('should allow lovable.dev preview origins', async () => {
-      const isOriginAllowed = await getIsOriginAllowed();
-      expect(isOriginAllowed('https://preview-123.lovable.dev')).toBe(true);
-    });
   });
 
   describe('Wildcard subdomain rejection', () => {
@@ -53,6 +48,11 @@ describe('CORS Security Tests', () => {
     it('should reject random *.lovable.app origins', async () => {
       const isOriginAllowed = await getIsOriginAllowed();
       expect(isOriginAllowed('https://malicious.lovable.app')).toBe(false);
+    });
+
+    it('should reject random *.lovable.dev origins', async () => {
+      const isOriginAllowed = await getIsOriginAllowed();
+      expect(isOriginAllowed('https://malicious.lovable.dev')).toBe(false);
     });
 
     it('should reject random *.supabase.co origins', async () => {
@@ -94,11 +94,12 @@ describe('CORS Security Tests', () => {
     it('should allow origins from env var', async () => {
       envMap.set(
         'ADDITIONAL_ALLOWED_ORIGINS',
-        'https://preview-123.vercel.app,https://staging.chravel.app',
+        'https://preview-123.vercel.app,https://staging.chravel.app,https://preview-123.lovable.dev',
       );
       const isOriginAllowed = await getIsOriginAllowed();
       expect(isOriginAllowed('https://preview-123.vercel.app')).toBe(true);
       expect(isOriginAllowed('https://staging.chravel.app')).toBe(true);
+      expect(isOriginAllowed('https://preview-123.lovable.dev')).toBe(true);
     });
 
     it('should still reject non-listed origins even with env var set', async () => {
