@@ -243,15 +243,6 @@ export const LineupTab = ({
 
             {canUploadMore && (
               <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={isUploading}
-                />
                 <ActionPill
                   variant="manualOutline"
                   leftIcon={isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
@@ -283,6 +274,18 @@ export const LineupTab = ({
           ? 'Manage speakers, artists, and presenters'
           : 'Speakers, artists, and presenters at this event'}
       </p>
+
+      {canCreate && canUploadMore && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf"
+          multiple
+          onChange={handleFileUpload}
+          className="hidden"
+          disabled={isUploading}
+        />
+      )}
 
       {/* Load error */}
       {loadError && !isDemoMode && (
@@ -443,7 +446,7 @@ export const LineupTab = ({
                   </CardContent>
                 </Card>
               ))}
-              {canUploadMore && (
+              {canCreate && canUploadMore && (
                 <Button
                   type="button"
                   variant="outline"
