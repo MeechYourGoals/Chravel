@@ -161,3 +161,10 @@
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
+
+### CI env validation should pass stubs for required-but-stubbable frontend keys
+- **Tip:** If CI runs `scripts/validate-env.ts --ci`, provide values for all required frontend vars in the workflow env block. For required vars marked `canStubForTestFlight: true` (like `VITE_GOOGLE_MAPS_API_KEY`), use a deterministic stub fallback (`${{ secrets.KEY || 'STUB_VALUE' }}`) to avoid false-negative failures when secrets are absent in PR contexts.
+- **Applies when:** GitHub Actions validates envs on pull requests, forks, or branches with incomplete secret coverage.
+- **Evidence:** CI `test` job failed at `Validate environment variables` because `VITE_GOOGLE_MAPS_API_KEY` was required by the validator but not injected by `.github/workflows/ci.yml`.
+- **Provenance:** March 2026 PR #1018 forensic CI fix.
+- **Confidence:** high
