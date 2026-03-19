@@ -49,6 +49,14 @@
 
 ## Recovery Tips
 
+### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug
+- **Tip:** When a core mutation fails with a raw browser `TypeError: Failed to fetch` (especially via `supabase.functions.invoke`), verify the frontend origin against Edge Function CORS allowlist first. If the origin is missing, the network call is blocked before your handler/DB code runs.
+- **Applies when:** A user-facing mutation to an Edge Function fails with generic fetch error and no structured JSON error body.
+- **Avoid when:** The function responds with a normal 4xx/5xx payload (that indicates handler executed and CORS likely passed).
+- **Evidence:** Trip creation path (`CreateTripModal -> useTrips -> tripService -> create-trip`) surfaced only `Failed to fetch` until `.lovable.dev` was re-added to shared CORS origins and error mapping was made actionable.
+- **Provenance:** March 2026 trip creation forensic fix.
+- **Confidence:** high
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup

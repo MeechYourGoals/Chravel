@@ -218,6 +218,17 @@ export const tripService = {
       if (error) {
         console.error('[tripService] Edge function error:', error);
 
+        const rawErrorMessage =
+          error && typeof error === 'object' && 'message' in error
+            ? String(error.message ?? '')
+            : '';
+        const isFetchFailure = /failed to fetch/i.test(rawErrorMessage);
+        if (isFetchFailure) {
+          throw new Error(
+            'Unable to reach trip creation service. If this happens on a preview domain, add that origin to Edge Function CORS allowlist (ADDITIONAL_ALLOWED_ORIGINS) and redeploy create-trip.',
+          );
+        }
+
         // Extract the actual error message from the edge function response body.
         // supabase.functions.invoke returns { data: null, error: FunctionsHttpError }
         // for non-2xx responses. The response body is in error.context (raw Response).
