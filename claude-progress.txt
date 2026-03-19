@@ -1,3 +1,12 @@
+2026-03-19 — Join approval dashboard hydration + notification deep-link hardening
+- Root-caused recurring "Join Request Approved but trip missing on dashboard" to `tripService.getUserTrips()` using a `trip_members.status` filter without fallback. In schema-drift/legacy environments where `status` is unavailable, the member-trip query fails and member cards disappear even though approval notifications succeed.
+- Added compatibility fallback in `getUserTrips()` to retry `trip_members` membership lookup without `status` filter when the column is unavailable, matching existing fallback strategy already used by other member queries.
+- Hardened notification routing for approved-join safety net: notification rows now load `trip_id` directly, mapper falls back to `notifications.trip_id` when metadata is missing, and TripActionBar resolves older approved notifications by trip name when `trip_id` is absent.
+- Added focused regression tests:
+  - `src/services/__tests__/tripService.getUserTrips.test.ts`
+  - `src/hooks/__tests__/useNotificationRealtime.mapRowToNotification.test.ts`
+- Verification: `npm test -- --run src/services/__tests__/tripService.getUserTrips.test.ts src/hooks/__tests__/useNotificationRealtime.mapRowToNotification.test.ts`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
 2026-03-19 — Event trip cover photo stale homepage fix
 - Investigated Slack bug report where Event cover uploaded in Create Trip modal did not appear on homepage cards immediately.
 - Root cause: create flow performed a second direct `trips` table update for `cover_image_url` after `createTrip`, but that path bypassed `useTrips` mutation invalidation and `useUserTripsRealtime` does not subscribe to `trips` updates.

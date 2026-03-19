@@ -224,3 +224,26 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
+
+## Dashboard trip cards missing after join approval (status-column drift)
+- **Status:** confirmed
+- **Subsystem:** trip dashboard hydration / membership query
+- **Bug class:** schema compatibility / source-of-truth drift
+- **Symptom:** User receives "Join Request Approved" notification, but approved trip still does not appear on dashboard after refresh/sign-out/sign-in.
+- **User-facing impact:** User appears approved in notifications but cannot access trip from dashboard.
+- **Trigger conditions:** Environment where `trip_members.status` is unavailable (or querying it errors) while dashboard query uses `.or('status.is.null,status.eq.active')` without fallback.
+- **Likely root cause:** `tripService.getUserTrips()` member-trip lookup fails on status-filter query and silently skips all member trips; approval notification path still succeeds.
+- **Root cause chain:**
+  - Immediate cause: dashboard member-trip query returns error/no rows
+  - Proximate cause: `trip_members.status` filter executed with no compatibility retry
+  - Underlying cause: inconsistent schema compatibility handling across trip member query paths
+- **How to reproduce:**
+  1. Mock/operate against schema where `trip_members.status` column is unavailable
+  2. Approve a join request successfully (notification arrives)
+  3. Load dashboard and observe missing member trip card
+- **How to confirm:** Inspect `tripService.getUserTrips()` member query error; if it references missing `status` and no fallback runs, this is the cause.
+- **Smallest safe fix:** Retry member lookup without `status` filter when the status-column query fails, then continue normal trip hydration.
+- **Regression risks:** Potential inclusion of legacy rows in old schemas (acceptable compatibility tradeoff for environments without status semantics).
+- **Related files:** `src/services/tripService.ts`
+- **Fixed in:** March 2026 forensic join-approval dashboard fix
+- **Confidence:** medium-high
