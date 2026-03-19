@@ -96,6 +96,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
+  signInWithApple: () => Promise<{ error?: string }>;
   signInWithPhone: (phone: string) => Promise<{ error?: string }>;
   signUp: (
     email: string,
@@ -880,6 +881,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[Auth] Unexpected Google OAuth error:', error);
+      }
+      return { error: 'An unexpected error occurred. Please try again.' };
+    }
+  };
+
+  const signInWithApple = async (): Promise<{ error?: string }> => {
+    try {
+      // Preserve returnTo so OAuth callback lands on AuthPage which redirects to the intended route
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const redirectUrl = returnTo
+        ? `${window.location.origin}/auth?returnTo=${encodeURIComponent(returnTo)}`
+        : `${window.location.origin}/`;
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+
+      if (error) {
+        if (import.meta.env.DEV) {
+          console.error('[Auth] Apple OAuth error:', error);
+        }
+        if (error.message.includes('provider is not enabled')) {
+          return { error: 'Apple sign-in is not configured. Please contact support.' };
+        }
+        return { error: error.message };
+      }
+
+      return {};
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('[Auth] Unexpected Apple OAuth error:', error);
       }
       return { error: 'An unexpected error occurred. Please try again.' };
     }
