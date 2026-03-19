@@ -143,6 +143,13 @@
 - **Provenance:** March 2026 demo trip cover resilience hardening.
 - **Confidence:** high
 
+### Signed media URLs must be resolved consistently in both grid tiles and fullscreen viewers
+- **Tip:** If private Supabase Storage is enabled, every media surface must use the same signed-URL resolution path before rendering. Fixing thumbnails alone is insufficient if fullscreen/viewer components still use raw stored URLs.
+- **Applies when:** Media items are rendered in multiple surfaces (tab grids, "All" feed, fullscreen modal, download links).
+- **Evidence:** Chat-uploaded photos appeared in Media > All but rendered "Unable to preview" because `MediaTile`/`MediaViewerModal` consumed raw `media_url` while `MediaSubTabs` already used signed URL resolution.
+- **Provenance:** March 2026 post-merge forensic review (chat-uploaded media preview regression).
+- **Confidence:** high
+
 ### CSS multi-background layering is a low-risk fallback for background-image cards
 - **Tip:** When cards use CSS `background-image` (not `<img>`), use layered values (`url(primary), url(fallback)`) via a shared helper to get graceful visual fallback without introducing extra runtime state/effects.
 - **Applies when:** Hero/media backgrounds are rendered as `div` overlays and you need fallback parity across desktop + mobile card variants.

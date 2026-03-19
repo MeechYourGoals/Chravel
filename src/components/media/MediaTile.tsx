@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { TripMediaRenderer } from './TripMediaRenderer';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 interface MediaTileProps {
   id: string;
@@ -29,17 +30,19 @@ export const MediaTile = React.memo(function MediaTile({
   url,
   mimeType,
   fileName,
-  metadata: _metadata,
+  metadata,
   onDelete,
   onView,
 }: MediaTileProps) {
   const isVideo = mimeType.startsWith('video/');
   const isImage = mimeType.startsWith('image/');
   const isMedia = isVideo || isImage;
+  const resolvedUrl = useResolvedTripMediaUrl({ url, metadata });
+  const effectiveUrl = resolvedUrl ?? url;
 
   const handleClick = () => {
     if (onView && isMedia) {
-      onView({ id, url, mimeType, fileName });
+      onView({ id, url: effectiveUrl, mimeType, fileName });
     }
   };
 
@@ -65,7 +68,7 @@ export const MediaTile = React.memo(function MediaTile({
           aria-label={isVideo ? 'Play video' : 'View image'}
         >
           <TripMediaRenderer
-            url={url}
+            url={effectiveUrl}
             mimeType={mimeType}
             mode="thumbnail"
             alt={fileName ?? 'Trip media'}
@@ -79,7 +82,7 @@ export const MediaTile = React.memo(function MediaTile({
         <div className="flex items-center justify-between p-4">
           <div className="truncate text-sm text-white">{fileName ?? 'File'}</div>
           <a
-            href={url}
+            href={effectiveUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 text-sm hover:text-blue-300"
