@@ -1,10 +1,11 @@
-import { CalendarEvent } from '@/types/calendar';
-import { calendarService } from './calendarService';
+import type { CalendarEvent } from '@/types/calendar';
 import { brandEventTitleForIcs } from '@/utils/icsBranding';
 
 /**
  * Calendar Sync Service
- * Handles export to iCal format and integration with external calendar systems
+ *
+ * ICS generation for API/email use cases. For user-facing ICS export,
+ * use `useCalendarExport` hook (which delegates to `@/utils/calendarExport`).
  */
 
 export interface ICalEvent {
@@ -31,7 +32,6 @@ function eventToICal(event: CalendarEvent): ICalEvent {
   if (event.end_time) {
     endDate = event.end_time;
   } else if (event.time) {
-    // Default to 1 hour duration if no end time
     endDate = new Date(startDate);
     endDate.setHours(endDate.getHours() + 1);
   }
@@ -47,7 +47,7 @@ function eventToICal(event: CalendarEvent): ICalEvent {
     uid: `chravel-${event.id}@chravel.app`,
     dtstart: startDate,
     dtend: endDate,
-    summary: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
+    summary: brandEventTitleForIcs(event.title),
     description: event.description || '',
     location: event.location || '',
     rrule: event.recurrence_rule,
@@ -56,7 +56,19 @@ function eventToICal(event: CalendarEvent): ICalEvent {
 }
 
 /**
- * Generate iCal file content from events
+ * Escape special characters in iCal text fields
+ */
+function escapeICalText(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '');
+}
+
+/**
+ * Generate iCal file content from CalendarEvents
  */
 function generateICalContent(events: CalendarEvent[], tripName: string): string {
   const now = new Date();
@@ -76,7 +88,6 @@ function generateICalContent(events: CalendarEvent[], tripName: string): string 
     ical += `UID:${icalEvent.uid}\r\n`;
     ical += `DTSTAMP:${formattedNow}\r\n`;
 
-    // Format dates (YYYYMMDDTHHMMSSZ)
     const dtstart = icalEvent.dtstart.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
     ical += `DTSTART:${dtstart}\r\n`;
 
@@ -111,53 +122,7 @@ function generateICalContent(events: CalendarEvent[], tripName: string): string 
 }
 
 /**
- * Escape special characters in iCal text fields
- */
-function escapeICalText(text: string): string {
-  return text
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '');
-}
-
-/**
- * Download iCal file
- */
-export function downloadICalFile(
-  events: CalendarEvent[],
-  tripName: string,
-  filename?: string,
-): void {
-  const icalContent = generateICalContent(events, tripName);
-  const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename || `${tripName.replace(/[^a-z0-9]/gi, '_')}_calendar.ics`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * Export trip events to iCal format
- */
-export async function exportTripEventsToICal(tripId: string, tripName: string): Promise<void> {
-  try {
-    const tripEvents = await calendarService.getTripEvents(tripId);
-    const calendarEvents = tripEvents.map(calendarService.convertToCalendarEvent);
-    downloadICalFile(calendarEvents, tripName);
-  } catch (error) {
-    console.error('Failed to export events to iCal:', error);
-    throw error;
-  }
-}
-
-/**
- * Generate iCal content as string (for API/email)
+ * Generate iCal content as string (for API/email use cases)
  */
 export function generateICalString(events: CalendarEvent[], tripName: string): string {
   return generateICalContent(events, tripName);

@@ -49,6 +49,14 @@
 
 ## Recovery Tips
 
+### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug
+- **Tip:** When a core mutation fails with a raw browser `TypeError: Failed to fetch` (especially via `supabase.functions.invoke`), verify the frontend origin against Edge Function CORS allowlist first. If the origin is missing, the network call is blocked before your handler/DB code runs.
+- **Applies when:** A user-facing mutation to an Edge Function fails with generic fetch error and no structured JSON error body.
+- **Avoid when:** The function responds with a normal 4xx/5xx payload (that indicates handler executed and CORS likely passed).
+- **Evidence:** Trip creation path (`CreateTripModal -> useTrips -> tripService -> create-trip`) surfaced only `Failed to fetch` until `.lovable.dev` was re-added to shared CORS origins and error mapping was made actionable.
+- **Provenance:** March 2026 trip creation forensic fix.
+- **Confidence:** high
+
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
 - **Applies when:** App initializes RevenueCat, native plugins, analytics, or other third-party SDKs during `main.tsx` startup
@@ -96,6 +104,11 @@
 - **Provenance:** 2026-03 data evolution hardening audit
 - **Confidence:** high
 
+### Internal admin surfaces need route-level role guards, not auth-only protection
+- **Tip:** Treat internal pages as production-critical privileged surfaces. `ProtectedRoute` (auth only) is insufficient for `/admin/*`; use explicit role guard components and test redirects for non-admin users.
+- **Applies when:** Adding or updating any internal/admin route in `App.tsx`
+- **Evidence:** `/admin/scheduled-messages` was reachable by any authenticated account until `InternalAdminRoute` hardening.
+- **Provenance:** March 2026 support/admin hardening pass
 ### QA confidence drift happens when docs describe planned suites as implemented
 - **Tip:** Keep E2E documentation split into explicit implemented vs planned sections and enforce with a lightweight CI doc-drift script.
 - **Applies when:** Large test architecture transitions where some suites are roadmap-only.
@@ -115,3 +128,68 @@
 - **Evidence:** Chravel voice sessions had intermittent setup instability while always sending empty sessionResumption; hardening changed to conditional inclusion only.
 - **Provenance:** March 2026 Gemini Live production hardening.
 - **Confidence:** medium
+
+### URL import modals stay stable when UI gating and submit normalization share one helper
+- **Tip:** Put URL trimming, protocol normalization, and scheme validation in one small utility used by both button-disabled logic and submit handlers; this prevents Enter-key/programmatic bypasses and keeps UX messages consistent.
+- **Applies when:** Import flows accept pasted URLs and have both click + keyboard submit paths.
+- **Evidence:** Calendar import modal had separate checks (`trim`, `new URL`, submit path) causing weak gating and inconsistent enabled state; consolidating with `validateImportUrl()` aligned UI state, Enter behavior, and submit normalization.
+- **Provenance:** March 2026 Calendar Import modal forensic fix.
+- **Confidence:** high
+
+### Demo-mode media should not depend on external uptime without a local fallback path
+- **Tip:** For demo-critical visuals (trip cards, hero surfaces), keep remote URLs as primary if needed but always provide deterministic local fallbacks and use a single automatic retry at the image component boundary.
+- **Applies when:** Demo mode relies on externally hosted images (Supabase Storage/CDN/third-party assets) that may be unavailable in some environments.
+- **Evidence:** Demo trip covers intermittently failed, showing broken alt text/empty headers. Adding `fallbackSrc` in `OptimizedImage` plus id-based local cover mapping restored card visuals without touching demo data semantics.
+- **Provenance:** March 2026 demo trip cover resilience hardening.
+- **Confidence:** high
+
+### CSS multi-background layering is a low-risk fallback for background-image cards
+- **Tip:** When cards use CSS `background-image` (not `<img>`), use layered values (`url(primary), url(fallback)`) via a shared helper to get graceful visual fallback without introducing extra runtime state/effects.
+- **Applies when:** Hero/media backgrounds are rendered as `div` overlays and you need fallback parity across desktop + mobile card variants.
+- **Evidence:** Pro/Event/Mobile event cards had direct `url(primary)` styles and could still show missing covers after TripCard image fallback improvements. Shared `buildCoverBackgroundImage` restored parity with minimal diff.
+- **Provenance:** March 2026 demo cover resilience follow-up.
+### Never block chat delivery on preview metadata fetch
+- **Tip:** Link unfurl/OG fetch must run asynchronously after message persistence. Composer-level preview fetches in the critical send path can deadlock both Enter and send-button flows when the metadata request hangs or fails.
+- **Applies when:** Any chat surface supports URL previews.
+- **Evidence:** Main chat web send path was blocked by `isFetchingPreview` in `ChatInput`, causing Enter/button sends to appear nonfunctional for link messages.
+- **Provenance:** March 2026 chat send + unfurl forensic fix.
+### Remove visual effects at the trigger class, not with clipping overrides
+- **Tip:** When a conditional animation class is the sole activation path for a decorative effect, remove the class usage in the component and delete the paired keyframes/utilities instead of masking with `overflow-hidden`/z-index patches.
+- **Applies when:** UI regressions from over-scoped pseudo-element effects tied to active/listening states.
+- **Evidence:** AI Concierge dictation regression came from `.dictation-ring-active` + `::after` conic-gradient rotation mounted during listening; removing class wiring and CSS definitions fully eliminated the oversized gold sweep without touching dictation behavior.
+- **Provenance:** March 2026 AI Concierge dictation visual rollback.
+### For event-scale chat gating, enforce threshold as both mode-resolution and write-validation
+- **Tip:** For size-based permission limits, add a single shared resolver (effective mode) for UI/runtime behavior and pair it with backend write validation (trigger/check) + send-path authorization. This prevents stale legacy values from silently bypassing product rules when group size changes.
+- **Applies when:** Permission mode validity depends on dynamic counts (members/attendees) and legacy records may become invalid over time.
+- **Evidence:** Event chat `everyone` mode now degrades to effective `admin_only` above 50 members while DB trigger blocks setting invalid `chat_mode='everyone'` for large events.
+- **Provenance:** March 2026 event chat permission scaling implementation.
+### AI concierge tool declarations must be maintained as a single source of truth
+- **Tip:** When a tool-calling AI system has multiple entrypoints (text chat, voice, demo), define tool schemas once in a shared registry and import/filter as needed. Inline declaration in endpoint files causes drift — Chravel's text path had 19 tools while voice had 31, with ~12 voice tools having no backend implementation.
+- **Applies when:** Adding, modifying, or removing AI concierge tools; auditing tool parity across entrypoints
+- **Avoid when:** Tools are truly exclusive to one entrypoint with no shared backend
+- **Evidence:** `lovable-concierge/index.ts` defines 19 tools inline; `voiceToolDeclarations.ts` defines 31. Tools like `getWeatherForecast`, `convertCurrency`, `browseWebsite`, `settleExpense`, `generateTripImage` exist in voice declarations with no matching `case` in `functionExecutor.ts`, causing silent failures.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+### Conditional tool exposure beats always-on tool exposure for latency and accuracy
+- **Tip:** Exposing all tools to the model on every query wastes ~2000 tokens and forces the model to evaluate irrelevant options. Classify queries into classes (weather, restaurant, calendar, payment, etc.) in code before model invocation, then only expose relevant tool subsets. This is the single highest-leverage optimization for token cost and tool selection accuracy.
+- **Applies when:** AI concierge performance optimization, adding new tools, investigating wrong tool selection
+- **Avoid when:** Queries that genuinely span multiple domains (rare)
+- **Evidence:** A weather question currently forces Gemini to evaluate all 19+ tool schemas including payment, calendar, poll, and import tools. The model's context includes ~2000 extra tokens of irrelevant tool descriptions.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+### Always-on prompt layers should be audited for conditional value
+- **Tip:** Prompt blocks that are injected into every request (few-shot examples, user preferences, action plan schemas) accumulate into bloat over time. Audit each block and ask: "Does this help for this specific query class?" Few-shot examples for payment queries are noise when the user asks about weather. User dietary preferences are noise when the user asks what time their reservation is.
+- **Applies when:** Prompt optimization, investigating slow first-token time, reviewing system prompt length
+- **Avoid when:** The prompt is already small (<500 tokens)
+- **Evidence:** Chravel's trip-related system prompt injects few-shot (~300 tokens), preferences (~200 tokens), and action plan schema (~280 tokens) on every trip query regardless of relevance. Total system prompt reaches 3000-3500 tokens.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+### Mention chips inside themed chat bubbles should be bubble-context aware, not brand-accent aware
+- **Tip:** Keep mention styling separate from hyperlink styling and derive mention colors from bubble context (own/broadcast vs incoming) so text remains readable on colored surfaces; use font-weight + subtle background chip for distinction instead of a hardcoded accent text color.
+- **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
+- **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
+- **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
+- **Confidence:** high

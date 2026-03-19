@@ -27,6 +27,7 @@ import { getInitials } from '@/utils/avatarUtils';
 import { defaultAvatar } from '@/utils/mockAvatars';
 import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 import { hapticService } from '@/services/hapticService';
+import { getMentionClassName, MENTION_REGEX } from './messageMentions';
 
 export interface MessageBubbleProps {
   id: string;
@@ -293,17 +294,17 @@ export const MessageBubble = memo(
 
     // Parse text and render @mentions with distinct styling AND Markdown support
     const renderContent = (content: string) => {
-      const mentionRegex = /(@\w+(?:\s\w+)?)/g;
-      const parts = content.split(mentionRegex);
+      const parts = content.split(MENTION_REGEX);
 
       return parts.map((part, index) => {
-        if (part.match(mentionRegex)) {
+        if (part.match(MENTION_REGEX)) {
           // It's a mention
           return (
             <span
               key={index}
               className="text-black font-semibold bg-white/90 px-1 rounded inline-block"
             >
+            <span key={index} className={getMentionClassName({ isOwnMessage, isBroadcast })}>
               {part}
             </span>
           );
@@ -436,7 +437,7 @@ export const MessageBubble = memo(
       [longPressHandlers, handleTouchMove],
     );
     const mergedTouchEnd = useCallback(
-      (e: React.TouchEvent<HTMLDivElement>) => {
+      (_e: React.TouchEvent<HTMLDivElement>) => {
         longPressHandlers.onTouchEnd();
         handleTouchEnd();
       },

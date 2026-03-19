@@ -93,7 +93,7 @@ serve(async req => {
 });
 
 async function createEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   tripId: string,
   userId: string,
   eventData: Record<string, unknown> | undefined,
@@ -131,7 +131,7 @@ async function createEvent(
 }
 
 async function getEvents(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   tripId: string,
   headers: Record<string, string>,
 ) {
@@ -160,7 +160,7 @@ async function getEvents(
 }
 
 async function updateEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   eventData: Record<string, unknown> | undefined,
   tripId: string,
   userId: string,
@@ -219,7 +219,7 @@ async function updateEvent(
 }
 
 async function deleteEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   eventId: string | undefined,
   tripId: string,
   headers: Record<string, string>,

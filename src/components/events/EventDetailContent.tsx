@@ -18,7 +18,7 @@ import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { DisabledTabDialog } from './DisabledTabDialog';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
-import { EventTabKey, EVENT_TABS_CONFIG, isEventTabEnabled } from '@/lib/eventTabs';
+import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 
 // ⚡ PERFORMANCE: Lazy load all tab components for code splitting
@@ -118,29 +118,33 @@ export const EventDetailContent = ({
 
   const tabs = useMemo(
     () =>
-      EVENT_TABS_CONFIG.map(tab => ({
+      resolveEventTabsForRole(enabledTabs, isOrganizer).map(tab => ({
         id: tab.key,
         label: tab.label,
         icon: EVENT_TAB_ICON_MAP[tab.key],
-        enabled: tab.key === 'admin' ? isOrganizer : isEventTabEnabled(tab.key, enabledTabs),
+        enabled: tab.isEnabled,
       })),
     [enabledTabs, isOrganizer],
   );
 
   const isActiveTabEnabled = tabs.find(tab => tab.id === activeTab)?.enabled ?? true;
 
+  const shouldShowDisabledState = activeTab !== 'admin' && !isActiveTabEnabled;
+
   useEffect(() => {
-    if (activeTab === 'admin') return;
-    if (!isActiveTabEnabled) {
-      setShowDisabledTabDialog(true);
+    if (activeTab === 'admin' && !isOrganizer) {
       onTabChange('agenda');
+      return;
     }
-  }, [activeTab, isActiveTabEnabled, onTabChange]);
+
+    if (activeTab !== 'admin' && !isActiveTabEnabled) {
+      setShowDisabledTabDialog(true);
+    }
+  }, [activeTab, isActiveTabEnabled, isOrganizer, onTabChange]);
 
   const handleTabClick = (tab: { id: string; enabled: boolean }) => {
     if (!tab.enabled) {
       setShowDisabledTabDialog(true);
-      return;
     }
 
     onTabChange(tab.id);
@@ -219,8 +223,20 @@ export const EventDetailContent = ({
         })}
       </div>
 
-      <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col">
-        <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
+      <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col relative">
+        <div
+          className={shouldShowDisabledState ? 'opacity-50 pointer-events-none select-none' : ''}
+        >
+          <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
+        </div>
+
+        {shouldShowDisabledState && (
+          <div className="absolute inset-0 flex items-start justify-center p-4">
+            <div className="mt-4 rounded-xl border border-border bg-card/95 px-4 py-3 text-sm text-foreground shadow-lg">
+              This feature has been disabled by the event admin.
+            </div>
+          </div>
+        )}
       </div>
 
       <DisabledTabDialog open={showDisabledTabDialog} onOpenChange={setShowDisabledTabDialog} />

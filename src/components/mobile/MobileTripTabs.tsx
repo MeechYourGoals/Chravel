@@ -28,7 +28,7 @@ import { useRoleAssignments } from '../../hooks/useRoleAssignments';
 import { useTripRoles } from '../../hooks/useTripRoles';
 import type { EventData } from '../../types/events';
 import { DisabledTabDialog } from '../events/DisabledTabDialog';
-import { EventTabKey, EVENT_TABS_CONFIG, isEventTabEnabled } from '@/lib/eventTabs';
+import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
 import { retryImport } from '@/lib/retryImport';
 
@@ -206,11 +206,11 @@ export const MobileTripTabs = ({
         tasks: ClipboardList,
       };
 
-      return EVENT_TABS_CONFIG.map(tab => ({
+      return resolveEventTabsForRole(eventEnabledTabs, isEventAdmin).map(tab => ({
         id: tab.key,
         label: tab.label,
         icon: iconMap[tab.key],
-        enabled: tab.key === 'admin' ? isEventAdmin : isEventTabEnabled(tab.key, eventEnabledTabs),
+        enabled: tab.isEnabled,
       }));
     }
 
@@ -282,6 +282,7 @@ export const MobileTripTabs = ({
       if (!enabled) {
         if (variant === 'event') {
           setShowDisabledTabDialog(true);
+          onTabChange(tabId);
           return;
         }
 
@@ -501,14 +502,18 @@ export const MobileTripTabs = ({
   );
 
   useEffect(() => {
-    if (variant !== 'event' || activeTab === 'admin') return;
+    if (variant !== 'event') return;
+
+    if (activeTab === 'admin' && !isEventAdmin) {
+      onTabChange('agenda');
+      return;
+    }
 
     const active = tabs.find(tab => tab.id === activeTab);
     if (active && !active.enabled) {
       setShowDisabledTabDialog(true);
-      onTabChange('agenda');
     }
-  }, [activeTab, onTabChange, tabs, variant]);
+  }, [activeTab, isEventAdmin, onTabChange, tabs, variant]);
 
   return (
     <>
@@ -578,6 +583,8 @@ export const MobileTripTabs = ({
           .map(tab => {
             const isActive = activeTab === tab.id;
             const hasBeenVisited = visitedTabs.has(tab.id);
+            const showEventDisabledState =
+              variant === 'event' && tab.id !== 'admin' && !tab.enabled;
 
             // ⚡ CRITICAL FIX: Always mount the active tab immediately, even on first visit
             // This prevents the "click away and back" race condition where useEffect
@@ -594,14 +601,28 @@ export const MobileTripTabs = ({
                   overflow: isActive ? 'auto' : 'hidden',
                   WebkitOverflowScrolling: isActive ? 'touch' : undefined,
                 }}
-                className={isActive ? 'h-full flex-1' : ''}
+                className={isActive ? 'h-full flex-1 relative' : ''}
               >
                 {/* ⚡ Per-tab error boundary: errors stay on failing tab, no bounce-back */}
-                <Suspense fallback={getSkeletonForTab(tab.id)}>
-                  <FeatureErrorBoundary featureName={tab.label}>
-                    {renderTabContent(tab.id)}
-                  </FeatureErrorBoundary>
-                </Suspense>
+                <div
+                  className={
+                    showEventDisabledState ? 'opacity-50 pointer-events-none select-none' : ''
+                  }
+                >
+                  <Suspense fallback={getSkeletonForTab(tab.id)}>
+                    <FeatureErrorBoundary featureName={tab.label}>
+                      {renderTabContent(tab.id)}
+                    </FeatureErrorBoundary>
+                  </Suspense>
+                </div>
+
+                {showEventDisabledState && (
+                  <div className="absolute inset-0 flex items-start justify-center p-4">
+                    <div className="mt-3 rounded-xl border border-border bg-card/95 px-4 py-3 text-sm text-foreground shadow-lg">
+                      This feature has been disabled by the event admin.
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

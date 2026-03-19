@@ -138,7 +138,7 @@ const STORAGE_BUCKETS = [
  * Avatar bucket uses user_id as folder name.
  */
 async function cleanupStorageBucket(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   bucket: string,
   userId: string,
 ): Promise<{ deleted: number; errors: string[] }> {
@@ -162,7 +162,7 @@ async function cleanupStorageBucket(
       return { deleted, errors };
     }
 
-    const filePaths = files.map(f => `${userId}/${f.name}`);
+    const filePaths = files.map((f: { name: string }) => `${userId}/${f.name}`);
     const { error: removeError } = await supabase.storage.from(bucket).remove(filePaths);
 
     if (removeError) {
@@ -181,7 +181,7 @@ async function cleanupStorageBucket(
  * Process a single account deletion.
  */
 async function processAccountDeletion(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any, // intentional: bypass deep SupabaseClient generic inference (TS2345)
   userId: string,
   profileId: string,
 ): Promise<DeletionResult> {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { canPostInMainChat, resolveEffectiveMainChatMode } from '@/lib/eventChatPermissions';
 
 /**
  * UI-convenience hook that reads the trip's chat_mode / media_upload_mode and
@@ -11,16 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
  * the server-side RLS function `can_post_to_trip_chat()` defined in migration
  * 20260315000001_enforce_chat_mode_rls.sql. Even if this hook returns
  * incorrect values, the server will reject unauthorized INSERTs.
- *
- * === AUTH SAFETY ===
- * The hook is disabled (`enabled = false`) when userId is falsy, preventing
- * queries before auth hydration completes. This avoids the Trip Not Found /
- * auth desync regression pattern documented in DEBUG_PATTERNS.md.
- *
- * === ERROR HANDLING ===
- * On any Supabase error the hook defaults to permissive (canPost = true) so
- * that legitimate users are never locked out of an accessible chat. The
- * server-side RLS layer will still block unauthorized posts.
  */
 
 type ChatMode = 'everyone' | 'admin_only' | 'broadcasts' | null;
@@ -28,8 +19,10 @@ type MediaUploadMode = 'everyone' | 'admin_only' | null;
 
 interface TripChatModeResult {
   chatMode: ChatMode;
+  effectiveChatMode: Exclude<ChatMode, null>;
   mediaUploadMode: MediaUploadMode;
   userRole: string | null;
+  attendeeCount: number;
   canPost: boolean;
   canUploadMedia: boolean;
   isLoading: boolean;
@@ -42,6 +35,8 @@ export function useTripChatMode(
   const [chatMode, setChatMode] = useState<ChatMode>(null);
   const [mediaUploadMode, setMediaUploadMode] = useState<MediaUploadMode>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [tripType, setTripType] = useState<string | null>(null);
+  const [attendeeCount, setAttendeeCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const enabled = Boolean(tripId && userId);
@@ -57,32 +52,35 @@ export function useTripChatMode(
     const fetchChatMode = async (): Promise<void> => {
       setIsLoading(true);
 
-      // Fetch trip chat_mode and media_upload_mode
-      const { data: tripData, error: tripError } = await supabase
-        .from('trips')
-        .select('chat_mode, media_upload_mode, trip_type')
-        .eq('id', tripId)
-        .maybeSingle();
+      const [{ data: tripData, error: tripError }, { count: memberCount }] = await Promise.all([
+        supabase
+          .from('trips')
+          .select('chat_mode, media_upload_mode, trip_type')
+          .eq('id', tripId)
+          .maybeSingle(),
+        supabase
+          .from('trip_members')
+          .select('user_id', { count: 'exact', head: true })
+          .eq('trip_id', tripId),
+      ]);
 
       if (cancelled) return;
 
       if (tripError || !tripData) {
-        // On error or trip not found, default to permissive.
-        // Server-side RLS is the authoritative enforcement.
         setChatMode(null);
         setMediaUploadMode(null);
         setUserRole(null);
+        setTripType(null);
+        setAttendeeCount(0);
         setIsLoading(false);
         return;
       }
 
-      const mode = (tripData.chat_mode as ChatMode) ?? null;
-      const uploadMode = (tripData.media_upload_mode as MediaUploadMode) ?? null;
+      setChatMode((tripData.chat_mode as ChatMode) ?? null);
+      setMediaUploadMode((tripData.media_upload_mode as MediaUploadMode) ?? null);
+      setTripType(tripData.trip_type ?? null);
+      setAttendeeCount(memberCount ?? 0);
 
-      setChatMode(mode);
-      setMediaUploadMode(uploadMode);
-
-      // Fetch user's role in this trip
       const { data: memberData, error: memberError } = await supabase
         .from('trip_members')
         .select('role')
@@ -93,7 +91,6 @@ export function useTripChatMode(
       if (cancelled) return;
 
       if (memberError || !memberData) {
-        // User may not be a member (or query failed). Default permissive.
         setUserRole(null);
         setIsLoading(false);
         return;
@@ -111,13 +108,15 @@ export function useTripChatMode(
   }, [tripId, userId, enabled]);
 
   const isAdmin = userRole === 'admin' || userRole === 'organizer' || userRole === 'owner';
+  const effectiveChatMode = resolveEffectiveMainChatMode(chatMode, tripType, attendeeCount);
 
-  const canPost: boolean = (() => {
-    if (isLoading) return false;
-    if (!chatMode || chatMode === 'everyone') return true;
-    if (chatMode === 'admin_only' || chatMode === 'broadcasts') return isAdmin;
-    return true;
-  })();
+  const canPost = canPostInMainChat({
+    chatMode,
+    tripType,
+    attendeeCount,
+    userRole,
+    isLoading,
+  });
 
   const canUploadMedia: boolean = (() => {
     if (isLoading) return false;
@@ -128,8 +127,10 @@ export function useTripChatMode(
 
   return {
     chatMode,
+    effectiveChatMode,
     mediaUploadMode,
     userRole,
+    attendeeCount,
     canPost,
     canUploadMedia,
     isLoading,

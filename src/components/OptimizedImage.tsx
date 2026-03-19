@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   alt: string;
+  fallbackSrc?: string;
   lazy?: boolean;
   placeholder?: string;
   aspectRatio?: string;
@@ -14,6 +15,7 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
   alt,
+  fallbackSrc,
   lazy = true,
   placeholder,
   aspectRatio,
@@ -25,7 +27,14 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(!lazy || priority);
   const [hasError, setHasError] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(src);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setHasError(false);
+    setIsLoaded(false);
+  }, [src]);
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -56,6 +65,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   };
 
   const handleError = () => {
+    if (fallbackSrc && currentSrc !== fallbackSrc) {
+      setCurrentSrc(fallbackSrc);
+      setHasError(false);
+      setIsLoaded(false);
+      return;
+    }
+
     setHasError(true);
     setIsLoaded(true);
   };
@@ -100,9 +116,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {/* Actual image */}
       {isInView && (
         <img
-          src={src}
+          src={currentSrc}
           alt={alt}
-          srcSet={generateSrcSet(src)}
+          srcSet={generateSrcSet(currentSrc)}
           sizes={sizes}
           loading={lazy && !priority ? 'lazy' : 'eager'}
           fetchPriority={priority ? 'high' : 'auto'}
