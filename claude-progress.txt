@@ -52,3 +52,9 @@
 - Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
 - Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
 - Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
+2026-03-19 — Concierge Settings gold consistency + tab contrast polish
+- Replaced emoji bullets in "How Concierge Works" with gold sparkle glyph bullets for visual consistency with section headers.
+- Standardized canonical gold usage (`text-gold-primary`) across Concierge header sparkle, Trip Preferences sparkle, PLUS label text, and signed-in account icon color treatment in Settings header.
+- Updated selected Settings top-tab text color (My Trips / Pro / Events / Advertiser) from pale gold to pure white for stronger active-state contrast.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` all pass.
+- Next follow-up: capture updated UI screenshot artifact when browser screenshot tooling is available in this environment.
