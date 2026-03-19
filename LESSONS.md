@@ -194,6 +194,11 @@
 - **Applies when:** Permission mode validity depends on dynamic counts (members/attendees) and legacy records may become invalid over time.
 - **Evidence:** Event chat `everyone` mode now degrades to effective `admin_only` above 50 members while DB trigger blocks setting invalid `chat_mode='everyone'` for large events.
 - **Provenance:** March 2026 event chat permission scaling implementation.
+### Replace-mode imports should be insert-first, delete-last
+- **Tip:** For "replace all" import flows, do not execute `DELETE existing` before `INSERT new` from the client. Build a replace plan, insert missing rows first, and only then delete stale rows. This converts transient insert failures from destructive data loss into safe no-op retries.
+- **Applies when:** Any bulk replace import (lineup/agenda/tasks/contacts) that mutates shared records.
+- **Evidence:** `useEventLineup.importMembers` previously deleted all lineup members first; an insert/network failure left events with empty lineup data. Insert-first + stale-delete sequencing removed the destructive failure mode.
+- **Provenance:** March 2026 lineup replace-import correctness fix.
 ### AI concierge tool declarations must be maintained as a single source of truth
 - **Tip:** When a tool-calling AI system has multiple entrypoints (text chat, voice, demo), define tool schemas once in a shared registry and import/filter as needed. Inline declaration in endpoint files causes drift — Chravel's text path had 19 tools while voice had 31, with ~12 voice tools having no backend implementation.
 - **Applies when:** Adding, modifying, or removing AI concierge tools; auditing tool parity across entrypoints
