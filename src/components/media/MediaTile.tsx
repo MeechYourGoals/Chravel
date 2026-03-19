@@ -39,8 +39,6 @@ export const MediaTile = React.memo(function MediaTile({
   const isVideo = mimeType.startsWith('video/');
   const isImage = mimeType.startsWith('image/');
   const isMedia = isVideo || isImage;
-  const resolvedUrl = useResolvedTripMediaUrl({ url, metadata });
-  const effectiveUrl = resolvedUrl ?? url;
 
   const handleClick = () => {
     if (onView && isMedia) {
