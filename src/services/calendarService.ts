@@ -11,6 +11,42 @@ import { retryWithBackoff } from '@/utils/retry';
 // Client-side SUPER_ADMIN_EMAILS import removed to eliminate misleading bypass paths.
 import { normalizeCalendarCategory } from '@/constants/calendarCategories';
 
+const CONFLICT_CHECK_TIMEOUT_MS = 2_000;
+
+async function checkConflictsWithTimeout(
+  tripId: string,
+  startTime: string,
+  endTime: string | undefined,
+): Promise<string[]> {
+  let timedOut = false;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<string[]>(resolve => {
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      resolve([]);
+    }, CONFLICT_CHECK_TIMEOUT_MS);
+  });
+
+  const conflictPromise = calendarService
+    .checkForConflicts(tripId, startTime, endTime)
+    .catch(() => []);
+
+  const conflicts = await Promise.race([conflictPromise, timeoutPromise]);
+
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+  }
+
+  if (timedOut && import.meta.env.DEV) {
+    console.warn(
+      `[calendarService] Conflict check exceeded ${CONFLICT_CHECK_TIMEOUT_MS}ms; continuing without conflict warnings.`,
+    );
+  }
+
+  return conflicts;
+}
+
 // Re-export for backward compatibility — consumers should migrate to '@/types/calendar'
 export type { TripEvent, CreateEventData } from '@/types/calendar';
 
@@ -127,8 +163,8 @@ export const calendarService = {
       // Check if in demo mode
       const isDemoMode = await demoModeService.isDemoModeEnabled();
 
-      // Check for conflicts first (non-blocking - just for notification)
-      const existingConflicts = await this.checkForConflicts(
+      // Conflict warnings are advisory only and should never block event creation.
+      const existingConflicts = await checkConflictsWithTimeout(
         eventData.trip_id,
         eventData.start_time,
         eventData.end_time,
