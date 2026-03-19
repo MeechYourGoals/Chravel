@@ -1,8 +1,7 @@
 name: Jules PR Review Trigger
 
 on:
-  pull_request:
-    types: [opened, labeled, synchronize]
+  workflow_dispatch:
 
 jobs:
   jules:

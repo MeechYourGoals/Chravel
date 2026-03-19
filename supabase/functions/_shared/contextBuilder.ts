@@ -127,6 +127,75 @@ export interface ComprehensiveTripContext {
   userPreferences?: UserPreferences;
 }
 
+// ── Selective Context Fetching ───────────────────────────────────────────────
+// When a ContextSlice[] is provided, only the specified slices are fetched,
+// reducing DB round-trips and response latency for focused query classes.
+
+import type { QueryClass } from './concierge/queryClassifier.ts';
+
+export type ContextSlice =
+  | 'metadata'
+  | 'members'
+  | 'messages'
+  | 'calendar'
+  | 'tasks'
+  | 'payments'
+  | 'polls'
+  | 'broadcasts'
+  | 'places'
+  | 'files'
+  | 'links'
+  | 'teams'
+  | 'preferences';
+
+const ALL_SLICES: ContextSlice[] = [
+  'metadata',
+  'members',
+  'messages',
+  'calendar',
+  'tasks',
+  'payments',
+  'polls',
+  'broadcasts',
+  'places',
+  'files',
+  'links',
+  'teams',
+  'preferences',
+];
+
+/** Slices that require name resolution via batchFetchNames */
+const NAME_RESOLUTION_SLICES = new Set<ContextSlice>([
+  'members',
+  'tasks',
+  'payments',
+  'broadcasts',
+  'files',
+  'links',
+  'teams',
+]);
+
+export const QUERY_CLASS_SLICES: Record<QueryClass, ContextSlice[]> = {
+  general_knowledge: [],
+  weather_time: ['metadata'],
+  restaurant_recommendation: ['metadata', 'places', 'preferences'],
+  calendar_action: ['metadata', 'calendar', 'members'],
+  task_action: ['metadata', 'tasks', 'members'],
+  payment_query: ['metadata', 'payments', 'members'],
+  trip_search: ALL_SLICES,
+  place_navigation: ['metadata', 'places', 'calendar'],
+  booking_reservation: ['metadata', 'places', 'calendar', 'preferences', 'members'],
+  broadcast_notification: ['metadata', 'members', 'teams'],
+  trip_summary: ALL_SLICES,
+  poll_action: ['metadata', 'members'],
+  media_search: ['metadata', 'files', 'links'],
+  flight_search: ['metadata', 'places', 'calendar'],
+  trip_image: ['metadata'],
+  smart_import: ['metadata', 'calendar', 'places'],
+  basecamp_action: ['metadata', 'places'],
+  agenda_action: ['metadata', 'calendar'],
+};
+
 const CONTEXT_CACHE_TTL_MS = 30_000; // 30 seconds — balances speed vs freshness
 const contextCache = new Map<string, { ctx: ComprehensiveTripContext; expiresAt: number }>();
 
@@ -134,20 +203,40 @@ export class TripContextBuilder {
   /**
    * Build or return cached trip context. Cache TTL 30s to speed up rapid successive messages.
    */
+  /**
+   * Build or return cached trip context. Cache TTL 30s to speed up rapid successive messages.
+   *
+   * When contextSlices is provided, only those data slices are fetched from the DB.
+   * Cache keys include slices hash so partial-context and full-context entries never
+   * collide. Each cache entry is keyed by `tripId:userId:slicesHash`, ensuring:
+   * - Different users never share cache entries (userId isolation)
+   * - Different slice configurations get separate cache entries (no stale partial data)
+   * - RLS is enforced on every fresh fetch (cache only stores post-RLS results)
+   */
   static async buildContextWithCache(
     tripId: string,
     userId?: string,
     authHeader?: string | null,
     isPaidUser = false,
     clientPreferences?: Parameters<typeof TripContextBuilder.buildContext>[4],
+    contextSlices?: ContextSlice[],
   ): Promise<ComprehensiveTripContext> {
-    const key = `${tripId}:${userId ?? 'anon'}`;
+    // Include slices in cache key so partial and full context don't collide
+    const slicesKey = contextSlices ? contextSlices.slice().sort().join(',') : 'all';
+    const key = `${tripId}:${userId ?? 'anon'}:${slicesKey}`;
     const now = Date.now();
     const cached = contextCache.get(key);
     if (cached && cached.expiresAt > now) {
       return cached.ctx;
     }
-    const ctx = await this.buildContext(tripId, userId, authHeader, isPaidUser, clientPreferences);
+    const ctx = await this.buildContext(
+      tripId,
+      userId,
+      authHeader,
+      isPaidUser,
+      clientPreferences,
+      contextSlices,
+    );
     contextCache.set(key, { ctx, expiresAt: now + CONTEXT_CACHE_TTL_MS });
     return ctx;
   }
@@ -187,13 +276,32 @@ export class TripContextBuilder {
       budgetUnit?: string;
       timePreference?: string;
     },
+    contextSlices?: ContextSlice[],
   ): Promise<ComprehensiveTripContext> {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       ...(authHeader ? { global: { headers: { Authorization: authHeader } } } : {}),
     });
 
+    // When contextSlices is provided, only fetch those slices. When omitted, fetch all.
+    const sliceSet = contextSlices ? new Set(contextSlices) : null;
+    const fetchAll = !sliceSet;
+    const need = (s: ContextSlice) => fetchAll || sliceSet!.has(s);
+
     try {
       // ── Phase 1: All raw data in parallel (no profile lookups yet) ─────────
+      // Conditionally skip slices not needed for the current query class.
+      // Skipped slices resolve to empty arrays/defaults immediately.
+      const emptyMembers: any[] = [];
+      const emptyMessages: any[] = [];
+      const emptyCalendar: any[] = [];
+      const emptyTasks: any[] = [];
+      const emptyPayments: any[] = [];
+      const emptyPolls: any[] = [];
+      const emptyBroadcasts: any[] = [];
+      const emptyPlaces = { tripBasecamp: undefined, personalBasecamp: undefined, savedPlaces: [] };
+      const emptyFiles: any[] = [];
+      const emptyLinks: any[] = [];
+      const emptyTeams = { members: [], channels: [], roleMap: new Map() };
       const [
         tripMetadata,
         rawMembers,
@@ -209,35 +317,50 @@ export class TripContextBuilder {
         rawTeamsChannels,
         userPreferences,
       ] = await Promise.all([
+        // Metadata: always fetch (minimal cost, always needed)
         this.fetchTripMetadata(supabase, tripId),
-        this.fetchRawMembers(supabase, tripId),
-        this.fetchMessages(supabase, tripId),
-        this.fetchCalendar(supabase, tripId),
-        this.fetchRawTasks(supabase, tripId),
-        this.fetchRawPayments(supabase, tripId),
-        this.fetchPolls(supabase, tripId),
-        this.fetchRawBroadcasts(supabase, tripId),
-        this.fetchPlaces(supabase, tripId, userId),
-        this.fetchRawFiles(supabase, tripId),
-        this.fetchRawLinks(supabase, tripId),
-        this.fetchRawTeamsAndChannels(supabase, tripId),
+        need('members') ? this.fetchRawMembers(supabase, tripId) : Promise.resolve(emptyMembers),
+        need('messages') ? this.fetchMessages(supabase, tripId) : Promise.resolve(emptyMessages),
+        need('calendar') ? this.fetchCalendar(supabase, tripId) : Promise.resolve(emptyCalendar),
+        need('tasks') ? this.fetchRawTasks(supabase, tripId) : Promise.resolve(emptyTasks),
+        need('payments') ? this.fetchRawPayments(supabase, tripId) : Promise.resolve(emptyPayments),
+        need('polls') ? this.fetchPolls(supabase, tripId) : Promise.resolve(emptyPolls),
+        need('broadcasts')
+          ? this.fetchRawBroadcasts(supabase, tripId)
+          : Promise.resolve(emptyBroadcasts),
+        need('places') ? this.fetchPlaces(supabase, tripId, userId) : Promise.resolve(emptyPlaces),
+        need('files') ? this.fetchRawFiles(supabase, tripId) : Promise.resolve(emptyFiles),
+        need('links') ? this.fetchRawLinks(supabase, tripId) : Promise.resolve(emptyLinks),
+        need('teams')
+          ? this.fetchRawTeamsAndChannels(supabase, tripId)
+          : Promise.resolve(emptyTeams),
         // Preferences: use client-provided when available (saves DB round-trip),
         // else fetch for paid users
-        this.resolveUserPreferences(supabase, userId, isPaidUser, clientPreferences),
+        need('preferences')
+          ? this.resolveUserPreferences(supabase, userId, isPaidUser, clientPreferences)
+          : Promise.resolve(undefined),
       ]);
 
       // ── Phase 2: Collect ALL user IDs needing display names ───────────────
-      const allUserIds = new Set<string>();
-      rawMembers.forEach((m: any) => m.user_id && allUserIds.add(m.user_id));
-      rawTasks.forEach((t: any) => t.assignee_id && allUserIds.add(t.assignee_id));
-      rawPayments.forEach((p: any) => p.created_by && allUserIds.add(p.created_by));
-      rawBroadcasts.forEach((b: any) => b.created_by && allUserIds.add(b.created_by));
-      rawFiles.forEach((f: any) => f.uploaded_by && allUserIds.add(f.uploaded_by));
-      rawLinks.forEach((l: any) => l.added_by && allUserIds.add(l.added_by));
-      rawTeamsChannels.members.forEach((m: any) => m.user_id && allUserIds.add(m.user_id));
+      // Skip batchFetchNames entirely when no slices requiring name resolution were fetched.
+      const needsNameResolution =
+        fetchAll || (contextSlices || []).some(s => NAME_RESOLUTION_SLICES.has(s));
 
-      // ONE batch lookup for all display names
-      const names = await this.batchFetchNames(supabase, [...allUserIds]);
+      const allUserIds = new Set<string>();
+      if (needsNameResolution) {
+        rawMembers.forEach((m: any) => m.user_id && allUserIds.add(m.user_id));
+        rawTasks.forEach((t: any) => t.assignee_id && allUserIds.add(t.assignee_id));
+        rawPayments.forEach((p: any) => p.created_by && allUserIds.add(p.created_by));
+        rawBroadcasts.forEach((b: any) => b.created_by && allUserIds.add(b.created_by));
+        rawFiles.forEach((f: any) => f.uploaded_by && allUserIds.add(f.uploaded_by));
+        rawLinks.forEach((l: any) => l.added_by && allUserIds.add(l.added_by));
+        rawTeamsChannels.members.forEach((m: any) => m.user_id && allUserIds.add(m.user_id));
+      }
+
+      // ONE batch lookup for all display names (skipped when no name-resolution slices are fetched)
+      const names = needsNameResolution
+        ? await this.batchFetchNames(supabase, [...allUserIds])
+        : new Map<string, string>();
 
       // ── Phase 3: Map names → final structured output ───────────────────────
       const collaborators = rawMembers.map((m: any) => ({
