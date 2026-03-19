@@ -8,6 +8,7 @@ import {
   parseServiceAccountKey,
   type ServiceAccountKey,
 } from '../_shared/vertexAuth.ts';
+import { normalizeResumptionToken } from '../_shared/voiceSessionResumption.ts';
 import { VOICE_FUNCTION_DECLARATIONS, VOICE_ADDENDUM } from '../_shared/voiceToolDeclarations.ts';
 
 // ── Vertex AI configuration (production-only provider) ──
@@ -127,8 +128,7 @@ serve(async req => {
     const requestedVoice = typeof bodyRaw?.voice === 'string' ? bodyRaw.voice : DEFAULT_VOICE;
     const voice = ALLOWED_VOICES.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE;
     const tripId = typeof bodyRaw?.tripId === 'string' ? bodyRaw.tripId : undefined;
-    const resumptionToken =
-      typeof bodyRaw?.resumptionToken === 'string' ? bodyRaw.resumptionToken : undefined;
+    const resumptionToken = normalizeResumptionToken(bodyRaw?.resumptionToken);
 
     // Build system instruction
     let systemInstruction: string;
@@ -205,7 +205,7 @@ serve(async req => {
       contextWindowCompression: { slidingWindow: {} },
     };
 
-    // Session resumption
+    // Session resumption — omit when no token (empty object can cause setup rejection)
     if (resumptionToken) {
       setupConfig.sessionResumption = { handle: resumptionToken };
       console.log(`${tag} Including session resumption token`);
@@ -216,11 +216,11 @@ serve(async req => {
       setupConfig.tools = [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }];
     }
 
-    // Mode 4+: affective dialog (OFF by default in Phase A)
+    // Mode 4+: affective dialog — only add if explicitly enabled (preview feature)
     if (VOICE_AFFECTIVE_DIALOG) {
       (setupConfig.generationConfig as Record<string, unknown>).enableAffectiveDialog = true;
     }
-    // Mode 5+: proactive audio (OFF by default in Phase A)
+    // Mode 5+: proactive audio — only add if explicitly enabled (preview feature)
     if (VOICE_PROACTIVE_AUDIO) {
       setupConfig.proactivity = { proactiveAudio: true };
     }
