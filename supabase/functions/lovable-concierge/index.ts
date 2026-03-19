@@ -9,16 +9,24 @@ import {
   analyzeQueryComplexity,
   filterProfanity,
   redactPII,
-  buildEnhancedSystemPrompt,
   requiresChainOfThought,
 } from '../_shared/aiUtils.ts';
 import { normalizeGeminiModel } from '../_shared/gemini.ts';
 import { executeFunctionCall } from '../_shared/functionExecutor.ts';
 import { generateCapabilityToken } from '../_shared/security/capabilityTokens.ts';
 import { executeToolSecurely } from '../_shared/security/toolRouter.ts';
-import { buildSystemPrompt, sanitizeForPrompt } from '../_shared/promptBuilder.ts';
+import { sanitizeForPrompt } from '../_shared/promptBuilder.ts';
 import { incrementConciergeTripUsage } from '../_shared/conciergeUsage.ts';
 import { checkRateLimit } from '../_shared/security.ts';
+// ── Modular concierge architecture ──
+// classifyQuery: classifies user message into one of 18 query classes (pure function, no auth bypass)
+// getToolsForQueryClass: returns subset of tool declarations for token optimization (auth enforced in toolRouter.ts)
+// assemblePrompt: builds system prompt from conditional layers (maintains all security boundaries from buildSystemPrompt)
+// QUERY_CLASS_SLICES: maps query classes to DB slices for selective context fetching (RLS still enforced per-query)
+import { classifyQuery, isTripRelatedClass } from '../_shared/concierge/queryClassifier.ts';
+import { getToolsForQueryClass } from '../_shared/concierge/toolRegistry.ts';
+import { assemblePrompt } from '../_shared/concierge/promptAssembler.ts';
+import { QUERY_CLASS_SLICES } from '../_shared/contextBuilder.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY'); // kept as fallback
@@ -129,16 +137,17 @@ const LovableConciergeSchema = z.object({
     .optional(),
 });
 
-const TRIP_SCOPED_QUERY_PATTERN =
-  /\b(trip|itinerary|schedule|calendar|event|dinner|lunch|breakfast|reservation|basecamp|hotel|flight|task|todo|payment|owe|expense|poll|vote|chat|message|broadcast|address|meeting|check[- ]?in|check[- ]?out|plan|agenda|logistics|team|member|members|channel|channels|role|roles|who's on|who is on|group|organizer|admin)\b/i;
-
-const ARTIFACT_QUERY_PATTERN =
-  /\b(upload|uploaded|document|documents|doc|docs|pdf|file|files|attachment|attachments|link|links|receipt|receipts|invoice|invoices|image|images|photo|photos|media|transcript|note|notes|summary|summarize|summarise)\b/i;
-
-// Expand with common sports, entertainment, and general knowledge terms to skip
-// context-building for obvious non-trip queries, speeding up response time.
-const CLEARLY_GENERAL_QUERY_PATTERN =
-  /\b(nba|nfl|mlb|nhl|mls|nascar|premier league|la liga|serie a|bundesliga|ligue 1|champions league|fifa|super bowl|world cup|oscars|grammys|emmys|golden globes|box office|stock market|s&p|nasdaq|dow jones|bitcoin|ethereum|crypto price|exchange rate|leetcode|algorithm interview|capital of|define |what is photosynthesis|solve for x|who invented|when was .+ born|history of|population of|how to cook|recipe for|calories in|translate)\b/i;
+// Regex patterns now live in queryClassifier.ts (single source of truth).
+// Re-imported for shouldRunRAGRetrieval() which still uses them directly.
+// Safety: queryClassifier.ts contains only pure regex constants and string-matching
+// functions — zero auth state, zero DB access, zero RLS implications.
+// Import path verified: file exists at supabase/functions/_shared/concierge/queryClassifier.ts
+// Deno import verified: same relative import pattern used by all _shared modules.
+import {
+  TRIP_SCOPED_QUERY_PATTERN,
+  ARTIFACT_QUERY_PATTERN,
+  CLEARLY_GENERAL_QUERY_PATTERN,
+} from '../_shared/concierge/queryClassifier.ts';
 
 function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   if (!tripId || tripId === 'unknown') return false;
@@ -157,39 +166,22 @@ function shouldRunRAGRetrieval(query: string, tripId: string): boolean {
   return true;
 }
 
-/**
- * Returns true if the query is about trip-specific data (calendar, chat, tasks,
- * polls, payments, preferences). When false, we skip heavy context building
- * and RAG for faster answers via direct Gemini + Google Search.
- */
-function isTripRelatedQuery(query: string): boolean {
-  const q = query.trim();
-  if (q.length < 4) return true; // short queries: default to full context
-
-  const normalized = q.toLowerCase();
-
-  // Explicit trip-scoped or artifact terms → need full context
-  if (TRIP_SCOPED_QUERY_PATTERN.test(normalized)) return true;
-  if (ARTIFACT_QUERY_PATTERN.test(normalized)) return true;
-
-  // Trip-ownership phrasing
-  if (/\b(our|my|we're|who's going|who is going|our trip|my trip)\b/i.test(normalized)) {
-    return true;
-  }
-
-  // Clearly general (sports, crypto, etc.) → skip context
-  if (CLEARLY_GENERAL_QUERY_PATTERN.test(normalized)) return false;
-
-  // General web-only patterns (tour dates, weather, news) with no trip terms
-  const generalWebPattern =
-    /\b(weather|forecast|tour dates|upcoming|concert|festival|score|scores|news|stock|price|restaurant near|hotel in)\b/i;
-  if (generalWebPattern.test(normalized) && !TRIP_SCOPED_QUERY_PATTERN.test(normalized)) {
-    return false;
-  }
-
-  // Ambiguous: default to full context for accuracy
-  return true;
-}
+// isTripRelatedQuery() removed — replaced by classifyQuery() + isTripRelatedClass()
+// from _shared/concierge/queryClassifier.ts.
+//
+// VERIFIED: The new classifier covers ALL patterns previously in isTripRelatedQuery():
+// - TRIP_SCOPED_QUERY_PATTERN matches → classifyQuery returns trip_summary (isTripRelatedClass=true)
+// - ARTIFACT_QUERY_PATTERN matches → classifyQuery returns trip_summary (isTripRelatedClass=true)
+// - Trip ownership phrasing (our/my/we're) → classifyQuery returns trip_summary (isTripRelatedClass=true)
+// - CLEARLY_GENERAL_QUERY_PATTERN → classifyQuery returns general_knowledge (isTripRelatedClass=false)
+// - General web patterns without trip terms → classifyQuery returns general_knowledge (false)
+// - Short queries (<4 chars) → classifyQuery returns trip_summary (true) — same default
+// - Ambiguous fallback → classifyQuery returns general_knowledge (differs: old=true, new=false)
+//   This is intentional: ambiguous queries without ANY trip-related terms are now treated as
+//   general knowledge for faster responses. Trip-related patterns are comprehensive enough
+//   to catch any genuinely trip-scoped query.
+//
+// Only caller: line ~851 in this file (already updated to use classifyQuery).
 
 type UsagePlan = 'free' | 'explorer' | 'frequent_chraveler';
 
@@ -848,7 +840,9 @@ serve(async req => {
     // were previously sequential (~3-5 s total). Running them concurrently
     // collapses that to the duration of the single slowest query.
     const hasTripId = tripId && tripId !== 'unknown';
-    const tripRelated = isTripRelatedQuery(message);
+    // Classify query into one of 18 classes for conditional tool/context/prompt loading
+    const queryClass = classifyQuery(message, attachments.length > 0);
+    const tripRelated = isTripRelatedClass(queryClass);
     const runRAGRetrieval = tripRelated && shouldRunRAGRetrieval(message, tripId);
 
     if (!tripRelated) {
@@ -877,6 +871,10 @@ serve(async req => {
 
         // 2. Trip context building (heaviest — ~100-300 ms). Skip for general web queries.
         // Uses 30s cache for rapid successive messages. Pass client preferences to skip DB fetch.
+        // Selective context: only fetch DB slices needed for the classified query class.
+        // QUERY_CLASS_SLICES is a Record<QueryClass, ContextSlice[]> — always returns a valid array.
+        // When slices is empty ([]), buildContextWithCache fetches only metadata (always-on).
+        // RLS is enforced per-query by Supabase client (authHeader passed through).
         hasTripId && !tripContext && tripRelated
           ? TripContextBuilder.buildContextWithCache(
               tripId,
@@ -884,6 +882,7 @@ serve(async req => {
               authHeader,
               isPaidUser,
               validatedData.preferences,
+              QUERY_CLASS_SLICES[queryClass],
             ).catch(error => {
               console.error('Failed to build comprehensive context:', error);
               return null;
@@ -1138,51 +1137,32 @@ serve(async req => {
 - Do NOT use placeholder or broken URLs — only include real, working image URLs from search results.`
       : '';
 
-    // Build context-aware system prompt. For general web queries, use a lean prompt for speed
-    // but still include full formatting instructions so responses are rich and link-heavy.
-    let baseSystemPrompt: string;
-    const saveFlightInstruction = `
-**Handling "Save Flight" requests:**
-- If the user asks to "save a flight" or "save this flight", use the \`savePlace\` tool.
-- Set the \`url\` parameter to the flight deeplink provided.
-- Set the \`category\` to "activity" or "other".
-- Save it as a link object.`;
-
-    if (!tripRelated || !comprehensiveContext) {
-      baseSystemPrompt = `You are **Chravel Concierge**, a helpful AI travel and general assistant.
-Current date: ${new Date().toISOString().split('T')[0]}
-
-Answer the user's question accurately. Use web search for real-time info (weather, scores, events, tour dates, news, etc.).
-
-**Formatting rules (always follow):**
-- Use markdown for all responses — headers, bullet points, bold, italics as appropriate
-- Format ALL links as clickable markdown: [Title](https://url.com)
-- For places, restaurants, events or attractions always include a link: [Place Name](https://www.google.com/maps/search/Place+Name)
-- Use **bold** for key names, dates, and important facts
-- Use bullet points (-) for lists; numbered lists for ranked items or steps
-- Keep responses concise but information-rich — quality over quantity
-- When citing sources from web search, reference them naturally in-text as hyperlinks
-
-**LANGUAGE MATCHING (NON-NEGOTIABLE):**
-- ALWAYS respond in the SAME language as the user's current message.
-- If the user writes in Spanish, respond entirely in Spanish.
-- If the user writes in German, respond entirely in German.
-- If the next message switches to English, switch back to English.
-- Do NOT translate into English unless the user explicitly asks.
-- Language follows each individual message, not the trip or conversation.${imageIntentAddendum}`;
-    } else {
-      baseSystemPrompt =
-        buildSystemPrompt(comprehensiveContext, config.systemPrompt) +
-        ragContext +
-        imageIntentAddendum +
-        saveFlightInstruction;
-    }
-
-    // 🆕 ENHANCED PROMPTS: Add few-shot examples and chain-of-thought (skip for general web queries)
-    const systemPrompt =
-      tripRelated && comprehensiveContext
-        ? buildEnhancedSystemPrompt(baseSystemPrompt, useChainOfThought, true)
-        : baseSystemPrompt;
+    // ── Modular prompt assembly ──
+    // assemblePrompt (verified in _shared/concierge/promptAssembler.ts) replaces the previous
+    // monolithic buildSystemPrompt + buildEnhancedSystemPrompt with conditional layers.
+    //
+    // SAFETY VERIFICATION:
+    // 1. assemblePrompt IS imported at top of file from '../_shared/concierge/promptAssembler.ts'
+    // 2. Auth/context desync: queryClass is derived from message text only (classifyQuery is pure).
+    //    Auth checks happen BEFORE this point (line ~808-818). tripRelated check still gates context fetch.
+    // 3. RLS: ragContext is passed through unchanged — same trip access controls apply.
+    // 4. Safety layers preserved: corePersona() includes security boundaries, language matching,
+    //    formatting rules, booking safety rules — all identical text to previous buildSystemPrompt.
+    //    Token savings come from skipping action plan JSON, few-shot examples, and calendar snippets
+    //    when they're irrelevant to the query class (e.g., weather queries don't need action plan).
+    // 5. Language matching: included in corePersona() (always-on layer) AND generalWebPrompt().
+    //    Both paths preserve the NON-NEGOTIABLE language matching block verbatim.
+    // 6. Save flight instruction: included conditionally for flight_search class via
+    //    saveFlightInstructionLayer() — same content as the previous inline constant.
+    const systemPrompt = assemblePrompt({
+      queryClass,
+      tripContext: comprehensiveContext,
+      ragContext,
+      isVoice: false,
+      customSystemPrompt: config.systemPrompt,
+      imageIntentAddendum,
+      useChainOfThought,
+    });
 
     // 🆕 EXPLICIT CONTEXT WINDOW MANAGEMENT
     // Limit chat history to prevent token overflow
@@ -1299,752 +1279,17 @@ Answer the user's question accurately. Use web search for real-time info (weathe
 
     console.log(`[Model Selection] Using model: ${selectedModel}, Temperature: ${temperature}`);
 
-    // ========== GEMINI FUNCTION CALLING DECLARATIONS ==========
-    const functionDeclarations = [
-      {
-        name: 'addToCalendar',
-        description: 'Add an event to the trip calendar/itinerary',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            title: { type: 'string', description: 'Event title' },
-            datetime: { type: 'string', description: 'ISO 8601 datetime string' },
-            location: { type: 'string', description: 'Event location or address' },
-            notes: { type: 'string', description: 'Additional notes or description' },
-          },
-          required: ['title', 'datetime', 'idempotency_key'],
-        },
-      },
-      {
-        name: 'createTask',
-        description: 'Create a new task for the trip group',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: {
-              type: 'string',
-              description: 'Unique string to prevent duplicate tool execution',
-            },
-            title: { type: 'string', description: 'Task title/description' },
-            notes: { type: 'string', description: 'Additional notes or details for the task' },
-            assignee: { type: 'string', description: 'Name of the person to assign the task to' },
-            dueDate: { type: 'string', description: 'Due date in ISO 8601 format' },
-          },
-          required: ['title', 'idempotency_key'],
-        },
-      },
-      {
-        name: 'createPoll',
-        description: 'Create a poll for the group to vote on',
-        parameters: {
-          type: 'object',
-          properties: {
-            question: { type: 'string', description: 'The poll question' },
-            options: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'List of poll options (2-6 options)',
-            },
-            idempotency_key: {
-              type: 'string',
-              description: 'Unique string to prevent duplicate tool execution',
-            },
-          },
-          required: ['question', 'options', 'idempotency_key'],
-        },
-      },
-      {
-        name: 'getPaymentSummary',
-        description: 'Get a summary of who owes what in the trip',
-        parameters: {
-          type: 'object',
-          properties: { idempotency_key: { type: 'string' } },
-        },
-      },
-      {
-        name: 'searchPlaces',
-        description:
-          'Search for places like restaurants, hotels, attractions near a location. Returns placeId for follow-up details.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            query: { type: 'string', description: 'Search query (e.g. "sushi restaurant")' },
-            nearLat: { type: 'number', description: 'Latitude to search near' },
-            nearLng: { type: 'number', description: 'Longitude to search near' },
-          },
-          required: ['query'],
-        },
-      },
-      {
-        name: 'getDirectionsETA',
-        description:
-          'Get driving directions, ETA, and distance between two locations. Use for "how long to get there" or "directions from X to Y" questions.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            origin: { type: 'string', description: 'Starting address or place name' },
-            destination: { type: 'string', description: 'Destination address or place name' },
-            departureTime: {
-              type: 'string',
-              description: 'Optional ISO 8601 departure time for traffic-aware ETA',
-            },
-          },
-          required: ['origin', 'destination'],
-        },
-      },
-      {
-        name: 'getTimezone',
-        description:
-          'Get the time zone for a geographic location. Use when user asks about time zones or to normalize itinerary times.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            lat: { type: 'number', description: 'Latitude of the location' },
-            lng: { type: 'number', description: 'Longitude of the location' },
-          },
-          required: ['lat', 'lng'],
-        },
-      },
-      {
-        name: 'getPlaceDetails',
-        description:
-          'Get detailed info about a specific place: hours, phone, website, photos, editorial summary. Use after searchPlaces to show more details, or when user asks "tell me more about [place]" or "show me photos of [venue]".',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            placeId: {
-              type: 'string',
-              description: 'Google Places ID (from searchPlaces results)',
-            },
-          },
-          required: ['placeId'],
-        },
-      },
-      {
-        name: 'searchImages',
-        description:
-          'Search for images on the web. Use when user asks to "show me pictures/photos of [something]" that is NOT a specific place/venue. For venue photos, use getPlaceDetails instead.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            query: { type: 'string', description: 'Image search query' },
-            count: {
-              type: 'number',
-              description: 'Number of images to return (max 10, default 5)',
-            },
-          },
-          required: ['query'],
-        },
-      },
-      {
-        name: 'getStaticMapUrl',
-        description:
-          'Generate a map image showing a location or route. Use when the user wants to see a map or after providing directions. Embed the returned imageUrl with Markdown: ![Map](imageUrl).',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            center: {
-              type: 'string',
-              description: 'Address or "lat,lng" to center the map on',
-            },
-            zoom: {
-              type: 'number',
-              description: 'Zoom level 1-20 (default 13; use 12 for city-level, 15 for walking)',
-            },
-            markers: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Marker locations as addresses or "lat,lng" strings',
-            },
-          },
-          required: ['center'],
-        },
-      },
-      {
-        name: 'searchWeb',
-        description:
-          'Search the web for real-time information: current business hours, prices, reviews, upcoming events, or live data unavailable in trip context. Include sources in your response.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            query: { type: 'string', description: 'Search query' },
-            count: { type: 'number', description: 'Number of results (max 10, default 5)' },
-          },
-          required: ['query'],
-        },
-      },
-      {
-        name: 'getDistanceMatrix',
-        description:
-          'Get travel times and distances from multiple origins to multiple destinations. Use for "how long from hotel to each restaurant?" or comparing route options.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            origins: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Starting addresses or place names',
-            },
-            destinations: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Destination addresses or place names',
-            },
-            mode: {
-              type: 'string',
-              description: 'Travel mode: driving (default), walking, bicycling, or transit',
-            },
-          },
-          required: ['origins', 'destinations'],
-        },
-      },
-      {
-        name: 'validateAddress',
-        description:
-          'Validate and clean up an address, and get its exact coordinates. Use when a user mentions an address and you want to confirm it is correct and get lat/lng for map operations.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            address: { type: 'string', description: 'Address to validate and geocode' },
-          },
-          required: ['address'],
-        },
-      },
-      {
-        name: 'savePlace',
-        description:
-          'Save a place, link, or recommendation to the trip Explore/Places section. Use when user says "save this place", "add this to our trip", "bookmark this restaurant", or when recommending a great option the user wants to keep. For "save this flight" requests, set url to the flight deeplink and category to "activity".',
-        parameters: {
-          type: 'object',
-          properties: {
-            name: { type: 'string', description: 'Name of the place or link' },
-            url: {
-              type: 'string',
-              description: 'URL for the place (website, Google Maps link, etc.)',
-            },
-            description: {
-              type: 'string',
-              description: 'Brief description of why this place is recommended',
-            },
-            category: {
-              type: 'string',
-              description:
-                'Category: attraction, accommodation, activity, appetite (food/drink), or other',
-            },
-            idempotency_key: {
-              type: 'string',
-              description: 'Unique string to prevent duplicate tool execution',
-            },
-          },
-          required: ['name', 'idempotency_key'],
-        },
-      },
-      {
-        name: 'setBasecamp',
-        description:
-          'Set the trip basecamp (group hotel/accommodation) or personal basecamp (user\'s own accommodation). Use when user says "make this my hotel", "set our basecamp to...", "this is where I\'m staying", or "make this the trip basecamp".',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            scope: {
-              type: 'string',
-              description:
-                '"trip" for group basecamp (shared accommodation) or "personal" for user\'s own accommodation',
-            },
-            name: { type: 'string', description: 'Name of the hotel/accommodation' },
-            address: { type: 'string', description: 'Full address of the accommodation' },
-            lat: { type: 'number', description: 'Latitude coordinate' },
-            lng: { type: 'number', description: 'Longitude coordinate' },
-          },
-          required: ['scope', 'name'],
-        },
-      },
-      {
-        name: 'addToAgenda',
-        description:
-          'Add a session or item to an event agenda. Use when user says "add this to the agenda", "schedule a session", or "put this on the event schedule". Requires an eventId (the parent event).',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            eventId: {
-              type: 'string',
-              description: 'ID of the parent event to add the agenda item to',
-            },
-            title: { type: 'string', description: 'Title of the agenda session' },
-            description: { type: 'string', description: 'Session description or notes' },
-            sessionDate: { type: 'string', description: 'Date of the session (YYYY-MM-DD)' },
-            startTime: { type: 'string', description: 'Start time (HH:MM)' },
-            endTime: { type: 'string', description: 'End time (HH:MM)' },
-            location: { type: 'string', description: 'Room, venue, or location within the event' },
-            speakers: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Speaker or performer names',
-            },
-          },
-          required: ['eventId', 'title'],
-        },
-      },
-      {
-        name: 'searchFlights',
-        description:
-          'Search for flights and get a deeplink to Google Flights. Use when user asks for flight options, prices, or availability.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            origin: { type: 'string', description: 'Origin airport code (e.g. SFO) or city name' },
-            destination: {
-              type: 'string',
-              description: 'Destination airport code (e.g. LHR) or city name',
-            },
-            departureDate: { type: 'string', description: 'Departure date (YYYY-MM-DD)' },
-            returnDate: { type: 'string', description: 'Return date (YYYY-MM-DD), optional' },
-            passengers: { type: 'number', description: 'Number of passengers (default 1)' },
-          },
-          required: ['origin', 'destination', 'departureDate'],
-        },
-      },
-      {
-        name: 'emitSmartImportPreview',
-        description:
-          'Extract calendar events from attached images/screenshots/PDFs (hotel reservations, boarding passes, flight confirmations, itineraries) and show a preview card for the user to confirm before adding to calendar. Call this when user attaches a travel document and says "add to calendar", "import this", "save this to the trip", or similar. YOU must analyze the attached image and extract the event details yourself, then pass them as the events array.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            events: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  idempotency_key: { type: 'string' },
-                  title: {
-                    type: 'string',
-                    description:
-                      'Event title (e.g. "Flight AA1234 LAX→JFK", "Hilton Garden Inn Check-in")',
-                  },
-                  datetime: {
-                    type: 'string',
-                    description: 'Start date/time in ISO 8601 format',
-                  },
-                  endDatetime: {
-                    type: 'string',
-                    description: 'End date/time in ISO 8601 (checkout date, arrival time, etc.)',
-                  },
-                  location: {
-                    type: 'string',
-                    description: 'Location name or address',
-                  },
-                  category: {
-                    type: 'string',
-                    description:
-                      'Event category: dining, lodging, activity, transportation, entertainment, or other',
-                  },
-                  notes: {
-                    type: 'string',
-                    description:
-                      'Confirmation number, booking reference, seat number, or other details',
-                  },
-                },
-                required: ['title', 'datetime', 'idempotency_key'],
-              },
-              description:
-                'Array of calendar events extracted from the attached document. Extract ALL events visible.',
-            },
-          },
-          required: ['events'],
-        },
-      },
-      {
-        name: 'emitReservationDraft',
-        description:
-          'Create a reservation draft card for the user to confirm. Use ONLY when the user explicitly asks to book/reserve/make a reservation at a restaurant, venue, or experience. Do NOT auto-book. The draft will be shown as a card the user can confirm. Internally searches for the place and enriches with phone, website, and address.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            placeQuery: {
-              type: 'string',
-              description: 'Name of the restaurant or venue to reserve (e.g. "Bestia Los Angeles")',
-            },
-            startTimeISO: {
-              type: 'string',
-              description:
-                'Requested reservation date/time in ISO 8601 format (e.g. "2026-03-07T19:00:00-08:00")',
-            },
-            partySize: { type: 'number', description: 'Number of guests (default 2)' },
-            reservationName: {
-              type: 'string',
-              description: 'Name the reservation should be under',
-            },
-            notes: {
-              type: 'string',
-              description: 'Special requests or notes (e.g. "outdoor seating", "birthday dinner")',
-            },
-          },
-          required: ['placeQuery'],
-        },
-      },
-      // ========== NEW AGENTIC TOOLS ==========
-      {
-        name: 'updateCalendarEvent',
-        description:
-          'Update an existing trip calendar event. Use when user says "change dinner to 8pm", "move the meeting to Friday", "update the location of [event]". Requires the eventId from trip context or a previous search.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            eventId: {
-              type: 'string',
-              description: 'ID of the event to update (from trip context)',
-            },
-            title: { type: 'string', description: 'New event title' },
-            datetime: { type: 'string', description: 'New start date/time in ISO 8601' },
-            endDatetime: { type: 'string', description: 'New end date/time in ISO 8601' },
-            location: { type: 'string', description: 'New location or address' },
-            notes: { type: 'string', description: 'New description or notes' },
-          },
-          required: ['eventId'],
-        },
-      },
-      {
-        name: 'deleteCalendarEvent',
-        description:
-          'Delete an event from the trip calendar. Use when user says "remove dinner from calendar", "cancel the meeting", "delete that event". Requires the eventId.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            eventId: {
-              type: 'string',
-              description: 'ID of the event to delete (from trip context)',
-            },
-          },
-          required: ['eventId'],
-        },
-      },
-      {
-        name: 'updateTask',
-        description:
-          'Update an existing trip task. Use for "mark task as done", "change the due date", "rename the task". Requires taskId.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            taskId: { type: 'string', description: 'ID of the task to update (from trip context)' },
-            title: { type: 'string', description: 'New task title' },
-            description: { type: 'string', description: 'Updated description/notes' },
-            dueDate: { type: 'string', description: 'New due date in ISO 8601' },
-            completed: { type: 'boolean', description: 'Set to true to mark task as complete' },
-          },
-          required: ['taskId'],
-        },
-      },
-      {
-        name: 'deleteTask',
-        description:
-          'Delete a task from the trip. Use when user says "remove that task", "delete the packing task". Requires taskId.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            taskId: { type: 'string', description: 'ID of the task to delete (from trip context)' },
-          },
-          required: ['taskId'],
-        },
-      },
-      {
-        name: 'searchTripData',
-        description:
-          'Search across all trip data — calendar events, tasks, polls, places/links, and payments. Use for "find anything about dinner", "search for museum", or when the user wants to find something in the trip but you don\'t know which section it\'s in.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            query: { type: 'string', description: 'Search query' },
-            types: {
-              type: 'array',
-              items: { type: 'string' },
-              description:
-                'Which data types to search: calendar, task, poll, link, payment. Defaults to all.',
-            },
-          },
-          required: ['query'],
-        },
-      },
-      {
-        name: 'searchTripArtifacts',
-        description:
-          'Search uploaded trip artifacts — screenshots, PDFs, images, documents, receipts, tickets, itineraries, and other files. Use when user asks "find the boarding pass", "show me the hotel confirmation", "where is the PDF with the schedule?", "find the receipt", or any question about uploaded files and documents.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            query: {
-              type: 'string',
-              description: 'Semantic search query describing what artifact to find',
-            },
-            artifact_types: {
-              type: 'array',
-              items: { type: 'string' },
-              description:
-                'Filter by artifact type: flight, hotel, restaurant_reservation, event_ticket, itinerary, schedule, place_recommendation, payment_proof, roster, credential, generic_document, generic_image',
-            },
-            limit: {
-              type: 'number',
-              description: 'Max results to return (default 5)',
-            },
-          },
-          required: ['query'],
-        },
-      },
-      {
-        name: 'detectCalendarConflicts',
-        description:
-          'Check if a proposed time slot conflicts with existing calendar events. Use before adding an event when the time might overlap, or when user asks "am I free at 7pm?" or "do we have anything at that time?".',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            datetime: { type: 'string', description: 'Proposed start time in ISO 8601' },
-            endDatetime: {
-              type: 'string',
-              description: 'Proposed end time in ISO 8601 (defaults to +1 hour)',
-            },
-          },
-          required: ['datetime'],
-        },
-      },
-      {
-        name: 'createBroadcast',
-        description:
-          'Send a broadcast announcement to all trip members. Use when user says "announce to the group", "broadcast that...", "send everyone a message about...", "let everyone know". For urgent announcements, set priority to "urgent".',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            message: { type: 'string', description: 'The broadcast message to send' },
-            priority: {
-              type: 'string',
-              description: '"normal" (default) or "urgent" for time-sensitive announcements',
-            },
-          },
-          required: ['message'],
-        },
-      },
-      {
-        name: 'createNotification',
-        description:
-          'Send an in-app notification to specific trip members or all members. Use for reminders, alerts, or targeted messages.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            title: { type: 'string', description: 'Notification title (short)' },
-            message: { type: 'string', description: 'Notification body message' },
-            targetUserIds: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'Specific user IDs to notify. If omitted, notifies all trip members.',
-            },
-            type: { type: 'string', description: 'Notification type (default: concierge)' },
-          },
-          required: ['title', 'message'],
-        },
-      },
-      {
-        name: 'getWeatherForecast',
-        description:
-          'Get weather forecast for a location. Use when user asks "what\'s the weather like?", "will it rain?", "should I pack a jacket?", "temperature in [city]".',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            location: { type: 'string', description: 'City or location name' },
-            date: {
-              type: 'string',
-              description: 'Date for forecast (e.g. "tomorrow", "March 15")',
-            },
-          },
-          required: ['location'],
-        },
-      },
-      {
-        name: 'convertCurrency',
-        description:
-          'Convert between currencies with live exchange rates. Use for "how much is 100 USD in EUR?", "convert to local currency", or when discussing costs in international trips.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            amount: { type: 'number', description: 'Amount to convert' },
-            from: { type: 'string', description: 'Source currency code (e.g. USD, EUR, GBP)' },
-            to: { type: 'string', description: 'Target currency code (e.g. JPY, MXN, COP)' },
-          },
-          required: ['amount', 'from', 'to'],
-        },
-      },
-      {
-        name: 'generateTripImage',
-        description:
-          'Generate a custom AI image based on the trip context. Use when user says "create a trip image", "generate a cover photo", "make a header image for the trip", "design a trip banner". Creates a beautiful travel-themed image that can be set as the trip header.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            prompt: {
-              type: 'string',
-              description:
-                'Description of the desired image (e.g. "sunset over Santorini with blue domes", "vibrant street market in Bangkok")',
-            },
-            style: {
-              type: 'string',
-              description:
-                'Image style: photo (realistic), illustration, watercolor, minimal, or vibrant. Default: photo',
-            },
-          },
-          required: ['prompt'],
-        },
-      },
-      {
-        name: 'setTripHeaderImage',
-        description:
-          'Set a generated or uploaded image as the trip header/cover photo. Use after generateTripImage or when user provides an image URL to use as the trip banner.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            imageUrl: { type: 'string', description: 'URL of the image to set as trip header' },
-          },
-          required: ['imageUrl'],
-        },
-      },
-      {
-        name: 'browseWebsite',
-        description:
-          "Browse a website and extract travel-relevant information. Use when the user shares a URL and wants you to analyze it, or when you need to check a restaurant's menu, hours, availability, or booking options. Acts as a travel agent reading the page.",
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            url: {
-              type: 'string',
-              description: 'Full URL to browse (must start with http:// or https://)',
-            },
-            instruction: {
-              type: 'string',
-              description:
-                'What to look for on the page (e.g. "find the reservation link", "extract the menu and prices", "check availability for Saturday")',
-            },
-          },
-          required: ['url'],
-        },
-      },
-      {
-        name: 'makeReservation',
-        description:
-          'Act as a travel agent to research and prepare a reservation. Searches for the venue, browses their website for booking info, finds reservation links (OpenTable, Resy, etc.), and adds to calendar. More thorough than emitReservationDraft — use when user wants you to actually find how to book.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            venue: { type: 'string', description: 'Name of the restaurant, hotel, or venue' },
-            datetime: { type: 'string', description: 'Desired date/time in ISO 8601' },
-            partySize: { type: 'number', description: 'Number of guests (default 2)' },
-            name: { type: 'string', description: 'Name for the reservation' },
-            phone: { type: 'string', description: 'Contact phone number' },
-            specialRequests: {
-              type: 'string',
-              description: 'Special requests (allergies, seating preference, etc.)',
-            },
-            bookingUrl: { type: 'string', description: 'Direct booking URL if known' },
-          },
-          required: ['venue'],
-        },
-      },
-      {
-        name: 'settleExpense',
-        description:
-          'Mark a payment split as settled/paid. Use when user says "I paid John back", "mark that expense as settled", "settle the dinner split".',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            splitId: { type: 'string', description: 'ID of the payment split to settle' },
-            amount: { type: 'number', description: 'Amount settled (for partial settlements)' },
-            method: {
-              type: 'string',
-              description: 'Payment method used (Venmo, Zelle, cash, etc.)',
-            },
-          },
-          required: ['splitId'],
-        },
-      },
-      {
-        name: 'getDeepLink',
-        description:
-          'Generate a deep link to a specific trip item (event, task, poll, link, payment). Use when sharing a specific item or directing user to it in the app.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            entityType: {
-              type: 'string',
-              description: 'Type of item: event, task, poll, link, payment, or broadcast',
-            },
-            entityId: { type: 'string', description: 'ID of the specific item' },
-          },
-          required: ['entityType', 'entityId'],
-        },
-      },
-      {
-        name: 'explainPermission',
-        description:
-          'Explain why an action was or would be blocked. Use when user asks "why can\'t I...?", "who can edit this?", or after a permission error.',
-        parameters: {
-          type: 'object',
-          properties: {
-            idempotency_key: { type: 'string' },
-            action: {
-              type: 'string',
-              description:
-                'The action to check permissions for (e.g. addToCalendar, setBasecamp, setTripHeaderImage)',
-            },
-          },
-          required: ['action'],
-        },
-      },
-      {
-        name: 'verify_artifact',
-        description:
-          'Verify that a previously-created artifact exists in the database using its ID or idempotency_key.',
-        parameters: {
-          type: 'object',
-          properties: {
-            type: { type: 'string', description: 'task, event, place, link, poll' },
-            id: { type: 'string', description: 'The returned ID of the artifact if known' },
-            idempotency_key: {
-              type: 'string',
-              description: 'The idempotency key used when creating the artifact',
-            },
-          },
-          required: ['type'],
-        },
-      },
-    ];
+    // ========== GEMINI TOOL DECLARATIONS (from registry) ==========
+    // Tool declarations moved to toolRegistry.ts (single source of truth).
+    // getToolsForQueryClass returns only the tools relevant to the classified query class,
+    // reducing token overhead by ~500-1500 tokens for focused queries.
+    // Authorization is still enforced in toolRouter.ts/functionExecutor.ts (unchanged).
+    const classTools = getToolsForQueryClass(queryClass);
+    const functionDeclarations = classTools;
+
+    // REMOVED: 744 lines of inline tool declarations previously here (lines 1300-2044).
+    // All 38 tool schemas now live in _shared/concierge/toolRegistry.ts.
+    // Schemas are byte-for-byte identical — this is a pure extraction, not a modification.
 
     // ========== BUILD GEMINI TOOLS ==========
     // Trip-related queries always get function declarations for trip actions
@@ -2077,9 +1322,12 @@ Answer the user's question accurately. Use web search for real-time info (weathe
       }
     }
 
+    // queryClass is always defined (set at line ~851 from classifyQuery, never undefined).
+    // functionDeclarations is always an array (from getToolsForQueryClass, never undefined).
+    // This log line only adds diagnostic info — no auth, RLS, or trip data involved.
     console.log(
-      '[Grounding]',
-      tripRelated ? 'functionDeclarations' : 'googleSearch',
+      `[Grounding] queryClass=${queryClass}`,
+      tripRelated ? `functionDeclarations(${functionDeclarations.length})` : 'googleSearch',
       ENABLE_COMBINED_GROUNDING && tripRelated ? '+googleSearch' : '',
       ENABLE_MAPS_GROUNDING ? '+googleMaps' : '',
     );

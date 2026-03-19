@@ -172,6 +172,47 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
 
+## Voice tool call fails silently due to unimplemented declaration
+- **Status:** confirmed (latent)
+- **Subsystem:** AI concierge / voice tools
+- **Bug class:** declaration/implementation mismatch
+- **Symptom:** Voice concierge says it completed an action but nothing happens in the trip. No error shown to user.
+- **User-facing impact:** Lost trust — user thinks AI did something but no data was created/changed
+- **Trigger conditions:** Model selects a tool from `voiceToolDeclarations.ts` that has no matching `case` in `functionExecutor.ts`
+- **Known affected tools:** getWeatherForecast, convertCurrency, browseWebsite, makeReservation, settleExpense, generateTripImage, setTripHeaderImage, getDeepLink, explainPermission, verify_artifact, createBroadcast, createNotification
+- **Likely root cause:** Voice tool declarations were expanded from a roadmap document without corresponding backend implementation
+- **Smallest safe fix:** Remove unimplemented tools from `voiceToolDeclarations.ts`, or implement them in `functionExecutor.ts`
+- **Regression risks:** Removing tools may cause model to verbally refuse requests it previously "handled" (but silently failed)
+- **Related files:** `supabase/functions/_shared/voiceToolDeclarations.ts`, `supabase/functions/_shared/functionExecutor.ts`
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+## Action Plan JSON mandate ignored by model
+- **Status:** confirmed (design issue)
+- **Subsystem:** AI concierge / prompt design
+- **Bug class:** prompt compliance
+- **Symptom:** System prompt mandates a JSON `plan_version: 1.0` block at the start of every response, but model frequently skips it for simple queries
+- **User-facing impact:** Inconsistent response format; wasted tokens when model does comply; no functional benefit since the plan is not machine-parsed
+- **Trigger conditions:** Any simple query where the model decides the JSON plan adds no value
+- **Likely root cause:** Instruction conflicts — "be concise" vs "always output a JSON plan first"
+- **Smallest safe fix:** Remove the Action Plan mandate from the system prompt entirely, or make it conditional for multi-action requests
+- **Related files:** `supabase/functions/_shared/promptBuilder.ts` (lines 29-50)
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+## Preference injection on irrelevant queries wastes tokens
+- **Status:** confirmed (inefficiency)
+- **Subsystem:** AI concierge / context injection
+- **Bug class:** performance / token bloat
+- **Symptom:** Dietary preferences, vibe preferences, budget preferences injected into every trip-related query, even "what time is our reservation?"
+- **User-facing impact:** Slower time-to-first-token from larger prompt; no quality benefit for non-recommendation queries
+- **Trigger conditions:** Any trip-related query for a paid user with preferences set
+- **Likely root cause:** Preference injection in `promptBuilder.ts` is always-on when `tripContext.userPreferences` exists, with no query-type filter
+- **Smallest safe fix:** Only inject preferences when query matches recommendation/food/activity/venue patterns
+- **Related files:** `supabase/functions/_shared/promptBuilder.ts` (lines 101-117), `supabase/functions/_shared/contextBuilder.ts` (resolveUserPreferences)
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
 ## Chat messages lost during websocket reconnect
 - **Status:** fixed
 - **Subsystem:** chat / realtime
