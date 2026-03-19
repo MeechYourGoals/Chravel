@@ -161,3 +161,11 @@
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
 - **Confidence:** high
+
+### Advisory reads in mutation paths must be timeout-bounded
+- **Tip:** If a mutation performs a pre-write advisory read (e.g., conflict detection), bound that read with a short timeout and fallback so the write path cannot be held hostage by slow reads.
+- **Applies when:** Create/update flows that run non-authoritative prechecks before insert/update.
+- **Avoid when:** The pre-read is an authoritative guard required for correctness/security.
+- **Evidence:** Calendar `createEvent` awaited conflict detection (`getTripEvents`) before insert, causing multi-minute `Saving...` hangs under slow reads even though conflict data is only informational.
+- **Provenance:** March 2026 calendar save-timeout forensic fix.
+- **Confidence:** high
