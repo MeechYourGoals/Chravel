@@ -1,4 +1,4 @@
-import { ArrowLeft, Mail, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Mail, HelpCircle, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -41,6 +41,16 @@ export default function SupportPage() {
                 <div>
                   <p className="font-medium">Privacy & Data</p>
                   <p className="text-sm text-muted-foreground">privacy@chravelapp.com</p>
+                </div>
+              </a>
+              <a
+                href="mailto:safety@chravelapp.com?subject=Report%20Abuse%20on%20Chravel"
+                className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors no-underline text-foreground"
+              >
+                <ShieldAlert className="h-6 w-6 text-primary" />
+                <div>
+                  <p className="font-medium">Report Abuse or Harassment</p>
+                  <p className="text-sm text-muted-foreground">safety@chravelapp.com</p>
                 </div>
               </a>
             </div>
