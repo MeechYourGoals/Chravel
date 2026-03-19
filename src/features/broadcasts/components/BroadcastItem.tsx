@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, MapPin, Users, Eye, CheckCircle2 } from 'lucide-react';
+import { Clock, MapPin, Users, Eye, CheckCircle2, Trash2, Pencil } from 'lucide-react';
 import { broadcastService } from '@/services/broadcastService';
+import { toast } from 'sonner';
 
 interface BroadcastItemProps {
   id: string;

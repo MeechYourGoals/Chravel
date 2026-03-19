@@ -482,6 +482,61 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
           </div>
         )}
 
+        {/* Error State */}
+        {loadError && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-red-300 font-medium">Failed to load programs</p>
+              <p className="text-red-400/80 text-sm mt-1">{loadError}</p>
+              <button
+                onClick={() => {
+                  setLoadError(null);
+                  setIsLoading(true);
+                  loyaltyProgramService
+                    .getUserPrograms(userId)
+                    .then(programs => {
+                      setAirlinePrograms(
+                        programs
+                          .filter(p => p.program_type === 'airline')
+                          .map(loyaltyProgramService.toAirlineProgram),
+                      );
+                      setHotelPrograms(
+                        programs
+                          .filter(p => p.program_type === 'hotel')
+                          .map(loyaltyProgramService.toHotelProgram),
+                      );
+                      setRentalCarPrograms(
+                        programs
+                          .filter(p => p.program_type === 'rental')
+                          .map(loyaltyProgramService.toRentalCarProgram),
+                      );
+                      setIsLoading(false);
+                    })
+                    .catch(() => {
+                      setLoadError('Still unable to load programs. Please try again later.');
+                      setIsLoading(false);
+                    });
+                }}
+                className="mt-2 text-sm text-glass-orange hover:underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Form */}
+        {editingProgram && !showAddForm && (
+          <div className="mb-6">
+            <AddProgramForm
+              type={activeTab}
+              onSave={(data: any) => handleEditProgram(editingProgram, data)}
+              onCancel={() => setEditingProgram(null)}
+            />
+          </div>
+        )}
+
         {/* Programs Grid */}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -495,9 +550,7 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
                 key={program.id}
                 program={program}
                 type={activeTab}
-                onEdit={() => {
-                  /* TODO: Implement edit */
-                }}
+                onEdit={() => setEditingProgram(program.id)}
                 onDelete={() => handleDeleteProgram(program.id)}
               />
             ))}

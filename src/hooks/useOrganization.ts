@@ -292,5 +292,7 @@ export const useOrganization = () => {
     inviteMember,
     removeMember,
     updateMemberRole,
+    deleteOrganization,
+    transferOwnership,
   };
 };

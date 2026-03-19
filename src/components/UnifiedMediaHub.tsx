@@ -147,10 +147,15 @@ export const UnifiedMediaHub = React.memo(
       if (filteredMediaItems.length === 0) {
         return (
           <div className="text-center py-12">
-            <Camera className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No Media Yet</h3>
-            <p className="text-muted-foreground">
-              Photos, videos, and files shared in chat or uploaded will appear here automatically
+            <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Camera className="h-7 w-7 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-1">No Media Yet</h3>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+              Photos, videos, and files shared in chat or uploaded will appear here automatically.
+            </p>
+            <p className="text-muted-foreground/60 text-xs mt-2">
+              Tip: Share photos in the group chat to build your trip gallery
             </p>
           </div>
         );

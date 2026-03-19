@@ -183,6 +183,79 @@ export const useTripRoles = ({ tripId, enabled = true }: UseTripRolesProps) => {
     [tripId, isDemoMode, user?.id, promoteInvalidate],
   );
 
+  const updateRole = useCallback(
+    async (
+      roleId: string,
+      updates: {
+        roleName?: string;
+        permissionLevel?: 'view' | 'edit' | 'admin';
+        featurePermissions?: TripRole['featurePermissions'];
+      },
+    ) => {
+      setIsProcessing(true);
+
+      try {
+        if (isDemoMode) {
+          const existingRoles = MockRolesService.getRolesForTrip(tripId) || [];
+          const updatedRoles = existingRoles.map(r => {
+            if (r.id !== roleId) return r;
+            return {
+              ...r,
+              ...(updates.roleName !== undefined ? { roleName: updates.roleName } : {}),
+              ...(updates.permissionLevel !== undefined
+                ? { permissionLevel: updates.permissionLevel }
+                : {}),
+              ...(updates.featurePermissions !== undefined
+                ? { featurePermissions: updates.featurePermissions }
+                : {}),
+              updatedAt: new Date().toISOString(),
+            };
+          });
+
+          localStorage.setItem(
+            'demo_pro_trip_roles',
+            JSON.stringify({
+              ...JSON.parse(localStorage.getItem('demo_pro_trip_roles') || '{}'),
+              [tripId]: updatedRoles,
+            }),
+          );
+
+          toast.success('Role updated successfully');
+          await promoteInvalidate();
+          return { success: true, message: 'Role updated' };
+        }
+
+        const updatePayload: Record<string, unknown> = {
+          updated_at: new Date().toISOString(),
+        };
+        if (updates.roleName !== undefined) {
+          updatePayload.role_name = updates.roleName;
+        }
+        if (updates.permissionLevel !== undefined) {
+          updatePayload.permission_level = updates.permissionLevel;
+        }
+        if (updates.featurePermissions !== undefined) {
+          updatePayload.feature_permissions = updates.featurePermissions;
+        }
+
+        // RLS on trip_roles enforces that only trip admins can update
+        const { error } = await supabase.from('trip_roles').update(updatePayload).eq('id', roleId);
+
+        if (error) throw error;
+
+        toast.success('Role updated successfully');
+        await promoteInvalidate();
+        return { success: true, message: 'Role updated' };
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to update role');
+        throw err;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [tripId, isDemoMode, promoteInvalidate],
+  );
+
   const deleteRole = useCallback(
     async (roleId: string) => {
       setIsProcessing(true);
