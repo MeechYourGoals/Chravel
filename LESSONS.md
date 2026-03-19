@@ -143,6 +143,14 @@
 - **Provenance:** March 2026 demo trip cover resilience hardening.
 - **Confidence:** high
 
+### Event file viewers should prefer signed URLs over direct `getPublicUrl` on `trip-media`
+- **Tip:** For event agenda/line-up file surfaces backed by `trip-media`, resolve file URLs with `createSignedUrl` first and only fall back to `getPublicUrl`; storage security hardening can make direct public URLs return opaque 404 responses like `Bucket not found`.
+- **Applies when:** Rendering downloadable/viewable files from protected Supabase Storage buckets in authenticated UI flows.
+- **Avoid when:** Truly public, unauthenticated assets that must be shareable outside authenticated sessions.
+- **Evidence:** Line-up tab uploads rendered broken previews and downloads failed with `{"statusCode":"404","error":"Bucket not found"}` because `useEventLineupFiles` and `useEventAgendaFiles` used `getPublicUrl` only.
+- **Provenance:** March 2026 Line-up save/upload forensic fix (`useEventLineupFiles`, `useEventAgendaFiles`, `storageObjectUrl`).
+- **Confidence:** high
+
 ### CSS multi-background layering is a low-risk fallback for background-image cards
 - **Tip:** When cards use CSS `background-image` (not `<img>`), use layered values (`url(primary), url(fallback)`) via a shared helper to get graceful visual fallback without introducing extra runtime state/effects.
 - **Applies when:** Hero/media backgrounds are rendered as `div` overlays and you need fallback parity across desktop + mobile card variants.

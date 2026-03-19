@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getUploadContentType } from '@/utils/mime';
 import type { AgendaFile } from '@/types/events';
 import { withTimeout } from '@/utils/timeout';
+import { resolveStorageObjectUrl } from '@/utils/storageObjectUrl';
 
 const MAX_AGENDA_FILES = 5;
 const MAX_FILE_SIZE_MB = 25;
@@ -83,24 +84,29 @@ export function useEventAgendaFiles({ eventId, enabled = true }: UseEventAgendaF
       return;
     }
 
-    const mapped: AgendaFile[] = data
-      .filter(f => f.name !== '.emptyFolderPlaceholder')
-      .map(f => {
-        const storagePath = `${prefix}/${f.name}`;
-        const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(storagePath);
+    const mapped: AgendaFile[] = await Promise.all(
+      data
+        .filter(f => f.name !== '.emptyFolderPlaceholder')
+        .map(async f => {
+          const storagePath = `${prefix}/${f.name}`;
+          const resolvedUrl = await resolveStorageObjectUrl({
+            bucket: 'trip-media',
+            path: storagePath,
+          });
 
-        return {
-          id: f.id ?? f.name,
-          name: parseOriginalName(f.name),
-          storagePath,
-          publicUrl: urlData.publicUrl,
-          mimeType:
-            ((f.metadata as Record<string, unknown>)?.mimetype as string) ??
-            'application/octet-stream',
-          size: ((f.metadata as Record<string, unknown>)?.size as number) ?? 0,
-          createdAt: f.created_at ?? '',
-        };
-      });
+          return {
+            id: f.id ?? f.name,
+            name: parseOriginalName(f.name),
+            storagePath,
+            publicUrl: resolvedUrl,
+            mimeType:
+              ((f.metadata as Record<string, unknown>)?.mimetype as string) ??
+              'application/octet-stream',
+            size: ((f.metadata as Record<string, unknown>)?.size as number) ?? 0,
+            createdAt: f.created_at ?? '',
+          };
+        }),
+    );
 
     setFiles(mapped);
     setIsLoading(false);
