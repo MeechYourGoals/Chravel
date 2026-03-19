@@ -160,7 +160,9 @@ export async function unregister(): Promise<void> {
   try {
     await PushNotifications.removeAllListeners();
   } catch (error) {
-    console.error('[NativePush] Unregister failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush unregister failed
+    }
   }
 }
 
