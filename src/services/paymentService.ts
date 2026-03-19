@@ -474,22 +474,36 @@ export const paymentService = {
         userBalances[split.debtor_user_id] -= parseFloat(split.amount_owed.toString());
       });
 
+      // Greedy min-transaction settlement: pair largest debtor with largest creditor
+      // until all balances are zeroed. Mutates local copies only.
       const settlementSuggestions: Array<{ from: string; to: string; amount: number }> = [];
-      const debtors = Object.entries(userBalances).filter(([_, balance]) => balance < 0);
-      const creditors = Object.entries(userBalances).filter(([_, balance]) => balance > 0);
+      const debtors = Object.entries(userBalances)
+        .filter(([_, balance]) => balance < 0)
+        .map(([id, balance]) => ({ id, remaining: Math.abs(balance) }));
+      const creditors = Object.entries(userBalances)
+        .filter(([_, balance]) => balance > 0)
+        .map(([id, balance]) => ({ id, remaining: balance }));
 
-      debtors.forEach(([debtorId, debtorBalance]) => {
-        creditors.forEach(([creditorId, creditorBalance]) => {
-          if (Math.abs(debtorBalance) > 0 && creditorBalance > 0) {
-            const amount = Math.min(Math.abs(debtorBalance), creditorBalance);
-            settlementSuggestions.push({
-              from: debtorId,
-              to: creditorId,
-              amount,
-            });
-          }
-        });
-      });
+      // Sort descending so we pair the biggest amounts first
+      debtors.sort((a, b) => b.remaining - a.remaining);
+      creditors.sort((a, b) => b.remaining - a.remaining);
+
+      let di = 0;
+      let ci = 0;
+      while (di < debtors.length && ci < creditors.length) {
+        const amount = Math.min(debtors[di].remaining, creditors[ci].remaining);
+        if (amount > 0.01) {
+          settlementSuggestions.push({
+            from: debtors[di].id,
+            to: creditors[ci].id,
+            amount: Math.round(amount * 100) / 100,
+          });
+        }
+        debtors[di].remaining -= amount;
+        creditors[ci].remaining -= amount;
+        if (debtors[di].remaining < 0.01) di++;
+        if (creditors[ci].remaining < 0.01) ci++;
+      }
 
       return {
         totalExpenses,

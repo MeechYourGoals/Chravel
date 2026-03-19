@@ -29,7 +29,7 @@ export async function markMessageAsRead(
   );
 
   if (error) {
-    console.error('Failed to mark message as read:', error);
+    if (import.meta.env.DEV) console.error('Failed to mark message as read:', error);
     throw error;
   }
 }
@@ -54,7 +54,7 @@ export async function markMessagesAsRead(
   });
 
   if (error) {
-    console.error('Failed to mark messages as read:', error);
+    if (import.meta.env.DEV) console.error('Failed to mark messages as read:', error);
     throw error;
   }
 }

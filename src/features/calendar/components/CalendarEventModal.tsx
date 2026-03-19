@@ -8,12 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AddToCalendarData, CalendarEvent } from '@/types/calendar';
 import { calendarService } from '@/services/calendarService';
 import { toast } from 'sonner';
+import { RecurrenceInput } from './RecurrenceInput';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface CalendarEventModalProps {
   isOpen: boolean;
@@ -279,6 +287,61 @@ export const CalendarEventModal = ({
               placeholder="Additional details..."
               rows={2}
             />
+          </div>
+
+          {/* Recurrence */}
+          <RecurrenceInput
+            value={formData.recurrence_rule}
+            onChange={rrule => setFormData({ ...formData, recurrence_rule: rrule })}
+          />
+
+          {/* Timezone */}
+          <div>
+            <Label className="flex items-center gap-1.5 mb-1.5">
+              <Globe className="h-3.5 w-3.5" />
+              Timezone
+            </Label>
+            <Select
+              value={formData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+              onValueChange={tz => setFormData({ ...formData, timezone: tz })}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {COMMON_TIMEZONES.map(tz => (
+                  <SelectItem key={tz} value={tz}>
+                    {tz.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Reminder */}
+          <div>
+            <Label>Reminder</Label>
+            <Select
+              value={formData.reminder_minutes?.toString() || 'none'}
+              onValueChange={val =>
+                setFormData({
+                  ...formData,
+                  reminder_minutes: val === 'none' ? undefined : parseInt(val, 10),
+                })
+              }
+            >
+              <SelectTrigger className="w-full mt-1.5">
+                <SelectValue placeholder="No reminder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No reminder</SelectItem>
+                <SelectItem value="5">5 minutes before</SelectItem>
+                <SelectItem value="15">15 minutes before</SelectItem>
+                <SelectItem value="30">30 minutes before</SelectItem>
+                <SelectItem value="60">1 hour before</SelectItem>
+                <SelectItem value="1440">1 day before</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center space-x-2">
