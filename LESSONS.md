@@ -55,6 +55,14 @@
 - **Provenance:** March 2026 Event cover photo homepage refresh regression fix
 - **Confidence:** high
 
+### Post-create follow-up writes should reuse shared mutation hooks
+- **Tip:** When a flow performs a second write immediately after creation (for example uploading a cover image after trip creation), route that write through the same shared mutation hook used elsewhere instead of calling `supabase.from(...).update(...)` directly in the component. This preserves React Query invalidation behavior and keeps list surfaces (homepage cards) fresh.
+- **Applies when:** Multi-step create flows with attachment/upload follow-up writes
+- **Avoid when:** The write path is already encapsulated in a shared mutation with cache invalidation
+- **Evidence:** `CreateTripModal` cover-image update used a direct table update, which bypassed `useTrips` invalidation and left homepage trip cards stale until manual refresh. Switching to `useTrips.updateTrip(...)` fixed immediate refresh.
+- **Provenance:** March 2026 event trip cover photo stale homepage fix
+- **Confidence:** high
+
 ## Recovery Tips
 
 ### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug

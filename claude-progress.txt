@@ -85,3 +85,9 @@
 - Added focused regression test `src/lib/__tests__/conciergeInvalidation.test.ts` to lock tool-to-query-key mapping, including `setTripHeaderImage -> ['trips']`.
 - Verification: `npm test -- --run src/lib/__tests__/conciergeInvalidation.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
 - Next follow-up: if we add more trip-mutating concierge tools, keep this central mapping in sync to avoid silent stale UI on dashboard surfaces.
+2026-03-19 — CreateTripModal cover photo cache invalidation follow-up
+- Root-caused the original event-cover stale-homepage report to a direct `supabase.from('trips').update({ cover_image_url })` call in `CreateTripModal` after upload, which bypassed the shared `useTrips` mutation invalidation path.
+- Updated `CreateTripModal` to persist uploaded cover URLs via `useTrips.updateTrip(...)` and fail the upload step if the shared mutation returns false.
+- Added focused regression test `src/components/__tests__/CreateTripModal.coverPhoto.test.tsx` to enforce this contract and guard against reintroducing direct table updates in this flow.
+- Verification: `npm test -- --run src/components/__tests__/CreateTripModal.coverPhoto.test.tsx src/lib/__tests__/conciergeInvalidation.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
+- Next follow-up: optionally quiet noisy `act(...)` warnings in this test by tightening async flushes once broader test harness cleanup is prioritized.
