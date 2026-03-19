@@ -85,3 +85,10 @@
 - Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
 - Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
 - Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.
+2026-03-19 — Event cover photo homepage refresh regression fix (AI concierge path)
+- Root-caused stale Event/Trip card cover photos on homepage to missing client cache invalidation after concierge `setTripHeaderImage` tool writes.
+- Confirmed `useUserTripsRealtime` only listens to `trip_join_requests` and `trip_members` (not `trips` updates), so this write path needs explicit `['trips']` invalidation.
+- Added shared concierge invalidation mapping utility and wired `AIConciergeChat` to treat `setTripHeaderImage` as a write action that invalidates `['trips']`.
+- Added focused regression test `src/lib/__tests__/conciergeInvalidation.test.ts` to lock tool-to-query-key mapping, including `setTripHeaderImage -> ['trips']`.
+- Verification: `npm test -- --run src/lib/__tests__/conciergeInvalidation.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
+- Next follow-up: if we add more trip-mutating concierge tools, keep this central mapping in sync to avoid silent stale UI on dashboard surfaces.

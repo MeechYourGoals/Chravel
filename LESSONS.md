@@ -55,6 +55,14 @@
 - **Provenance:** Shared mutation audit Stage B, March 2026
 - **Confidence:** high
 
+### AI concierge write tools need explicit React Query invalidation mapping per affected surface
+- **Tip:** Treat each concierge write tool as a mutation source that must map to cache keys for every dependent UI surface (trip detail tabs and dashboard lists). Keep this mapping centralized so new tools cannot silently skip cache refresh.
+- **Applies when:** Adding/updating concierge tools that mutate trip data (`execute-concierge-tool`, streamed `onFunctionCall` handlers)
+- **Avoid when:** Read-only tools with no state mutation
+- **Evidence:** `setTripHeaderImage` successfully updated `trips.cover_image_url` but homepage cards stayed stale because `AIConciergeChat` invalidated other write actions yet omitted `['trips']` for this tool; adding centralized mapping + regression test restored refresh behavior.
+- **Provenance:** March 2026 Event cover photo homepage refresh regression fix
+- **Confidence:** high
+
 ## Recovery Tips
 
 ### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug
