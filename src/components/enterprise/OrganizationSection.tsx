@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building, Camera, Upload, Plus, AlertCircle } from 'lucide-react';
+import { Building, Camera, Upload, Plus, AlertCircle, Check, Loader2 } from 'lucide-react';
 
 interface OrganizationData {
   id: string;
@@ -66,7 +66,8 @@ export const OrganizationSection = ({
                 <button
                   type="button"
                   onClick={onCreateOrganization}
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm text-center"
+                  aria-label="Create a new organization"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-glass-orange hover:bg-glass-orange/80 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm text-center min-h-[44px]"
                 >
                   <Plus size={16} className="flex-shrink-0" />
                   Create Organization
@@ -84,14 +85,16 @@ export const OrganizationSection = ({
               </div>
               <button
                 type="button"
-                className="absolute -bottom-2 -right-2 bg-glass-orange hover:bg-glass-orange/80 text-white p-2 rounded-full transition-colors"
+                aria-label="Change organization logo"
+                className="absolute -bottom-2 -right-2 bg-glass-orange hover:bg-glass-orange/80 text-white p-2 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <Camera size={16} />
               </button>
             </div>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors"
+              aria-label="Upload organization logo"
+              className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2 rounded-lg transition-colors min-h-[44px]"
             >
               <Upload size={16} className="flex-shrink-0" />
               Upload Logo
@@ -130,6 +133,11 @@ interface OrganizationCardProps {
   }) => Promise<void>;
 }
 
+/** Simple email validation */
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps) => {
   const [contactName, setContactName] = useState(organization.contactName || '');
   const [contactEmail, setContactEmail] = useState(organization.contactEmail || '');
@@ -140,6 +148,11 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
   const [billingEmail, setBillingEmail] = useState(organization.billingEmail || '');
   const [description, setDescription] = useState('');
 
+  // Validation and save state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   useEffect(() => {
     setContactName(organization.contactName || '');
     setContactEmail(organization.contactEmail || '');
@@ -149,6 +162,63 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
     setDisplayName(organization.displayName || '');
     setBillingEmail(organization.billingEmail || '');
   }, [organization]);
+
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!orgName.trim()) {
+      errors.orgName = 'Organization name is required';
+    }
+
+    if (!billingEmail.trim()) {
+      errors.billingEmail = 'Billing email is required';
+    } else if (!isValidEmail(billingEmail.trim())) {
+      errors.billingEmail = 'Please enter a valid email address';
+    }
+
+    if (contactEmail.trim() && !isValidEmail(contactEmail.trim())) {
+      errors.contactEmail = 'Please enter a valid contact email';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    if (!validate()) return;
+
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
+      await onSave({
+        name: orgName.trim(),
+        displayName: displayName.trim() || orgName.trim(),
+        billingEmail: billingEmail.trim(),
+        contactName: contactName.trim(),
+        contactEmail: contactEmail.trim(),
+        contactPhone: contactPhone.trim(),
+        contactJobTitle: contactJobTitle.trim(),
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (_saveError) {
+      // Save error handled by parent via toast
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Clear validation error on field change
+  const clearError = (field: string) => {
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
 
   return (
     <div className="relative bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 min-w-0">
@@ -162,40 +232,98 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
         <h4 className="text-base font-semibold text-white mb-3">Organization Details</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Organization Name</label>
+            <label
+              className="block text-sm text-gray-300 mb-2"
+              htmlFor={`org-name-${organization.id}`}
+            >
+              Organization Name <span className="text-red-400">*</span>
+            </label>
             <input
+              id={`org-name-${organization.id}`}
               type="text"
               value={orgName}
-              onChange={e => setOrgName(e.target.value)}
+              onChange={e => {
+                setOrgName(e.target.value);
+                clearError('orgName');
+              }}
               placeholder="Enter organization name"
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              aria-required="true"
+              aria-invalid={!!validationErrors.orgName}
+              aria-describedby={
+                validationErrors.orgName ? `org-name-error-${organization.id}` : undefined
+              }
+              className={`w-full bg-gray-800/50 border ${validationErrors.orgName ? 'border-red-500' : 'border-gray-600'} text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 min-h-[44px]`}
             />
+            {validationErrors.orgName && (
+              <p
+                id={`org-name-error-${organization.id}`}
+                className="text-xs text-red-400 mt-1"
+                role="alert"
+              >
+                {validationErrors.orgName}
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Display Name</label>
+            <label
+              className="block text-sm text-gray-300 mb-2"
+              htmlFor={`display-name-${organization.id}`}
+            >
+              Display Name
+            </label>
             <input
+              id={`display-name-${organization.id}`}
               type="text"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
               placeholder="Enter display name"
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 min-h-[44px]"
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm text-gray-300 mb-2">Billing Email</label>
+            <label
+              className="block text-sm text-gray-300 mb-2"
+              htmlFor={`billing-email-${organization.id}`}
+            >
+              Billing Email <span className="text-red-400">*</span>
+            </label>
             <input
+              id={`billing-email-${organization.id}`}
               type="email"
               value={billingEmail}
-              onChange={e => setBillingEmail(e.target.value)}
+              onChange={e => {
+                setBillingEmail(e.target.value);
+                clearError('billingEmail');
+              }}
               placeholder="Enter billing email"
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              aria-required="true"
+              aria-invalid={!!validationErrors.billingEmail}
+              aria-describedby={
+                validationErrors.billingEmail ? `billing-email-error-${organization.id}` : undefined
+              }
+              className={`w-full bg-gray-800/50 border ${validationErrors.billingEmail ? 'border-red-500' : 'border-gray-600'} text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 min-h-[44px]`}
             />
+            {validationErrors.billingEmail && (
+              <p
+                id={`billing-email-error-${organization.id}`}
+                className="text-xs text-red-400 mt-1"
+                role="alert"
+              >
+                {validationErrors.billingEmail}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="mt-3">
-          <label className="block text-sm text-gray-300 mb-1">Organization Description</label>
+          <label
+            className="block text-sm text-gray-300 mb-1"
+            htmlFor={`description-${organization.id}`}
+          >
+            Organization Description
+          </label>
           <textarea
+            id={`description-${organization.id}`}
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="Describe your organization's mission and focus..."
@@ -213,43 +341,83 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Contact Name</label>
+            <label
+              className="block text-sm text-gray-300 mb-2"
+              htmlFor={`contact-name-${organization.id}`}
+            >
+              Contact Name
+            </label>
             <input
+              id={`contact-name-${organization.id}`}
               type="text"
               value={contactName}
               onChange={e => setContactName(e.target.value)}
               placeholder="John Smith"
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 min-h-[44px]"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Contact Email</label>
+            <label
+              className="block text-sm text-gray-300 mb-2"
+              htmlFor={`contact-email-${organization.id}`}
+            >
+              Contact Email
+            </label>
             <input
+              id={`contact-email-${organization.id}`}
               type="email"
               value={contactEmail}
-              onChange={e => setContactEmail(e.target.value)}
+              onChange={e => {
+                setContactEmail(e.target.value);
+                clearError('contactEmail');
+              }}
               placeholder="john@company.com"
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              aria-invalid={!!validationErrors.contactEmail}
+              aria-describedby={
+                validationErrors.contactEmail ? `contact-email-error-${organization.id}` : undefined
+              }
+              className={`w-full bg-gray-800/50 border ${validationErrors.contactEmail ? 'border-red-500' : 'border-gray-600'} text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 min-h-[44px]`}
             />
+            {validationErrors.contactEmail && (
+              <p
+                id={`contact-email-error-${organization.id}`}
+                className="text-xs text-red-400 mt-1"
+                role="alert"
+              >
+                {validationErrors.contactEmail}
+              </p>
+            )}
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Job Title</label>
+            <label
+              className="block text-sm text-gray-300 mb-2"
+              htmlFor={`job-title-${organization.id}`}
+            >
+              Job Title
+            </label>
             <input
+              id={`job-title-${organization.id}`}
               type="text"
               value={contactJobTitle}
               onChange={e => setContactJobTitle(e.target.value)}
               placeholder="e.g. Travel Coordinator"
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 min-h-[44px]"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-300 mb-2">Contact Phone (Optional)</label>
+            <label
+              className="block text-sm text-gray-300 mb-2"
+              htmlFor={`contact-phone-${organization.id}`}
+            >
+              Contact Phone (Optional)
+            </label>
             <input
+              id={`contact-phone-${organization.id}`}
               type="tel"
               value={contactPhone}
               onChange={e => setContactPhone(e.target.value)}
               placeholder="+1 (555) 123-4567"
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50 min-h-[44px]"
             />
           </div>
         </div>
@@ -258,20 +426,28 @@ const OrganizationCard = ({ organization, badge, onSave }: OrganizationCardProps
       {onSave && (
         <button
           type="button"
-          onClick={() =>
-            onSave({
-              name: orgName,
-              displayName,
-              billingEmail,
-              contactName,
-              contactEmail,
-              contactPhone,
-              contactJobTitle,
-            })
-          }
-          className="bg-glass-orange hover:bg-glass-orange/80 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+          onClick={handleSave}
+          disabled={isSaving}
+          aria-label={isSaving ? 'Saving organization settings' : 'Save organization settings'}
+          className={`flex items-center gap-2 ${
+            saveSuccess
+              ? 'bg-green-600 hover:bg-green-500'
+              : 'bg-glass-orange hover:bg-glass-orange/80'
+          } text-white px-6 py-2 rounded-lg font-medium transition-colors min-h-[44px] disabled:opacity-50`}
         >
-          Save Changes
+          {isSaving ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Saving...
+            </>
+          ) : saveSuccess ? (
+            <>
+              <Check size={16} />
+              Saved!
+            </>
+          ) : (
+            'Save Changes'
+          )}
         </button>
       )}
     </div>

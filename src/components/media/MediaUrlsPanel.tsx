@@ -121,14 +121,14 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('[MediaUrlsPanel] Supabase error:', fetchError);
+        if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Supabase error:', fetchError);
         setError('Failed to load links. Please try again.');
         return;
       }
 
       setLinks((data || []).map(mapRowToLink));
     } catch (err) {
-      console.error('[MediaUrlsPanel] Error fetching links:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Error fetching links:', err);
       setError('Failed to load links. Please try again.');
     } finally {
       setLoading(false);
@@ -232,7 +232,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       // Realtime will update the list, but also do a manual refresh for reliability
       await fetchLinks();
     } catch (err) {
-      console.error('[MediaUrlsPanel] Failed to add link:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Failed to add link:', err);
       toast({
         title: 'Failed to add link',
         description: err instanceof Error ? err.message : 'Please try again',
@@ -262,7 +262,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       setLinks(prev => prev.filter(l => l.id !== linkId));
       toast({ title: 'Link deleted' });
     } catch (err) {
-      console.error('[MediaUrlsPanel] Failed to delete link:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Failed to delete link:', err);
       toast({
         title: 'Failed to delete link',
         description: 'Please try again',
@@ -324,20 +324,22 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
         onPromoteToTripLink(urlData);
       }
     } catch (err) {
-      console.error('[MediaUrlsPanel] Failed to promote URL:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Failed to promote URL:', err);
     } finally {
       setPromotingLinkId(null);
     }
   };
 
   const getDomainIcon = (domain: string) => {
-    if (domain.includes('youtube')) return <Youtube className="w-4 h-4 text-red-400" />;
-    if (domain.includes('instagram')) return <Instagram className="w-4 h-4 text-pink-400" />;
+    if (domain.includes('youtube'))
+      return <Youtube className="w-4 h-4 text-red-400" aria-hidden="true" />;
+    if (domain.includes('instagram'))
+      return <Instagram className="w-4 h-4 text-pink-400" aria-hidden="true" />;
     if (domain.includes('maps.google') || domain.includes('googlemaps'))
-      return <MapPin className="w-4 h-4 text-green-400" />;
+      return <MapPin className="w-4 h-4 text-green-400" aria-hidden="true" />;
     if (domain.includes('ticketmaster') || domain.includes('eventbrite'))
-      return <Calendar className="w-4 h-4 text-purple-400" />;
-    return <Globe className="w-4 h-4 text-muted-foreground" />;
+      return <Calendar className="w-4 h-4 text-purple-400" aria-hidden="true" />;
+    return <Globe className="w-4 h-4 text-muted-foreground" aria-hidden="true" />;
   };
 
   const getDomainColor = (domain: string) => {
@@ -373,7 +375,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
   if (error) {
     return (
       <div className="text-center py-12">
-        <Globe className="mx-auto h-12 w-12 text-red-400 mb-4" />
+        <Globe className="mx-auto h-12 w-12 text-red-400 mb-4" aria-hidden="true" />
         <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Chat Links</h3>
         <p className="text-muted-foreground mb-4">{error}</p>
         <Button onClick={fetchLinks} variant="outline">
@@ -397,7 +399,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
           onClick={() => setShowAddForm(!showAddForm)}
           className="text-xs"
         >
-          <Plus className="w-4 h-4 mr-1" />+ Add Link
+          <Plus className="w-4 h-4 mr-1" aria-hidden="true" />+ Add Link
         </Button>
       </div>
 
@@ -422,7 +424,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
               disabled={isAdding || !addUrl.trim()}
               className="text-xs"
             >
-              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : 'Save'}
             </Button>
             <Button
               variant="ghost"
@@ -445,7 +447,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {/* Empty state */}
       {links.length === 0 && !showAddForm && (
         <div className="text-center py-12">
-          <Link className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <Link className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
           <h3 className="text-lg font-medium text-foreground mb-2">No Chat Links Yet</h3>
           <p className="text-muted-foreground">
             Links shared in chat will appear here automatically
@@ -457,7 +459,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {chatLinks.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MessageCircle className="w-3 h-3" />
+            <MessageCircle className="w-3 h-3" aria-hidden="true" />
             <span>From Chat ({chatLinks.length})</span>
           </div>
           {chatLinks.map(link => (
@@ -481,7 +483,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {manualLinks.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Upload className="w-3 h-3" />
+            <Upload className="w-3 h-3" aria-hidden="true" />
             <span>Added Here ({manualLinks.length})</span>
           </div>
           {manualLinks.map(link => (
@@ -547,7 +549,11 @@ function LinkCard({
         className="absolute top-2 right-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600 transition-colors"
         aria-label="Delete link"
       >
-        {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+        {isDeleting ? (
+          <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+        ) : (
+          <Trash2 className="w-3 h-3" aria-hidden="true" />
+        )}
       </button>
 
       <div className="flex items-start gap-3 pr-10">
@@ -561,7 +567,7 @@ function LinkCard({
           <h4 className="text-foreground font-medium mb-1">{link.title || link.domain}</h4>
 
           <div className="flex items-center gap-2 mb-2">
-            <Globe className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+            <Globe className="w-3 h-3 text-muted-foreground flex-shrink-0" aria-hidden="true" />
             <p className="text-xs text-muted-foreground truncate" title={link.url}>
               {truncateUrl(link.url, 50)}
             </p>
@@ -582,7 +588,7 @@ function LinkCard({
               onClick={() => window.open(link.url, '_blank')}
               className="text-xs h-8"
             >
-              <ExternalLink className="w-3 h-3 mr-1" />
+              <ExternalLink className="w-3 h-3 mr-1" aria-hidden="true" />
               Open
             </Button>
 
@@ -592,7 +598,7 @@ function LinkCard({
               onClick={() => onCopy(link.url)}
               className="text-xs h-8"
             >
-              <Copy className="w-3 h-3 mr-1" />
+              <Copy className="w-3 h-3 mr-1" aria-hidden="true" />
               Copy URL
             </Button>
 
@@ -603,7 +609,7 @@ function LinkCard({
                 disabled={isPromoting}
                 className="text-xs h-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               >
-                <Plus className="w-3 h-3 mr-1" />
+                <Plus className="w-3 h-3 mr-1" aria-hidden="true" />
                 {isPromoting ? 'Adding...' : 'Save to Explore'}
               </Button>
             )}

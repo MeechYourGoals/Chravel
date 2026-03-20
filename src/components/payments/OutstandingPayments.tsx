@@ -226,7 +226,9 @@ export const OutstandingPayments = ({
 
         setEnrichedPayments(paymentsWithSplits);
       } catch (error) {
-        console.error('Error enriching outstanding payments:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error enriching outstanding payments:', error);
+        }
         setEnrichedPayments([]);
       } finally {
         setLoading(false);
@@ -287,7 +289,9 @@ export const OutstandingPayments = ({
         onPaymentUpdated?.();
       }
     } catch (error) {
-      console.error('Error toggling split status:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error toggling split status:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to update payment status',
@@ -323,7 +327,9 @@ export const OutstandingPayments = ({
         });
       }
     } catch (error) {
-      console.error('Error deleting payment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting payment:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to delete payment',
@@ -364,7 +370,23 @@ export const OutstandingPayments = ({
   }
 
   if (enrichedPayments.length === 0) {
-    return null; // Don't show section if no outstanding payments
+    return (
+      <Card className="bg-card border border-border">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Clock size={18} className="text-yellow-500" />
+            Outstanding Payments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 text-muted-foreground">
+            <Users size={32} className="mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No outstanding payments.</p>
+            <p className="text-xs mt-1">All current expenses have been settled.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -448,6 +470,7 @@ export const OutstandingPayments = ({
                           onCheckedChange={() =>
                             handleToggleSplit(split.id, payment.id, split.is_settled)
                           }
+                          aria-label={`Mark ${split.debtor_name || 'participant'} as ${split.is_settled ? 'unpaid' : 'paid'}`}
                         />
                         <Avatar className="w-6 h-6">
                           <AvatarImage src={split.debtor_avatar} />
@@ -482,8 +505,9 @@ export const OutstandingPayments = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs"
+                      className="text-xs min-h-[44px]"
                       onClick={() => setEditingPayment(payment)}
+                      aria-label={`Edit payment: ${payment.description}`}
                     >
                       <Pencil size={14} className="mr-1" />
                       Edit
@@ -491,8 +515,9 @@ export const OutstandingPayments = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-destructive hover:text-destructive"
+                      className="text-xs text-destructive hover:text-destructive min-h-[44px]"
                       onClick={() => setDeleteConfirmId(payment.id)}
+                      aria-label={`Delete payment: ${payment.description}`}
                     >
                       <Trash2 size={14} className="mr-1" />
                       Delete

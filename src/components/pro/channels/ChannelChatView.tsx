@@ -108,7 +108,7 @@ export const ChannelChatView = ({
         onChannelChange(null);
       }
     } catch (error) {
-      console.error('Error leaving channel:', error);
+      if (import.meta.env.DEV) console.error('Error leaving channel:', error);
       toast({
         title: 'Failed to leave channel',
         description: 'An error occurred while leaving the channel',
@@ -299,7 +299,7 @@ export const ChannelChatView = ({
       setInputMessage('');
       clearReply();
     } catch (error) {
-      console.error('[ChannelChatView] Send failed:', error);
+      if (import.meta.env.DEV) console.error('[ChannelChatView] Send failed:', error);
       const mapped = mapChannelSendError(error);
       toast({
         title: mapped.title,
@@ -501,7 +501,8 @@ export const ChannelChatView = ({
           }
         }
       } catch (err) {
-        console.error('[ChannelChatView] Failed to fetch member count:', err);
+        if (import.meta.env.DEV)
+          console.error('[ChannelChatView] Failed to fetch member count:', err);
       }
     };
 
@@ -512,21 +513,51 @@ export const ChannelChatView = ({
   return (
     <>
       {/* Channel Header with Options */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-black/20">
+      <div
+        className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-black/20"
+        role="banner"
+        aria-label={`Channel ${channel.channelName}`}
+      >
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-white/80">
             #{channel.channelName.toLowerCase().replace(/\s+/g, '-')}
           </span>
-          <span className="text-xs text-white/50">
+          <span
+            className="text-xs bg-white/10 text-white/60 px-1.5 py-0.5 rounded-full"
+            aria-label={`${memberCount} ${memberCount === 1 ? 'member' : 'members'}`}
+          >
             {memberCount} {memberCount === 1 ? 'member' : 'members'}
           </span>
+          {/* Channel permission indicator */}
+          {!canPerformAction('channels', 'can_post') && (
+            <span
+              className="text-xs bg-gray-700/50 text-gray-400 px-1.5 py-0.5 rounded-full flex items-center gap-1"
+              aria-label="View-only access"
+            >
+              <Lock size={10} />
+              View only
+            </span>
+          )}
+          {channel.requiredRoleName && (
+            <span
+              className="text-xs bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded-full"
+              aria-label={`Restricted to ${channel.requiredRoleName} role`}
+            >
+              {channel.requiredRoleName}
+            </span>
+          )}
         </div>
 
         {/* Channel Options Dropdown */}
         {!isDemoChannel && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-white/10">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 hover:bg-white/10"
+                aria-label="Channel options"
+              >
                 <MoreVertical className="h-4 w-4 text-white/70" />
               </Button>
             </DropdownMenuTrigger>
@@ -546,11 +577,35 @@ export const ChannelChatView = ({
       {/* Reuse VirtualizedMessageContainer */}
       <div className="flex-1">
         {loading ? (
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="text-center text-gray-400 py-8">Loading messages...</div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-label="Loading messages">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-start gap-3 animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 bg-white/10 rounded w-24" />
+                    <div className="h-2 bg-white/5 rounded w-16" />
+                  </div>
+                  <div className="h-4 bg-white/10 rounded w-3/4" />
+                  {i % 2 === 0 && <div className="h-4 bg-white/10 rounded w-1/2" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="bg-white/5 rounded-full p-4 mb-4">
+              <Lock size={24} className="text-gray-500" />
+            </div>
+            <h3 className="text-sm font-medium text-white/80 mb-1">No messages yet</h3>
+            <p className="text-xs text-gray-400 max-w-[240px]">
+              Be the first to send a message in #
+              {channel.channelName.toLowerCase().replace(/\s+/g, '-')}
+            </p>
           </div>
         ) : (
           <VirtualizedMessageContainer
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- message shape differs between channel and chat systems
             messages={messagesWithPreviews as any}
             renderMessage={(message: any) => (
               <MessageItem
@@ -597,8 +652,12 @@ export const ChannelChatView = ({
             tripId={channel.tripId}
           />
         ) : (
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 flex items-center gap-2 text-gray-400">
-            <Lock size={16} />
+          <div
+            className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 flex items-center gap-2 text-gray-400"
+            role="status"
+            aria-label="View-only access"
+          >
+            <Lock size={16} aria-hidden="true" />
             <span className="text-sm">You have view-only access to this channel</span>
           </div>
         )}

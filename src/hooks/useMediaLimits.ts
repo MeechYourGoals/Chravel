@@ -32,7 +32,7 @@ export const useMediaLimits = (tripId: string): MediaLimits => {
         .eq('trip_id', tripId);
 
       if (error) {
-        console.error('Error fetching media counts:', error);
+        if (import.meta.env.DEV) console.error('Error fetching media counts:', error);
         return { photos: 0, videos: 0, files: 0 };
       }
 

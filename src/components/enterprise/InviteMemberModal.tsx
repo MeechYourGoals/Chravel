@@ -20,12 +20,14 @@ interface InviteMemberModalProps {
   organizationId: string;
 }
 
+type OrgRole = 'admin' | 'member';
+
 export const InviteMemberModal = ({ open, onClose, organizationId }: InviteMemberModalProps) => {
   const { inviteMember } = useOrganization();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'member'>('member');
+  const [role, setRole] = useState<OrgRole>('member');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,47 +64,54 @@ export const InviteMemberModal = ({ open, onClose, organizationId }: InviteMembe
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-gray-900 border-white/10">
+      <DialogContent
+        className="sm:max-w-md bg-gray-900 border-white/10"
+        aria-label="Invite team member"
+      >
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <Mail size={20} className="text-glass-orange" />
             Invite Team Member
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" aria-label="Invite member form">
           <div>
-            <Label htmlFor="email" className="text-gray-300">
+            <Label htmlFor="invite-email" className="text-gray-300">
               Email Address
             </Label>
             <Input
-              id="email"
+              id="invite-email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="bg-gray-800/50 border-gray-600 text-white"
+              className="bg-gray-800/50 border-gray-600 text-white min-h-[44px]"
               placeholder="colleague@example.com"
+              aria-label="Invitee email address"
               required
             />
           </div>
 
           <div>
-            <Label htmlFor="role" className="text-gray-300">
+            <Label htmlFor="invite-role" className="text-gray-300">
               Role
             </Label>
-            <Select value={role} onValueChange={v => setRole(v as 'admin' | 'member')}>
-              <SelectTrigger className="bg-gray-800/50 border-gray-600 text-white">
+            <Select value={role} onValueChange={v => setRole(v as OrgRole)}>
+              <SelectTrigger
+                className="bg-gray-800/50 border-gray-600 text-white min-h-[44px]"
+                aria-label="Select member role"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="member" className="text-white">
+                <SelectItem value="member" className="text-white min-h-[44px]">
                   Member
                 </SelectItem>
-                <SelectItem value="admin" className="text-white">
+                <SelectItem value="admin" className="text-white min-h-[44px]">
                   Admin
                 </SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 mt-1" id="role-description">
               {role === 'admin'
                 ? 'Can manage members and organization settings'
                 : 'Can view and participate in trips'}
@@ -114,15 +123,17 @@ export const InviteMemberModal = ({ open, onClose, organizationId }: InviteMembe
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1"
+              className="flex-1 min-h-[44px]"
               disabled={loading}
+              aria-label="Cancel invitation"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-glass-orange hover:bg-glass-orange/80"
+              className="flex-1 bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
               disabled={loading}
+              aria-label={loading ? 'Sending invitation' : 'Send invitation'}
             >
               {loading ? (
                 <>

@@ -150,6 +150,10 @@
       "destination": "/api/invite-preview?code=:code"
     },
     {
+      "source": "/t/:tripId",
+      "destination": "/api/trip-preview?tripId=:tripId"
+    },
+    {
       "source": "/trip/:tripId/preview",
       "destination": "/api/trip-preview?tripId=:tripId"
     },

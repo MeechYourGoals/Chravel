@@ -116,7 +116,7 @@ export const BulkRoleAssignmentModal = ({
     // Find the role ID from availableRoles
     const roleRecord = availableRoles.find(r => r.roleName === selectedRole.trim());
     if (!roleRecord) {
-      console.error('Role not found in availableRoles:', selectedRole);
+      if (import.meta.env.DEV) console.error('Role not found in availableRoles:', selectedRole);
       setResult({ success: false, assignedCount: 0 });
       return;
     }

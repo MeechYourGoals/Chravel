@@ -40,7 +40,16 @@ export const Broadcast = ({
   });
 
   const getCategoryColors = () => {
-    return 'bg-orange-500 border-orange-600/30';
+    switch (category) {
+      case 'urgent':
+      case 'emergency':
+        return 'bg-red-600/20 border-red-500/40';
+      case 'logistics':
+        return 'bg-yellow-600/20 border-yellow-500/40';
+      case 'chill':
+      default:
+        return 'bg-blue-600/20 border-blue-500/40';
+    }
   };
 
   const formatTime = (date: Date) => {

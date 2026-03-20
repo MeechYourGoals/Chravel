@@ -128,8 +128,9 @@ export function useShareAsset(tripId: string) {
               }
             }
           } catch (parseError) {
-            // Silently fail parsing - don't interrupt upload flow
-            console.warn('[useShareAsset] Content parsing failed:', parseError);
+            if (import.meta.env.DEV) {
+              console.warn('[useShareAsset] Content parsing failed:', parseError);
+            }
           }
         }
 
@@ -176,7 +177,9 @@ export function useShareAsset(tripId: string) {
               });
             }
           } catch (parseError) {
-            console.warn('[useShareAsset] Document parsing failed:', parseError);
+            if (import.meta.env.DEV) {
+              console.warn('[useShareAsset] Document parsing failed:', parseError);
+            }
           }
         }
 
@@ -281,7 +284,9 @@ export function useShareAsset(tripId: string) {
         const result = await shareFile(kind, file);
         results.push(result);
       } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
+        if (import.meta.env.DEV) {
+          console.error(`Failed to upload ${file.name}:`, error);
+        }
       }
     }
 

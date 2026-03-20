@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar as CalendarComponent } from '../ui/calendar';
 import { useTripTasks } from '../../hooks/useTripTasks';
 import { TripTask } from '../../types/tasks';
+import { useToast } from '../../hooks/use-toast';
 
 import { CollaboratorSelector } from './CollaboratorSelector';
 import { format } from 'date-fns';
@@ -41,6 +42,7 @@ export const TaskCreateForm = ({
   );
 
   const { createTaskMutation, updateTaskMutation } = useTripTasks(tripId);
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +68,14 @@ export const TaskCreateForm = ({
             onClose();
           },
           onError: (error: unknown) => {
-            console.error('Task update failed:', error);
+            if (import.meta.env.DEV) {
+              console.error('Task update failed:', error);
+            }
+            toast({
+              title: 'Update failed',
+              description: 'Could not update the task. Please try again.',
+              variant: 'destructive',
+            });
           },
         },
       );
@@ -83,7 +92,14 @@ export const TaskCreateForm = ({
         onClose();
       },
       onError: (error: unknown) => {
-        console.error('Task creation failed:', error);
+        if (import.meta.env.DEV) {
+          console.error('Task creation failed:', error);
+        }
+        toast({
+          title: 'Creation failed',
+          description: 'Could not create the task. Please try again.',
+          variant: 'destructive',
+        });
       },
     });
   };
@@ -113,11 +129,12 @@ export const TaskCreateForm = ({
           </Label>
           <Input
             id="task-title"
+            aria-label="Task title"
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="What needs to be done?"
             maxLength={140}
-            className="bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500"
+            className="bg-glass-slate-bg border-glass-slate-border text-white placeholder-gray-500 min-h-[44px]"
             autoFocus={!isInlineEmptyState}
           />
           <div className="text-xs text-gray-500 text-right">{title.length}/140</div>
@@ -130,6 +147,7 @@ export const TaskCreateForm = ({
           </Label>
           <Textarea
             id="task-description"
+            aria-label="Task description"
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="Add more details..."
@@ -144,7 +162,8 @@ export const TaskCreateForm = ({
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full justify-start text-left bg-glass-slate-bg border-glass-slate-border text-white hover:bg-glass-slate-card"
+                aria-label="Set due date"
+                className="w-full justify-start text-left bg-glass-slate-bg border-glass-slate-border text-white hover:bg-glass-slate-card min-h-[44px]"
               >
                 <Calendar size={16} className="mr-2" />
                 {dueDate ? format(dueDate, 'PPP') : 'Set due date'}
@@ -204,7 +223,7 @@ export const TaskCreateForm = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 border-glass-slate-border text-gray-300 hover:bg-glass-slate-bg hover:text-white"
+              className="flex-1 border-glass-slate-border text-gray-300 hover:bg-glass-slate-bg hover:text-white min-h-[44px]"
             >
               Cancel
             </Button>
@@ -212,7 +231,7 @@ export const TaskCreateForm = ({
           <Button
             type="submit"
             disabled={!title.trim() || createTaskMutation.isPending || updateTaskMutation.isPending}
-            className="flex-1"
+            className="flex-1 min-h-[44px]"
           >
             {isEditMode
               ? updateTaskMutation.isPending

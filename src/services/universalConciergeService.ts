@@ -85,7 +85,9 @@ export class UniversalConciergeService {
       if (error) throw error;
       return data?.results || [];
     } catch (error) {
-      console.error('Search error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Search error:', error);
+      }
       return this.getFallbackSearchResults(query, tripId);
     }
   }
@@ -192,7 +194,9 @@ export class UniversalConciergeService {
           );
           ContextCacheService.set(tripContext.tripId, comprehensiveContext);
         } catch (contextError) {
-          console.error('Failed to build comprehensive context, using fallback:', contextError);
+          if (import.meta.env.DEV) {
+            console.error('Failed to build comprehensive context, using fallback:', contextError);
+          }
           comprehensiveContext = tripContext as any; // Use original context as fallback
         }
       }
@@ -211,12 +215,16 @@ export class UniversalConciergeService {
         );
 
         if (error) {
-          console.error('Edge function invocation error:', error);
+          if (import.meta.env.DEV) {
+            console.error('Edge function invocation error:', error);
+          }
           throw error;
         }
 
         if (!data) {
-          console.error('Edge function returned no data');
+          if (import.meta.env.DEV) {
+            console.error('Edge function returned no data');
+          }
           throw new Error('No response from edge function');
         }
 
@@ -226,7 +234,9 @@ export class UniversalConciergeService {
           isFromFallback: false,
         };
       } catch (edgeFunctionError) {
-        console.error('Edge function failed, falling back to mock service:', edgeFunctionError);
+        if (import.meta.env.DEV) {
+          console.error('Edge function failed, falling back to mock service:', edgeFunctionError);
+        }
 
         // Fallback to mock knowledge service
         if (isDemoMode) {
@@ -250,7 +260,9 @@ export class UniversalConciergeService {
         throw edgeFunctionError;
       }
     } catch (error) {
-      console.error('Concierge processing error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Concierge processing error:', error);
+      }
       return {
         content:
           "I'm having trouble processing your request right now. Please try again in a moment.",

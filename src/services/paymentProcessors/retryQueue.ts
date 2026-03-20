@@ -160,11 +160,7 @@ export class PaymentRetryQueue {
   /**
    * Callback for permanently failed payment
    */
-  private onPaymentFailed(payment: QueuedPayment, error: PaymentError): void {
-    console.error(`Payment retry failed permanently: ${payment.id}`, {
-      attempts: payment.attempts,
-      error,
-    });
+  private onPaymentFailed(_payment: QueuedPayment, _error: PaymentError): void {
     // In production, emit event or call callback
   }
 

@@ -269,7 +269,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
         .eq('required_role_id', roleToEdit.id);
 
       // Channel update might fail if no channel exists - that's okay
-      if (channelError) {
+      if (channelError && import.meta.env.DEV) {
         console.warn('No channel found or failed to update channel:', channelError);
       }
 
@@ -280,7 +280,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
       // Invalidate TanStack Query cache so all views refresh
       await refetchRoles();
     } catch (error) {
-      console.error('Error renaming role:', error);
+      if (import.meta.env.DEV) console.error('Error renaming role:', error);
       toast.error('Failed to rename role');
     } finally {
       setIsSavingEdit(false);
@@ -355,16 +355,23 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                   <div className="mb-3">
                     <h4 className="font-medium text-foreground mb-1">{role.roleName}</h4>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                      <span>{role.memberCount || 0} members</span>
-                      {hasChannel && !(channel as any).is_archived && (
-                        <>
-                          <span>·</span>
-                          <div className="flex items-center gap-1">
-                            <LinkIcon className="w-3 h-3" />
-                            <span>#{(channel as any).channel_name}</span>
-                          </div>
-                        </>
-                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {role.memberCount || 0} members
+                      </span>
+                      {hasChannel &&
+                        channel &&
+                        !(channel as Record<string, unknown>).is_archived && (
+                          <>
+                            <span>·</span>
+                            <div className="flex items-center gap-1">
+                              <LinkIcon className="w-3 h-3" />
+                              <span>
+                                #{(channel as Record<string, unknown>).channel_name as string}
+                              </span>
+                            </div>
+                          </>
+                        )}
                     </div>
                   </div>
 
@@ -374,8 +381,9 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                       variant="outline"
                       size="icon"
                       onClick={() => handleEditRoleClick(role)}
-                      className="rounded-full border-white/10 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 h-9 w-9"
+                      className="rounded-full border-white/10 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 h-11 w-11 min-h-[44px] min-w-[44px]"
                       title="Rename role and channel"
+                      aria-label={`Rename role ${role.roleName}`}
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
@@ -383,8 +391,9 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                       variant="outline"
                       size="icon"
                       onClick={() => handleManageMembers(role)}
-                      className="rounded-full border-white/10 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 h-9 w-9"
+                      className="rounded-full border-white/10 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 h-11 w-11 min-h-[44px] min-w-[44px]"
                       title="Manage role members"
+                      aria-label={`Manage members of ${role.roleName}`}
                     >
                       <UserMinus className="w-4 h-4" />
                     </Button>
@@ -393,8 +402,9 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                       size="icon"
                       onClick={() => handleDeleteRoleClick(role)}
                       disabled={isProcessing}
-                      className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 h-9 w-9"
+                      className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500 h-11 w-11 min-h-[44px] min-w-[44px]"
                       title="Delete role and channel"
+                      aria-label={`Delete role ${role.roleName}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

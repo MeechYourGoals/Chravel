@@ -3,7 +3,7 @@ import { DollarSign, Shield, FileCheck, Award } from 'lucide-react';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { CalendarSkeleton, PlacesSkeleton, ChatSkeleton } from '../loading';
 
-import { ProTripData, TeamTripContext } from '../../types/pro';
+import { ProTripData, TeamTripContext, RoomAssignment } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { isReadOnlyTab, hasTabAccess } from './ProTabsConfig';
 import { useAuth } from '../../hooks/useAuth';
@@ -44,7 +44,7 @@ interface ProTabContentProps {
   basecamp: { name: string; address: string };
   tripData: ProTripData;
   category: ProTripCategory;
-  onUpdateRoomAssignments: (assignments: any[]) => void;
+  onUpdateRoomAssignments: (assignments: RoomAssignment[]) => void;
   /** Callback receives memberId, roleId (for DB), and roleName (for display/local state) */
   onUpdateMemberRole?: (memberId: string, roleId: string, roleName: string) => Promise<void>;
   trip?: TeamTripContext;

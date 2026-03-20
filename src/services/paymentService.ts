@@ -42,7 +42,7 @@ export const paymentService = {
         isVisible: method.is_visible,
       }));
     } catch (error) {
-      console.error('Error fetching payment methods:', error);
+      if (import.meta.env.DEV) console.error('Error fetching payment methods:', error);
       return [];
     }
   },
@@ -60,7 +60,7 @@ export const paymentService = {
 
       return !error;
     } catch (error) {
-      console.error('Error saving payment method:', error);
+      if (import.meta.env.DEV) console.error('Error saving payment method:', error);
       return false;
     }
   },
@@ -80,7 +80,7 @@ export const paymentService = {
 
       return !error;
     } catch (error) {
-      console.error('Error updating payment method:', error);
+      if (import.meta.env.DEV) console.error('Error updating payment method:', error);
       return false;
     }
   },
@@ -91,7 +91,7 @@ export const paymentService = {
 
       return !error;
     } catch (error) {
-      console.error('Error deleting payment method:', error);
+      if (import.meta.env.DEV) console.error('Error deleting payment method:', error);
       return false;
     }
   },
@@ -166,7 +166,7 @@ export const paymentService = {
       });
 
       if (error) {
-        console.error('[paymentService] RPC error:', error);
+        if (import.meta.env.DEV) console.error('[paymentService] RPC error:', error);
 
         // Detect RLS violation
         if (error.message?.includes('row-level security') || error.code === '42501') {
@@ -218,7 +218,8 @@ export const paymentService = {
 
       return { success: true, paymentId };
     } catch (error) {
-      console.error('[paymentService] Unexpected error creating payment:', error);
+      if (import.meta.env.DEV)
+        console.error('[paymentService] Unexpected error creating payment:', error);
       return {
         success: false,
         error: {
@@ -270,7 +271,7 @@ export const paymentService = {
 
       return data.map(toAppPayment);
     } catch (error) {
-      console.error('Error fetching payment messages:', error);
+      if (import.meta.env.DEV) console.error('Error fetching payment messages:', error);
       return [];
     }
   },
@@ -290,7 +291,8 @@ export const paymentService = {
       });
 
       if (error) {
-        console.error('[paymentService] settle_payment_split RPC error:', error);
+        if (import.meta.env.DEV)
+          console.error('[paymentService] settle_payment_split RPC error:', error);
         return false;
       }
 
@@ -304,7 +306,7 @@ export const paymentService = {
 
       return true;
     } catch (error) {
-      console.error('Error settling payment:', error);
+      if (import.meta.env.DEV) console.error('Error settling payment:', error);
       return false;
     }
   },
@@ -341,7 +343,7 @@ export const paymentService = {
 
       return true;
     } catch (error) {
-      console.error('Error unsettling payment:', error);
+      if (import.meta.env.DEV) console.error('Error unsettling payment:', error);
       return false;
     }
   },
@@ -366,7 +368,8 @@ export const paymentService = {
         .update({ is_settled: allSettled })
         .eq('id', paymentMessageId);
     } catch (error) {
-      console.error('Error updating parent payment settled status:', error);
+      if (import.meta.env.DEV)
+        console.error('Error updating parent payment settled status:', error);
     }
   },
 
@@ -407,7 +410,7 @@ export const paymentService = {
 
       return true;
     } catch (error) {
-      console.error('Error updating payment message:', error);
+      if (import.meta.env.DEV) console.error('Error updating payment message:', error);
       return false;
     }
   },
@@ -426,7 +429,7 @@ export const paymentService = {
 
       return !error;
     } catch (error) {
-      console.error('Error deleting payment message:', error);
+      if (import.meta.env.DEV) console.error('Error deleting payment message:', error);
       return false;
     }
   },
@@ -467,29 +470,50 @@ export const paymentService = {
         userBalances[payment.createdBy] += payment.amount;
       });
 
-      splits.forEach((split: any) => {
+      // Type the split rows from the joined query
+      interface PaymentSplitRow {
+        debtor_user_id: string;
+        amount_owed: number | string;
+        [key: string]: unknown;
+      }
+
+      (splits as PaymentSplitRow[]).forEach(split => {
         if (!userBalances[split.debtor_user_id]) {
           userBalances[split.debtor_user_id] = 0;
         }
         userBalances[split.debtor_user_id] -= parseFloat(split.amount_owed.toString());
       });
 
+      // Greedy min-transaction settlement: pair largest debtor with largest creditor
+      // until all balances are zeroed. Mutates local copies only.
       const settlementSuggestions: Array<{ from: string; to: string; amount: number }> = [];
-      const debtors = Object.entries(userBalances).filter(([_, balance]) => balance < 0);
-      const creditors = Object.entries(userBalances).filter(([_, balance]) => balance > 0);
+      const debtors = Object.entries(userBalances)
+        .filter(([_, balance]) => balance < 0)
+        .map(([id, balance]) => ({ id, remaining: Math.abs(balance) }));
+      const creditors = Object.entries(userBalances)
+        .filter(([_, balance]) => balance > 0)
+        .map(([id, balance]) => ({ id, remaining: balance }));
 
-      debtors.forEach(([debtorId, debtorBalance]) => {
-        creditors.forEach(([creditorId, creditorBalance]) => {
-          if (Math.abs(debtorBalance) > 0 && creditorBalance > 0) {
-            const amount = Math.min(Math.abs(debtorBalance), creditorBalance);
-            settlementSuggestions.push({
-              from: debtorId,
-              to: creditorId,
-              amount,
-            });
-          }
-        });
-      });
+      // Sort descending so we pair the biggest amounts first
+      debtors.sort((a, b) => b.remaining - a.remaining);
+      creditors.sort((a, b) => b.remaining - a.remaining);
+
+      let di = 0;
+      let ci = 0;
+      while (di < debtors.length && ci < creditors.length) {
+        const amount = Math.min(debtors[di].remaining, creditors[ci].remaining);
+        if (amount > 0.01) {
+          settlementSuggestions.push({
+            from: debtors[di].id,
+            to: creditors[ci].id,
+            amount: Math.round(amount * 100) / 100,
+          });
+        }
+        debtors[di].remaining -= amount;
+        creditors[ci].remaining -= amount;
+        if (debtors[di].remaining < 0.01) di++;
+        if (creditors[ci].remaining < 0.01) ci++;
+      }
 
       return {
         totalExpenses,
@@ -497,7 +521,7 @@ export const paymentService = {
         settlementSuggestions,
       };
     } catch (error) {
-      console.error('Error getting payment summary:', error);
+      if (import.meta.env.DEV) console.error('Error getting payment summary:', error);
       return {
         totalExpenses: 0,
         userBalances: {},

@@ -30,7 +30,8 @@ export type AudioContract = typeof AUDIO_CONTRACT;
 
 /** Log actual AudioContext params when diagnostics enabled. */
 export function logAudioContextParams(ctx: AudioContext, diagnosticsEnabled: boolean): void {
-  if (!diagnosticsEnabled) return;
+  if (!diagnosticsEnabled || !import.meta.env.DEV) return;
+
   console.log('[voice/audioContract] AudioContext', {
     sampleRate: ctx.sampleRate,
     state: ctx.state,
@@ -42,11 +43,13 @@ export function logAudioContextParams(ctx: AudioContext, diagnosticsEnabled: boo
 export function assertChunkFraming(samples: number, diagnosticsEnabled: boolean): void {
   if (samples > AUDIO_CONTRACT.maxChunkSamples) {
     const err = `Chunk too large: ${samples} samples (max ${AUDIO_CONTRACT.maxChunkSamples})`;
-    if (diagnosticsEnabled) console.error('[voice/audioContract]', err);
+    if (diagnosticsEnabled && import.meta.env.DEV) {
+      console.error('[voice/audioContract]', err);
+    }
     throw new Error(err);
   }
   if (samples < AUDIO_CONTRACT.minChunkSamples && samples > 0) {
-    if (diagnosticsEnabled) {
+    if (diagnosticsEnabled && import.meta.env.DEV) {
       console.warn('[voice/audioContract] Unusually small chunk:', samples);
     }
   }
@@ -61,7 +64,7 @@ export function checkCaptureSampleRate(
   if (target === actualHz) {
     return { needsResample: false, targetHz: target };
   }
-  if (diagnosticsEnabled) {
+  if (diagnosticsEnabled && import.meta.env.DEV) {
     console.log('[voice/audioContract] Capture sample rate mismatch', {
       actual: actualHz,
       expected: target,
@@ -75,7 +78,9 @@ export function checkCaptureSampleRate(
 export function ensureAudioContextResumed(ctx: AudioContext): Promise<void> {
   if (ctx.state === 'running') return Promise.resolve();
   return ctx.resume().catch(err => {
-    console.warn('[voice/audioContract] AudioContext.resume failed:', err);
+    if (import.meta.env.DEV) {
+      console.warn('[voice/audioContract] AudioContext.resume failed:', err);
+    }
     throw new Error(
       'Audio could not start. Please tap the microphone button again (required on iOS).',
     );

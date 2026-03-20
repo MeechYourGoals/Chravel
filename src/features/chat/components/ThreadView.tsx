@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Send, Loader2, MessageSquare } from 'lucide-react';
+import { X, Send, Loader2, MessageSquare, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -55,18 +55,27 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
   const { user } = useAuth();
   const [replies, setReplies] = useState<ThreadReply[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const repliesEndRef = useRef<HTMLDivElement>(null);
 
   // Load initial replies
   useEffect(() => {
     const loadReplies = async () => {
       setIsLoading(true);
-      const data = await getThreadReplies(parentMessage.id);
-      const formatted = data.map(row => formatReply(row, tripMembers));
-      setReplies(formatted);
-      setIsLoading(false);
+      setLoadError(null);
+      try {
+        const data = await getThreadReplies(parentMessage.id);
+        const formatted = data.map(row => formatReply(row, tripMembers));
+        setReplies(formatted);
+      } catch (err) {
+        if (import.meta.env.DEV) console.error('[ThreadView] Failed to load replies:', err);
+        setLoadError('Failed to load replies. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadReplies();
@@ -111,18 +120,24 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
     if (!replyContent.trim() || isSending) return;
 
     setIsSending(true);
+    setSendError(null);
     const authorName = user?.displayName || user?.email?.split('@')[0] || 'You';
 
     try {
-      await sendThreadReply(parentMessage.id, {
+      const result = await sendThreadReply(parentMessage.id, {
         trip_id: parentMessage.tripId,
         author_name: authorName,
         content: replyContent.trim(),
         user_id: user?.id,
       });
-      setReplyContent('');
+      if (result) {
+        setReplyContent('');
+      } else {
+        setSendError('Reply failed to send. Please try again.');
+      }
     } catch (error) {
-      console.error('[ThreadView] Failed to send reply:', error);
+      if (import.meta.env.DEV) console.error('[ThreadView] Failed to send reply:', error);
+      setSendError('Reply failed to send. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -189,6 +204,11 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : loadError ? (
+          <div className="text-center py-8">
+            <AlertCircle className="h-5 w-5 text-destructive mx-auto mb-2" />
+            <p className="text-sm text-destructive">{loadError}</p>
+          </div>
         ) : replies.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground text-sm">
             No replies yet. Be the first to reply!
@@ -228,6 +248,12 @@ export const ThreadView: React.FC<ThreadViewProps> = ({
 
       {/* Reply Input */}
       <div className="px-4 py-3 border-t border-border/50 bg-muted/10">
+        {sendError && (
+          <div className="flex items-center gap-2 text-destructive text-xs mb-2 px-1">
+            <AlertCircle className="h-3 w-3 flex-shrink-0" />
+            <span>{sendError}</span>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <Textarea
             value={replyContent}

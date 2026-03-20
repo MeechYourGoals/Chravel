@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { TripTask } from '../../types/tasks';
 import { Plus } from 'lucide-react';
 import { TaskList } from './TaskList';
@@ -7,6 +7,7 @@ import { TaskCreateModal } from './TaskCreateModal';
 import { TaskCreateForm } from './TaskCreateForm';
 import { ActionPill } from '../ui/ActionPill';
 import { useTripTasks } from '../../hooks/useTripTasks';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import {
@@ -33,6 +34,7 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
   const {
     tasks,
     isLoading,
+    error,
     applyFilters,
     status,
     setStatus,
@@ -42,6 +44,11 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
     clearFilters,
   } = useTripTasks(tripId);
   const { isDemoMode } = useDemoMode();
+  const queryClient = useQueryClient();
+
+  const handleRetry = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
+  }, [queryClient, tripId, isDemoMode]);
 
   // Mock task items for demo
   const mockTasks = [
@@ -121,8 +128,16 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin h-8 w-8 gold-gradient-spinner"></div>
+      <div className="space-y-6">
+        <TaskList tasks={[]} tripId={tripId} title="To Do" isLoading />
+      </div>
+    );
+  }
+
+  if (error && displayTasks.length === 0) {
+    return (
+      <div className="space-y-6">
+        <TaskList tasks={[]} tripId={tripId} title="To Do" error={error} onRetry={handleRetry} />
       </div>
     );
   }
@@ -198,6 +213,18 @@ export const TripTasksTab = React.memo(({ tripId }: TripTasksTabProps) => {
               onToggleCompleted={() => setShowCompleted(!showCompleted)}
               onEditTask={task => setEditingTask(task)}
             />
+          )}
+
+          {/* Task Summary Footer */}
+          {displayTasks.length > 0 && (
+            <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-white/5">
+              <span>
+                {openTasks.length} open, {completedTasks.length} completed
+              </span>
+              {completedTasks.length > 0 && displayTasks.length > 0 && (
+                <span>{Math.round((completedTasks.length / displayTasks.length) * 100)}% done</span>
+              )}
+            </div>
           )}
         </>
       )}

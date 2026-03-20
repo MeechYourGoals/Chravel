@@ -35,7 +35,18 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import type { Speaker, EventAgendaItem } from '../../types/events';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
+import { toast } from 'sonner';
 import { EVENT_PARITY_COL_START, EVENT_PARITY_ROW_CLASS } from '@/lib/tabParity';
 import { ActionPill } from '../ui/ActionPill';
 
@@ -105,6 +116,7 @@ export const LineupTab = ({
   const [newMember, setNewMember] = useState({ name: '', title: '', company: '', bio: '' });
   const [editMember, setEditMember] = useState({ name: '', title: '', company: '', bio: '' });
   const [showSmartImport, setShowSmartImport] = useState(false);
+  const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
 
   const filteredMembers = members.filter(
     speaker =>
@@ -168,8 +180,14 @@ export const LineupTab = ({
     try {
       await deleteMember(speakerId);
     } catch {
-      // Error handled by hook toast
+      toast.error('Failed to remove lineup member. Please try again.');
     }
+  };
+
+  const confirmDeleteMember = async () => {
+    if (!deletingMemberId) return;
+    await handleDeleteMember(deletingMemberId);
+    setDeletingMemberId(null);
   };
 
   const memberSessions = selectedMember ? getSessionsForMember(selectedMember.name) : [];
@@ -343,7 +361,7 @@ export const LineupTab = ({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-gray-400 hover:text-white"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-white"
                               >
                                 <Download size={14} />
                               </Button>
@@ -353,7 +371,7 @@ export const LineupTab = ({
                                 onClick={() => handleDeleteLineupFile(file)}
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-gray-400 hover:text-red-400"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-red-400"
                               >
                                 <Trash2 size={14} />
                               </Button>
@@ -379,7 +397,7 @@ export const LineupTab = ({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-yellow-400"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-yellow-400"
                               title="View"
                             >
                               <Eye size={14} />
@@ -394,7 +412,7 @@ export const LineupTab = ({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-white"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-white"
                               title="Download"
                             >
                               <Download size={14} />
@@ -405,7 +423,7 @@ export const LineupTab = ({
                               onClick={() => handleDeleteLineupFile(file)}
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-red-400"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-red-400"
                             >
                               <Trash2 size={14} />
                             </Button>
@@ -422,7 +440,11 @@ export const LineupTab = ({
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 min-h-[44px] min-w-[44px]"
+                          >
                             <Download size={14} />
                           </Button>
                         </a>
@@ -431,7 +453,7 @@ export const LineupTab = ({
                             onClick={() => handleDeleteLineupFile(file)}
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-gray-400 hover:text-red-400"
+                            className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-red-400"
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -609,7 +631,8 @@ export const LineupTab = ({
                         }}
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 bg-gray-900/80 text-gray-400 hover:text-white"
+                        className="h-10 w-10 bg-gray-900/80 text-gray-400 hover:text-white"
+                        aria-label={`Edit ${speaker.name}`}
                       >
                         <Edit2 size={12} />
                       </Button>
@@ -618,11 +641,12 @@ export const LineupTab = ({
                       <Button
                         onClick={e => {
                           e.stopPropagation();
-                          handleDeleteMember(speaker.id);
+                          setDeletingMemberId(speaker.id);
                         }}
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 bg-gray-900/80 text-red-400 hover:text-red-300"
+                        className="h-10 w-10 bg-gray-900/80 text-red-400 hover:text-red-300"
+                        aria-label={`Remove ${speaker.name} from lineup`}
                       >
                         <Trash2 size={12} />
                       </Button>
@@ -723,6 +747,28 @@ export const LineupTab = ({
           }}
         />
       )}
+
+      {/* Delete Member Confirmation */}
+      <AlertDialog open={!!deletingMemberId} onOpenChange={() => setDeletingMemberId(null)}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Remove from lineup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This person will be permanently removed from the event lineup. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteMember}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Read-Only Speaker Session Detail Modal */}
       <Dialog

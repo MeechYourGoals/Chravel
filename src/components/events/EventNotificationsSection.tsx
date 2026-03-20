@@ -351,6 +351,7 @@ export const EventNotificationsSection = () => {
       onClick={() => handleNotificationToggle(key)}
       disabled={isDisabled}
       aria-checked={isEnabled}
+      aria-label={`Toggle ${key} notifications`}
       role="switch"
       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
         isEnabled ? 'bg-green-500' : 'bg-gray-600'
@@ -497,7 +498,8 @@ export const EventNotificationsSection = () => {
           <div className="relative bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
             <button
               onClick={() => setShowSmsPhoneModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Close SMS phone number dialog"
             >
               <X size={20} />
             </button>

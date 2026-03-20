@@ -230,7 +230,7 @@ export const useTripTasks = (
         queryClient.invalidateQueries({ queryKey: ['tripTasks', tripId, isDemoMode] });
         return true;
       } catch (error) {
-        console.error('Failed to assign task:', error);
+        if (import.meta.env.DEV) console.error('Failed to assign task:', error);
         toast({ title: 'Failed to assign task', variant: 'destructive' });
         return false;
       }
@@ -259,7 +259,7 @@ export const useTripTasks = (
         });
         return false;
       } catch (error) {
-        console.error('Failed to bulk assign:', error);
+        if (import.meta.env.DEV) console.error('Failed to bulk assign:', error);
         toast({ title: 'Failed to assign task to members', variant: 'destructive' });
         return false;
       }
@@ -511,8 +511,10 @@ export const useTripTasks = (
 
         return transformed;
       } catch (error) {
-        console.error('[useTripTasks] Error fetching tasks:', error);
-        console.error('[useTripTasks] Error details:', JSON.stringify(error, null, 2));
+        if (import.meta.env.DEV) {
+          console.error('[useTripTasks] Error fetching tasks:', error);
+          console.error('[useTripTasks] Error details:', JSON.stringify(error, null, 2));
+        }
 
         // If fetch fails, prefer cached tasks if available.
         if (cachedTasks.length > 0) {
@@ -637,7 +639,7 @@ export const useTripTasks = (
         .single();
 
       if (error) {
-        console.error('Task creation error:', error);
+        if (import.meta.env.DEV) console.error('Task creation error:', error);
         if (error.code === 'PGRST116') {
           throw new Error('Access denied. You must be a trip member to create tasks.');
         }

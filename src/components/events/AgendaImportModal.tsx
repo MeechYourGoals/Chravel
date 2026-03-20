@@ -19,6 +19,7 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
+  AlertTriangle,
   Image,
   Type,
   Sparkles,
@@ -231,7 +232,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
         }
       }
     } catch (error) {
-      console.error('Batch import failed:', error);
+      if (import.meta.env.DEV) console.error('Batch import failed:', error);
       failed = sessionsToImport.length;
     }
 
@@ -512,12 +513,11 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
           {/* ── Complete State ── */}
           {state === 'complete' && (
             <div className="flex flex-col items-center justify-center py-12">
-              <CheckCircle2
-                className={cn(
-                  'w-16 h-16 mb-4',
-                  importProgress.imported > 0 ? 'text-primary' : 'text-destructive',
-                )}
-              />
+              {importProgress.imported > 0 ? (
+                <CheckCircle2 className="w-16 h-16 mb-4 text-primary" />
+              ) : (
+                <AlertTriangle className="w-16 h-16 mb-4 text-destructive" />
+              )}
               <p className="font-medium text-lg mb-2">
                 {importProgress.imported > 0 ? 'Import Complete!' : 'Import Failed'}
               </p>
@@ -530,6 +530,11 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
               {importProgress.failed > 0 && (
                 <p className="text-destructive text-sm mt-1">
                   {importProgress.failed} session{importProgress.failed !== 1 ? 's' : ''} failed
+                </p>
+              )}
+              {importProgress.imported === 0 && importProgress.failed > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Please try again or contact support if the issue persists.
                 </p>
               )}
             </div>
@@ -560,9 +565,17 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
             </>
           )}
           {state === 'complete' && (
-            <Button onClick={handleClose} className="min-h-[44px]">
-              Done
-            </Button>
+            <>
+              {importProgress.imported === 0 && importProgress.failed > 0 && (
+                <Button variant="outline" onClick={resetState} className="min-h-[44px]">
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+              )}
+              <Button onClick={handleClose} className="min-h-[44px]">
+                Done
+              </Button>
+            </>
           )}
           {(state === 'idle' || state === 'parsing') && (
             <Button variant="outline" onClick={handleClose} className="min-h-[44px]">

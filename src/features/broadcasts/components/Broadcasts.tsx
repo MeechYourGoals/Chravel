@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BroadcastComposer } from './BroadcastComposer';
 import { BroadcastList } from './BroadcastList';
@@ -12,6 +12,7 @@ import { useBroadcastFilters } from '../hooks/useBroadcastFilters';
 import { broadcastService } from '@/services/broadcastService';
 import type { Broadcast } from '@/services/broadcastService';
 import { tripKeys } from '@/lib/queryKeys';
+import { toast } from 'sonner';
 
 const participants = beyonceCowboyCarterTour.participants;
 
@@ -45,7 +46,9 @@ function mapPriorityToCategory(
   }
 }
 
-function mapBroadcastToDisplay(b: Broadcast): BroadcastData {
+function mapBroadcastToDisplay(
+  b: Broadcast,
+): BroadcastData & { scheduledFor?: string; createdBy?: string } {
   const metadata = (b.metadata as Record<string, unknown>) || {};
   return {
     id: b.id,
@@ -56,6 +59,8 @@ function mapBroadcastToDisplay(b: Broadcast): BroadcastData {
     category: mapPriorityToCategory(b.priority),
     recipients: (metadata.recipients as string) || 'everyone',
     responses: { coming: 0, wait: 0, cant: 0 },
+    scheduledFor: b.scheduled_for,
+    createdBy: b.created_by,
   };
 }
 
@@ -136,7 +141,64 @@ export const Broadcasts = () => {
   const handleResponse = (broadcastId: string, response: 'coming' | 'wait' | 'cant') => {
     const _prevResponse = userResponses[broadcastId];
     setUserResponses(prev => ({ ...prev, [broadcastId]: response }));
+
+    // Persist response to database as a reaction
+    if (!isDemoMode) {
+      broadcastService.addReaction(broadcastId, response).catch(() => {
+        // Revert on failure (best-effort)
+      });
+    }
   };
+
+  const handleDeleteBroadcast = useCallback(
+    async (broadcastId: string) => {
+      if (isDemoMode) {
+        setDemoBroadcasts(prev => prev.filter(b => b.id !== broadcastId));
+        return;
+      }
+
+      // Soft-delete by updating the broadcast
+      const success = await broadcastService.updateBroadcast(broadcastId, {
+        is_sent: false,
+        metadata: { deleted: true },
+      });
+
+      if (success) {
+        queryClient.setQueryData<Broadcast[]>(tripKeys.broadcasts(currentTripId), (prev = []) =>
+          prev.filter(b => b.id !== broadcastId),
+        );
+        toast.success('Broadcast deleted');
+      } else {
+        toast.error('Failed to delete broadcast');
+      }
+    },
+    [isDemoMode, currentTripId, queryClient],
+  );
+
+  const handleEditBroadcast = useCallback(
+    async (broadcastId: string, newMessage: string) => {
+      if (isDemoMode) {
+        setDemoBroadcasts(prev =>
+          prev.map(b => (b.id === broadcastId ? { ...b, message: newMessage } : b)),
+        );
+        return;
+      }
+
+      const success = await broadcastService.updateBroadcast(broadcastId, {
+        message: newMessage,
+      });
+
+      if (success) {
+        queryClient.setQueryData<Broadcast[]>(tripKeys.broadcasts(currentTripId), (prev = []) =>
+          prev.map(b => (b.id === broadcastId ? { ...b, message: newMessage } : b)),
+        );
+        toast.success('Broadcast updated');
+      } else {
+        toast.error('Failed to update broadcast');
+      }
+    },
+    [isDemoMode, currentTripId, queryClient],
+  );
 
   const recentBroadcasts = broadcasts.filter(broadcast => {
     const hoursDiff = (Date.now() - new Date(broadcast.timestamp).getTime()) / (1000 * 60 * 60);
@@ -145,15 +207,35 @@ export const Broadcasts = () => {
 
   const filteredBroadcasts = applyFilters(recentBroadcasts);
 
+  // Count scheduled (pending) broadcasts
+  const scheduledBroadcasts = isDemoMode
+    ? []
+    : dbBroadcasts.filter(
+        b => b.scheduled_for && !b.is_sent && new Date(b.scheduled_for) > new Date(),
+      );
+
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Radio size={24} className="text-blue-400" />
+        <Radio size={24} className="text-blue-400 flex-shrink-0" />
         <div>
           <h2 className="text-xl font-semibold text-white">Broadcasts</h2>
           <p className="text-slate-400 text-sm">Quick updates and alerts for the group</p>
         </div>
       </div>
+
+      {/* Scheduled broadcasts indicator */}
+      {scheduledBroadcasts.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg">
+          <div className="flex items-center gap-2 text-blue-400 text-sm">
+            <Clock size={14} />
+            <span>
+              {scheduledBroadcasts.length} scheduled broadcast
+              {scheduledBroadcasts.length > 1 ? 's' : ''} pending
+            </span>
+          </div>
+        </div>
+      )}
 
       <BroadcastComposer
         participants={participants}
@@ -178,6 +260,8 @@ export const Broadcasts = () => {
           broadcasts={filteredBroadcasts}
           userResponses={userResponses}
           onRespond={handleResponse}
+          onDelete={handleDeleteBroadcast}
+          onEdit={handleEditBroadcast}
         />
       )}
 

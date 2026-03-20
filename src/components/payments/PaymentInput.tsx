@@ -278,6 +278,8 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                     key={member.id}
                     type="button"
                     onClick={() => toggleParticipant(member.id)}
+                    aria-label={`${isSelected ? 'Remove' : 'Add'} ${member.name} from split`}
+                    aria-pressed={isSelected}
                     className={`
                       inline-flex items-center gap-2 rounded-lg px-3 py-3 min-h-[44px] cursor-pointer transition-all w-auto shrink-0
                       ${
@@ -342,8 +344,10 @@ export const PaymentInput = ({ onSubmit, tripMembers, isVisible, tripId }: Payme
                     key={method.id}
                     type="button"
                     onClick={() => togglePaymentMethod(method.id)}
+                    aria-label={`${isSelected ? 'Remove' : 'Add'} ${method.label} as payment method`}
+                    aria-pressed={isSelected}
                     className={`
-                      flex items-center justify-center gap-2 rounded-lg h-10 cursor-pointer transition-all
+                      flex items-center justify-center gap-2 rounded-lg min-h-[44px] cursor-pointer transition-all
                       ${
                         isSelected
                           ? 'bg-emerald-500/20 border-2 border-emerald-500 ring-1 ring-emerald-500/30'

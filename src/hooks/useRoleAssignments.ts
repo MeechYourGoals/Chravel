@@ -116,7 +116,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
       setAssignments(assignmentsWithDetails);
     } catch (error) {
-      console.error('Error fetching role assignments:', error);
+      if (import.meta.env.DEV) console.error('Error fetching role assignments:', error);
       toast.error('Failed to load role assignments');
     } finally {
       setIsLoading(false);
@@ -201,7 +201,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
         return result;
       } catch (error) {
-        console.error('Error assigning role:', error);
+        if (import.meta.env.DEV) console.error('Error assigning role:', error);
         toast.error(error instanceof Error ? error.message : 'Failed to assign role');
         throw error;
       } finally {
@@ -251,7 +251,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
         return result;
       } catch (error) {
-        console.error('Error removing role:', error);
+        if (import.meta.env.DEV) console.error('Error removing role:', error);
         toast.error(error instanceof Error ? error.message : 'Failed to remove role');
         throw error;
       } finally {
@@ -306,7 +306,7 @@ export const useRoleAssignments = ({ tripId, enabled = true }: UseRoleAssignment
 
         return result;
       } catch (error) {
-        console.error('Error leaving role:', error);
+        if (import.meta.env.DEV) console.error('Error leaving role:', error);
         toast.error(error instanceof Error ? error.message : 'Failed to leave channel');
         throw error;
       } finally {

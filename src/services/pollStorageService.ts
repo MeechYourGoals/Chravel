@@ -46,7 +46,7 @@ class PollStorageService {
     try {
       return await getStorageItem<TripPoll[]>(this.getStorageKey(tripId), []);
     } catch (error) {
-      console.error('Error loading polls from storage:', error);
+      if (import.meta.env.DEV) console.error('Error loading polls from storage:', error);
       return [];
     }
   }
@@ -56,7 +56,7 @@ class PollStorageService {
     try {
       await setStorageItem(this.getStorageKey(tripId), polls);
     } catch (error) {
-      console.error('Error saving polls to storage:', error);
+      if (import.meta.env.DEV) console.error('Error saving polls to storage:', error);
     }
   }
 
@@ -208,7 +208,8 @@ class PollStorageService {
   async clearAllDemoPolls(): Promise<void> {
     // Note: platformStorage doesn't expose Object.keys() like localStorage
     // This will be handled by individual clearPolls calls per trip
-    console.warn('Clear all demo polls not fully supported with platformStorage');
+    if (import.meta.env.DEV)
+      console.warn('Clear all demo polls not fully supported with platformStorage');
   }
 }
 

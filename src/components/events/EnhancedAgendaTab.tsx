@@ -37,6 +37,17 @@ import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { toast } from 'sonner';
 
 interface EnhancedAgendaTabProps {
   eventId: string;
@@ -102,6 +113,8 @@ export const EnhancedAgendaTab = ({
   const [isAddingSession, setIsAddingSession] = useState(false);
   const [editingSession, setEditingSession] = useState<EventAgendaItem | null>(null);
   const [speakerInput, setSpeakerInput] = useState('');
+  const [dayFilter, setDayFilter] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   // New session form state (Category/track removed per requirements)
   const [newSession, setNewSession] = useState<Partial<EventAgendaItem>>({
@@ -196,8 +209,14 @@ export const EnhancedAgendaTab = ({
     try {
       await deleteSession(sessionId);
     } catch {
-      // Error handled by hook toast
+      toast.error('Failed to delete session. Please try again.');
     }
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!deletingSessionId) return;
+    await handleDeleteSession(deletingSessionId);
+    setDeletingSessionId(null);
   };
 
   const resetForm = () => {
@@ -393,7 +412,8 @@ export const EnhancedAgendaTab = ({
                             onClick={() => handleDeleteAgendaFile(file)}
                             variant="outline"
                             size="sm"
-                            className="border-destructive text-destructive hover:bg-destructive/10"
+                            className="border-destructive text-destructive hover:bg-destructive/10 min-h-[44px]"
+                            aria-label={`Delete file ${file.name}`}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -685,96 +705,238 @@ export const EnhancedAgendaTab = ({
         </Card>
       )}
 
-      {/* Sessions List */}
-      {sessions.length > 0 ? (
-        <div className="space-y-3" role="list" aria-label="Event schedule">
-          <h3 className="text-lg font-medium text-foreground">Schedule</h3>
-          {sessions.map(session => (
-            <Card
-              key={session.id}
-              className="bg-card/50 border-border hover:bg-card/70 transition-colors"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-foreground font-medium mb-2 truncate">{session.title}</h3>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock size={14} className="flex-shrink-0" />
-                        <span>
-                          {formatSessionDateTime(
-                            session.session_date,
-                            session.start_time,
-                            session.end_time,
-                          )}
+      {/* Day filter buttons */}
+      {sessions.length > 0 &&
+        (() => {
+          const uniqueDates = Array.from(
+            new Set(sessions.map(s => s.session_date || 'Unscheduled')),
+          ).sort((a, b) => {
+            if (a === 'Unscheduled') return 1;
+            if (b === 'Unscheduled') return -1;
+            return a.localeCompare(b);
+          });
+
+          if (uniqueDates.length > 1) {
+            return (
+              <div
+                className="flex gap-2 overflow-x-auto pb-1"
+                role="group"
+                aria-label="Filter sessions by day"
+              >
+                <button
+                  type="button"
+                  onClick={() => setDayFilter(null)}
+                  aria-label="Show all days"
+                  aria-pressed={dayFilter === null}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    dayFilter === null
+                      ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  All Days
+                </button>
+                {uniqueDates.map(date => {
+                  const label =
+                    date === 'Unscheduled'
+                      ? date
+                      : new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                        });
+                  return (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => setDayFilter(date)}
+                      aria-label={`Filter to ${label}`}
+                      aria-pressed={dayFilter === date}
+                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                        dayFilter === date
+                          ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
+                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+      {/* Sessions List - grouped by day */}
+      {sessions.length > 0
+        ? (() => {
+            const filtered = dayFilter
+              ? sessions.filter(s => (s.session_date || 'Unscheduled') === dayFilter)
+              : sessions;
+
+            // Group by date
+            const grouped = new Map<string, typeof filtered>();
+            for (const session of filtered) {
+              const key = session.session_date || 'Unscheduled';
+              if (!grouped.has(key)) grouped.set(key, []);
+              grouped.get(key)!.push(session);
+            }
+            const sortedKeys = Array.from(grouped.keys()).sort((a, b) => {
+              if (a === 'Unscheduled') return 1;
+              if (b === 'Unscheduled') return -1;
+              return a.localeCompare(b);
+            });
+
+            return (
+              <div className="space-y-5" role="list" aria-label="Event schedule">
+                {sortedKeys.map(dateKey => {
+                  const daySessions = grouped.get(dateKey) || [];
+                  const dateLabel =
+                    dateKey === 'Unscheduled'
+                      ? 'Unscheduled'
+                      : new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                        });
+
+                  return (
+                    <div key={dateKey}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-px flex-1 bg-border" />
+                        <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+                          {dateLabel}
                         </span>
+                        <span className="text-xs text-muted-foreground">
+                          {daySessions.length} session{daySessions.length !== 1 ? 's' : ''}
+                        </span>
+                        <div className="h-px flex-1 bg-border" />
                       </div>
-                      {session.location && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin size={14} className="flex-shrink-0" />
-                          <span className="truncate">{session.location}</span>
-                        </div>
-                      )}
-                      {session.speakers && session.speakers.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {session.speakers.map((speaker, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs"
-                            >
-                              <User size={10} />
-                              {speaker}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+
+                      <div className="space-y-2 relative">
+                        {/* Timeline line */}
+                        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
+
+                        {daySessions.map(session => (
+                          <div key={session.id} className="flex gap-3 relative" role="listitem">
+                            <div className="flex-shrink-0 w-4 mt-4 flex justify-center z-10">
+                              <div className="w-2.5 h-2.5 rounded-full bg-primary/60 ring-2 ring-background" />
+                            </div>
+
+                            <Card className="flex-1 bg-card/50 border-border hover:bg-card/70 transition-colors">
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-foreground font-medium mb-2 truncate">
+                                      {session.title}
+                                    </h3>
+                                    <div className="space-y-1 text-sm">
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Clock size={14} className="flex-shrink-0" />
+                                        <span>
+                                          {formatSessionDateTime(
+                                            session.session_date,
+                                            session.start_time,
+                                            session.end_time,
+                                          )}
+                                        </span>
+                                      </div>
+                                      {session.location && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                          <MapPin size={14} className="flex-shrink-0" />
+                                          <span className="truncate">{session.location}</span>
+                                        </div>
+                                      )}
+                                      {session.speakers && session.speakers.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {session.speakers.map((speaker, i) => (
+                                            <span
+                                              key={i}
+                                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs"
+                                            >
+                                              <User size={10} />
+                                              {speaker}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {session.description && (
+                                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                                        {session.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {isOrganizer && (
+                                    <div className="flex gap-1 flex-shrink-0">
+                                      <Button
+                                        onClick={() => handleEditSession(session)}
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                                        aria-label={`Edit session ${session.title}`}
+                                      >
+                                        <Edit2 size={14} />
+                                      </Button>
+                                      <Button
+                                        onClick={() => setDeletingSessionId(session.id)}
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 text-muted-foreground hover:text-destructive"
+                                        aria-label={`Delete session ${session.title}`}
+                                      >
+                                        <Trash2 size={14} />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    {session.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                        {session.description}
-                      </p>
-                    )}
-                  </div>
-                  {isOrganizer && (
-                    <div className="flex gap-1 flex-shrink-0">
-                      <Button
-                        onClick={() => handleEditSession(session)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                      >
-                        <Edit2 size={14} />
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteSession(session.id)}
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                  );
+                })}
+              </div>
+            );
+          })()
+        : !isAddingSession && (
+            <Card className="bg-card/50 border-border">
+              <CardContent className="p-8 text-center">
+                <Calendar size={48} className="text-muted-foreground/30 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No Sessions Yet</h3>
+                <p className="text-muted-foreground text-sm">
+                  {isOrganizer
+                    ? 'Add sessions to build your event schedule'
+                    : 'Sessions will be announced soon'}
+                </p>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : (
-        !isAddingSession && (
-          <Card className="bg-card/50 border-border">
-            <CardContent className="p-8 text-center">
-              <Calendar size={48} className="text-muted-foreground/30 mx-auto mb-3" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No Sessions Yet</h3>
-              <p className="text-muted-foreground text-sm">
-                {isOrganizer
-                  ? 'Add sessions to build your event schedule'
-                  : 'Sessions will be announced soon'}
-              </p>
-            </CardContent>
-          </Card>
-        )
-      )}
+          )}
+
+      {/* Delete Session Confirmation */}
+      <AlertDialog open={!!deletingSessionId} onOpenChange={() => setDeletingSessionId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This session will be permanently removed from the agenda. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSession}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Agenda Import Modal */}
       <AgendaImportModal

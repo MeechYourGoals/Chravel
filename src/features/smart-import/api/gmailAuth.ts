@@ -17,8 +17,10 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
     // token_expires_at and last_synced_at are timing hints, not credentials
     // RLS on gmail_accounts_safe is row-scoped (auth.uid() = user_id) — no cross-user data
     // These columns are added to the safe view by migration 20260403000000_gmail_accounts_safe_with_status
-    // Cast to 'any' because gmail_accounts_safe view may not be in generated types
-    const { data, error } = await (supabase as any)
+    // Cast needed: gmail_accounts_safe view may not be in generated Supabase types
+    const { data, error } = await (
+      supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }
+    )
       .from('gmail_accounts_safe')
       .select('id, email, created_at, token_expires_at, last_synced_at')
       .order('created_at', { ascending: false });
@@ -30,9 +32,11 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
         error.code === '42P01' ||
         error.message?.includes('gmail_accounts')
       ) {
-        console.warn(
-          '[gmailAuth] gmail_accounts_safe view not found — smart_import migration may not be applied yet',
-        );
+        if (import.meta.env.DEV) {
+          console.warn(
+            '[gmailAuth] gmail_accounts_safe view not found — smart_import migration may not be applied yet',
+          );
+        }
         return [];
       }
       throw new Error(error.message);
@@ -56,7 +60,9 @@ export const connectGmailAccount = async (): Promise<string> => {
   });
 
   if (error) {
-    console.error('Error initiating Gmail connect:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error initiating Gmail connect:', error);
+    }
     throw new Error(error.message);
   }
 
@@ -70,7 +76,9 @@ export const disconnectGmailAccount = async (accountId: string): Promise<void> =
   });
 
   if (error) {
-    console.error('Error disconnecting Gmail account:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error disconnecting Gmail account:', error);
+    }
     throw new Error(error.message);
   }
 };
@@ -85,7 +93,9 @@ export const handleGmailCallback = async (
   });
 
   if (error) {
-    console.error('Error completing Gmail connection:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error completing Gmail connection:', error);
+    }
     throw new Error(error.message);
   }
 

@@ -14,8 +14,10 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
-  const { signIn, signInWithGoogle, signUp, resetPassword, isLoading, user } = useAuth();
+  const { signIn, signInWithGoogle, signInWithApple, signUp, resetPassword, isLoading, user } =
+    useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(initialMode ?? 'signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -403,7 +405,7 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                 }
                 // If no error, browser will redirect to Google
               }}
-              disabled={isLoading || googleLoading || awaitingAuth}
+              disabled={isLoading || googleLoading || appleLoading || awaitingAuth}
               className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px] mb-4"
             >
               {googleLoading ? (
@@ -429,6 +431,48 @@ export const AuthModal = ({ isOpen, onClose, initialMode }: AuthModalProps) => {
                 </svg>
               )}
               <span>{googleLoading ? 'Redirecting…' : 'Continue with Google'}</span>
+            </button>
+
+            {/* Apple OAuth Button */}
+            <button
+              type="button"
+              onClick={async () => {
+                setAppleLoading(true);
+                setError('');
+                if (mode === 'signup') {
+                  authEvents.signupStarted('apple');
+                } else {
+                  authEvents.loginStarted('apple');
+                }
+                const result = await signInWithApple();
+                if (result.error) {
+                  if (mode === 'signup') {
+                    authEvents.signupFailed('apple', result.error);
+                  } else {
+                    authEvents.loginFailed('apple', result.error);
+                  }
+                  setError(result.error);
+                  setAppleLoading(false);
+                }
+                // If no error, browser will redirect to Apple
+              }}
+              disabled={isLoading || appleLoading || googleLoading || awaitingAuth}
+              className="w-full flex items-center justify-center gap-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 min-h-[48px] mb-4"
+            >
+              {appleLoading ? (
+                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  className="flex-shrink-0"
+                  fill="currentColor"
+                >
+                  <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.52-3.23 0-1.44.64-2.2.45-3.06-.4C3.79 16.17 4.36 9.53 8.7 9.31c1.24.06 2.1.7 2.82.73.99-.2 1.94-.78 3-.83 1.4.06 2.42.56 3.14 1.48-2.8 1.73-2.15 5.53.56 6.68-.5 1.39-1.18 2.74-2.17 3.91zM12.04 9.25C11.88 7.15 13.58 5.4 15.5 5.25c.28 2.38-2.13 4.2-3.46 4z" />
+                </svg>
+              )}
+              <span>{appleLoading ? 'Redirecting...' : 'Continue with Apple'}</span>
             </button>
 
             {/* Divider */}

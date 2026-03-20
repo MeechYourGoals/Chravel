@@ -87,8 +87,12 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
   return (
     <>
       <div
-        className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3 transition-all hover:bg-white/10 cursor-pointer ${
-          userCompleted ? 'opacity-75' : ''
+        className={`bg-white/5 backdrop-blur-sm border rounded-xl p-3 transition-all hover:bg-white/10 cursor-pointer ${
+          userCompleted
+            ? 'opacity-75 border-white/10'
+            : isOverdue
+              ? 'border-red-500/40 bg-red-500/5'
+              : 'border-white/10'
         }`}
         onClick={handleRowClick}
       >
@@ -96,10 +100,19 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
           {/* Completion Circle Button */}
           <button
             onClick={handleToggleComplete}
-            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+            aria-label={
+              userCompleted
+                ? `Mark "${task.title}" as incomplete`
+                : `Mark "${task.title}" as complete`
+            }
+            aria-checked={userCompleted}
+            role="checkbox"
+            className={`w-8 h-8 min-w-[44px] min-h-[44px] rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
               userCompleted
                 ? 'bg-green-500 border-green-500'
-                : 'border-muted-foreground hover:border-foreground'
+                : isOverdue
+                  ? 'border-red-400 hover:border-red-300'
+                  : 'border-muted-foreground hover:border-foreground'
             } ${justCompleted ? 'scale-110' : ''}`}
           >
             {userCompleted && <Check size={12} className="text-white" />}
@@ -107,10 +120,36 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
 
           {/* Title */}
           <span
-            className={`font-medium text-foreground ${userCompleted ? 'text-muted-foreground' : ''}`}
+            className={`font-medium ${
+              userCompleted
+                ? 'text-muted-foreground line-through'
+                : isOverdue
+                  ? 'text-red-300'
+                  : 'text-foreground'
+            }`}
           >
             {task.title}
           </span>
+
+          {/* Priority indicator for tasks with due dates */}
+          {!userCompleted && task.due_at && (
+            <span
+              className={`inline-flex items-center justify-center w-2 h-2 rounded-full flex-shrink-0 ${
+                isOverdue
+                  ? 'bg-red-500'
+                  : new Date(task.due_at).getTime() - Date.now() < 24 * 60 * 60 * 1000
+                    ? 'bg-amber-500'
+                    : 'bg-green-500'
+              }`}
+              aria-label={
+                isOverdue
+                  ? 'Overdue'
+                  : new Date(task.due_at).getTime() - Date.now() < 24 * 60 * 60 * 1000
+                    ? 'Due soon'
+                    : 'On track'
+              }
+            />
+          )}
 
           {/* Description */}
           {task.description && (
@@ -166,7 +205,8 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
                 e.stopPropagation();
                 onEdit?.(task);
               }}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+              aria-label={`Edit task "${task.title}"`}
+              className="min-h-[44px] min-w-[44px] px-2 text-xs text-muted-foreground hover:text-foreground"
             >
               <Pencil size={14} className="mr-1" />
               Edit
@@ -178,7 +218,8 @@ export const TaskRow = ({ task, tripId, onEdit }: TaskRowProps) => {
                 e.stopPropagation();
                 setShowDeleteDialog(true);
               }}
-              className="h-7 px-2 text-xs text-destructive hover:text-destructive/80"
+              aria-label={`Remove task "${task.title}"`}
+              className="min-h-[44px] min-w-[44px] px-2 text-xs text-destructive hover:text-destructive/80"
             >
               <Trash2 size={14} className="mr-1" />
               Remove

@@ -112,7 +112,9 @@ export const PaymentHistory = ({
 
         setEnrichedPayments(formattedPayments);
       } catch (error) {
-        console.error('Error enriching payment history:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error enriching payment history:', error);
+        }
         // Fall back to basic data without names
         setEnrichedPayments(
           settledPayments.map(p => ({
@@ -175,9 +177,25 @@ export const PaymentHistory = ({
     );
   }
 
-  // Don't render if no completed payments
+  // Show empty state if no completed payments
   if (enrichedPayments.length === 0) {
-    return null;
+    return (
+      <Card className="rounded-lg">
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckCircle size={18} className="text-green-500" />
+            Completed Payments
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="py-6 px-4">
+          <div className="text-center text-muted-foreground">
+            <Clock size={32} className="mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No completed payments yet.</p>
+            <p className="text-xs mt-1">Settled payments will appear here.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -253,16 +271,18 @@ export const PaymentHistory = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-9 w-9 min-h-[44px] min-w-[44px]"
                           onClick={() => handleEdit(payment)}
+                          aria-label={`Edit payment: ${payment.description}`}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          className="h-9 w-9 min-h-[44px] min-w-[44px] text-destructive hover:text-destructive"
                           onClick={() => setDeleteConfirmId(payment.id)}
+                          aria-label={`Delete payment: ${payment.description}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>

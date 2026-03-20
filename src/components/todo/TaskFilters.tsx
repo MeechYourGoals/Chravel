@@ -39,7 +39,9 @@ export const TaskFilters = ({
           <button
             key={s}
             onClick={() => onStatusChange(s)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize ${
+            aria-label={`Filter tasks by ${s}`}
+            aria-pressed={status === s}
+            className={`px-3 py-2 min-h-[44px] rounded-full text-xs font-medium transition-colors capitalize ${
               status === s
                 ? 'bg-blue-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -55,7 +57,8 @@ export const TaskFilters = ({
         <select
           value={sortBy}
           onChange={e => onSortChange(e.target.value as TaskSortBy)}
-          className="bg-slate-700 text-white text-xs rounded px-2 py-1 border border-slate-600"
+          aria-label="Sort tasks by"
+          className="bg-slate-700 text-white text-xs rounded px-2 py-2 min-h-[44px] border border-slate-600"
         >
           {sortOptions.map(option => (
             <option key={option.value} value={option.value}>
@@ -70,7 +73,8 @@ export const TaskFilters = ({
           variant="ghost"
           size="sm"
           onClick={onClearFilters}
-          className="text-slate-400 hover:text-white"
+          aria-label="Clear all filters"
+          className="text-slate-400 hover:text-white min-h-[44px]"
         >
           <X size={14} className="mr-1" />
           Clear

@@ -19,7 +19,7 @@ export interface MediaViewerItem {
   url: string;
   mimeType: string;
   fileName?: string | null;
-  metadata?: unknown;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface MediaViewerModalProps {
@@ -157,6 +157,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   return (
     <div
       ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Media viewer: ${currentItem.fileName || 'media'} (${currentIndex + 1} of ${items.length})`}
       className="fixed inset-0 z-50 bg-black flex items-center justify-center"
       onClick={onClose}
       onTouchStart={handleTouchStart}
@@ -172,7 +175,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         }}
         aria-label="Close viewer"
       >
-        <X className="w-6 h-6" />
+        <X className="w-6 h-6" aria-hidden="true" />
       </button>
 
       {/* Download button - iOS safe area aware */}
@@ -186,7 +189,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         onClick={e => e.stopPropagation()}
         aria-label="Download media"
       >
-        <Download className="w-6 h-6" />
+        <Download className="w-6 h-6" aria-hidden="true" />
       </a>
 
       {/* Image counter - centered below buttons */}
@@ -199,36 +202,36 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         </div>
       )}
 
-      {/* Navigation arrows (visible on larger screens) */}
+      {/* Navigation arrows - min 44px touch target */}
       {canGoPrev && (
         <button
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors hidden sm:flex"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/30 transition-colors sm:left-4"
           onClick={e => {
             e.stopPropagation();
             goToPrev();
           }}
           aria-label="Previous image"
         >
-          <ChevronLeft className="w-8 h-8" />
+          <ChevronLeft className="w-8 h-8" aria-hidden="true" />
         </button>
       )}
       {canGoNext && (
         <button
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors hidden sm:flex"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/30 transition-colors sm:right-4"
           onClick={e => {
             e.stopPropagation();
             goToNext();
           }}
           aria-label="Next image"
         >
-          <ChevronRight className="w-8 h-8" />
+          <ChevronRight className="w-8 h-8" aria-hidden="true" />
         </button>
       )}
 
       {/* Error state with download fallback */}
       {hasError && (
         <div className="flex flex-col items-center justify-center p-8">
-          <AlertCircle className="w-12 h-12 text-orange-400 mb-4" />
+          <AlertCircle className="w-12 h-12 text-orange-400 mb-4" aria-hidden="true" />
           <p className="text-white text-lg mb-4">Unable to preview</p>
           <a
             href={currentMediaUrl}
@@ -237,7 +240,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
             onClick={e => e.stopPropagation()}
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-5 h-5" aria-hidden="true" />
             Download instead
           </a>
         </div>

@@ -40,7 +40,7 @@ export async function getEntitlements(_userId: string): Promise<UserEntitlements
     const { data, error } = await supabase.functions.invoke('check-subscription');
 
     if (error) {
-      console.error('[Entitlements] Error checking subscription:', error);
+      if (import.meta.env.DEV) console.error('[Entitlements] Error checking subscription:', error);
       return createFreeEntitlements();
     }
 
@@ -69,7 +69,7 @@ export async function getEntitlements(_userId: string): Promise<UserEntitlements
       stripeCustomerId: stripe_customer_id,
     };
   } catch (error) {
-    console.error('[Entitlements] Unexpected error:', error);
+    if (import.meta.env.DEV) console.error('[Entitlements] Unexpected error:', error);
     return createFreeEntitlements();
   }
 }

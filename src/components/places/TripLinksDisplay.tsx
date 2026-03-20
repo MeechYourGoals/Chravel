@@ -45,6 +45,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { tripKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import type { Database } from '@/integrations/supabase/types';
 import type { AddToCalendarData } from '@/types/calendar';
 
@@ -91,8 +101,8 @@ const SortableLinkItem = ({
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-white touch-none"
-            title="Drag to reorder"
+            className="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-white touch-none"
+            aria-label="Drag to reorder link"
           >
             <GripVertical className="w-4 h-4" />
           </button>
@@ -117,8 +127,8 @@ const SortableLinkItem = ({
 
           <button
             onClick={() => onEdit(link)}
-            className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-glass-slate-bg hover:bg-white/10 transition-colors flex items-center gap-1"
-            title="Edit"
+            className="text-gray-400 hover:text-white text-xs px-3 py-2 min-h-[44px] rounded bg-glass-slate-bg hover:bg-white/10 transition-colors flex items-center gap-1"
+            aria-label={`Edit link ${link.title}`}
           >
             <Edit className="w-3 h-3" />
             <span className="hidden md:inline">Edit</span>
@@ -126,8 +136,8 @@ const SortableLinkItem = ({
 
           <button
             onClick={() => onDelete(link.id)}
-            className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
-            title="Remove"
+            className="text-red-400 hover:text-red-300 text-xs px-3 py-2 min-h-[44px] rounded bg-red-500/10 hover:bg-red-500/20 transition-colors flex items-center gap-1"
+            aria-label={`Remove link ${link.title}`}
           >
             <Trash2 className="w-3 h-3" />
             <span className="hidden md:inline">Remove</span>
@@ -195,6 +205,7 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<TripLink | null>(null);
+  const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
 
   // Form state
   const [formUrl, setFormUrl] = useState('');
@@ -265,6 +276,9 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
       queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old => [result, ...(old || [])]);
       setIsAddModalOpen(false);
       resetForm();
+      toast.success('Link added');
+    } else {
+      toast.error('Failed to add link. Please try again.');
     }
   };
 
@@ -293,17 +307,32 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
       );
       setEditingLink(null);
       resetForm();
+      toast.success('Link updated');
+    } else {
+      toast.error('Failed to update link. Please try again.');
     }
   };
 
   const handleDeleteLink = async (linkId: string) => {
-    const success = await deleteTripLink(linkId, tripId, isDemoMode);
-    if (success) {
-      // Optimistic update via query cache
-      queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old =>
-        (old || []).filter(link => link.id !== linkId),
-      );
+    try {
+      const success = await deleteTripLink(linkId, tripId, isDemoMode);
+      if (success) {
+        // Optimistic update via query cache
+        queryClient.setQueryData<TripLink[]>(['tripLinks', tripId], old =>
+          (old || []).filter(link => link.id !== linkId),
+        );
+      } else {
+        toast.error('Failed to remove link');
+      }
+    } catch {
+      toast.error('Failed to remove link. Please try again.');
     }
+  };
+
+  const confirmDeleteLink = async () => {
+    if (!deletingLinkId) return;
+    await handleDeleteLink(deletingLinkId);
+    setDeletingLinkId(null);
   };
 
   const resetForm = () => {
@@ -355,8 +384,10 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
       } else {
         toast.error('Failed to add event to calendar');
       }
-    } catch (error) {
-      console.error('Failed to add event to calendar:', error);
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to add event to calendar:', err);
+      }
       toast.error('Failed to add event to calendar');
     }
   };
@@ -581,13 +612,34 @@ export const TripLinksDisplay: React.FC<TripLinksDisplayProps> = ({ tripId }) =>
                 tripId={tripId}
                 link={link}
                 onEdit={openEditModal}
-                onDelete={handleDeleteLink}
+                onDelete={setDeletingLinkId}
                 onAddToCalendar={handleAddToCalendar}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingLinkId} onOpenChange={() => setDeletingLinkId(null)}>
+        <AlertDialogContent className="bg-glass-slate-card border-glass-slate-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Remove link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This link will be permanently removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteLink}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
