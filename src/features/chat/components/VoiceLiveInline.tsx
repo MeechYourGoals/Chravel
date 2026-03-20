@@ -109,7 +109,7 @@ export function VoiceLiveInline({
 
   return (
     <div className="flex flex-col items-center flex-1 min-h-0 px-4 pb-4 pt-2 select-none">
-      {/* AI transcript — above bar, scrollable, bright white */}
+      {/* AI transcript — above waveform, scrollable, bright white */}
       <div
         ref={assistantScrollRef}
         className="flex-1 w-full max-w-[90%] sm:max-w-2xl overflow-y-auto flex flex-col justify-end min-h-0 mb-4"
@@ -127,8 +127,8 @@ export function VoiceLiveInline({
         )}
       </div>
 
-      {/* Gold waveform — centerpiece */}
-      <div className="w-full max-w-[90%] sm:max-w-2xl flex-shrink-0">
+      {/* Gold waveform divider — full width of live content area */}
+      <div className="w-full flex-shrink-0">
         <svg
           ref={barRef}
           className={`w-full ${barMode === 'connecting' || barMode === 'thinking' ? 'animate-[wave-breathe_3s_ease-in-out_infinite]' : ''}`}
@@ -165,32 +165,29 @@ export function VoiceLiveInline({
         </p>
       </div>
 
-      {/* Bottom half — mirrors top flex-1 for true vertical centering */}
-      <div className="flex-1 min-h-0 flex flex-col items-center w-full">
-        {/* User transcript — below bar, premium gold */}
-        <div className="flex-shrink-0 w-full max-w-[90%] sm:max-w-2xl mt-4 min-h-[2.5rem]">
-          {userTranscript ? (
-            <p className="text-amber-400/90 text-sm leading-relaxed text-center whitespace-pre-wrap">
-              {userTranscript}
-            </p>
-          ) : (
-            barMode === 'listening' && (
-              <p className="text-amber-400/25 text-sm text-center italic">Speak now…</p>
-            )
-          )}
-        </div>
+      {/* User transcript — below waveform, symmetric flex-1 with top pane */}
+      <div className="flex-1 min-h-0 w-full max-w-[90%] sm:max-w-2xl overflow-y-auto flex flex-col justify-start mt-4">
+        {userTranscript ? (
+          <p className="text-amber-400/90 text-sm leading-relaxed text-center whitespace-pre-wrap">
+            {userTranscript}
+          </p>
+        ) : (
+          barMode === 'listening' && (
+            <p className="text-amber-400/25 text-sm text-center italic">Speak now…</p>
+          )
+        )}
+      </div>
 
-        {/* End session button */}
-        <div className="flex-shrink-0 mt-4">
-          <button
-            type="button"
-            onClick={onEndSession}
-            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all duration-150 flex items-center justify-center shadow-lg shadow-red-900/40"
-            aria-label="End voice session"
-          >
-            <PhoneOff size={18} className="text-white" />
-          </button>
-        </div>
+      {/* End session button — anchored at bottom, directly above composer */}
+      <div className="flex-shrink-0 pt-4">
+        <button
+          type="button"
+          onClick={onEndSession}
+          className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all duration-150 flex items-center justify-center shadow-lg shadow-red-900/40"
+          aria-label="End voice session"
+        >
+          <PhoneOff size={18} className="text-white" />
+        </button>
       </div>
 
       {/* CSS keyframes */}
