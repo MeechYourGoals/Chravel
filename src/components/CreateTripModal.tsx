@@ -281,7 +281,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       setPrivacyMode(getDefaultPrivacyMode('consumer'));
       setSelectedOrganization('');
     } catch (error) {
-      console.error('Error creating trip:', error);
+      if (import.meta.env.DEV) console.error('Error creating trip:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to create trip. Please try again.';
       tripEvents.createFailed(errorMessage);
@@ -745,7 +745,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                         key={color.accent}
                         type="button"
                         onClick={() => setSelectedCardColor(color.accent)}
-                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
+                        className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
                           selectedCardColor === color.accent
                             ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110'
                             : 'opacity-70 hover:opacity-100'
@@ -777,7 +777,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               disabled={isLoading}
               className="flex-1 bg-gradient-to-r from-[#533517] to-[#c49746] hover:from-[#6a441e] hover:to-[#d4a74f] disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors"
             >
-              {isLoading ? 'Creating...' : 'Create'}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 size={16} className="animate-spin" />
+                  Creating...
+                </span>
+              ) : (
+                'Create'
+              )}
             </button>
           </div>
         </form>

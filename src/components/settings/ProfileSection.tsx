@@ -88,7 +88,7 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
   };
 
   const handleAvatarUploadError = (error: string) => {
-    console.error('Avatar upload error:', error);
+    if (import.meta.env.DEV) console.error('Avatar upload error:', error);
     // Could show a toast notification here
   };
 
@@ -155,6 +155,9 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
             <button
               onClick={() => void handleToggleShowEmail()}
               disabled={updatingPrivacy}
+              role="switch"
+              aria-checked={!!user.showEmail}
+              aria-label="Show email in trips"
               className={`relative w-12 h-6 rounded-full transition-colors ${
                 user.showEmail ? `bg-${accentColors.primary}` : 'bg-gray-600'
               }`}
@@ -177,6 +180,9 @@ export const ProfileSection = ({ userOrganization }: ProfileSectionProps) => {
             <button
               onClick={() => void handleToggleShowPhone()}
               disabled={updatingPrivacy}
+              role="switch"
+              aria-checked={!!user.showPhone}
+              aria-label="Show phone in trips"
               className={`relative w-12 h-6 rounded-full transition-colors ${
                 user.showPhone ? `bg-${accentColors.primary}` : 'bg-gray-600'
               }`}
