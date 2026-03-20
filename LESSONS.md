@@ -248,6 +248,11 @@
 - **Provenance:** March 2026 calendar invite time-input forensic fix.
 - **Confidence:** high
 
+### Hover actions in dense message stacks must share the same pointer-ownership container
+- **Tip:** If chat hover controls are rendered outside the hovered message hitbox (especially below the bubble), cursor travel to the controls can trigger row handoff to the adjacent message. Keep action controls as descendants of the same row container and place them laterally (`left/right`) to avoid vertical collision.
+- **Applies when:** Reaction trays, kebab menus, or inline controls in stacked chat/message timelines.
+- **Evidence:** Trip chat reaction shortcuts rendered below bubbles and repeatedly "fell" to the next message; side-attached absolute pill under the same `MessageBubble` container removed hover handoff.
+- **Provenance:** March 2026 chat reaction hover forensic fix.
 ### App Store launch audits should separate code blockers from operator/App Store metadata blockers
 - **Tip:** During launch-readiness reviews, classify each issue by fix channel (code, config, App Store Connect metadata, legal/policy, ops). This prevents engineering from over-indexing on code-only fixes while submission blockers remain in metadata/compliance queues.
 - **Applies when:** Pre-TestFlight and pre-App Store readiness gates for mobile apps with subscriptions, account deletion, and legal obligations.
