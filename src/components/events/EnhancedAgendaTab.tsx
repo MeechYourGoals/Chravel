@@ -37,6 +37,17 @@ import { formatSessionDateTime } from '@/lib/formatSessionDateTime';
 import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { toast } from 'sonner';
 
 interface EnhancedAgendaTabProps {
   eventId: string;
@@ -103,6 +114,7 @@ export const EnhancedAgendaTab = ({
   const [editingSession, setEditingSession] = useState<EventAgendaItem | null>(null);
   const [speakerInput, setSpeakerInput] = useState('');
   const [dayFilter, setDayFilter] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
   // New session form state (Category/track removed per requirements)
   const [newSession, setNewSession] = useState<Partial<EventAgendaItem>>({
@@ -197,8 +209,14 @@ export const EnhancedAgendaTab = ({
     try {
       await deleteSession(sessionId);
     } catch {
-      // Error handled by hook toast
+      toast.error('Failed to delete session. Please try again.');
     }
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!deletingSessionId) return;
+    await handleDeleteSession(deletingSessionId);
+    setDeletingSessionId(null);
   };
 
   const resetForm = () => {
@@ -394,7 +412,8 @@ export const EnhancedAgendaTab = ({
                             onClick={() => handleDeleteAgendaFile(file)}
                             variant="outline"
                             size="sm"
-                            className="border-destructive text-destructive hover:bg-destructive/10"
+                            className="border-destructive text-destructive hover:bg-destructive/10 min-h-[44px]"
+                            aria-label={`Delete file ${file.name}`}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -843,15 +862,17 @@ export const EnhancedAgendaTab = ({
                                         onClick={() => handleEditSession(session)}
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                                        aria-label={`Edit session ${session.title}`}
                                       >
                                         <Edit2 size={14} />
                                       </Button>
                                       <Button
-                                        onClick={() => handleDeleteSession(session.id)}
+                                        onClick={() => setDeletingSessionId(session.id)}
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                        className="h-10 w-10 text-muted-foreground hover:text-destructive"
+                                        aria-label={`Delete session ${session.title}`}
                                       >
                                         <Trash2 size={14} />
                                       </Button>
@@ -882,6 +903,28 @@ export const EnhancedAgendaTab = ({
               </CardContent>
             </Card>
           )}
+
+      {/* Delete Session Confirmation */}
+      <AlertDialog open={!!deletingSessionId} onOpenChange={() => setDeletingSessionId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This session will be permanently removed from the agenda. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSession}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Agenda Import Modal */}
       <AgendaImportModal

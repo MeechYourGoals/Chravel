@@ -240,12 +240,17 @@ export const ConsumerGeneralSettings = () => {
             <label className="block text-sm text-gray-300 mb-2">Language</label>
             <select
               value={appPrefs.language}
+              aria-label="Language preference"
               onChange={e => {
                 const updated = { ...appPrefs, language: e.target.value };
                 setAppPrefs(updated);
                 saveAppPreferences(updated);
+                toast({
+                  title: 'Language updated',
+                  description: `Language set to ${e.target.value}.`,
+                });
               }}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             >
               <option>English</option>
               <option>Spanish</option>
@@ -257,12 +262,17 @@ export const ConsumerGeneralSettings = () => {
             <label className="block text-sm text-gray-300 mb-2">Time Zone</label>
             <select
               value={appPrefs.timezone}
+              aria-label="Time zone preference"
               onChange={e => {
                 const updated = { ...appPrefs, timezone: e.target.value };
                 setAppPrefs(updated);
                 saveAppPreferences(updated);
+                toast({
+                  title: 'Time zone updated',
+                  description: `Time zone set to ${e.target.value}.`,
+                });
               }}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             >
               <option>Pacific Time (PT)</option>
               <option>Mountain Time (MT)</option>
@@ -274,12 +284,17 @@ export const ConsumerGeneralSettings = () => {
             <label className="block text-sm text-gray-300 mb-2">Date Format</label>
             <select
               value={appPrefs.dateFormat}
+              aria-label="Date format preference"
               onChange={e => {
                 const updated = { ...appPrefs, dateFormat: e.target.value };
                 setAppPrefs(updated);
                 saveAppPreferences(updated);
+                toast({
+                  title: 'Date format updated',
+                  description: `Date format set to ${e.target.value}.`,
+                });
               }}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
             >
               <option>MM/DD/YYYY</option>
               <option>DD/MM/YYYY</option>

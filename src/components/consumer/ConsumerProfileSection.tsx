@@ -52,6 +52,26 @@ export const ConsumerProfileSection = () => {
 
     if (!user) return;
 
+    // Validate display name length
+    if (displayName.trim().length > 50) {
+      toast({
+        title: 'Validation error',
+        description: 'Display name must be 50 characters or less.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate real name length
+    if (realName.trim().length > 100) {
+      toast({
+        title: 'Validation error',
+        description: 'Real name must be 100 characters or less.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       // Canonical identity lives in `profiles` (via useAuth.updateProfile upsert).
@@ -68,7 +88,7 @@ export const ConsumerProfileSection = () => {
         description: 'Your profile changes have been saved successfully.',
       });
     } catch (error) {
-      console.error('Error saving profile:', error);
+      if (import.meta.env.DEV) console.error('Error saving profile:', error);
       const message = (error as { message?: string })?.message?.includes(
         'Display name can only be changed twice',
       )
@@ -157,8 +177,11 @@ export const ConsumerProfileSection = () => {
         description: 'Your profile photo has been updated.',
       });
     } catch (error: unknown) {
-      console.error('Error uploading photo:', error);
-      const errMsg = (error as any)?.message || (error as any)?.statusCode || '';
+      if (import.meta.env.DEV) console.error('Error uploading photo:', error);
+      const errMsg =
+        (error as { message?: string; statusCode?: string })?.message ||
+        (error as { statusCode?: string })?.statusCode ||
+        '';
       let description = 'Failed to upload profile photo. Please try again.';
       if (typeof errMsg === 'string') {
         if (errMsg.includes('Bucket not found') || errMsg.includes('not found')) {
@@ -261,9 +284,10 @@ export const ConsumerProfileSection = () => {
             <label className="block text-sm text-gray-300 mb-1.5">Real Name</label>
             <input
               type="text"
+              aria-label="Real name"
               value={realName}
               onChange={e => setRealName(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
               placeholder="Enter your real name"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -274,18 +298,20 @@ export const ConsumerProfileSection = () => {
             <label className="block text-sm text-gray-300 mb-1.5">Email</label>
             <input
               type="email"
+              aria-label="Email address"
               value={currentUser.email || ''}
               disabled
-              className="w-full bg-gray-700/50 border border-gray-600 text-gray-400 rounded-lg px-4 py-2 cursor-not-allowed"
+              className="w-full bg-gray-700/50 border border-gray-600 text-gray-400 rounded-lg px-4 py-2 min-h-[44px] cursor-not-allowed"
             />
           </div>
           <div>
             <label className="block text-sm text-gray-300 mb-1.5">Display Name</label>
             <input
               type="text"
+              aria-label="Display name"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
               placeholder="Nickname or role (e.g., Tour Manager, Security)"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -299,9 +325,10 @@ export const ConsumerProfileSection = () => {
             </label>
             <input
               type="tel"
+              aria-label="Phone number"
               value={phone}
               onChange={e => setPhone(e.target.value)}
-              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
+              className="w-full bg-gray-800/50 border border-gray-600 text-white rounded-lg px-4 py-2 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-glass-orange/50"
               placeholder="+1 (555) 123-4567"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -315,7 +342,8 @@ export const ConsumerProfileSection = () => {
           <button
             onClick={handleSave}
             disabled={isSaving || (!user && !showDemoContent)}
-            className="bg-glass-orange hover:bg-glass-orange/80 text-white font-medium px-6 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Save profile changes"
+            className="bg-glass-orange hover:bg-glass-orange/80 text-white font-medium px-6 py-2 min-h-[44px] rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? (
               <>

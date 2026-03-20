@@ -17,7 +17,8 @@ export const DisabledTabDialog: React.FC<DisabledTabDialogProps> = ({ open, onOp
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="w-full rounded-lg bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+            className="w-full rounded-lg bg-primary text-primary-foreground py-2.5 min-h-[44px] text-sm font-medium hover:opacity-90 transition-opacity"
+            aria-label="Dismiss disabled tab notification"
           >
             Got it
           </button>

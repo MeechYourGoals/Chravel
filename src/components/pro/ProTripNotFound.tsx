@@ -107,7 +107,8 @@ export const ProTripNotFound = ({
         {reason === 'auth_required' ? (
           <button
             onClick={handleLogin}
-            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 mb-3`}
+            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 min-h-[44px] rounded-xl flex items-center justify-center gap-2 mb-3`}
+            aria-label="Log in to access this trip"
           >
             <LogIn className="h-4 w-4" />
             Log In
@@ -115,7 +116,8 @@ export const ProTripNotFound = ({
         ) : reason === 'pending_approval' ? (
           <button
             onClick={() => navigate('/')}
-            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 mb-3`}
+            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 min-h-[44px] rounded-xl flex items-center justify-center gap-2 mb-3`}
+            aria-label="View your join request status"
           >
             <ArrowRight className="h-4 w-4" />
             View Request Status
@@ -123,7 +125,8 @@ export const ProTripNotFound = ({
         ) : reason === 'no_access' ? (
           <button
             onClick={handleContactHost}
-            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 mb-3`}
+            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 min-h-[44px] rounded-xl flex items-center justify-center gap-2 mb-3`}
+            aria-label="Contact the trip host for access"
           >
             <Mail className="h-4 w-4" />
             Contact Host
@@ -131,7 +134,8 @@ export const ProTripNotFound = ({
         ) : (
           <button
             onClick={() => navigate('/')}
-            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 rounded-xl mb-3`}
+            className={`w-full bg-gradient-to-r ${accentColors.gradient} text-white px-6 py-3 min-h-[44px] rounded-xl mb-3`}
+            aria-label="Return to dashboard"
           >
             Go to Dashboard
           </button>
@@ -141,7 +145,8 @@ export const ProTripNotFound = ({
         {onRetry && (
           <button
             onClick={onRetry}
-            className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 px-6 py-3 rounded-xl flex items-center justify-center gap-2 mb-3 transition-colors"
+            className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 px-6 py-3 min-h-[44px] rounded-xl flex items-center justify-center gap-2 mb-3 transition-colors"
+            aria-label="Retry loading the trip"
           >
             <RefreshCw className="h-4 w-4" />
             Try Again
@@ -151,7 +156,8 @@ export const ProTripNotFound = ({
         {reason !== 'auth_required' && reason !== 'pending_approval' && (
           <button
             onClick={() => navigate('/')}
-            className="w-full text-gray-500 hover:text-gray-300 px-6 py-2 transition-colors"
+            className="w-full text-gray-500 hover:text-gray-300 px-6 py-2 min-h-[44px] transition-colors"
+            aria-label="Back to dashboard"
           >
             Back to Dashboard
           </button>

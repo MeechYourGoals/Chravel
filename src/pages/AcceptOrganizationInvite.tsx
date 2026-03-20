@@ -118,9 +118,10 @@ export const AcceptOrganizationInvite = () => {
         return;
       }
 
+      const orgData = invite.organizations as { display_name?: string } | null;
       setInviteDetails({
         organization_id: invite.organization_id,
-        organization_name: (invite.organizations as any)?.display_name || 'Unknown Organization',
+        organization_name: orgData?.display_name || 'Unknown Organization',
         invited_by_name: 'Team Admin',
         role: invite.role,
         email: invite.email,
@@ -184,7 +185,13 @@ export const AcceptOrganizationInvite = () => {
             <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Invalid Invitation</h2>
             <p className="text-gray-400 mb-6">{error}</p>
-            <Button onClick={() => navigate('/organizations')}>View My Organizations</Button>
+            <Button
+              onClick={() => navigate('/organizations')}
+              aria-label="View my organizations"
+              className="min-h-[44px]"
+            >
+              View My Organizations
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -245,7 +252,8 @@ export const AcceptOrganizationInvite = () => {
             <Button
               onClick={handleAcceptInvite}
               disabled={accepting}
-              className="w-full bg-glass-orange hover:bg-glass-orange/80"
+              className="w-full bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+              aria-label={accepting ? 'Accepting invitation' : 'Accept organization invitation'}
             >
               {accepting ? (
                 <>
@@ -259,7 +267,8 @@ export const AcceptOrganizationInvite = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/')}
-              className="w-full border-white/20 text-white hover:bg-white/10"
+              className="w-full border-white/20 text-white hover:bg-white/10 min-h-[44px]"
+              aria-label="Decline organization invitation"
             >
               Decline
             </Button>

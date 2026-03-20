@@ -3,11 +3,54 @@ import { useNavigate } from 'react-router-dom';
 import { Building, Plus, Users, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CreateOrganizationModal } from '@/components/enterprise/CreateOrganizationModal';
 import { SUBSCRIPTION_TIERS } from '@/types/pro';
+
+/** Skeleton for the organizations hub loading state */
+const OrgsHubSkeleton = () => (
+  <div className="min-h-screen bg-black text-white">
+    <div className="container mx-auto p-4 md:p-6 max-w-7xl">
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <Skeleton className="h-9 w-48 bg-white/10 mb-2" />
+            <Skeleton className="h-5 w-64 bg-white/10" />
+          </div>
+          <Skeleton className="h-10 w-44 bg-white/10 rounded-lg" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="bg-white/5 border-white/10">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-12 h-12 rounded-xl bg-white/10" />
+                  <div>
+                    <Skeleton className="h-5 w-32 bg-white/10 mb-1" />
+                    <Skeleton className="h-4 w-20 bg-white/10" />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-10 w-full bg-white/10 mb-4" />
+              <Skeleton className="h-2 w-full bg-white/10 mb-2 rounded-full" />
+              <Skeleton className="h-4 w-24 bg-white/10" />
+              <div className="mt-4 pt-4 border-t border-white/10 flex gap-2">
+                <Skeleton className="h-9 flex-1 bg-white/10 rounded-lg" />
+                <Skeleton className="h-9 flex-1 bg-white/10 rounded-lg" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 export const OrganizationsHub = () => {
   const navigate = useNavigate();
@@ -21,23 +64,20 @@ export const OrganizationsHub = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading organizations..." />
-      </div>
-    );
+    return <OrgsHubSkeleton />;
   }
 
   if (error) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center" role="alert">
           <AlertCircle size={64} className="text-red-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Failed to Load Organizations</h2>
           <p className="text-gray-400 mb-6">{error.message}</p>
           <Button
             onClick={fetchUserOrganizations}
-            className="bg-glass-orange hover:bg-glass-orange/80"
+            className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+            aria-label="Retry loading organizations"
           >
             <RefreshCw size={16} className="mr-2" />
             Try Again
@@ -59,7 +99,8 @@ export const OrganizationsHub = () => {
             </div>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="bg-glass-orange hover:bg-glass-orange/80"
+              className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+              aria-label="Create a new organization"
             >
               <Plus size={16} className="mr-2" />
               Create Organization
@@ -78,7 +119,8 @@ export const OrganizationsHub = () => {
               </p>
               <Button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-glass-orange hover:bg-glass-orange/80"
+                className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+                aria-label="Create your first organization"
               >
                 <Plus size={16} className="mr-2" />
                 Create Your First Organization
@@ -96,6 +138,15 @@ export const OrganizationsHub = () => {
                   key={org.id}
                   className="bg-white/5 border-white/10 hover:bg-white/10 transition-all cursor-pointer group"
                   onClick={() => navigate(`/organization/${org.id}`)}
+                  role="link"
+                  aria-label={`Open organization: ${org.display_name}`}
+                  tabIndex={0}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/organization/${org.id}`);
+                    }
+                  }}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -154,7 +205,14 @@ export const OrganizationsHub = () => {
                           {org.seats_used}/{org.seat_limit}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div
+                        className="w-full bg-gray-700 rounded-full h-2"
+                        role="progressbar"
+                        aria-valuenow={seatUsage}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`Seat usage: ${org.seats_used} of ${org.seat_limit}`}
+                      >
                         <div
                           className="bg-glass-orange h-2 rounded-full transition-all"
                           style={{ width: `${seatUsage}%` }}
@@ -171,7 +229,8 @@ export const OrganizationsHub = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 border-white/20 text-white hover:bg-white/10"
+                        className="flex-1 border-white/20 text-white hover:bg-white/10 min-h-[44px]"
+                        aria-label={`View team for ${org.display_name}`}
                         onClick={e => {
                           e.stopPropagation();
                           navigate(`/organization/${org.id}`);
@@ -183,7 +242,8 @@ export const OrganizationsHub = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 border-white/20 text-white hover:bg-white/10"
+                        className="flex-1 border-white/20 text-white hover:bg-white/10 min-h-[44px]"
+                        aria-label={`Open settings for ${org.display_name}`}
                         onClick={e => {
                           e.stopPropagation();
                           navigate(`/organization/${org.id}?tab=settings`);

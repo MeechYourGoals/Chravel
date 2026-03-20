@@ -9,15 +9,26 @@ import {
   ChevronLeft,
   Trash2,
   AlertTriangle,
+  UserMinus,
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { InviteMemberModal } from '@/components/enterprise/InviteMemberModal';
 import { OrganizationSection } from '@/components/enterprise/OrganizationSection';
 import { SeatManagement } from '@/components/enterprise/SeatManagement';
@@ -25,6 +36,81 @@ import { BillingSection } from '@/components/enterprise/BillingSection';
 import { MobileTeamMemberCard } from '@/components/MobileTeamMemberCard';
 import { SUBSCRIPTION_TIERS } from '@/types/pro';
 import { useToast } from '@/hooks/use-toast';
+
+interface LinkedTrip {
+  id: string;
+  name: string;
+  description?: string;
+  destination?: string;
+  start_date?: string;
+  end_date?: string;
+  trip_type?: string;
+  cover_image_url?: string;
+}
+
+/** Skeleton placeholder for the organization dashboard loading state */
+const OrgDashboardSkeleton = () => (
+  <div className="min-h-screen bg-black text-white">
+    <div className="container mx-auto p-6 max-w-7xl">
+      {/* Header skeleton */}
+      <div className="mb-8">
+        <Skeleton className="h-5 w-40 bg-white/10 mb-4" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="w-16 h-16 rounded-xl bg-white/10" />
+          <div>
+            <Skeleton className="h-8 w-56 bg-white/10 mb-2" />
+            <Skeleton className="h-4 w-32 bg-white/10" />
+          </div>
+        </div>
+      </div>
+
+      {/* Stats skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="bg-white/5 border-white/10">
+            <CardHeader className="pb-3">
+              <Skeleton className="h-4 w-24 bg-white/10" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16 bg-white/10 mb-2" />
+              <Skeleton className="h-4 w-20 bg-white/10" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Tabs skeleton */}
+      <Skeleton className="h-10 w-full bg-white/10 mb-6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Skeleton className="h-64 bg-white/10 rounded-xl" />
+        <Skeleton className="h-64 bg-white/10 rounded-xl" />
+      </div>
+    </div>
+  </div>
+);
+
+/** Skeleton placeholder for mobile org dashboard loading state */
+const MobileOrgDashboardSkeleton = () => (
+  <div className="min-h-screen bg-black text-white p-4">
+    <Skeleton className="h-5 w-40 bg-white/10 mb-4" />
+    <div className="flex items-center gap-3 mb-4">
+      <Skeleton className="w-12 h-12 rounded-xl bg-white/10" />
+      <div>
+        <Skeleton className="h-6 w-40 bg-white/10 mb-1" />
+        <Skeleton className="h-4 w-24 bg-white/10" />
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-3 mb-4">
+      <Skeleton className="h-20 bg-white/10 rounded-lg" />
+      <Skeleton className="h-20 bg-white/10 rounded-lg" />
+    </div>
+    <Skeleton className="h-11 w-full bg-white/10 rounded-lg mb-6" />
+    <Skeleton className="h-6 w-32 bg-white/10 mb-3" />
+    {Array.from({ length: 3 }).map((_, i) => (
+      <Skeleton key={i} className="h-16 w-full bg-white/10 rounded-lg mb-3" />
+    ))}
+  </div>
+);
 
 export const OrganizationDashboard = () => {
   const { orgId } = useParams<{ orgId: string }>();
@@ -51,8 +137,14 @@ export const OrganizationDashboard = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [linkedTrips, setLinkedTrips] = useState<any[]>([]);
+  const [linkedTrips, setLinkedTrips] = useState<LinkedTrip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
+
+  // Confirmation dialog state for removing a member
+  const [removeMemberConfirm, setRemoveMemberConfirm] = useState<{
+    memberId: string;
+    memberName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchUserOrganizations();
@@ -94,10 +186,10 @@ export const OrganizationDashboard = () => {
 
       if (error) throw error;
 
-      const trips = data?.map(item => item.trips).filter(Boolean) || [];
+      const trips = (data?.map(item => item.trips).filter(Boolean) || []) as LinkedTrip[];
       setLinkedTrips(trips);
-    } catch (error) {
-      // Error fetching linked trips — non-critical, UI shows empty state
+    } catch (_fetchError) {
+      // Error fetching linked trips -- non-critical, UI shows empty state
     } finally {
       setLoadingTrips(false);
     }
@@ -120,6 +212,10 @@ export const OrganizationDashboard = () => {
     }
   };
 
+  const handleRemoveConfirm = (memberId: string, memberName: string) => {
+    setRemoveMemberConfirm({ memberId, memberName });
+  };
+
   const handleRemove = async (memberId: string) => {
     const { error } = await removeMember(memberId);
     if (error) {
@@ -135,6 +231,7 @@ export const OrganizationDashboard = () => {
       });
       if (orgId) fetchOrgMembers(orgId);
     }
+    setRemoveMemberConfirm(null);
   };
 
   const handleDeleteOrganization = async () => {
@@ -160,23 +257,21 @@ export const OrganizationDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Loading organization..." />
-      </div>
-    );
+    return isMobile ? <MobileOrgDashboardSkeleton /> : <OrgDashboardSkeleton />;
   }
 
   if (!currentOrg) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center" role="status">
           <Building size={64} className="text-gray-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Organization Not Found</h2>
           <p className="text-gray-400 mb-6">
             This organization doesn't exist or you don't have access.
           </p>
-          <Button onClick={() => navigate('/organizations')}>View My Organizations</Button>
+          <Button onClick={() => navigate('/organizations')} aria-label="View my organizations">
+            View My Organizations
+          </Button>
         </div>
       </div>
     );
@@ -188,15 +283,55 @@ export const OrganizationDashboard = () => {
   const tierInfo = SUBSCRIPTION_TIERS[currentOrg.subscription_tier];
   const seatUsage = (currentOrg.seats_used / currentOrg.seat_limit) * 100;
 
+  // Remove member confirmation dialog (shared by mobile and desktop)
+  const removeMemberDialog = (
+    <AlertDialog
+      open={removeMemberConfirm !== null}
+      onOpenChange={open => {
+        if (!open) setRemoveMemberConfirm(null);
+      }}
+    >
+      <AlertDialogContent className="bg-gray-900 border-white/10">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-white flex items-center gap-2">
+            <UserMinus size={20} className="text-red-400" />
+            Remove Member
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-gray-400">
+            Are you sure you want to remove{' '}
+            <strong className="text-white">{removeMemberConfirm?.memberName}</strong> from this
+            organization? They will lose access to all organization trips and resources.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (removeMemberConfirm) handleRemove(removeMemberConfirm.memberId);
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Remove Member
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   // Mobile view
   if (isMobile) {
     return (
       <div className="min-h-screen bg-black text-white p-4">
+        {removeMemberDialog}
+
         {/* Mobile Header */}
         <div className="mb-6">
           <button
             onClick={() => navigate('/organizations')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white mb-4"
+            className="flex items-center gap-2 text-gray-400 hover:text-white mb-4 min-h-[44px]"
+            aria-label="Back to organizations list"
           >
             <ChevronLeft size={20} />
             Back to Organizations
@@ -233,7 +368,8 @@ export const OrganizationDashboard = () => {
           {isAdmin && (
             <Button
               onClick={() => setShowInviteModal(true)}
-              className="w-full bg-glass-orange hover:bg-glass-orange/80"
+              className="w-full bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+              aria-label="Invite a new team member"
             >
               <UserPlus size={16} className="mr-2" />
               Invite Team Member
@@ -244,23 +380,39 @@ export const OrganizationDashboard = () => {
         {/* Mobile Team List */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-white">Team Members</h3>
-          {members.map(member => (
-            <MobileTeamMemberCard
-              key={member.id}
-              member={{
-                id: member.user_id || member.id,
-                name: member.user_id || 'Pending',
-                role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
-                avatar: '',
-                status: member.status as 'active' | 'pending',
-              }}
-              onChangeRole={
-                isAdmin ? newRole => handleChangeRole(member.id, newRole.toLowerCase()) : undefined
-              }
-              onRemove={isAdmin ? () => handleRemove(member.id) : undefined}
-              isCurrentUser={member.user_id === user?.id}
-            />
-          ))}
+          {members.length === 0 ? (
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-8 text-center">
+                <Users size={48} className="text-gray-600 mx-auto mb-3" />
+                <h4 className="text-lg font-semibold text-white mb-1">No Members Yet</h4>
+                <p className="text-sm text-gray-400">Invite team members to start collaborating</p>
+              </CardContent>
+            </Card>
+          ) : (
+            members.map(member => (
+              <MobileTeamMemberCard
+                key={member.id}
+                member={{
+                  id: member.user_id || member.id,
+                  name: member.user_id || 'Pending',
+                  role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
+                  avatar: '',
+                  status: member.status as 'active' | 'pending',
+                }}
+                onChangeRole={
+                  isAdmin
+                    ? newRole => handleChangeRole(member.id, newRole.toLowerCase())
+                    : undefined
+                }
+                onRemove={
+                  isAdmin
+                    ? () => handleRemoveConfirm(member.id, member.user_id || 'this member')
+                    : undefined
+                }
+                isCurrentUser={member.user_id === user?.id}
+              />
+            ))
+          )}
         </div>
 
         <InviteMemberModal
@@ -275,12 +427,15 @@ export const OrganizationDashboard = () => {
   // Desktop view
   return (
     <div className="min-h-screen bg-black text-white">
+      {removeMemberDialog}
+
       <div className="container mx-auto p-6 max-w-7xl">
         {/* Desktop Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/organizations')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white mb-4"
+            className="flex items-center gap-2 text-gray-400 hover:text-white mb-4 min-h-[44px]"
+            aria-label="Back to organizations list"
           >
             <ChevronLeft size={20} />
             Back to Organizations
@@ -300,7 +455,8 @@ export const OrganizationDashboard = () => {
             {isAdmin && (
               <Button
                 onClick={() => setShowInviteModal(true)}
-                className="bg-glass-orange hover:bg-glass-orange/80"
+                className="bg-glass-orange hover:bg-glass-orange/80 min-h-[44px]"
+                aria-label="Invite a new team member"
               >
                 <UserPlus size={16} className="mr-2" />
                 Invite Member
@@ -339,7 +495,14 @@ export const OrganizationDashboard = () => {
               <div className="text-2xl font-bold text-white">
                 {currentOrg.seats_used}/{currentOrg.seat_limit}
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+              <div
+                className="w-full bg-gray-700 rounded-full h-2 mt-2"
+                role="progressbar"
+                aria-valuenow={seatUsage}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Seat usage progress"
+              >
                 <div
                   className="bg-glass-orange h-2 rounded-full transition-all"
                   style={{ width: `${seatUsage}%` }}
@@ -400,8 +563,8 @@ export const OrganizationDashboard = () => {
                 ]}
                 onSave={
                   updateOrganization
-                    ? async (orgId, data) => {
-                        const { error: err } = await updateOrganization(orgId, {
+                    ? async (id, data) => {
+                        const { error: err } = await updateOrganization(id, {
                           name: data.name,
                           display_name: data.displayName,
                           billing_email: data.billingEmail,
@@ -433,8 +596,19 @@ export const OrganizationDashboard = () => {
 
           <TabsContent value="trips" className="mt-6">
             {loadingTrips ? (
-              <div className="text-center py-12">
-                <LoadingSpinner size="lg" text="Loading trips..." />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i} className="bg-white/5 border-white/10">
+                    <Skeleton className="h-32 bg-white/10 rounded-t-lg" />
+                    <CardHeader>
+                      <Skeleton className="h-6 w-40 bg-white/10" />
+                      <Skeleton className="h-4 w-24 bg-white/10 mt-1" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-4 w-32 bg-white/10" />
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             ) : linkedTrips.length === 0 ? (
               <Card className="bg-white/5 border-white/10">
@@ -444,16 +618,27 @@ export const OrganizationDashboard = () => {
                   <p className="text-gray-400 mb-6">
                     Create your first Pro trip and link it to this organization
                   </p>
-                  <Button onClick={() => navigate('/')}>Create Pro Trip</Button>
+                  <Button onClick={() => navigate('/')} aria-label="Create a new Pro trip">
+                    Create Pro Trip
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {linkedTrips.map((trip: any) => (
+                {linkedTrips.map((trip: LinkedTrip) => (
                   <Card
                     key={trip.id}
                     className="bg-white/5 border-white/10 hover:bg-white/10 transition-all cursor-pointer group"
                     onClick={() => navigate(`/tour/pro/${trip.id}`)}
+                    role="link"
+                    aria-label={`View trip: ${trip.name}`}
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/tour/pro/${trip.id}`);
+                      }
+                    }}
                   >
                     {trip.cover_image_url && (
                       <div
@@ -505,8 +690,8 @@ export const OrganizationDashboard = () => {
                   ]}
                   onSave={
                     updateOrganization
-                      ? async (orgId, data) => {
-                          const { error: err } = await updateOrganization(orgId, {
+                      ? async (id, data) => {
+                          const { error: err } = await updateOrganization(id, {
                             name: data.name,
                             display_name: data.displayName,
                             billing_email: data.billingEmail,
@@ -553,7 +738,8 @@ export const OrganizationDashboard = () => {
                         <Button
                           variant="outline"
                           onClick={() => setShowDeleteConfirm(true)}
-                          className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                          className="border-red-500/30 text-red-400 hover:bg-red-500/10 min-h-[44px]"
+                          aria-label="Begin organization deletion process"
                         >
                           <Trash2 size={16} className="mr-2" />
                           Delete
@@ -571,7 +757,8 @@ export const OrganizationDashboard = () => {
                           value={deleteConfirmText}
                           onChange={e => setDeleteConfirmText(e.target.value)}
                           placeholder="Type organization name to confirm"
-                          className="w-full bg-gray-800/50 border border-red-500/30 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                          aria-label="Type organization name to confirm deletion"
+                          className="w-full bg-gray-800/50 border border-red-500/30 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[44px]"
                         />
                         <div className="flex gap-2">
                           <Button
@@ -580,14 +767,16 @@ export const OrganizationDashboard = () => {
                               setShowDeleteConfirm(false);
                               setDeleteConfirmText('');
                             }}
-                            className="flex-1"
+                            className="flex-1 min-h-[44px]"
+                            aria-label="Cancel organization deletion"
                           >
                             Cancel
                           </Button>
                           <Button
                             onClick={handleDeleteOrganization}
                             disabled={deleteConfirmText !== currentOrg.display_name || isDeleting}
-                            className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 min-h-[44px]"
+                            aria-label="Permanently delete this organization"
                           >
                             {isDeleting ? 'Deleting...' : 'Delete Forever'}
                           </Button>

@@ -6,6 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { useToast } from '../../hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 
 interface EmergencyTemplate {
   id: string;
@@ -22,6 +32,7 @@ export const EmergencyBroadcast = () => {
   const [emailNotification, setEmailNotification] = useState(false);
   const [smsNotification, setSmsNotification] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { toast } = useToast();
 
   const emergencyTemplates: EmergencyTemplate[] = [
@@ -126,7 +137,9 @@ export const EmergencyBroadcast = () => {
       setEmailNotification(false);
       setSmsNotification(false);
     } catch (error) {
-      console.error('Error sending broadcast:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error sending broadcast:', error);
+      }
       toast({
         title: 'Broadcast failed',
         description: 'Failed to send emergency broadcast. Please try again.',
@@ -167,7 +180,8 @@ export const EmergencyBroadcast = () => {
               <button
                 key={template.id}
                 onClick={() => handleTemplateSelect(template.id)}
-                className={`text-left p-4 rounded-lg border transition-all hover:scale-105 ${config.bg} ${config.border}`}
+                className={`text-left p-4 min-h-[44px] rounded-lg border transition-all hover:scale-105 ${config.bg} ${config.border}`}
+                aria-label={`Use ${template.title} template`}
               >
                 <div className={`font-medium ${config.color} mb-2`}>{template.title}</div>
                 <div className="text-gray-300 text-sm line-clamp-2">{template.message}</div>
@@ -311,9 +325,10 @@ export const EmergencyBroadcast = () => {
 
           {/* Send Button */}
           <Button
-            onClick={handleSendBroadcast}
+            onClick={() => setShowConfirmDialog(true)}
             disabled={!message.trim() || isSending}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-3"
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-3 min-h-[44px]"
+            aria-label="Send emergency broadcast"
           >
             {isSending ? (
               <div className="flex items-center gap-2">
@@ -329,6 +344,33 @@ export const EmergencyBroadcast = () => {
           </Button>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={20} className="text-red-400" />
+              Send Emergency Broadcast?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately send a {urgency} priority broadcast to{' '}
+              {audienceOptions.find(opt => opt.value === audience)?.count} recipients. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSendBroadcast}
+              disabled={isSending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isSending ? 'Sending...' : 'Send Now'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

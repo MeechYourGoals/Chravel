@@ -91,7 +91,10 @@ export const MobileTeamMemberCard = ({
           {/* Actions Dropdown */}
           {(onChangeRole || onRemove) && !isCurrentUser && (
             <DropdownMenu>
-              <DropdownMenuTrigger className="text-gray-400 hover:text-white">
+              <DropdownMenuTrigger
+                className="text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label={`Actions for ${member.name}`}
+              >
                 <MoreVertical size={20} />
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-gray-900 border-white/10">
@@ -100,14 +103,14 @@ export const MobileTeamMemberCard = ({
                     <DropdownMenuLabel className="text-gray-400">Change Role</DropdownMenuLabel>
                     <DropdownMenuItem
                       onClick={() => onChangeRole('admin')}
-                      className="text-white hover:bg-white/10"
+                      className="text-white hover:bg-white/10 min-h-[44px]"
                     >
                       <Shield size={16} className="mr-2" />
                       Make Admin
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onChangeRole('member')}
-                      className="text-white hover:bg-white/10"
+                      className="text-white hover:bg-white/10 min-h-[44px]"
                     >
                       <User size={16} className="mr-2" />
                       Make Member
@@ -116,7 +119,10 @@ export const MobileTeamMemberCard = ({
                   </>
                 )}
                 {onRemove && (
-                  <DropdownMenuItem onClick={onRemove} className="text-red-400 hover:bg-red-500/10">
+                  <DropdownMenuItem
+                    onClick={onRemove}
+                    className="text-red-400 hover:bg-red-500/10 min-h-[44px]"
+                  >
                     <Trash2 size={16} className="mr-2" />
                     Remove from Organization
                   </DropdownMenuItem>
