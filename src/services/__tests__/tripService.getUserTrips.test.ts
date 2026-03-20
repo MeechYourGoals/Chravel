@@ -126,7 +126,7 @@ describe('tripService.getUserTrips', () => {
       }
 
       return createChainableMock({ data: [], error: null });
-    });
+    }) as unknown as typeof supabase.from);
 
     const trips = await tripService.getUserTrips(false, undefined, 'member-user');
 
