@@ -235,7 +235,15 @@ self.addEventListener('notificationclick', function (event) {
         break;
     }
   } else if (data.url) {
-    targetUrl = data.url;
+    // Validate URL origin to prevent phishing via push notification payloads
+    try {
+      var parsed = new URL(data.url, self.location.origin);
+      if (parsed.origin === self.location.origin) {
+        targetUrl = parsed.pathname + parsed.search + parsed.hash;
+      }
+    } catch (e) {
+      // Invalid URL — keep default '/'
+    }
   }
 
   // Handle specific button actions
