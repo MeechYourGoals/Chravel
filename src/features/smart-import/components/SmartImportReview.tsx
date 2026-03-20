@@ -10,7 +10,7 @@ import {
   Utensils,
   Train,
   CalendarCheck,
-  Map,
+  Map as MapIcon,
   Loader2,
   AlertTriangle,
   RefreshCw,
