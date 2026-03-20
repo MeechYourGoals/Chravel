@@ -20,9 +20,6 @@ const ALLOWED_ORIGINS = [
   'capacitor://localhost',
   'ionic://localhost',
   'http://localhost',
-  // Lovable preview/published domains (trusted platform)
-  '.lovable.app',
-  '.lovableproject.com',
 ];
 
 const ENV_ALLOWED_ORIGINS = (Deno.env.get('ADDITIONAL_ALLOWED_ORIGINS') || '')
@@ -32,25 +29,13 @@ const ENV_ALLOWED_ORIGINS = (Deno.env.get('ADDITIONAL_ALLOWED_ORIGINS') || '')
 
 /**
  * Validates if an origin is allowed to make requests to Edge Functions.
- * Supports exact matches and suffix matches for subdomains.
+ * Uses exact origin matching only.
  */
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
 
   const allowlist = [...ALLOWED_ORIGINS, ...ENV_ALLOWED_ORIGINS];
-
-  return allowlist.some(allowed => {
-    // Suffix match for subdomains (e.g., '.supabase.co' matches 'xyz.supabase.co')
-    if (allowed.startsWith('.')) {
-      return (
-        origin.endsWith(allowed) ||
-        origin === `https://${allowed.slice(1)}` ||
-        origin === `http://${allowed.slice(1)}`
-      );
-    }
-    // Exact match
-    return origin === allowed;
-  });
+  return allowlist.includes(origin);
 }
 
 /**
