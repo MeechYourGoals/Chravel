@@ -247,3 +247,19 @@
 - **Evidence:** Calendar Add Event modal showed a confusing blue square/blank indicator slot in the Start Time field; adding a scoped `.calendar-time-input` style plus explicit `Clock3` icon resolved clarity without changing time data semantics.
 - **Provenance:** March 2026 calendar invite time-input forensic fix.
 - **Confidence:** high
+
+### App Store launch audits should separate code blockers from operator/App Store metadata blockers
+- **Tip:** During launch-readiness reviews, classify each issue by fix channel (code, config, App Store Connect metadata, legal/policy, ops). This prevents engineering from over-indexing on code-only fixes while submission blockers remain in metadata/compliance queues.
+- **Applies when:** Pre-TestFlight and pre-App Store readiness gates for mobile apps with subscriptions, account deletion, and legal obligations.
+- **Avoid when:** Narrow feature bugs where submission/compliance scope is irrelevant.
+- **Evidence:** 2026-03-19 boring-killers audit found high-risk blockers split across Apple IAP implementation, restore-purchase UX, and App Store Connect policy disclosures.
+- **Provenance:** `docs/audits/launch-readiness-boring-killers-2026-03-19.md`
+- **Confidence:** high
+
+### App Store billing compliance needs both client-side and server-side enforcement
+- **Tip:** When iOS consumer IAP is not live yet, blocking only the frontend CTA is insufficient; also enforce policy server-side in checkout/session creation so stale clients or direct calls cannot trigger non-compliant flows.
+- **Applies when:** Consumer digital subscriptions have mixed Stripe + IAP architecture during migration.
+- **Avoid when:** Native IAP is fully implemented and server routes are intentionally platform-agnostic.
+- **Evidence:** March 2026 remediation added iOS consumer checkout guards in `useConsumerSubscription`, `ConsumerBillingSection`, and `supabase/functions/create-checkout/index.ts`.
+- **Provenance:** 2026-03-19 launch blocker remediation pass.
+- **Confidence:** high

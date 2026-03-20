@@ -5,6 +5,7 @@ import { CONSUMER_PRICING } from '../../types/consumer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Capacitor } from '@capacitor/core';
 
 export const ConsumerBillingSection = () => {
   const { subscription, tier, isSubscribed, upgradeToTier, isLoading, isSuperAdmin, proTier } =
@@ -12,8 +13,15 @@ export const ConsumerBillingSection = () => {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
   const [expandedProPlan, setExpandedProPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+  const isConsumerTier = tier === 'free' || tier === 'explorer' || tier === 'frequent-chraveler';
+  const blockConsumerCheckoutOnIOS = isNativeIOS && isConsumerTier && !isSuperAdmin;
 
   const handleManageSubscription = async () => {
+    if (blockConsumerCheckoutOnIOS) {
+      toast.info('Consumer subscription management on iOS will be available with Apple IAP.');
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
@@ -41,6 +49,11 @@ export const ConsumerBillingSection = () => {
   };
 
   const handleCancelSubscription = async () => {
+    if (blockConsumerCheckoutOnIOS) {
+      toast.info('Cancellation on iOS will be available with Apple IAP subscription management.');
+      return;
+    }
+
     const confirmed = window.confirm(
       'Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.',
     );
@@ -149,6 +162,16 @@ export const ConsumerBillingSection = () => {
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">Subscriptions</h3>
 
+      {blockConsumerCheckoutOnIOS && (
+        <div className="rounded-xl p-4 bg-blue-500/10 border border-blue-500/30">
+          <h4 className="text-white font-semibold mb-1">iOS Billing Update</h4>
+          <p className="text-sm text-blue-200">
+            Consumer subscriptions are temporarily unavailable in this iOS build while Apple In-App
+            Purchase is finalized.
+          </p>
+        </div>
+      )}
+
       {/* Current Plan */}
       <div
         className={`rounded-xl p-4 ${
@@ -198,10 +221,14 @@ export const ConsumerBillingSection = () => {
         {!isSubscribed && (
           <button
             onClick={() => upgradeToTier('explorer', billingCycle)}
-            disabled={isLoading}
+            disabled={isLoading || blockConsumerCheckoutOnIOS}
             className="bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Processing...' : 'View Upgrade Options'}
+            {blockConsumerCheckoutOnIOS
+              ? 'Unavailable on iOS'
+              : isLoading
+                ? 'Processing...'
+                : 'View Upgrade Options'}
           </button>
         )}
 
@@ -323,10 +350,17 @@ export const ConsumerBillingSection = () => {
                         onClick={() =>
                           upgradeToTier(key as 'explorer' | 'frequent-chraveler', billingCycle)
                         }
-                        disabled={isLoading}
+                        disabled={
+                          isLoading ||
+                          (isNativeIOS && (key === 'explorer' || key === 'frequent-chraveler'))
+                        }
                         className="mt-4 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >
-                        {isLoading ? 'Processing...' : `Upgrade to ${plan.name}`}
+                        {isNativeIOS && (key === 'explorer' || key === 'frequent-chraveler')
+                          ? 'Unavailable on iOS'
+                          : isLoading
+                            ? 'Processing...'
+                            : `Upgrade to ${plan.name}`}
                       </button>
                     )}
                   </div>

@@ -6,6 +6,7 @@ import { getTierFromProductId } from '@/constants/stripe';
 import { openExternalUrl } from '@/platform/navigation';
 import { toast } from 'sonner';
 import { SUPER_ADMIN_EMAILS } from '@/constants/admins';
+import { Capacitor } from '@capacitor/core';
 
 interface ConsumerSubscriptionContextType {
   subscription: ConsumerSubscription | null;
@@ -112,6 +113,13 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
       return;
     }
 
+    // App Store compliance guard:
+    // Consumer digital subscriptions on iOS native must use Apple IAP.
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+      toast.error('In-app purchases for iOS are coming soon. Please use the web app for now.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const tierMap = {
@@ -123,6 +131,7 @@ export const ConsumerSubscriptionProvider = ({ children }: { children: React.Rea
         body: {
           tier: tierMap[tier],
           billing_cycle: billingCycle,
+          platform: Capacitor.getPlatform(),
         },
       });
 

@@ -287,6 +287,25 @@ export const ConsumerGeneralSettings = () => {
         </div>
       </div>
 
+      {/* Safety & Abuse */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <h4 className="text-base font-semibold text-white mb-3">Safety & Abuse</h4>
+        <div className="space-y-3">
+          <a
+            href="mailto:safety@chravelapp.com?subject=Report%20Abuse%20on%20Chravel"
+            className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <div className="text-left">
+              <div className="text-white font-medium">Report Abuse or Harassment</div>
+              <div className="text-sm text-gray-400">
+                Contact our safety team for urgent moderation help
+              </div>
+            </div>
+            <div className="text-glass-orange">Report</div>
+          </a>
+        </div>
+      </div>
+
       {/* Account Deletion Confirmation Dialog */}
       <AlertDialog
         open={showDeleteDialog}
