@@ -39,6 +39,14 @@
 - **Provenance:** Shared mutation audit Stage B, March 2026
 - **Confidence:** high
 
+### Post-create follow-up writes must go through the same invalidating mutation path
+- **Tip:** If a create flow performs a second write (for example, uploading a cover image and then updating the created row), route that second write through the same shared hook/service mutation path used elsewhere (`useTrips.updateTrip`) instead of raw table updates in component code.
+- **Applies when:** Multi-step create UX where metadata/media is attached after the primary create mutation.
+- **Avoid when:** The follow-up write is fully server-side and already emits an event/query invalidation consumed by the UI.
+- **Evidence:** Event trip cover photos uploaded in `CreateTripModal` were persisted to `trips.cover_image_url`, but homepage cards stayed stale because the direct `supabase.from('trips').update(...)` bypassed query invalidation. Switching to `updateTrip(...)` fixed immediate homepage reflection.
+- **Provenance:** March 2026 Event trip cover photo regression fix.
+- **Confidence:** high
+
 ### AI tool writes should go through a pending buffer, not directly to shared state
 - **Tip:** When an AI agent (voice concierge, text concierge) wants to create shared objects (tasks, polls, calendar events), write to `trip_pending_actions` instead of directly to the target table. The user then confirms or rejects. This prevents AI hallucination-driven data corruption and gives users agency over their shared trip state. Use `tool_call_id` as idempotency key to prevent duplicate pending actions on retry.
 - **Applies when:** Any AI-initiated write to shared trip state (tasks, polls, calendar, basecamp)
@@ -47,7 +55,31 @@
 - **Provenance:** Shared mutation audit Stage B, March 2026
 - **Confidence:** high
 
+### AI concierge write tools need explicit React Query invalidation mapping per affected surface
+- **Tip:** Treat each concierge write tool as a mutation source that must map to cache keys for every dependent UI surface (trip detail tabs and dashboard lists). Keep this mapping centralized so new tools cannot silently skip cache refresh.
+- **Applies when:** Adding/updating concierge tools that mutate trip data (`execute-concierge-tool`, streamed `onFunctionCall` handlers)
+- **Avoid when:** Read-only tools with no state mutation
+- **Evidence:** `setTripHeaderImage` successfully updated `trips.cover_image_url` but homepage cards stayed stale because `AIConciergeChat` invalidated other write actions yet omitted `['trips']` for this tool; adding centralized mapping + regression test restored refresh behavior.
+- **Provenance:** March 2026 Event cover photo homepage refresh regression fix
+- **Confidence:** high
+
 ## Recovery Tips
+
+### Edge Function "Failed to fetch" in browser is usually a CORS-origin drift, not a DB insert bug
+- **Tip:** When a core mutation fails with a raw browser `TypeError: Failed to fetch` (especially via `supabase.functions.invoke`), verify the frontend origin against Edge Function CORS allowlist first. If the origin is missing, the network call is blocked before your handler/DB code runs.
+- **Applies when:** A user-facing mutation to an Edge Function fails with generic fetch error and no structured JSON error body.
+- **Avoid when:** The function responds with a normal 4xx/5xx payload (that indicates handler executed and CORS likely passed).
+- **Evidence:** Trip creation path (`CreateTripModal -> useTrips -> tripService -> create-trip`) surfaced only `Failed to fetch` until `.lovable.dev` was re-added to shared CORS origins and error mapping was made actionable.
+- **Provenance:** March 2026 trip creation forensic fix.
+- **Confidence:** high
+
+### Secured Supabase storage buckets require signed URLs for client previews
+- **Tip:** When a storage bucket transitions from public read to RLS-protected read, any UI code still using `getPublicUrl()` will silently regress into broken images/files. Resolve previews via `createSignedUrl()` (or a shared resolver) at read time.
+- **Applies when:** Rendering files from `trip-media` (or any bucket with authenticated `SELECT` policies) in event tabs, galleries, chat attachments, or media cards.
+- **Avoid when:** The bucket is intentionally public and policy explicitly allows anonymous read for that path.
+- **Evidence:** Line-up file thumbnails showed broken image placeholders while metadata loaded correctly because `useEventLineupFiles` used public object URLs after `trip-media` hardening.
+- **Provenance:** March 2026 Line-up image loading bug fix.
+- **Confidence:** high
 
 ### Gate third-party SDK boot on preview/runtime compatibility
 - **Tip:** If the Lovable preview looks blank or unstable after a dependency/config change, check startup SDKs first (analytics, billing, native wrappers). A web preview can break or flood logs when a browser-only bundle boots with a native/mobile API key or unsupported runtime. Add a small compatibility gate at the SDK entrypoint instead of scattering checks across the app.
@@ -88,6 +120,13 @@
 - **Avoid when:** First session initialization before any successful connection
 - **Evidence:** Gemini Live auto-reconnect paths were previously mapped to `requesting_mic`; inline status looked like fresh mic permission setup instead of network recovery. Adding `reconnecting` improved state-machine clarity and user feedback while preserving containment in the chat window.
 - **Provenance:** March 2026 concierge live-mode hardening
+### Notification deep-link mappers should read both metadata and first-class columns
+- **Tip:** When notification rows store routing identifiers in both dedicated columns (e.g., `notifications.trip_id`) and metadata JSON, mapping code should prefer metadata but fall back to column values. Legacy rows and mixed writer paths (RPC helper vs direct inserts) often populate only one.
+- **Applies when:** Building in-app notification lists, badge payload mappers, or tap-to-route logic.
+- **Avoid when:** The schema enforces a single canonical field and legacy data is guaranteed migrated.
+- **Evidence:** Join approval notifications were visible but lacked actionable routing in-app because mapper read only `metadata.trip_id` and ignored `trip_id` column from direct inserts.
+- **Provenance:** March 2026 join approval forensic fix (`useNotificationRealtime` mapping hardening).
+- **Confidence:** high
 ### Treat schema migrations as a product compatibility API, not just SQL files
 - **Tip:** In large Supabase/Postgres repos, migration safety is mostly about compatibility windows and operational sequencing, not syntax correctness. Enforce expand/contract phases, one concern per migration, and dual-version app/schema test windows. Without that, even “idempotent” SQL can break rolling deploys.
 - **Applies when:** Any migration touches shared high-traffic tables (`trips`, `trip_members`, `trip_chat_messages`, `notifications`) or changes RLS/enum/status behavior
@@ -155,9 +194,77 @@
 - **Applies when:** Permission mode validity depends on dynamic counts (members/attendees) and legacy records may become invalid over time.
 - **Evidence:** Event chat `everyone` mode now degrades to effective `admin_only` above 50 members while DB trigger blocks setting invalid `chat_mode='everyone'` for large events.
 - **Provenance:** March 2026 event chat permission scaling implementation.
+### Replace-mode imports should be insert-first, delete-last
+- **Tip:** For "replace all" import flows, do not execute `DELETE existing` before `INSERT new` from the client. Build a replace plan, insert missing rows first, and only then delete stale rows. This converts transient insert failures from destructive data loss into safe no-op retries.
+- **Applies when:** Any bulk replace import (lineup/agenda/tasks/contacts) that mutates shared records.
+- **Evidence:** `useEventLineup.importMembers` previously deleted all lineup members first; an insert/network failure left events with empty lineup data. Insert-first + stale-delete sequencing removed the destructive failure mode.
+- **Provenance:** March 2026 lineup replace-import correctness fix.
+### AI concierge tool declarations must be maintained as a single source of truth
+- **Tip:** When a tool-calling AI system has multiple entrypoints (text chat, voice, demo), define tool schemas once in a shared registry and import/filter as needed. Inline declaration in endpoint files causes drift — Chravel's text path had 19 tools while voice had 31, with ~12 voice tools having no backend implementation.
+- **Applies when:** Adding, modifying, or removing AI concierge tools; auditing tool parity across entrypoints
+- **Avoid when:** Tools are truly exclusive to one entrypoint with no shared backend
+- **Evidence:** `lovable-concierge/index.ts` defines 19 tools inline; `voiceToolDeclarations.ts` defines 31. Tools like `getWeatherForecast`, `convertCurrency`, `browseWebsite`, `settleExpense`, `generateTripImage` exist in voice declarations with no matching `case` in `functionExecutor.ts`, causing silent failures.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+### Conditional tool exposure beats always-on tool exposure for latency and accuracy
+- **Tip:** Exposing all tools to the model on every query wastes ~2000 tokens and forces the model to evaluate irrelevant options. Classify queries into classes (weather, restaurant, calendar, payment, etc.) in code before model invocation, then only expose relevant tool subsets. This is the single highest-leverage optimization for token cost and tool selection accuracy.
+- **Applies when:** AI concierge performance optimization, adding new tools, investigating wrong tool selection
+- **Avoid when:** Queries that genuinely span multiple domains (rare)
+- **Evidence:** A weather question currently forces Gemini to evaluate all 19+ tool schemas including payment, calendar, poll, and import tools. The model's context includes ~2000 extra tokens of irrelevant tool descriptions.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+### Always-on prompt layers should be audited for conditional value
+- **Tip:** Prompt blocks that are injected into every request (few-shot examples, user preferences, action plan schemas) accumulate into bloat over time. Audit each block and ask: "Does this help for this specific query class?" Few-shot examples for payment queries are noise when the user asks about weather. User dietary preferences are noise when the user asks what time their reservation is.
+- **Applies when:** Prompt optimization, investigating slow first-token time, reviewing system prompt length
+- **Avoid when:** The prompt is already small (<500 tokens)
+- **Evidence:** Chravel's trip-related system prompt injects few-shot (~300 tokens), preferences (~200 tokens), and action plan schema (~280 tokens) on every trip query regardless of relevance. Total system prompt reaches 3000-3500 tokens.
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
 ### Mention chips inside themed chat bubbles should be bubble-context aware, not brand-accent aware
 - **Tip:** Keep mention styling separate from hyperlink styling and derive mention colors from bubble context (own/broadcast vs incoming) so text remains readable on colored surfaces; use font-weight + subtle background chip for distinction instead of a hardcoded accent text color.
 - **Applies when:** Chat/message renderers that support mentions inside multiple bubble themes.
 - **Evidence:** Outgoing blue bubbles rendered mentions in blue (`text-blue-400`), causing severe contrast loss. Moving mention classes into a shared helper keyed by bubble context fixed readability while preserving visual distinction.
 - **Provenance:** March 2026 forensic fix for mention rendering in `MessageBubble`.
+- **Confidence:** high
+
+### Resolve trip-media URLs at shared renderer boundaries
+- **Tip:** When `trip-media` storage is private, always run URL signing/resolution in shared media renderers (tile + fullscreen modal), not only in one legacy surface. This prevents preview drift where one screen works and another shows "Unable to preview."
+- **Applies when:** Any UI renders records from `trip_media_index` using `media_url` (`MediaGrid`, mobile media tiles, media viewer modals).
+- **Avoid when:** Demo/local blob URLs (resolver already no-ops safely).
+- **Evidence:** Media tab thumbnails failed for chat-uploaded photos while chat rendering still worked because `MediaTile`/`MediaViewerModal` used raw URLs and bypassed `useResolvedTripMediaUrl`.
+- **Provenance:** March 2026 forensic fix for media preview failure in `UnifiedMediaHub`.
+### Keep hidden file inputs mounted when multiple CTAs share one upload ref
+- **Tip:** If more than one button triggers `fileInputRef.current?.click()`, mount the hidden `<input type="file">` outside transient UI branches (modals/forms/toggles) so the ref remains live across layout state changes.
+- **Applies when:** Upload flows have both header-level and inline "Add more" actions, or when upload controls remain visible while another panel/form opens.
+- **Evidence:** Event Line-up tab rendered "Add more" while the add-member form was open, but the hidden file input lived inside `!isAddingMember` and unmounted. Result: click no-op with no error.
+- **Provenance:** March 2026 Line-up file upload bug fix in `LineupTab`.
+### Dark-themed native time inputs need an explicit affordance when browser indicators look ambiguous
+- **Tip:** If a dark, rounded custom input uses `type="time"` and the native picker indicator becomes a tiny square/blank artifact, keep native time behavior but hide the browser indicator and render a clear explicit clock affordance in the component. Scope CSS to a local class instead of globally restyling every time input.
+- **Applies when:** Modal/forms with branded input styling that wraps native time controls.
+- **Evidence:** Calendar Add Event modal showed a confusing blue square/blank indicator slot in the Start Time field; adding a scoped `.calendar-time-input` style plus explicit `Clock3` icon resolved clarity without changing time data semantics.
+- **Provenance:** March 2026 calendar invite time-input forensic fix.
+- **Confidence:** high
+
+### Hover actions in dense message stacks must share the same pointer-ownership container
+- **Tip:** If chat hover controls are rendered outside the hovered message hitbox (especially below the bubble), cursor travel to the controls can trigger row handoff to the adjacent message. Keep action controls as descendants of the same row container and place them laterally (`left/right`) to avoid vertical collision.
+- **Applies when:** Reaction trays, kebab menus, or inline controls in stacked chat/message timelines.
+- **Evidence:** Trip chat reaction shortcuts rendered below bubbles and repeatedly "fell" to the next message; side-attached absolute pill under the same `MessageBubble` container removed hover handoff.
+- **Provenance:** March 2026 chat reaction hover forensic fix.
+### App Store launch audits should separate code blockers from operator/App Store metadata blockers
+- **Tip:** During launch-readiness reviews, classify each issue by fix channel (code, config, App Store Connect metadata, legal/policy, ops). This prevents engineering from over-indexing on code-only fixes while submission blockers remain in metadata/compliance queues.
+- **Applies when:** Pre-TestFlight and pre-App Store readiness gates for mobile apps with subscriptions, account deletion, and legal obligations.
+- **Avoid when:** Narrow feature bugs where submission/compliance scope is irrelevant.
+- **Evidence:** 2026-03-19 boring-killers audit found high-risk blockers split across Apple IAP implementation, restore-purchase UX, and App Store Connect policy disclosures.
+- **Provenance:** `docs/audits/launch-readiness-boring-killers-2026-03-19.md`
+- **Confidence:** high
+
+### App Store billing compliance needs both client-side and server-side enforcement
+- **Tip:** When iOS consumer IAP is not live yet, blocking only the frontend CTA is insufficient; also enforce policy server-side in checkout/session creation so stale clients or direct calls cannot trigger non-compliant flows.
+- **Applies when:** Consumer digital subscriptions have mixed Stripe + IAP architecture during migration.
+- **Avoid when:** Native IAP is fully implemented and server routes are intentionally platform-agnostic.
+- **Evidence:** March 2026 remediation added iOS consumer checkout guards in `useConsumerSubscription`, `ConsumerBillingSection`, and `supabase/functions/create-checkout/index.ts`.
+- **Provenance:** 2026-03-19 launch blocker remediation pass.
 - **Confidence:** high

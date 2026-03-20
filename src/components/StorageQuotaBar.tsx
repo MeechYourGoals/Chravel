@@ -61,7 +61,7 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
             </p>
             <button
               onClick={() => upgradeToTier('explorer', 'annual')}
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+              className="bg-gradient-to-r from-gold-primary to-gold-mid text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
             >
               <Crown size={14} className="inline mr-1" />
               View Plans
@@ -81,7 +81,7 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
             </p>
             <button
               onClick={() => upgradeToTier('explorer', 'annual')}
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+              className="bg-gradient-to-r from-gold-primary to-gold-mid text-black px-4 py-1.5 rounded-lg text-xs font-bold hover:scale-105 transition-transform"
             >
               <Crown size={14} className="inline mr-1" />
               View Plans
@@ -92,7 +92,7 @@ export const StorageQuotaBar: React.FC<StorageQuotaBarProps> = ({ tripId, showDe
 
       {isSubscribed && showDetails && (
         <div className="text-center">
-          <span className="text-xs text-gray-400">✨ Unlimited storage with your plan</span>
+          <span className="text-xs text-gold-primary">✦ Unlimited storage with your plan</span>
         </div>
       )}
     </div>

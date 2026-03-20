@@ -36,6 +36,10 @@ import { useConciergeSessionStore, type ConciergeSession } from '@/store/concier
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
+import {
+  getConciergeInvalidationQueryKey,
+  isConciergeWriteAction,
+} from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 
 const EMPTY_SESSION: ConciergeSession = {
@@ -1304,15 +1308,7 @@ export const AIConciergeChat = ({
               }
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
-              const writeActions = new Set([
-                'createPoll',
-                'createTask',
-                'addToCalendar',
-                'savePlace',
-                'setBasecamp',
-                'addToAgenda',
-              ]);
-              if (writeActions.has(name) && result.actionType) {
+              if (isConciergeWriteAction(name) && result.actionType) {
                 // Extract entity name from nested result objects
                 const entityName =
                   (result.entityName as string) ||
@@ -1379,15 +1375,7 @@ export const AIConciergeChat = ({
 
                 // Invalidate relevant queries so tab data refreshes after AI write actions
                 if (result.success) {
-                  const invalidationMap: Record<string, string[]> = {
-                    createTask: ['tripTasks', tripId],
-                    createPoll: ['tripPolls', tripId],
-                    addToCalendar: ['calendarEvents', tripId],
-                    savePlace: ['tripPlaces', tripId],
-                    setBasecamp: ['tripBasecamp', tripId],
-                    addToAgenda: ['eventAgenda', tripId],
-                  };
-                  const queryKey = invalidationMap[name];
+                  const queryKey = getConciergeInvalidationQueryKey(name, tripId);
                   if (queryKey) {
                     conciergeQueryClient.invalidateQueries({ queryKey });
                   }

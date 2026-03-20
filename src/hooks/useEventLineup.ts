@@ -21,6 +21,41 @@ interface UseEventLineupOptions {
   enabled?: boolean;
 }
 
+interface ExistingLineupRow {
+  id: string;
+  name: string;
+}
+
+interface ReplaceImportPlan {
+  namesToInsert: string[];
+  idsToDelete: string[];
+}
+
+/**
+ * Compute a safe replace plan:
+ * 1) insert missing names first
+ * 2) delete stale rows only after insert succeeds
+ * This avoids destructive "delete then insert" data loss on transient failures.
+ */
+export function deriveReplaceImportPlan(
+  normalizedNames: string[],
+  existingRows: ExistingLineupRow[],
+): ReplaceImportPlan {
+  const normalizedNameSet = new Set(normalizedNames.map(name => name.toLocaleLowerCase()));
+  const existingNameToId = new Map(
+    existingRows.map(row => [row.name.toLocaleLowerCase(), row.id] as const),
+  );
+
+  const namesToInsert = normalizedNames.filter(
+    name => !existingNameToId.has(name.toLocaleLowerCase()),
+  );
+  const idsToDelete = existingRows
+    .filter(row => !normalizedNameSet.has(row.name.toLocaleLowerCase()))
+    .map(row => row.id);
+
+  return { namesToInsert, idsToDelete };
+}
+
 function memberToSpeaker(m: LineupMember): Speaker {
   return {
     id: m.id,
@@ -311,12 +346,44 @@ export function useEventLineup({
       let namesToInsert = normalized;
 
       if (payload.mode === 'replace') {
-        const { error: deleteError } = await supabase
+        const { data: existingRows, error: existingError } = await supabase
           .from('event_lineup_members')
-          .delete()
+          .select('id, name')
           .eq('event_id', eventId);
 
-        if (deleteError) throw deleteError;
+        if (existingError) throw existingError;
+
+        const replacePlan = deriveReplaceImportPlan(
+          normalized,
+          ((existingRows || []) as ExistingLineupRow[]).filter((row): row is ExistingLineupRow =>
+            Boolean(row?.id && row?.name),
+          ),
+        );
+
+        namesToInsert = replacePlan.namesToInsert;
+
+        if (namesToInsert.length > 0) {
+          const rows = namesToInsert.map(name => ({
+            event_id: eventId,
+            name,
+            performer_type: 'speaker' as const,
+            created_by: userId || null,
+          }));
+
+          const { error: insertError } = await supabase.from('event_lineup_members').insert(rows);
+          if (insertError) throw insertError;
+        }
+
+        if (replacePlan.idsToDelete.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('event_lineup_members')
+            .delete()
+            .in('id', replacePlan.idsToDelete);
+
+          if (deleteError) throw deleteError;
+        }
+
+        return normalized.length;
       } else {
         const { data: existingRows, error: existingError } = await supabase
           .from('event_lineup_members')

@@ -60,6 +60,10 @@ vi.mock('../VoiceButton', () => ({
   VoiceButton: () => null,
 }));
 
+vi.mock('../EmojiMartPicker', () => ({
+  EmojiMartPicker: () => null,
+}));
+
 describe('ChatInput send behavior', () => {
   const baseProps = {
     inputMessage: '',

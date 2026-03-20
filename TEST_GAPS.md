@@ -81,6 +81,33 @@
 - **Suggested tests:** Add staged load/chaos workflows that publish artifacts and evolve from warn-only to blocking for Tier-0.
 - **Priority:** high
 - **Provenance:** March 2026 QA governance hardening pass.
+## AI Concierge query classifier and tool selection tests
+- **Area:** `supabase/functions/lovable-concierge/index.ts`, `supabase/functions/_shared/voiceToolDeclarations.ts`
+- **Why this gap matters:** No tests verify that the right tools are exposed for the right query types, or that irrelevant tools are excluded
+- **Missing coverage:** No unit tests for `isTripRelatedQuery()`, `shouldRunRAGRetrieval()`, or `CLEARLY_GENERAL_QUERY_PATTERN`. No tests that a weather question excludes payment tools. No tests that voice tool declarations match backend implementations.
+- **Failure mode if untested:** Model selects wrong tools, tools silently fail in voice path, prompt bloat goes unmeasured
+- **Suggested tests:** (1) Query classifier unit tests: input queries → expected classification. (2) Tool parity test: every tool in voiceToolDeclarations has a matching case in functionExecutor. (3) Token budget test: measure system prompt size per query class, alert if over threshold.
+- **Priority:** high
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+
+## AI Concierge prompt token measurement and regression
+- **Area:** `supabase/functions/_shared/promptBuilder.ts`, `supabase/functions/_shared/aiUtils.ts`
+- **Why this gap matters:** No baseline measurement of prompt token cost exists, so bloat accumulates silently
+- **Missing coverage:** No test that system prompt stays under a token budget per query class. No test that few-shot examples are only injected for matching query types.
+- **Failure mode if untested:** Prompt grows unbounded, latency increases, context window exceeded for long conversations
+- **Suggested tests:** Snapshot test measuring `buildSystemPrompt()` output length for minimal, typical, and maximal trip contexts. Assert within budget thresholds.
+- **Priority:** medium
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+
+## AI Concierge voice tool backend parity
+- **Area:** `supabase/functions/_shared/voiceToolDeclarations.ts`, `supabase/functions/_shared/functionExecutor.ts`
+- **Why this gap matters:** Voice path declares 31 tools but only ~19 have backend implementations. Model can call tools that return errors.
+- **Missing coverage:** No automated test that every tool in VOICE_FUNCTION_DECLARATIONS has a corresponding case in functionExecutor
+- **Failure mode if untested:** Voice users experience silent tool failures when the model selects an unimplemented tool
+- **Suggested tests:** Enumerate VOICE_FUNCTION_DECLARATIONS names, call executeFunctionCall for each with minimal valid args, assert no "unknown function" errors
+- **Priority:** high
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+
 ## Reliability drill automation for SLO + degradation + restore
 - **Area:** Cross-cutting reliability platform (`src/services/apiHealthCheck.ts`, queue workers, DR procedures)
 - **Why this gap matters:** Without automated drills, resilience assumptions remain theoretical and regress silently.

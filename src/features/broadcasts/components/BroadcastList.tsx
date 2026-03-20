@@ -1,6 +1,7 @@
 import React from 'react';
 import { BroadcastItem } from './BroadcastItem';
 import { Radio } from 'lucide-react';
+import { useLinkPreviews } from '@/features/chat/hooks/useLinkPreviews';
 
 interface BroadcastData {
   id: string;
@@ -33,6 +34,13 @@ export const BroadcastList = ({
   onDelete,
   onEdit,
 }: BroadcastListProps) => {
+  const linkPreviews = useLinkPreviews(
+    broadcasts.map(broadcast => ({
+      id: broadcast.id,
+      text: broadcast.message,
+      linkPreview: undefined,
+    })),
+  );
   if (broadcasts.length === 0) {
     return (
       <div className="text-center py-12">
@@ -49,6 +57,7 @@ export const BroadcastList = ({
         <BroadcastItem
           key={broadcast.id}
           {...broadcast}
+          linkPreview={linkPreviews[broadcast.id]}
           userResponse={userResponses[broadcast.id]}
           onRespond={onRespond}
           onDelete={onDelete}

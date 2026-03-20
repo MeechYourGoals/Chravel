@@ -62,7 +62,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   }>({});
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const { createTrip, trips } = useTrips();
+  const { createTrip, updateTrip, trips } = useTrips();
 
   // ✅ FIXED: Always call useOrganization hook (Rules of Hooks requirement)
   // The hook handles demo mode internally, returning empty arrays when in demo mode
@@ -221,11 +221,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               data: { publicUrl },
             } = supabase.storage.from('trip-covers').getPublicUrl(filePath);
 
-            // Update trip with cover image URL
-            await supabase
-              .from('trips')
-              .update({ cover_image_url: publicUrl })
-              .eq('id', newTrip.id);
+            // Route through useTrips update path so homepage caches invalidate immediately.
+            const coverUpdated = await updateTrip(newTrip.id, { cover_image_url: publicUrl });
+            if (!coverUpdated) {
+              throw new Error('Failed to update trip cover image');
+            }
           } catch (uploadError) {
             if (import.meta.env.DEV) console.error('Error uploading cover image:', uploadError);
             toast.error('Trip created, but failed to upload cover image');

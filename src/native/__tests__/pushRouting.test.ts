@@ -107,6 +107,24 @@ describe('buildRouteFromPayload', () => {
     };
     expect(buildRouteFromPayload(payload)).toBe('/trip/trip-123');
   });
+
+  it('routes pro trip payloads to /tour/pro', () => {
+    const payload: ChravelPushPayload = {
+      type: 'chat_message',
+      tripId: 'trip-pro-1',
+      tripType: 'pro',
+    };
+    expect(buildRouteFromPayload(payload)).toBe('/tour/pro/trip-pro-1?tab=chat');
+  });
+
+  it('routes event trip payloads to /event', () => {
+    const payload: ChravelPushPayload = {
+      type: 'calendar_event',
+      tripId: 'event-123',
+      tripType: 'event',
+    };
+    expect(buildRouteFromPayload(payload)).toBe('/event/event-123?tab=calendar');
+  });
 });
 
 describe('handleNotificationNavigation', () => {

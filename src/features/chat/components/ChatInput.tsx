@@ -33,6 +33,7 @@ import * as haptics from '@/native/haptics';
 import { MentionPicker, TripMember } from './MentionPicker';
 import { VoiceButton } from './VoiceButton';
 import { useWebSpeechVoice } from '@/hooks/useWebSpeechVoice';
+import { EmojiMartPicker } from './EmojiMartPicker';
 
 interface ChatInputProps {
   inputMessage: string;
@@ -98,12 +99,8 @@ export const ChatInput = ({
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const [mentionedUsers, setMentionedUsers] = useState<TripMember[]>([]);
 
-  // Emoji picker state — lazily loaded on first open
+  // Emoji picker state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [emojiPickerData, setEmojiPickerData] = useState<any>(null);
-  const [EmojiPickerComponent, setEmojiPickerComponent] = useState<React.ComponentType<any> | null>(
-    null,
-  );
 
   // Dictation (Web Speech API) — reuses the same hook as concierge
   const inputMessageRef = useRef(inputMessage);
@@ -123,19 +120,9 @@ export const ChatInput = ({
   const { voiceState: dictationState, toggleVoice: toggleDictation } =
     useWebSpeechVoice(handleDictationResult);
 
-  const loadEmojiPicker = useCallback(async () => {
-    if (EmojiPickerComponent) return;
-    const [pickerModule, dataModule] = await Promise.all([
-      import('@emoji-mart/react'),
-      import('@emoji-mart/data'),
-    ]);
-    const Picker = (pickerModule as any).default || (pickerModule as any).Picker;
-    setEmojiPickerData(dataModule.default);
-    setEmojiPickerComponent(() => Picker);
-  }, [EmojiPickerComponent]);
-
   const handleEmojiSelect = useCallback(
-    (emoji: { native: string }) => {
+    (emoji: { native?: string }) => {
+      if (!emoji.native) return;
       const textarea = textareaRef.current;
       if (!textarea) {
         onInputChange(inputMessage + emoji.native);
@@ -457,13 +444,7 @@ export const ChatInput = ({
           )}
 
           {/* Emoji Picker Button — desktop-first, lazy-loaded */}
-          <Popover
-            open={showEmojiPicker}
-            onOpenChange={open => {
-              setShowEmojiPicker(open);
-              if (open) loadEmojiPicker();
-            }}
-          >
+          <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
             <PopoverTrigger asChild>
               <button className={cn('hidden sm:flex', CTA_BUTTON_SM)} aria-label="Insert emoji">
                 <Smile size={18} className="text-white" />
@@ -474,19 +455,7 @@ export const ChatInput = ({
               align="start"
               className="p-0 w-auto border-0 bg-transparent shadow-none"
             >
-              {EmojiPickerComponent && emojiPickerData ? (
-                <EmojiPickerComponent
-                  data={emojiPickerData}
-                  onEmojiSelect={handleEmojiSelect}
-                  theme="dark"
-                  previewPosition="none"
-                  skinTonePosition="none"
-                />
-              ) : (
-                <div className="w-72 h-40 flex items-center justify-center bg-neutral-900 rounded-xl text-neutral-400 text-sm">
-                  Loading emojis…
-                </div>
-              )}
+              <EmojiMartPicker onEmojiSelect={handleEmojiSelect} />
             </PopoverContent>
           </Popover>
 
@@ -529,8 +498,8 @@ export const ChatInput = ({
           {/* + Button with Dropdown Menu — right side */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={CTA_BUTTON_SM} aria-label="Message options">
-                <Plus size={18} className="text-white" />
+              <button className={CTA_BUTTON} aria-label="Message options">
+                <Plus size={CTA_ICON_SIZE} className="text-white" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -599,9 +568,9 @@ export const ChatInput = ({
             className={
               isBroadcastMode
                 ? cn(
-                    'size-9 min-w-[36px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
+                    'size-11 min-w-[44px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
                   )
-                : CTA_BUTTON_SM
+                : CTA_BUTTON
             }
           >
             {isSendingMessage ? (

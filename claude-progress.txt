@@ -1,3 +1,45 @@
+2026-03-19 — Join approval dashboard hydration + notification deep-link hardening
+- Root-caused recurring "Join Request Approved but trip missing on dashboard" to `tripService.getUserTrips()` using a `trip_members.status` filter without fallback. In schema-drift/legacy environments where `status` is unavailable, the member-trip query fails and member cards disappear even though approval notifications succeed.
+- Added compatibility fallback in `getUserTrips()` to retry `trip_members` membership lookup without `status` filter when the column is unavailable, matching existing fallback strategy already used by other member queries.
+- Hardened notification routing for approved-join safety net: notification rows now load `trip_id` directly, mapper falls back to `notifications.trip_id` when metadata is missing, and TripActionBar resolves older approved notifications by trip name when `trip_id` is absent.
+- Added focused regression tests:
+  - `src/services/__tests__/tripService.getUserTrips.test.ts`
+  - `src/hooks/__tests__/useNotificationRealtime.mapRowToNotification.test.ts`
+- Verification: `npm test -- --run src/services/__tests__/tripService.getUserTrips.test.ts src/hooks/__tests__/useNotificationRealtime.mapRowToNotification.test.ts`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
+2026-03-19 — Line-up image preview loading fix (secured storage signed URLs)
+- Reproduced `#debugging` report where Line-up file cards showed broken image thumbnails while file names and imported speaker text rendered correctly.
+- Root cause: `useEventLineupFiles` generated preview URLs with `getPublicUrl(...)` from `trip-media`, but `trip-media` has been secured (non-public except specific cover path), so public object URLs were inaccessible.
+- Fix: updated `src/hooks/useEventLineupFiles.ts` to resolve each listed file to a signed URL via `createSignedUrl(...)` with fallback to existing URL only if signing fails.
+- Added regression test `src/hooks/__tests__/useEventLineupFiles.test.tsx` that fails on public-URL-only behavior and passes when signed URLs are used.
+- Verification: `npm test -- --run src/hooks/__tests__/useEventLineupFiles.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
+2026-03-19 — Line-up "Add more images" no-op forensic fix
+- Reproduced reported Slack bug with a focused regression test (`LineupTab.test.tsx`) simulating the exact state: existing lineup file + "Add to Line-up" form open.
+- Root cause: hidden file input was conditionally mounted inside `!isAddingMember`; opening the add-member form unmounted the input while the inline "Add more" button remained visible, leaving `fileInputRef` null.
+- Implemented minimal fix in `LineupTab`: keep hidden file input mounted whenever organizer upload is allowed, and gate inline "Add more" button by `canCreate && canUploadMore`.
+- Validation: `npm test -- --run src/components/events/__tests__/LineupTab.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+- Next follow-up: optional test hardening to remove existing Radix tooltip act() warnings in this test area (non-blocking).
+2026-03-19 — Calendar Add Event time input indicator clarity fix
+- Reproduced reported UI artifact from #debugging screenshot in `AddEventModal` where native `input[type="time"]` indicator rendered as a confusing blue square/blank slot in dark mode.
+- Root cause: browser-native picker indicator styling conflicted with pill input treatment, leaving an unclear affordance inside the time field.
+- Applied surgical fix by adding explicit clock affordance in `src/features/calendar/components/AddEventModal.tsx` and hiding only the native WebKit indicator via scoped `.calendar-time-input` CSS in `src/index.css`.
+- Added regression test `src/features/calendar/components/__tests__/AddEventModal.test.tsx` to lock explicit time-input affordance wiring.
+- Verification: `npm test -- --run src/features/calendar/components/__tests__/AddEventModal.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass (existing repo lint warnings remain).
+2026-03-19 — Event trip cover photo stale homepage fix
+- Investigated Slack bug report where Event cover uploaded in Create Trip modal did not appear on homepage cards immediately.
+- Root cause: create flow performed a second direct `trips` table update for `cover_image_url` after `createTrip`, but that path bypassed `useTrips` mutation invalidation and `useUserTripsRealtime` does not subscribe to `trips` updates.
+- Fix: routed post-upload cover update through `useTrips.updateTrip(...)` in `CreateTripModal`, which invalidates `['trips']` and refreshes dashboard/event card data.
+- Added regression test `src/components/__tests__/CreateTripModal.coverPhoto.test.tsx` to lock expected behavior (cover upload must call shared updater with `cover_image_url`).
+- Verification: `npm test -- --run src/components/__tests__/CreateTripModal.coverPhoto.test.tsx`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
+2026-03-19 — Trip creation "Failed to fetch" forensic fix
+- Completed end-to-end audit of CreateTripModal -> useTrips -> tripService -> create-trip edge function -> trips insert path.
+- Identified primary runtime failure class as Edge Function CORS origin mismatch causing browser-level fetch rejection (surfaced as generic "Failed to fetch"), especially on `*.lovable.dev`.
+- Applied surgical fix by re-allowlisting `.lovable.dev` in shared CORS config and improving tripService network error mapping to emit actionable diagnostics for CORS/origin misconfiguration.
+- Added CORS regression test coverage for lovable.dev preview origins.
+- Next follow-up: set/verify `ADDITIONAL_ALLOWED_ORIGINS` in Supabase Edge Functions for every active non-production frontend origin and redeploy `create-trip`.
+
 2026-03-15 — Data evolution constitution audit
 - Completed exhaustive schema/migration/lifecycle audit and produced `docs/audits/data-evolution-constitution-2026-03-15.md`.
 - Added reusable learning entry to `LESSONS.md` (migration compatibility API mindset).
@@ -52,3 +94,57 @@
 - Implemented surgical context-aware mention styling helper (`messageMentions.ts`) and wired `MessageBubble` to use it.
 - Added regression test `MessageBubble.mentions.test.ts` to lock mention class contract for outgoing, incoming, and broadcast contexts.
 - Next follow-up: consider centralizing mention parsing for multi-word/Unicode names if product expands mention syntax.
+2026-03-19 — Concierge Settings gold consistency + tab contrast polish
+- Replaced emoji bullets in "How Concierge Works" with gold sparkle glyph bullets for visual consistency with section headers.
+- Standardized canonical gold usage (`text-gold-primary`) across Concierge header sparkle, Trip Preferences sparkle, PLUS label text, and signed-in account icon color treatment in Settings header.
+- Updated selected Settings top-tab text color (My Trips / Pro / Events / Advertiser) from pale gold to pure white for stronger active-state contrast.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` all pass.
+- Next follow-up: capture updated UI screenshot artifact when browser screenshot tooling is available in this environment.
+2026-03-19 — Settings gold unification follow-up + Export Data CTA restyle
+- Updated `DataExportSection` to remove glowing black CTA treatment by switching "Export My Data" button to solid red with white text and explicit `shadow-none`.
+- Standardized Data Export accent tokens from `glass-orange` to canonical `gold-primary` (`FileJson` icon, Start Export/Download/Got it actions).
+- Applied requested emoji-to-glyph cleanup in settings-adjacent surfaces: replaced billing/upgrade emoji strings with `✦` bullets and aligned recurring highlight accents in `ConsumerBillingSection` + `StorageQuotaBar` to `gold-primary` family.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings).
+- Next follow-up: capture post-change Settings screenshots when browser screenshot tooling is available.
+2026-03-19 — Cross-surface link unfurl parity hardening (chat + channels + broadcasts + concierge)
+- Added non-blocking client-side link preview fallback in main TripChat (`useLinkPreviews`) so URL messages can render unfurl cards even when DB `link_preview` arrives late/missing.
+- Added link preview fallback wiring in shared `ChatMessages`, enabling AI Concierge user/assistant URL messages to display preview cards via existing `MessageRenderer`.
+- Added broadcast unfurl support by wiring `BroadcastList` through `useLinkPreviews` and rendering rich preview cards in `BroadcastItem`.
+- Added regression test `BroadcastList.linkPreviews.test.tsx` to lock preview wiring from hook -> broadcast card rendering.
+- Verification: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test -- --run src/features/broadcasts/components/__tests__/BroadcastList.linkPreviews.test.tsx src/components/__tests__/SettingsMenu.test.tsx` pass (with existing repo warnings/noisy stderr).
+- Next follow-up: if desired, move unfurl enrichment to a shared backend worker for deterministic preview persistence + parity with offline/notification pipelines.
+
+2026-03-19 — Media tab photo preview forensic fix (chat-upload path)
+- Reproduced failure with a focused regression test showing `MediaTile` did not use signed URL resolution (`src/components/media/__tests__/MediaTile.resolvedUrl.test.tsx`).
+- Root cause: Unified media surfaces (`MediaTile`, `MediaViewerModal`, and mobile `MediaGridItem`) rendered raw `trip_media_index.media_url` values and bypassed `useResolvedTripMediaUrl`, so private `trip-media` objects failed to load.
+- Implemented surgical fix by resolving URLs in those shared renderer boundaries before passing to `<img>/<video>` or download actions.
+- Verification: `npm run lint && npm run typecheck && npm run build` and targeted test `npm run test -- --run src/components/media/__tests__/MediaTile.resolvedUrl.test.tsx` pass.
+- Next follow-up: optional integration test around signed URL fallback in `UnifiedMediaHub` to guard future refactors.
+2026-03-19 — Event cover photo homepage refresh regression fix (AI concierge path)
+- Root-caused stale Event/Trip card cover photos on homepage to missing client cache invalidation after concierge `setTripHeaderImage` tool writes.
+- Confirmed `useUserTripsRealtime` only listens to `trip_join_requests` and `trip_members` (not `trips` updates), so this write path needs explicit `['trips']` invalidation.
+- Added shared concierge invalidation mapping utility and wired `AIConciergeChat` to treat `setTripHeaderImage` as a write action that invalidates `['trips']`.
+- Added focused regression test `src/lib/__tests__/conciergeInvalidation.test.ts` to lock tool-to-query-key mapping, including `setTripHeaderImage -> ['trips']`.
+- Verification: `npm test -- --run src/lib/__tests__/conciergeInvalidation.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
+- Next follow-up: if we add more trip-mutating concierge tools, keep this central mapping in sync to avoid silent stale UI on dashboard surfaces.
+2026-03-20 — Chat message reaction hover ownership + compact pill fix
+- Root-caused recurring reaction-hover failure to `MessageBubble` rendering hover actions below the bubble (`mt-1`) while hover state was keyed to per-message row enter/leave; moving the cursor downward crossed into the next row and switched `showReactions` target.
+- Implemented surgical hover ownership fix by side-attaching the reaction controls as an absolutely-positioned child of the active message container (`right-full/left-full`), with shared hover enter/leave handlers and cleanup timer so pointer transfer from bubble -> controls no longer loses message ownership.
+- Replaced fragmented quick-reaction chips with one compact pill containing 5 shortcut reactions + plus button, reducing visual noise and eliminating vertical stack collision.
+- Reused the existing chat emoji-mart flow via shared `EmojiMartPicker` and wired plus-button full picker selection to message reactions (not composer insertion).
+- Added focused regression tests in `MessageReactionBar.test.tsx` for compact pill contract (5 + plus) and full-picker custom emoji reaction routing; updated `ChatInput` tests to mock shared picker.
+- Added DB migration `20260408000000_allow_custom_emoji_message_reactions.sql` + `chatService` typing update to allow custom emoji reaction payloads through `toggle_reaction` while preserving single-reaction-per-user semantics.
+- Verification: `npm test -- --run src/features/chat/components/__tests__/MessageReactionBar.test.tsx src/features/chat/components/__tests__/ChatInput.test.tsx`, `npm run typecheck`, `npm run lint`, `npm run build`.
+
+2026-03-19 — Launch readiness boring-killers audit completed
+- Completed focused top-10 launch blocker audit across auth, billing/IAP, membership hydration, push/deep links, permissions, UX states, native shell, security, observability, and legal/account compliance.
+- Identified primary App Store blockers as Apple IAP incompleteness + consumer Stripe iOS routing exposure + restore purchases gap.
+- Captured recommendations in docs/audits/launch-readiness-boring-killers-2026-03-19.md for prioritized remediation sequencing.
+
+2026-03-19 — Launch blocker remediation pass (push routing + iOS consumer checkout guard + safety surfaces)
+- Fixed native push deep-link routing to respect trip type (`consumer|pro|event`) so taps no longer always route to `/trip/:id`; added regression tests in `src/native/__tests__/pushRouting.test.ts`.
+- Added App Store compliance guardrails for consumer subscriptions on iOS native: blocked frontend consumer upgrade actions in `useConsumerSubscription` + `ConsumerBillingSection`, and enforced server-side rejection in `create-checkout` for iOS consumer tiers.
+- Hardened iOS permission metadata by adding `NSPhotoLibraryAddUsageDescription` and `NSSpeechRecognitionUsageDescription` to `ios/App/App/Info.plist`.
+- Added visible abuse-reporting entry points in Support and Consumer General Settings (`safety@chravelapp.com`) to improve launch trust/compliance readiness.
+- Tightened chunk error recovery heuristic in `App.tsx` by removing generic `Failed to fetch` from chunk detection.
+- Verification: `npm test -- --run src/native/__tests__/pushRouting.test.ts`, `npm run typecheck`, `npm run lint` completed successfully (lint has existing repo-wide warnings only).

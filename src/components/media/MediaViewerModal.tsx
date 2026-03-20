@@ -12,6 +12,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Download, AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useResolvedTripMediaUrl } from '@/hooks/useResolvedTripMediaUrl';
 
 export interface MediaViewerItem {
   id?: string;
@@ -54,6 +55,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const currentItem = items[currentIndex];
+  const resolvedCurrentUrl = useResolvedTripMediaUrl({
+    url: currentItem?.url ?? null,
+    metadata: currentItem?.metadata,
+  });
+  const currentMediaUrl = resolvedCurrentUrl ?? currentItem?.url ?? '';
   const category = currentItem ? getMediaCategory(currentItem.mimeType) : 'document';
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < items.length - 1;
@@ -174,7 +180,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
 
       {/* Download button - iOS safe area aware */}
       <a
-        href={currentItem.url}
+        href={currentMediaUrl}
         download={currentItem.fileName || 'media'}
         target="_blank"
         rel="noopener noreferrer"
@@ -228,7 +234,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
           <AlertCircle className="w-12 h-12 text-orange-400 mb-4" aria-hidden="true" />
           <p className="text-white text-lg mb-4">Unable to preview</p>
           <a
-            href={currentItem.url}
+            href={currentMediaUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
@@ -257,7 +263,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             {/* Video player - iOS CRITICAL: muted required for autoplay */}
             {category === 'video' && (
               <video
-                src={currentItem.url}
+                src={currentMediaUrl}
                 controls
                 autoPlay
                 playsInline
@@ -279,7 +285,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
             {/* Image viewer */}
             {category === 'image' && (
               <img
-                src={currentItem.url}
+                src={currentMediaUrl}
                 alt={currentItem.fileName || 'Trip media'}
                 className="max-w-full max-h-full object-contain select-none"
                 style={{
