@@ -65,20 +65,17 @@ export const EventItem = ({
             <span className="text-lg">{categoryEmojis[event.event_category] || '📌'}</span>
             <h4 className="font-medium text-foreground">{event.title}</h4>
             {event.recurrence_rule && (
-              <span title="Recurring event">
-                <Repeat className="h-3.5 w-3.5 text-muted-foreground" />
-              </span>
+              <Repeat className="h-3.5 w-3.5 text-muted-foreground" title="Recurring event" />
             )}
             {hasReminder && (
-              <span
+              <Bell
+                className="h-3.5 w-3.5 text-muted-foreground"
                 title={
                   reminderMinutes != null && reminderMinutes >= 60
                     ? `Reminder: ${Math.floor(reminderMinutes / 60)}h before`
                     : `Reminder: ${reminderMinutes}m before`
                 }
-              >
-                <Bell className="h-3.5 w-3.5 text-muted-foreground" />
-              </span>
+              />
             )}
           </div>
 

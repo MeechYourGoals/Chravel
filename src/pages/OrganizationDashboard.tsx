@@ -186,7 +186,7 @@ export const OrganizationDashboard = () => {
 
       if (error) throw error;
 
-      const trips = (data?.map(item => (item as unknown as Record<string, unknown>).trips).filter(Boolean) || []) as unknown as LinkedTrip[];
+      const trips = (data?.map(item => item.trips).filter(Boolean) || []) as LinkedTrip[];
       setLinkedTrips(trips);
     } catch (_fetchError) {
       // Error fetching linked trips -- non-critical, UI shows empty state

@@ -158,7 +158,6 @@ export const ProTripDetailDesktop = () => {
     const links = tripData.links || [];
 
     return {
-      ...tripData,
       ...trip,
       basecamp,
       broadcasts,
