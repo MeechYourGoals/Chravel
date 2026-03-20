@@ -225,6 +225,22 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
 
+## Lineup "replace import" can hard-delete data on transient insert failures
+- **Status:** fixed
+- **Subsystem:** events / lineup import
+- **Bug class:** multi-step mutation data loss
+- **Symptom:** Using Smart Import with `replace` mode can wipe existing lineup rows when delete succeeds but insert fails.
+- **User-facing impact:** High — lineup names/bios/avatars can disappear in one action; recovery may require manual reconstruction.
+- **Trigger conditions:** Organizer runs replace import, network/API error occurs between delete and insert (or insert rejects).
+- **Likely root cause:** Client performed destructive two-step mutation (`DELETE all` then `INSERT new`) without transaction safety.
+- **Root cause chain:**
+  - Immediate: Existing rows removed before replacement rows are persisted
+  - Proximate: Insert error after successful delete
+  - Underlying: No insert-first plan or server-side transactional replace
+- **Smallest safe fix:** Compute replace plan from current rows, insert missing names first, then delete stale rows only after successful inserts.
+- **Regression risks:** Replace mode now preserves existing metadata (bio/avatar/title) for unchanged names by design; this is safer than row recreation.
+- **Related files:** `src/hooks/useEventLineup.ts`
+- **Fixed in:** March 2026 forensic correctness audit
 ## Dashboard trip cards missing after join approval (status-column drift)
 - **Status:** confirmed
 - **Subsystem:** trip dashboard hydration / membership query
