@@ -55,4 +55,49 @@ describe('eventChatPermissions', () => {
 
     expect(memberCanPost).toBe(true);
   });
+
+  it('treats broadcasts chat_mode as everyone for consumer trips (migration fix)', () => {
+    // Migration 20260214211051 set DEFAULT 'broadcasts' for all trips.
+    // Non-event trips should never be locked to broadcasts mode.
+    expect(resolveEffectiveMainChatMode('broadcasts', 'consumer', 4)).toBe('everyone');
+    expect(resolveEffectiveMainChatMode('broadcasts', 'pro', 10)).toBe('everyone');
+    expect(resolveEffectiveMainChatMode('broadcasts', null, 4)).toBe('everyone');
+  });
+
+  it('preserves broadcasts mode for event trips', () => {
+    expect(resolveEffectiveMainChatMode('broadcasts', 'event', 30)).toBe('broadcasts');
+  });
+
+  it('allows consumer trip member to post even if chat_mode is broadcasts', () => {
+    const memberCanPost = canPostInMainChat({
+      chatMode: 'broadcasts',
+      tripType: 'consumer',
+      attendeeCount: 4,
+      userRole: 'member',
+      isLoading: false,
+    });
+
+    expect(memberCanPost).toBe(true);
+  });
+
+  it('blocks non-admin posting in event with broadcasts mode', () => {
+    const memberCanPost = canPostInMainChat({
+      chatMode: 'broadcasts',
+      tripType: 'event',
+      attendeeCount: 30,
+      userRole: 'member',
+      isLoading: false,
+    });
+
+    const adminCanPost = canPostInMainChat({
+      chatMode: 'broadcasts',
+      tripType: 'event',
+      attendeeCount: 30,
+      userRole: 'admin',
+      isLoading: false,
+    });
+
+    expect(memberCanPost).toBe(false);
+    expect(adminCanPost).toBe(true);
+  });
 });
