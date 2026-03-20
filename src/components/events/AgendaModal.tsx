@@ -546,10 +546,16 @@ export const AgendaModal = ({
 
               if (uniqueDates.length > 1) {
                 return (
-                  <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+                  <div
+                    className="flex gap-2 mb-3 overflow-x-auto pb-1"
+                    role="group"
+                    aria-label="Filter sessions by day"
+                  >
                     <button
                       type="button"
                       onClick={() => setFilterDate(null)}
+                      aria-label="Show all days"
+                      aria-pressed={filterDate === null}
                       className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                         filterDate === null
                           ? 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30'
@@ -558,26 +564,32 @@ export const AgendaModal = ({
                     >
                       All Days
                     </button>
-                    {uniqueDates.map(date => (
-                      <button
-                        key={date}
-                        type="button"
-                        onClick={() => setFilterDate(date)}
-                        className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                          filterDate === date
-                            ? 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30'
-                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                        }`}
-                      >
-                        {date === 'Unscheduled'
+                    {uniqueDates.map(date => {
+                      const label =
+                        date === 'Unscheduled'
                           ? date
                           : new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric',
-                            })}
-                      </button>
-                    ))}
+                            });
+                      return (
+                        <button
+                          key={date}
+                          type="button"
+                          onClick={() => setFilterDate(date)}
+                          aria-label={`Filter to ${label}`}
+                          aria-pressed={filterDate === date}
+                          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                            filterDate === date
+                              ? 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/30'
+                              : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 );
               }
@@ -694,7 +706,8 @@ export const AgendaModal = ({
                                             onClick={() => handleEditSession(session)}
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-gray-400 hover:text-white"
+                                            className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-white"
+                                            aria-label={`Edit session ${session.title}`}
                                           >
                                             <Edit2 size={14} />
                                           </Button>
@@ -704,7 +717,8 @@ export const AgendaModal = ({
                                             onClick={() => handleDeleteSession(session.id)}
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-gray-400 hover:text-red-400"
+                                            className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-red-400"
+                                            aria-label={`Delete session ${session.title}`}
                                           >
                                             <Trash2 size={14} />
                                           </Button>

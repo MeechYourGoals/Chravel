@@ -87,13 +87,25 @@ export const CalendarGrid = ({
     <div className="bg-card border border-border rounded-lg">
       {/* Month Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="hover:bg-accent">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handlePrevMonth}
+          className="hover:bg-accent"
+          aria-label="Previous month"
+        >
           <ChevronLeft className="h-5 w-5" />
         </Button>
 
         <h2 className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
 
-        <Button variant="ghost" size="icon" onClick={handleNextMonth} className="hover:bg-accent">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleNextMonth}
+          className="hover:bg-accent"
+          aria-label="Next month"
+        >
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
@@ -147,7 +159,7 @@ export const CalendarGrid = ({
                   <button
                     type="button"
                     onClick={e => handleAddEventClick(e, day)}
-                    className="p-0.5 rounded hover:bg-accent opacity-0 group-hover/day:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="min-h-[44px] min-w-[44px] p-2 rounded hover:bg-accent opacity-0 group-hover/day:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center justify-center"
                     aria-label={`Add event on ${format(day, 'MMMM d')}`}
                   >
                     <Plus className="h-3 w-3 text-muted-foreground" />

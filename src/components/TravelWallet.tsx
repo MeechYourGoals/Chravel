@@ -364,7 +364,6 @@ export const TravelWallet = ({ userId }: TravelWalletProps) => {
         variant: 'destructive',
       });
     } finally {
-      setIsSaving(true);
       setShowAddForm(false);
       setIsSaving(false);
     }

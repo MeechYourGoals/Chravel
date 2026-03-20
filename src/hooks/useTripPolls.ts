@@ -437,7 +437,7 @@ export const useTripPolls = (tripId: string) => {
             if (error) throw error;
           }
         } else {
-          console.error('Vote RPC error:', batchError);
+          if (import.meta.env.DEV) console.error('Vote RPC error:', batchError);
           if (batchError.message?.includes('modified by another user')) {
             toast({
               title: 'Poll Updated',
@@ -635,7 +635,7 @@ export const useTripPolls = (tripId: string) => {
       });
 
       if (error) {
-        console.error('Remove vote RPC error:', error);
+        if (import.meta.env.DEV) console.error('Remove vote RPC error:', error);
         throw error;
       }
 

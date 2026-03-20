@@ -121,14 +121,14 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('[MediaUrlsPanel] Supabase error:', fetchError);
+        if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Supabase error:', fetchError);
         setError('Failed to load links. Please try again.');
         return;
       }
 
       setLinks((data || []).map(mapRowToLink));
     } catch (err) {
-      console.error('[MediaUrlsPanel] Error fetching links:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Error fetching links:', err);
       setError('Failed to load links. Please try again.');
     } finally {
       setLoading(false);
@@ -232,7 +232,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       // Realtime will update the list, but also do a manual refresh for reliability
       await fetchLinks();
     } catch (err) {
-      console.error('[MediaUrlsPanel] Failed to add link:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Failed to add link:', err);
       toast({
         title: 'Failed to add link',
         description: err instanceof Error ? err.message : 'Please try again',
@@ -262,7 +262,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       setLinks(prev => prev.filter(l => l.id !== linkId));
       toast({ title: 'Link deleted' });
     } catch (err) {
-      console.error('[MediaUrlsPanel] Failed to delete link:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Failed to delete link:', err);
       toast({
         title: 'Failed to delete link',
         description: 'Please try again',
@@ -324,7 +324,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
         onPromoteToTripLink(urlData);
       }
     } catch (err) {
-      console.error('[MediaUrlsPanel] Failed to promote URL:', err);
+      if (import.meta.env.DEV) console.error('[MediaUrlsPanel] Failed to promote URL:', err);
     } finally {
       setPromotingLinkId(null);
     }

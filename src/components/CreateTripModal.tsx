@@ -364,16 +364,25 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
-      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1.5rem)] sm:max-h-[90vh] overflow-y-auto pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+1rem))]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-trip-modal-title"
+        className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1.5rem)] sm:max-h-[90vh] overflow-y-auto pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+1rem))]"
+      >
         {/* Header */}
         <div
           className="flex items-center justify-between mb-6"
           style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
         >
-          <h2 className="text-2xl font-bold text-white">
+          <h2 id="create-trip-modal-title" className="text-2xl font-bold text-white">
             {tripType === 'event' ? 'Create New Event' : 'Create New Trip'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-gray-500 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
             <X size={24} />
           </button>
         </div>
@@ -458,6 +467,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               }`}
               placeholder="e.g., Summer in Paris"
               required
+              aria-required="true"
               maxLength={80}
             />
             <div className="flex items-center justify-between mt-1">
@@ -535,6 +545,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
+                aria-required="true"
               />
               {validationErrors.startDate && (
                 <p className="text-red-400 text-xs mt-1">{validationErrors.startDate}</p>
@@ -554,6 +565,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
+                aria-required="true"
               />
               {validationErrors.endDate && (
                 <p className="text-red-400 text-xs mt-1">{validationErrors.endDate}</p>

@@ -320,10 +320,21 @@ export const NotificationPreferences = () => {
 
       {/* Save Button */}
       <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={loadPreferences} disabled={saving}>
+        <Button
+          variant="outline"
+          onClick={loadPreferences}
+          disabled={saving}
+          className="min-h-[44px]"
+          aria-label="Reset notification preferences"
+        >
           Reset
         </Button>
-        <Button onClick={saveAllPreferences} disabled={saving}>
+        <Button
+          onClick={saveAllPreferences}
+          disabled={saving}
+          className="min-h-[44px]"
+          aria-label="Save notification preferences"
+        >
           {saving ? 'Saving...' : 'Save Preferences'}
         </Button>
       </div>

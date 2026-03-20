@@ -125,8 +125,8 @@ export const SmartImportSettings = () => {
             </p>
             <button
               onClick={() => setReconnectBannerDismissed(true)}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label="Dismiss"
+              className="text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Dismiss reconnect banner"
             >
               <X className="h-4 w-4" />
             </button>

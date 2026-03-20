@@ -319,6 +319,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       }
     } catch (error) {
       devError('Failed to delete personal basecamp:', error);
+      toast.error('Failed to delete personal base camp. Please try again.');
     }
   };
 
@@ -347,6 +348,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowTripSelector(true)}
+                    aria-label="Edit trip base camp"
                     className="bg-white/10 hover:bg-white/15 text-gray-200 px-3 py-2 rounded-lg transition-colors text-sm border border-white/10 min-h-[44px] flex items-center"
                   >
                     Edit
@@ -380,7 +382,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 </p>
                 <button
                   onClick={() => setShowTripSelector(true)}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
+                  aria-label="Set trip base camp"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium min-h-[44px]"
                 >
                   <Plus size={12} />
                   Set Trip Base Camp
@@ -413,6 +416,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                   </div>
                   <button
                     onClick={() => setShowPersonalSelector(true)}
+                    aria-label="Edit personal base camp"
                     className="bg-white/10 hover:bg-white/15 text-gray-200 px-3 py-2 rounded-lg transition-colors text-sm border border-white/10 min-h-[44px] flex items-center"
                   >
                     Edit
@@ -467,7 +471,8 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
                 </p>
                 <button
                   onClick={() => setShowPersonalSelector(true)}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
+                  aria-label="Set your personal base camp location"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-black py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium min-h-[44px]"
                 >
                   <Plus size={12} />
                   Set Your Location
