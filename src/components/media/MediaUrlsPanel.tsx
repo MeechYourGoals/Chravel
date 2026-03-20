@@ -331,13 +331,15 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
   };
 
   const getDomainIcon = (domain: string) => {
-    if (domain.includes('youtube')) return <Youtube className="w-4 h-4 text-red-400" />;
-    if (domain.includes('instagram')) return <Instagram className="w-4 h-4 text-pink-400" />;
+    if (domain.includes('youtube'))
+      return <Youtube className="w-4 h-4 text-red-400" aria-hidden="true" />;
+    if (domain.includes('instagram'))
+      return <Instagram className="w-4 h-4 text-pink-400" aria-hidden="true" />;
     if (domain.includes('maps.google') || domain.includes('googlemaps'))
-      return <MapPin className="w-4 h-4 text-green-400" />;
+      return <MapPin className="w-4 h-4 text-green-400" aria-hidden="true" />;
     if (domain.includes('ticketmaster') || domain.includes('eventbrite'))
-      return <Calendar className="w-4 h-4 text-purple-400" />;
-    return <Globe className="w-4 h-4 text-muted-foreground" />;
+      return <Calendar className="w-4 h-4 text-purple-400" aria-hidden="true" />;
+    return <Globe className="w-4 h-4 text-muted-foreground" aria-hidden="true" />;
   };
 
   const getDomainColor = (domain: string) => {
@@ -445,7 +447,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {/* Empty state */}
       {links.length === 0 && !showAddForm && (
         <div className="text-center py-12">
-          <Link className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <Link className="mx-auto h-12 w-12 text-muted-foreground mb-4" aria-hidden="true" />
           <h3 className="text-lg font-medium text-foreground mb-2">No Chat Links Yet</h3>
           <p className="text-muted-foreground">
             Links shared in chat will appear here automatically
@@ -457,7 +459,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {chatLinks.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <MessageCircle className="w-3 h-3" />
+            <MessageCircle className="w-3 h-3" aria-hidden="true" />
             <span>From Chat ({chatLinks.length})</span>
           </div>
           {chatLinks.map(link => (
@@ -481,7 +483,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
       {manualLinks.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Upload className="w-3 h-3" />
+            <Upload className="w-3 h-3" aria-hidden="true" />
             <span>Added Here ({manualLinks.length})</span>
           </div>
           {manualLinks.map(link => (
