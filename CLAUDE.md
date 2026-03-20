@@ -161,13 +161,16 @@
 
 ### After every meaningful task:
 1. Extract up to 3 tips (strategy / recovery / optimization) — only if specific, reusable, and evidence-backed
-2. Update the appropriate memory file:
+2. **Collect learnings during the branch's work, but defer writing to memory files until the final commit of the branch.** Do not update memory files after every individual task — batch them into a single learning-update commit at the end. This reduces merge conflicts across parallel branches.
+3. Update the appropriate memory file (in the batched commit):
    - Bug pattern discovered → `DEBUG_PATTERNS.md`
    - Broader reusable lesson → `LESSONS.md`
    - Missing test coverage found → `TEST_GAPS.md`
    - High-value structured entry → `agent_memory.jsonl`
-3. Before writing: check for duplicates — merge and refine existing entries instead of appending copies
-4. Report: which memory files were read, which were updated, what was added or skipped
+4. Before writing: check for duplicates — merge and refine existing entries instead of appending copies
+5. Report: which memory files were read, which were updated, what was added or skipped
+
+> **Note:** `.gitattributes` configures `merge=union` for all memory files, so git auto-merges independent entries from parallel branches. If you notice garbled entries after a merge, manually clean up the affected file.
 
 ### Quality gate for memory entries:
 - ✅ Specific and actionable (not "be careful with state")
