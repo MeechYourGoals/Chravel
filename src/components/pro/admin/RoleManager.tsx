@@ -361,13 +361,13 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                       </span>
                       {hasChannel &&
                         channel &&
-                        !(channel as Record<string, unknown>).is_archived && (
+                        !(channel as unknown as Record<string, unknown>).is_archived && (
                           <>
                             <span>·</span>
                             <div className="flex items-center gap-1">
                               <LinkIcon className="w-3 h-3" />
                               <span>
-                                #{(channel as Record<string, unknown>).channel_name as string}
+                                #{(channel as unknown as Record<string, unknown>).channel_name as string}
                               </span>
                             </div>
                           </>
