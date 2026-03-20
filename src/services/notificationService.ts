@@ -710,6 +710,42 @@ export class NotificationService {
   }
 
   /**
+   * Map common Twilio error codes to user-friendly diagnostic messages.
+   * Used client-side to enrich error responses from the edge function.
+   */
+  private getTwilioErrorDiagnostic(errorCode: number | undefined): string {
+    if (!errorCode) return '';
+    const diagnostics: Record<number, string> = {
+      21608:
+        'Trial account restriction: verify the recipient number in Twilio Console > Phone Numbers > Verified Caller IDs.',
+      21610:
+        'Recipient has opted out of messages (sent STOP). They must text START to re-subscribe.',
+      21211: 'Invalid phone number format. Please check the number and try again.',
+      21614: 'Not a valid mobile number. SMS cannot be delivered to landlines.',
+      21612: 'Trial account cannot send to unverified numbers. Add the number in Twilio Console.',
+      30001: 'Message queue overflow. Try again in a few minutes.',
+      30003: 'Unreachable destination handset. The recipient may have their phone off.',
+      30004: 'Message blocked. This may require A2P 10DLC registration.',
+      30005: 'Unknown destination handset. The phone number may be invalid or disconnected.',
+      30006: 'Landline or unreachable carrier. SMS cannot be delivered.',
+      30007: 'Message filtered by carrier. Contact support if this persists.',
+      30008: 'Unknown error from the carrier. Try again later.',
+      30010: 'Message price exceeds max price threshold.',
+      63003: 'Channel sandbox requires opt-in from the recipient.',
+    };
+    return diagnostics[errorCode] || '';
+  }
+
+  /**
+   * Enrich an error message with Twilio diagnostic context when available.
+   */
+  private enrichSmsError(baseMessage: string, errorCode: number | undefined): string {
+    const diagnostic = this.getTwilioErrorDiagnostic(errorCode);
+    if (!diagnostic) return baseMessage;
+    return `${baseMessage} (${diagnostic})`;
+  }
+
+  /**
    * Send SMS notification via Edge Function
    * Truth-based: success only when Twilio returns a valid Message SID
    * @returns { success, sid?, status?, errorMessage?, errorCode? } for UI
@@ -766,15 +802,16 @@ export class NotificationService {
         }
         return {
           success: false,
-          errorMessage,
+          errorMessage: this.enrichSmsError(errorMessage, result?.errorCode),
           errorCode: result?.errorCode,
         };
       }
 
       if (result.success === false) {
+        const baseMsg = result.message || result.error || 'SMS delivery failed';
         return {
           success: false,
-          errorMessage: result.message || result.error || 'SMS delivery failed',
+          errorMessage: this.enrichSmsError(baseMsg, result.errorCode),
           errorCode: result.errorCode,
         };
       }
@@ -783,9 +820,10 @@ export class NotificationService {
       const hasValidSid =
         result.sid && typeof result.sid === 'string' && result.sid.startsWith('SM');
       if (!hasValidSid) {
+        const baseMsg = result.message || result.error || 'Twilio did not return a message SID';
         return {
           success: false,
-          errorMessage: result.message || result.error || 'Twilio did not return a message SID',
+          errorMessage: this.enrichSmsError(baseMsg, result.errorCode),
           errorCode: result.errorCode,
         };
       }
