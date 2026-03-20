@@ -121,7 +121,11 @@ export function useTripChatMode(
   const canUploadMedia: boolean = (() => {
     if (isLoading) return false;
     if (!mediaUploadMode || mediaUploadMode === 'everyone') return true;
-    if (mediaUploadMode === 'admin_only') return isAdmin;
+    // 'admin_only' media restriction is event-only; non-event trips allow all members to upload.
+    // Guards against migration 20260214211051 which set DEFAULT 'admin_only' for all trips.
+    if (mediaUploadMode === 'admin_only') {
+      return tripType !== 'event' || isAdmin;
+    }
     return true;
   })();
 

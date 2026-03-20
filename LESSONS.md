@@ -268,3 +268,11 @@
 - **Evidence:** March 2026 remediation added iOS consumer checkout guards in `useConsumerSubscription`, `ConsumerBillingSection`, and `supabase/functions/create-checkout/index.ts`.
 - **Provenance:** 2026-03-19 launch blocker remediation pass.
 - **Confidence:** high
+
+### Compatibility fixes must preserve client/server permission parity
+- **Tip:** If UI introduces temporary compatibility behavior (for example mapping legacy restrictive mode values to permissive behavior), update the corresponding server authorization helpers in the same change. Never let UI permissive logic ship ahead of RLS semantics.
+- **Applies when:** Permission mode migrations, rollout backfills, temporary fallback branches in hooks/components.
+- **Avoid when:** Purely visual state changes with no write authorization impact.
+- **Evidence:** Non-event trips with legacy `chat_mode='broadcasts'` / `media_upload_mode='admin_only'` could look writable in UI while backend helpers still denied inserts/uploads until SQL helper parity was added.
+- **Provenance:** PR #1053 hardening (March 2026).
+- **Confidence:** high
