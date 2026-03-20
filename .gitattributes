@@ -1,0 +1,6 @@
+# Auto-merge learning/memory files (append-oriented, independent entries)
+# Uses git's union merge driver to keep all lines from both sides instead of conflicting
+DEBUG_PATTERNS.md merge=union
+LESSONS.md merge=union
+TEST_GAPS.md merge=union
+agent_memory.jsonl merge=union

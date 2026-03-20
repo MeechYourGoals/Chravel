@@ -208,8 +208,8 @@ export function VoiceLiveInline({
         ) : null}
       </div>
 
-      {/* Gold waveform — centerpiece */}
-      <div className="w-full max-w-[90%] sm:max-w-2xl flex-shrink-0">
+      {/* Gold waveform divider — full width of live content area */}
+      <div className="w-full flex-shrink-0">
         <svg
           ref={barRef}
           className={`w-full ${barMode === 'connecting' || barMode === 'thinking' ? 'animate-[wave-breathe_3s_ease-in-out_infinite]' : ''}`}
@@ -296,7 +296,7 @@ export function VoiceLiveInline({
             </p>
           ) : (
             barMode === 'listening' && (
-              <p className="text-amber-400/25 text-sm text-center italic">Speak now\u2026</p>
+              <p className="text-amber-400/25 text-sm text-center italic">Speak now&hellip;</p>
             )
           )}
         </div>
