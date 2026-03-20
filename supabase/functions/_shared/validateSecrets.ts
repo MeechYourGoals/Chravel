@@ -122,6 +122,47 @@ export function requireAwsSecrets(): {
 }
 
 /**
+ * Validates Twilio secrets. Supports two auth modes:
+ * - API Key (preferred, Lovable-compatible): TWILIO_API_KEY_SID (SK…) + TWILIO_API_KEY_SECRET
+ * - Auth Token (legacy fallback): TWILIO_AUTH_TOKEN
+ *
+ * Always requires: TWILIO_ACCOUNT_SID (AC…) + TWILIO_PHONE_NUMBER (E.164)
+ */
+export function requireTwilioSecrets(): {
+  TWILIO_ACCOUNT_SID: string;
+  TWILIO_PHONE_NUMBER: string;
+  authMode: 'api_key' | 'auth_token';
+} {
+  const TWILIO_ACCOUNT_SID = requireSecret('TWILIO_ACCOUNT_SID', /^AC[0-9a-fA-F]{32}$/);
+  const TWILIO_PHONE_NUMBER = requireSecret('TWILIO_PHONE_NUMBER', /^\+[1-9]\d{4,14}$/);
+
+  // Check for API Key first (preferred)
+  const apiKeySid = Deno.env.get('TWILIO_API_KEY_SID') || '';
+  const apiKeySecret = Deno.env.get('TWILIO_API_KEY_SECRET') || '';
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN') || '';
+
+  let authMode: 'api_key' | 'auth_token';
+
+  if (apiKeySid && apiKeySecret) {
+    if (!/^SK[0-9a-fA-F]{32}$/.test(apiKeySid)) {
+      throw new Error(
+        `TWILIO_API_KEY_SID must start with "SK" followed by 32 hex characters. Got: ${apiKeySid.substring(0, 6)}…`,
+      );
+    }
+    authMode = 'api_key';
+  } else if (authToken) {
+    authMode = 'auth_token';
+  } else {
+    throw new Error(
+      'No Twilio auth configured. Set TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET (preferred) ' +
+        'or TWILIO_AUTH_TOKEN in Supabase Dashboard > Edge Functions > Secrets.',
+    );
+  }
+
+  return { TWILIO_ACCOUNT_SID, TWILIO_PHONE_NUMBER, authMode };
+}
+
+/**
  * Creates a standardized 500 response for missing secrets.
  * Use this in edge function catch blocks when requireSecrets throws.
  */

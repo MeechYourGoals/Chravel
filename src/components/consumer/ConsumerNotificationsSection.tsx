@@ -88,6 +88,21 @@ const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   },
 ];
 
+function getTwilioErrorHint(errorCode?: number): string {
+  if (!errorCode) return '';
+  const hints: Record<number, string> = {
+    21608:
+      ' Trial account: verify the recipient number in Twilio Console > Phone Numbers > Verified Caller IDs.',
+    21610:
+      ' Recipient has opted out of messages (sent STOP). They must text START to re-subscribe.',
+    21211: ' Invalid phone number format. Please check the number.',
+    21614: ' Not a valid mobile number. SMS cannot be delivered to landlines.',
+    30007: ' Message filtered by carrier. Contact support if this persists.',
+    30004: ' Message blocked. This may require A2P 10DLC registration.',
+  };
+  return hints[errorCode] || '';
+}
+
 export const ConsumerNotificationsSection = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -372,10 +387,7 @@ export const ConsumerNotificationsSection = () => {
         void fetchLastSmsStatus();
       } else {
         const desc = result.errorMessage || 'Check your settings and try again.';
-        const hint =
-          result.errorCode === 21610
-            ? ' Verify your phone number in the Twilio console (trial accounts).'
-            : '';
+        const hint = getTwilioErrorHint(result.errorCode);
         toast({
           title: 'Failed to send',
           description: desc + hint,

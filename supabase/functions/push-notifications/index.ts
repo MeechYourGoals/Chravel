@@ -6,6 +6,12 @@ import {
   isSmsEligibleCategory,
   type SmsTemplateData,
 } from '../_shared/smsTemplates.ts';
+import {
+  createTwilioClient,
+  sendSms as twilioSendSms,
+  diagnoseTwilioError,
+  type TwilioSendResult,
+} from '../_shared/twilioSms.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -270,12 +276,14 @@ async function sendSMSNotification(
   corsHeaders: Record<string, string>,
 ) {
   const { userId, userEmail, phoneNumber, message, category, templateData } = payload;
-  const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-  const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-  const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
 
-  if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-    console.error('[SMS] Twilio credentials not configured');
+  let twilioClient;
+  try {
+    twilioClient = createTwilioClient();
+  } catch (configError) {
+    const errorMsg =
+      configError instanceof Error ? configError.message : 'Twilio credentials not configured';
+    console.error('[SMS] Twilio config error:', errorMsg);
 
     await supabase.from('notification_logs').insert({
       user_id: userId,
@@ -284,11 +292,11 @@ async function sendSMSNotification(
       body: message || 'N/A',
       recipient: phoneNumber,
       status: 'failed',
-      error_message: 'Twilio credentials not configured',
+      error_message: errorMsg,
       created_at: new Date().toISOString(),
     });
 
-    throw new Error('Twilio credentials not configured');
+    throw new Error(errorMsg);
   }
 
   // Enforce premium gating on the server.
@@ -405,42 +413,17 @@ async function sendSMSNotification(
     finalMessage = 'ChravelApp: You have a new update. Open the app for details.';
   }
 
-  const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
-
   console.log(`[SMS] Sending to ${targetPhone.substring(0, 6)}*** via Twilio`);
+  const twilioResult = await twilioSendSms(twilioClient, targetPhone, finalMessage);
 
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        From: twilioPhoneNumber,
-        To: targetPhone,
-        Body: finalMessage,
-      }),
-      signal: AbortSignal.timeout(15_000),
-    },
-  );
-
-  const responseText = await response.text();
-
-  if (!response.ok) {
-    let errorCode: number | null = null;
-    let errorMessage = responseText;
-    try {
-      const errBody = JSON.parse(responseText);
-      errorCode = errBody.code ?? errBody.error_code ?? null;
-      errorMessage = errBody.message ?? errBody.error_message ?? responseText;
-    } catch {
-      // Keep raw responseText
-    }
-
-    const fullError = `Twilio error (${response.status}): ${errorMessage}`;
-    console.error(`[SMS] ${fullError}`, errorCode ? `[code: ${errorCode}]` : '');
+  if (!twilioResult.ok) {
+    const diagnosis = diagnoseTwilioError(twilioResult.errorCode);
+    const fullError = twilioResult.error || 'Unknown Twilio error';
+    console.error(
+      `[SMS] ${fullError}`,
+      twilioResult.errorCode ? `[code: ${twilioResult.errorCode}]` : '',
+      diagnosis ? `— ${diagnosis}` : '',
+    );
 
     await supabase.from('notification_logs').insert({
       user_id: userId,
@@ -450,7 +433,7 @@ async function sendSMSNotification(
       recipient: targetPhone,
       status: 'failed',
       error_message: fullError,
-      data: errorCode != null ? { twilio_error_code: errorCode } : {},
+      data: twilioResult.errorCode != null ? { twilio_error_code: twilioResult.errorCode } : {},
       created_at: new Date().toISOString(),
     });
 
@@ -458,57 +441,16 @@ async function sendSMSNotification(
       JSON.stringify({
         success: false,
         error: 'twilio_error',
-        message: errorMessage,
-        errorCode: errorCode ?? undefined,
-        errorMessage,
+        message: fullError,
+        errorCode: twilioResult.errorCode ?? undefined,
+        errorMessage: fullError,
       }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 
-  let result: { sid?: string; status?: string; error_code?: number; error_message?: string };
-  try {
-    result = JSON.parse(responseText);
-  } catch {
-    console.error('[SMS] Invalid Twilio response:', responseText.substring(0, 200));
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'invalid_response',
-        message: 'Twilio returned invalid response',
-      }),
-      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
-  }
-
-  // Truth-based: only success if we have a valid Message SID (SM...)
-  const messageSid = result.sid;
-  const twilioStatus = result.status || 'unknown';
-
-  if (!messageSid || typeof messageSid !== 'string' || !messageSid.startsWith('SM')) {
-    console.error('[SMS] No valid Message SID in Twilio response:', result);
-
-    await supabase.from('notification_logs').insert({
-      user_id: userId,
-      type: 'sms',
-      title: 'SMS Failed',
-      body: finalMessage,
-      recipient: targetPhone,
-      status: 'failed',
-      error_message: 'No valid Message SID from Twilio',
-      data: { raw: result },
-      created_at: new Date().toISOString(),
-    });
-
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'no_message_sid',
-        message: 'Twilio did not return a valid message SID',
-      }),
-      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
-  }
+  const messageSid = twilioResult.messageSid!;
+  const twilioStatus = twilioResult.twilioStatus || 'unknown';
 
   console.log(`[SMS] Sent successfully. SID: ${messageSid} status: ${twilioStatus}`);
 
@@ -527,7 +469,7 @@ async function sendSMSNotification(
     recipient: targetPhone,
     external_id: messageSid,
     status: 'sent',
-    data: { category, twilioStatus, twilioErrorCode: result.error_code },
+    data: { category, twilioStatus, twilioErrorCode: twilioResult.errorCode },
     sent_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
   });
@@ -537,8 +479,8 @@ async function sendSMSNotification(
       success: true,
       sid: messageSid,
       status: twilioStatus,
-      errorCode: result.error_code ?? undefined,
-      errorMessage: result.error_message ?? undefined,
+      errorCode: twilioResult.errorCode ?? undefined,
+      errorMessage: twilioResult.error ?? undefined,
       remaining: rateLimit?.remaining ?? SMS_DAILY_LIMIT - 1,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

@@ -18,6 +18,13 @@ import {
 } from '../_shared/smsTemplates.ts';
 import { sendWebPushNotification, type WebPushSubscription } from '../_shared/webPushUtils.ts';
 import {
+  createTwilioClient,
+  sendSms as twilioSendSms,
+  describeTwilioConfig,
+  type TwilioCredentials,
+  type TwilioSendResult,
+} from '../_shared/twilioSms.ts';
+import {
   buildNotificationContent,
   type EmailContent,
   type NotificationContentType,
@@ -82,9 +89,18 @@ interface SmsOptInRow {
 const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
 const sendGridApiKey = Deno.env.get('SENDGRID_API_KEY');
 const sendGridFromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') || 'support@chravelapp.com';
-const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+let _twilioClient: TwilioCredentials | null = null;
+function getTwilioClient(): TwilioCredentials | null {
+  if (_twilioClient) return _twilioClient;
+  try {
+    _twilioClient = createTwilioClient();
+    console.log('[dispatch] Twilio config:', describeTwilioConfig(_twilioClient));
+    return _twilioClient;
+  } catch (err) {
+    console.error('[dispatch] Twilio config error:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
 const internalSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
 
 const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
@@ -282,41 +298,17 @@ async function sendSms(
   providerMessageId?: string;
   error?: string;
 }> {
-  if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+  const client = getTwilioClient();
+  if (!client) {
     return { ok: false, error: 'Twilio credentials are not configured' };
   }
 
-  const credentials = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        From: twilioPhoneNumber,
-        To: phoneNumber,
-        Body: message,
-      }),
-    },
-  );
-
-  const responseText = await response.text();
-  if (!response.ok) {
-    return {
-      ok: false,
-      error: `Twilio error ${response.status}: ${responseText.substring(0, 200)}`,
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(responseText);
-    return { ok: true, providerMessageId: parsed.sid };
-  } catch {
-    return { ok: true };
-  }
+  const result = await twilioSendSms(client, phoneNumber, message);
+  return {
+    ok: result.ok,
+    providerMessageId: result.messageSid,
+    error: result.error,
+  };
 }
 
 async function sendEmail(
