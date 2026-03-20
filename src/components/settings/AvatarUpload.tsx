@@ -168,7 +168,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       const compressedFile = await imageCompression(file, options);
       return compressedFile;
     } catch (err) {
-      console.error('Image compression error:', err);
+      if (import.meta.env.DEV) console.error('Image compression error:', err);
       // Return original file if compression fails
       return file;
     }
@@ -290,7 +290,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       const errorMessage = err instanceof Error ? err.message : 'Failed to upload avatar';
       setError(errorMessage);
       onUploadError?.(errorMessage);
-      console.error('Avatar upload error:', err);
+      if (import.meta.env.DEV) console.error('Avatar upload error:', err);
     } finally {
       setIsUploading(false);
     }
@@ -326,7 +326,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       const errorMessage = err instanceof Error ? err.message : 'Failed to set default avatar';
       setError(errorMessage);
       onUploadError?.(errorMessage);
-      console.error('Default avatar error:', err);
+      if (import.meta.env.DEV) console.error('Default avatar error:', err);
     } finally {
       setIsUploading(false);
     }

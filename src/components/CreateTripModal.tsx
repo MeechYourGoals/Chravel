@@ -227,7 +227,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               .update({ cover_image_url: publicUrl })
               .eq('id', newTrip.id);
           } catch (uploadError) {
-            console.error('Error uploading cover image:', uploadError);
+            if (import.meta.env.DEV) console.error('Error uploading cover image:', uploadError);
             toast.error('Trip created, but failed to upload cover image');
           }
         }
@@ -246,11 +246,12 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             );
 
             if (linkError) {
-              console.error('Error linking trip to organization:', linkError);
+              if (import.meta.env.DEV)
+                console.error('Error linking trip to organization:', linkError);
               toast.error('Trip created but failed to link to organization');
             }
           } catch (linkErr) {
-            console.error('Error linking trip:', linkErr);
+            if (import.meta.env.DEV) console.error('Error linking trip:', linkErr);
           }
         }
       }

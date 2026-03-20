@@ -68,7 +68,7 @@ export const MediaSearchBar = ({
 
         onSearchResults(results);
       } catch (error) {
-        console.error('[MediaSearchBar] Search error:', error);
+        if (import.meta.env.DEV) console.error('[MediaSearchBar] Search error:', error);
         onSearchResults([]);
       } finally {
         setIsSearching(false);

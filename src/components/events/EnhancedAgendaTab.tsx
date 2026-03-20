@@ -718,10 +718,16 @@ export const EnhancedAgendaTab = ({
 
           if (uniqueDates.length > 1) {
             return (
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div
+                className="flex gap-2 overflow-x-auto pb-1"
+                role="group"
+                aria-label="Filter sessions by day"
+              >
                 <button
                   type="button"
                   onClick={() => setDayFilter(null)}
+                  aria-label="Show all days"
+                  aria-pressed={dayFilter === null}
                   className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                     dayFilter === null
                       ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
@@ -730,26 +736,32 @@ export const EnhancedAgendaTab = ({
                 >
                   All Days
                 </button>
-                {uniqueDates.map(date => (
-                  <button
-                    key={date}
-                    type="button"
-                    onClick={() => setDayFilter(date)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                      dayFilter === date
-                        ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    {date === 'Unscheduled'
+                {uniqueDates.map(date => {
+                  const label =
+                    date === 'Unscheduled'
                       ? date
                       : new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
-                        })}
-                  </button>
-                ))}
+                        });
+                  return (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => setDayFilter(date)}
+                      aria-label={`Filter to ${label}`}
+                      aria-pressed={dayFilter === date}
+                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                        dayFilter === date
+                          ? 'bg-primary/20 text-primary ring-1 ring-primary/30'
+                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             );
           }
