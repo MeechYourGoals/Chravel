@@ -46,7 +46,9 @@ export function deriveReplaceImportPlan(
     existingRows.map(row => [row.name.toLocaleLowerCase(), row.id] as const),
   );
 
-  const namesToInsert = normalizedNames.filter(name => !existingNameToId.has(name.toLocaleLowerCase()));
+  const namesToInsert = normalizedNames.filter(
+    name => !existingNameToId.has(name.toLocaleLowerCase()),
+  );
   const idsToDelete = existingRows
     .filter(row => !normalizedNameSet.has(row.name.toLocaleLowerCase()))
     .map(row => row.id);
@@ -353,8 +355,8 @@ export function useEventLineup({
 
         const replacePlan = deriveReplaceImportPlan(
           normalized,
-          ((existingRows || []) as ExistingLineupRow[]).filter(
-            (row): row is ExistingLineupRow => Boolean(row?.id && row?.name),
+          ((existingRows || []) as ExistingLineupRow[]).filter((row): row is ExistingLineupRow =>
+            Boolean(row?.id && row?.name),
           ),
         );
 
