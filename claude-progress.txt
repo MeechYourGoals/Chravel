@@ -127,3 +127,11 @@
 - Added focused regression test `src/lib/__tests__/conciergeInvalidation.test.ts` to lock tool-to-query-key mapping, including `setTripHeaderImage -> ['trips']`.
 - Verification: `npm test -- --run src/lib/__tests__/conciergeInvalidation.test.ts`, `npm run lint`, `npm run typecheck`, and `npm run build` pass.
 - Next follow-up: if we add more trip-mutating concierge tools, keep this central mapping in sync to avoid silent stale UI on dashboard surfaces.
+2026-03-20 — Chat message reaction hover ownership + compact pill fix
+- Root-caused recurring reaction-hover failure to `MessageBubble` rendering hover actions below the bubble (`mt-1`) while hover state was keyed to per-message row enter/leave; moving the cursor downward crossed into the next row and switched `showReactions` target.
+- Implemented surgical hover ownership fix by side-attaching the reaction controls as an absolutely-positioned child of the active message container (`right-full/left-full`), with shared hover enter/leave handlers and cleanup timer so pointer transfer from bubble -> controls no longer loses message ownership.
+- Replaced fragmented quick-reaction chips with one compact pill containing 5 shortcut reactions + plus button, reducing visual noise and eliminating vertical stack collision.
+- Reused the existing chat emoji-mart flow via shared `EmojiMartPicker` and wired plus-button full picker selection to message reactions (not composer insertion).
+- Added focused regression tests in `MessageReactionBar.test.tsx` for compact pill contract (5 + plus) and full-picker custom emoji reaction routing; updated `ChatInput` tests to mock shared picker.
+- Added DB migration `20260408000000_allow_custom_emoji_message_reactions.sql` + `chatService` typing update to allow custom emoji reaction payloads through `toggle_reaction` while preserving single-reaction-per-user semantics.
+- Verification: `npm test -- --run src/features/chat/components/__tests__/MessageReactionBar.test.tsx src/features/chat/components/__tests__/ChatInput.test.tsx`, `npm run typecheck`, `npm run lint`, `npm run build`.

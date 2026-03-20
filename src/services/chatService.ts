@@ -4,18 +4,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type ReactionType =
-  | 'like'
-  | 'love'
-  | 'laugh'
-  | 'wow'
-  | 'sad'
-  | 'angry'
-  | 'clap'
-  | 'party'
-  | 'question'
-  | 'dislike'
-  | 'important';
+export type ReactionType = string;
 
 export type ChatMessageInsert = Database['public']['Tables']['trip_chat_messages']['Insert'];
 
@@ -172,34 +161,12 @@ export async function deleteChannelMessage(messageId: string): Promise<boolean> 
 
 // ─── Reactions (message_reactions table-backed) ─────────────────────────────
 
-const SUPPORTED_REACTION_TYPES = [
-  'like',
-  'love',
-  'laugh',
-  'wow',
-  'sad',
-  'angry',
-  'clap',
-  'party',
-  'question',
-  'dislike',
-  'important',
-] as const;
-
-function isValidReactionType(reactionType: string): reactionType is ReactionType {
-  return SUPPORTED_REACTION_TYPES.includes(reactionType as ReactionType);
-}
-
 export async function toggleMessageReaction(
   messageId: string,
   userId: string,
   reactionType: ReactionType,
 ): Promise<{ data: unknown; error: unknown }> {
   try {
-    if (!isValidReactionType(reactionType)) {
-      throw new Error(`Unsupported reaction type: ${reactionType}`);
-    }
-
     // RPC not yet in generated Supabase types
     const { data, error } = await (supabase as any).rpc('toggle_reaction', {
       p_message_id: messageId,

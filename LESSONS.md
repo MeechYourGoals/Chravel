@@ -247,3 +247,10 @@
 - **Evidence:** Calendar Add Event modal showed a confusing blue square/blank indicator slot in the Start Time field; adding a scoped `.calendar-time-input` style plus explicit `Clock3` icon resolved clarity without changing time data semantics.
 - **Provenance:** March 2026 calendar invite time-input forensic fix.
 - **Confidence:** high
+
+### Hover actions in dense message stacks must share the same pointer-ownership container
+- **Tip:** If chat hover controls are rendered outside the hovered message hitbox (especially below the bubble), cursor travel to the controls can trigger row handoff to the adjacent message. Keep action controls as descendants of the same row container and place them laterally (`left/right`) to avoid vertical collision.
+- **Applies when:** Reaction trays, kebab menus, or inline controls in stacked chat/message timelines.
+- **Evidence:** Trip chat reaction shortcuts rendered below bubbles and repeatedly "fell" to the next message; side-attached absolute pill under the same `MessageBubble` container removed hover handoff.
+- **Provenance:** March 2026 chat reaction hover forensic fix.
+- **Confidence:** high
