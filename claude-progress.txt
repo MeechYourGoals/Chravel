@@ -140,3 +140,8 @@
 - Added visible abuse-reporting entry points in Support and Consumer General Settings (`safety@chravelapp.com`) to improve launch trust/compliance readiness.
 - Tightened chunk error recovery heuristic in `App.tsx` by removing generic `Failed to fetch` from chunk detection.
 - Verification: `npm test -- --run src/native/__tests__/pushRouting.test.ts`, `npm run typecheck`, `npm run lint` completed successfully (lint has existing repo-wide warnings only).
+
+2026-03-20 — Chat/media mode default regression hardening (server parity)
+- Investigated PR #1053 and identified policy drift risk: frontend compatibility treated non-event `chat_mode='broadcasts'` / `media_upload_mode='admin_only'` as permissive, but server RLS helpers could still reject writes if legacy values persisted during rollout.
+- Updated migration `supabase/migrations/20260408000001_fix_chat_mode_defaults.sql` to `CREATE OR REPLACE` both `can_post_to_trip_chat` and `can_upload_media_to_trip` so non-event trips are consistently permissive at the server layer while event-specific restrictions remain enforced.
+- Validation: `npx tsx scripts/lint-migrations.ts`, `npm test -- --run src/__tests__/eventChatPermissions.test.ts`, `npm run lint`, `npm run typecheck`, `npm run build` all pass (repo retains pre-existing lint warnings only).

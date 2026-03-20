@@ -276,3 +276,18 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Related files:** `src/components/media/MediaTile.tsx`, `src/components/media/MediaViewerModal.tsx`, `src/components/mobile/MediaGridItem.tsx`, `src/hooks/useResolvedTripMediaUrl.ts`
 - **Fixed in:** March 2026 media forensic fix
 - **Confidence:** high
+
+## Frontend compatibility fallback without matching RLS update causes false-positive UX
+- **Status:** fixed
+- **Subsystem:** chat/media permissions / RLS enforcement
+- **Bug class:** source-of-truth drift (client vs server)
+- **Symptom:** UI shows composer/upload controls as allowed for non-event trips with legacy restrictive values, but writes fail with RLS denial.
+- **User-facing impact:** Users can type/send or start upload flow and then hit server authorization errors; appears flaky/inconsistent.
+- **Trigger conditions:** Client introduces compatibility logic (for example `broadcasts -> everyone` on non-event) while server helpers (`can_post_to_trip_chat`, `can_upload_media_to_trip`) still enforce legacy restrictive values.
+- **Likely root cause:** Rollout fixes updated frontend display logic and/or data backfill migration, but omitted server `CREATE OR REPLACE FUNCTION` parity.
+- **How to confirm:** Compare client permission resolver with active SQL helper behavior for the same row shape (`trip_type != 'event'` + legacy `chat_mode/media_upload_mode` values).
+- **Smallest safe fix:** Update server helper functions in the same corrective migration to encode identical effective-mode semantics for non-event trips.
+- **Regression risks:** Over-permissive event behavior if trip_type branch is wrong; protect by keeping event-only restrictions explicit in SQL.
+- **Related files:** `supabase/migrations/20260408000001_fix_chat_mode_defaults.sql`, `src/lib/eventChatPermissions.ts`, `src/hooks/useTripChatMode.ts`
+- **Fixed in:** March 2026 PR #1053 hardening
+- **Confidence:** high
