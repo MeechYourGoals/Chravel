@@ -135,3 +135,16 @@
 - Added focused regression tests in `MessageReactionBar.test.tsx` for compact pill contract (5 + plus) and full-picker custom emoji reaction routing; updated `ChatInput` tests to mock shared picker.
 - Added DB migration `20260408000000_allow_custom_emoji_message_reactions.sql` + `chatService` typing update to allow custom emoji reaction payloads through `toggle_reaction` while preserving single-reaction-per-user semantics.
 - Verification: `npm test -- --run src/features/chat/components/__tests__/MessageReactionBar.test.tsx src/features/chat/components/__tests__/ChatInput.test.tsx`, `npm run typecheck`, `npm run lint`, `npm run build`.
+
+2026-03-19 — Launch readiness boring-killers audit completed
+- Completed focused top-10 launch blocker audit across auth, billing/IAP, membership hydration, push/deep links, permissions, UX states, native shell, security, observability, and legal/account compliance.
+- Identified primary App Store blockers as Apple IAP incompleteness + consumer Stripe iOS routing exposure + restore purchases gap.
+- Captured recommendations in docs/audits/launch-readiness-boring-killers-2026-03-19.md for prioritized remediation sequencing.
+
+2026-03-19 — Launch blocker remediation pass (push routing + iOS consumer checkout guard + safety surfaces)
+- Fixed native push deep-link routing to respect trip type (`consumer|pro|event`) so taps no longer always route to `/trip/:id`; added regression tests in `src/native/__tests__/pushRouting.test.ts`.
+- Added App Store compliance guardrails for consumer subscriptions on iOS native: blocked frontend consumer upgrade actions in `useConsumerSubscription` + `ConsumerBillingSection`, and enforced server-side rejection in `create-checkout` for iOS consumer tiers.
+- Hardened iOS permission metadata by adding `NSPhotoLibraryAddUsageDescription` and `NSSpeechRecognitionUsageDescription` to `ios/App/App/Info.plist`.
+- Added visible abuse-reporting entry points in Support and Consumer General Settings (`safety@chravelapp.com`) to improve launch trust/compliance readiness.
+- Tightened chunk error recovery heuristic in `App.tsx` by removing generic `Failed to fetch` from chunk detection.
+- Verification: `npm test -- --run src/native/__tests__/pushRouting.test.ts`, `npm run typecheck`, `npm run lint` completed successfully (lint has existing repo-wide warnings only).

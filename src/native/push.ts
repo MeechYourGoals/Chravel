@@ -21,6 +21,7 @@ export interface ChravelPushPayload {
     | 'calendar_event'
     | 'broadcast';
   tripId: string;
+  tripType?: 'consumer' | 'pro' | 'event';
   threadId?: string;
   messageId?: string;
   eventId?: string;
@@ -217,6 +218,14 @@ export function parsePayload(data: Record<string, unknown>): ChravelPushPayload 
   return {
     type: data.type as ChravelPushPayload['type'],
     tripId: data.tripId as string,
+    tripType:
+      data.tripType === 'pro' || data.trip_type === 'pro'
+        ? 'pro'
+        : data.tripType === 'event' || data.trip_type === 'event'
+          ? 'event'
+          : data.tripType === 'consumer' || data.trip_type === 'consumer'
+            ? 'consumer'
+            : undefined,
     threadId: typeof data.threadId === 'string' ? data.threadId : undefined,
     messageId: typeof data.messageId === 'string' ? data.messageId : undefined,
     eventId: typeof data.eventId === 'string' ? data.eventId : undefined,
