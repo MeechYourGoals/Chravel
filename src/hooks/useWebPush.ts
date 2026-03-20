@@ -259,7 +259,9 @@ export function useWebPush(): UseWebPushReturn {
       );
 
       if (error) {
-        console.error('[useWebPush] Save error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[useWebPush] Save error:', error);
+        }
         setState(prev => ({ ...prev, isLoading: false, error: 'Failed to save subscription' }));
         return false;
       }

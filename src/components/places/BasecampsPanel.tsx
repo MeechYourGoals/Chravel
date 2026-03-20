@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, User, Lock, Plus, Building2, Home, HelpCircle } from 'lucide-react';
+import {
+  MapPin,
+  User,
+  Lock,
+  Plus,
+  Building2,
+  Home,
+  HelpCircle,
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react';
 import { BasecampLocation } from '@/types/basecamp';
 import { BasecampSelector } from '../BasecampSelector';
 import { basecampService, PersonalBasecamp } from '@/services/basecampService';
@@ -14,6 +24,23 @@ import { DirectionsEmbed } from './DirectionsEmbed';
 import { useQueryClient } from '@tanstack/react-query';
 
 const LOG_PREFIX = '[BasecampsPanel]';
+
+/** Dev-only logger — stripped from production builds by the bundler's dead-code elimination. */
+const devLog = (...args: unknown[]): void => {
+  if (import.meta.env.DEV) {
+    console.log(...args);
+  }
+};
+const devWarn = (...args: unknown[]): void => {
+  if (import.meta.env.DEV) {
+    console.warn(...args);
+  }
+};
+const devError = (...args: unknown[]): void => {
+  if (import.meta.env.DEV) {
+    console.error(...args);
+  }
+};
 
 export interface BasecampsPanelProps {
   tripId: string;
@@ -90,7 +117,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           setInternalPersonalBasecamp(null);
         }
       } catch (error) {
-        console.error('Failed to load personal basecamp:', error);
+        devError('Failed to load personal basecamp:', error);
       } finally {
         setLoading(false);
       }
@@ -110,7 +137,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
    * isolated and never block the save.
    */
   const handleTripBasecampSet = async (newBasecamp: BasecampLocation) => {
-    console.log(LOG_PREFIX, 'handleTripBasecampSet called:', {
+    devLog(LOG_PREFIX, 'handleTripBasecampSet called:', {
       tripId,
       address: newBasecamp.address,
       name: newBasecamp.name,
@@ -125,7 +152,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         longitude: newBasecamp.coordinates?.lng,
       });
 
-      console.log(LOG_PREFIX, 'Trip basecamp saved via mutation');
+      devLog(LOG_PREFIX, 'Trip basecamp saved via mutation');
       setShowTripSelector(false);
 
       // Notify parent (non-blocking) for backward compat / realtime debounce
@@ -134,7 +161,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
           await Promise.resolve(onTripBasecampSet(newBasecamp));
         } catch (notifyError) {
           // Parent notification is best-effort — never block the save
-          console.warn(
+          devWarn(
             LOG_PREFIX,
             'Parent onTripBasecampSet notification failed (non-critical):',
             notifyError,
@@ -142,11 +169,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         }
       }
     } catch (mutationError) {
-      console.error(
-        LOG_PREFIX,
-        'Mutation save failed, trying direct service fallback:',
-        mutationError,
-      );
+      devError(LOG_PREFIX, 'Mutation save failed, trying direct service fallback:', mutationError);
 
       // Fallback: call service directly (mirrors personal basecamp pattern)
       try {
@@ -158,15 +181,15 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         });
 
         if (result.success) {
-          console.log(LOG_PREFIX, 'Trip basecamp saved via direct service fallback');
+          devLog(LOG_PREFIX, 'Trip basecamp saved via direct service fallback');
           setShowTripSelector(false);
           toast.success('Trip basecamp saved');
         } else {
-          console.error(LOG_PREFIX, 'Direct service fallback also failed:', result.error);
+          devError(LOG_PREFIX, 'Direct service fallback also failed:', result.error);
           toast.error(result.error || 'Failed to save trip basecamp. Please try again.');
         }
       } catch (fallbackError) {
-        console.error(LOG_PREFIX, 'Both mutation and direct fallback failed:', fallbackError);
+        devError(LOG_PREFIX, 'Both mutation and direct fallback failed:', fallbackError);
         toast.error('Failed to save trip basecamp. Please try again.');
       }
     }
@@ -178,7 +201,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
   const handleTripBasecampClear = async () => {
     if (!tripBasecamp) return;
 
-    console.log(LOG_PREFIX, 'handleTripBasecampClear called:', { tripId });
+    devLog(LOG_PREFIX, 'handleTripBasecampClear called:', { tripId });
 
     try {
       if (isDemoMode) {
@@ -192,7 +215,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       try {
         await clearTripBasecampMutation.mutateAsync();
         clearBasecamp();
-        console.log(LOG_PREFIX, 'Trip basecamp cleared via mutation');
+        devLog(LOG_PREFIX, 'Trip basecamp cleared via mutation');
 
         // Notify parent (non-blocking)
         if (onTripBasecampClear) {
@@ -204,7 +227,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         }
         return;
       } catch (mutationError) {
-        console.error(
+        devError(
           LOG_PREFIX,
           'Clear mutation failed, trying direct service fallback:',
           mutationError,
@@ -220,13 +243,13 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
       if (result.success) {
         clearBasecamp();
         toast.success('Trip basecamp cleared');
-        console.log(LOG_PREFIX, 'Trip basecamp cleared via direct service fallback');
+        devLog(LOG_PREFIX, 'Trip basecamp cleared via direct service fallback');
       } else {
-        console.error(LOG_PREFIX, 'Direct clear fallback failed:', result.error);
+        devError(LOG_PREFIX, 'Direct clear fallback failed:', result.error);
         toast.error('Failed to clear trip basecamp');
       }
     } catch (error) {
-      console.error(LOG_PREFIX, 'Failed to clear trip basecamp:', error);
+      devError(LOG_PREFIX, 'Failed to clear trip basecamp:', error);
       toast.error('Failed to clear trip basecamp');
     }
   };
@@ -266,18 +289,15 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         );
         setShowPersonalSelector(false);
         toast.success('Personal basecamp saved');
-        console.log(
-          '[BasecampsPanel] Personal basecamp saved successfully:',
-          savedBasecamp.address,
-        );
+        devLog('[BasecampsPanel] Personal basecamp saved successfully:', savedBasecamp.address);
       } else {
-        console.error(
+        devError(
           '[BasecampsPanel] Personal basecamp save returned null - database operation may have failed',
         );
         toast.error('Failed to save personal base camp. Please try again.');
       }
     } catch (error) {
-      console.error('[BasecampsPanel] Failed to set personal basecamp:', error);
+      devError('[BasecampsPanel] Failed to set personal basecamp:', error);
       toast.error('Failed to set personal base camp');
     }
   };
@@ -298,7 +318,7 @@ export const BasecampsPanel: React.FC<BasecampsPanelProps> = ({
         }
       }
     } catch (error) {
-      console.error('Failed to delete personal basecamp:', error);
+      devError('Failed to delete personal basecamp:', error);
     }
   };
 

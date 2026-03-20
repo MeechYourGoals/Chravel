@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Play, AlertCircle, Download } from 'lucide-react';
+import { Play, AlertCircle, Download, ImageOff } from 'lucide-react';
 
 interface TripMediaRendererProps {
   /** Full URL to the media file */
@@ -80,7 +80,7 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
   onError,
 }) => {
   const [hasError, setHasError] = useState(false);
-  const [_isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [blobFallbackUrl, setBlobFallbackUrl] = useState<string | null>(null);
   const [didAttemptBlobFallback, setDidAttemptBlobFallback] = useState(false);
 
@@ -134,11 +134,13 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
   const handleError = useCallback(
     async (e: React.SyntheticEvent) => {
       const mediaError = describeMediaError(e.currentTarget);
-      console.error('[TripMediaRenderer] Media failed to load:', {
-        url,
-        mimeType,
-        mediaError,
-      });
+      if (import.meta.env.DEV) {
+        console.error('[TripMediaRenderer] Media failed to load:', {
+          url,
+          mimeType,
+          mediaError,
+        });
+      }
       // If this is a video, try the typed-blob fallback once (fixes wrong storage Content-Type).
       if (category === 'video') {
         const recovered = await tryBlobFallback();
@@ -156,20 +158,36 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
 
   // Error state with download fallback
   if (hasError) {
+    // Compact broken-image fallback for thumbnails
+    if (mode === 'thumbnail' && category === 'image') {
+      return (
+        <div
+          className={`flex flex-col items-center justify-center bg-muted rounded-lg p-4 ${className}`}
+          style={{ minHeight: '100%' }}
+          role="img"
+          aria-label="Image failed to load"
+        >
+          <ImageOff className="w-8 h-8 text-muted-foreground mb-2" aria-hidden="true" />
+          <p className="text-muted-foreground text-xs text-center">Failed to load</p>
+        </div>
+      );
+    }
     return (
       <div
         className={`flex flex-col items-center justify-center bg-black/50 rounded-lg p-4 ${className}`}
         style={{ minHeight: mode === 'thumbnail' ? '100%' : '200px' }}
+        role="alert"
       >
-        <AlertCircle className="w-8 h-8 text-orange-400 mb-2" />
+        <AlertCircle className="w-8 h-8 text-orange-400 mb-2" aria-hidden="true" />
         <p className="text-white/70 text-sm text-center mb-3">Unable to preview</p>
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-blue-400 text-sm hover:text-blue-300 transition-colors"
+          aria-label="Download file"
         >
-          <Download className="w-4 h-4" />
+          <Download className="w-4 h-4" aria-hidden="true" />
           Download file
         </a>
       </div>
@@ -236,19 +254,27 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
   // Image rendering
   if (category === 'image') {
     return (
-      <img
-        src={url}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        className={`w-full h-full object-cover ${className}`}
-        style={{
-          borderRadius: mode === 'full' ? '12px' : undefined,
-        }}
-        onClick={onClick}
-        onError={handleError}
-        onLoad={handleLoad}
-      />
+      <div
+        className={`relative w-full h-full ${className}`}
+        style={{ borderRadius: mode === 'full' ? '12px' : undefined, overflow: 'hidden' }}
+      >
+        {/* Shimmer skeleton while loading */}
+        {!isLoaded && (
+          <div className="absolute inset-0 bg-muted animate-pulse" aria-hidden="true">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_1.5s_infinite]" />
+          </div>
+        )}
+        <img
+          src={url}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className={`w-full h-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onClick={onClick}
+          onError={handleError}
+          onLoad={handleLoad}
+        />
+      </div>
     );
   }
 

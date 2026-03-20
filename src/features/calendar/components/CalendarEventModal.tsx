@@ -216,7 +216,7 @@ export const CalendarEventModal = ({
         }
       }
     } catch (error) {
-      console.error('Error saving event:', error);
+      if (import.meta.env.DEV) console.error('Error saving event:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast.error('Failed to save event', {
         description:

@@ -387,7 +387,7 @@ export const useTripPolls = (tripId: string) => {
         .maybeSingle();
 
       if (fetchError) {
-        console.error('Error fetching poll:', fetchError);
+        if (import.meta.env.DEV) console.error('Error fetching poll:', fetchError);
         throw fetchError;
       }
 

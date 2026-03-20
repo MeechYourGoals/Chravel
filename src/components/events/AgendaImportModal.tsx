@@ -231,7 +231,7 @@ export const AgendaImportModal: React.FC<AgendaImportModalProps> = ({
         }
       }
     } catch (error) {
-      console.error('Batch import failed:', error);
+      if (import.meta.env.DEV) console.error('Batch import failed:', error);
       failed = sessionsToImport.length;
     }
 

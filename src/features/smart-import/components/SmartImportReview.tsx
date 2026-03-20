@@ -14,10 +14,20 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Inbox,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import type { SmartImportCandidate, ImportProgress } from '../types';
+import type {
+  SmartImportCandidate,
+  ImportProgress,
+  ReservationData,
+  ImportPhase,
+  CandidateImportResult,
+} from '../types';
+import { IMPORT_PHASE_LABELS } from '../types';
 
 // Map Gmail extraction types → artifact-ingest artifact_type overrides
 const RESERVATION_TO_ARTIFACT_TYPE: Record<string, string> = {
@@ -75,6 +85,103 @@ const filterTabs: { key: FilterTab; label: string }[] = [
   { key: 'ground_transport', label: 'Transport' },
 ];
 
+/** Progress phase indicator with labeled steps */
+const ImportPhaseBar: React.FC<{ progress: ImportProgress }> = ({ progress }) => {
+  const steps: { key: ImportPhase; label: string }[] = [
+    { key: 'parsing', label: 'Parsing' },
+    { key: 'validating', label: 'Validating' },
+    { key: 'importing', label: 'Importing' },
+    { key: 'done', label: 'Done' },
+  ];
+
+  const currentIndex = steps.findIndex(s => s.key === progress.phase);
+  const isFailed = progress.phase === 'failed';
+
+  return (
+    <div
+      className="pt-2 space-y-2"
+      role="progressbar"
+      aria-label="Import progress"
+      aria-valuenow={progress.completed}
+      aria-valuemax={progress.total}
+    >
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>{IMPORT_PHASE_LABELS[progress.phase]}</span>
+        <span>
+          {progress.completed}/{progress.total} items
+          {progress.failed > 0 && (
+            <span className="text-red-400 ml-2">{progress.failed} failed</span>
+          )}
+        </span>
+      </div>
+      {/* Step indicator */}
+      <div className="flex items-center gap-1">
+        {steps.map((step, idx) => {
+          const isComplete = !isFailed && currentIndex > idx;
+          const isCurrent = !isFailed && currentIndex === idx;
+          return (
+            <div key={step.key} className="flex-1">
+              <div
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  isComplete
+                    ? 'bg-green-500'
+                    : isCurrent
+                      ? 'bg-primary'
+                      : isFailed && idx === currentIndex
+                        ? 'bg-red-500'
+                        : 'bg-muted'
+                }`}
+                style={
+                  isCurrent && progress.total > 0
+                    ? {
+                        background: `linear-gradient(to right, hsl(var(--primary)) ${Math.round((progress.completed / progress.total) * 100)}%, hsl(var(--muted)) ${Math.round((progress.completed / progress.total) * 100)}%)`,
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          );
+        })}
+      </div>
+      {/* Step labels */}
+      <div className="flex items-center gap-1">
+        {steps.map((step, idx) => {
+          const isCurrent = !isFailed && currentIndex === idx;
+          return (
+            <span
+              key={step.key}
+              className={`flex-1 text-center text-[10px] ${isCurrent ? 'text-primary font-medium' : 'text-muted-foreground'}`}
+            >
+              {step.label}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/** Per-item result badges for partial failure UI */
+const CandidateResultBadge: React.FC<{ result: CandidateImportResult }> = ({ result }) => {
+  if (result.status === 'succeeded') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] text-green-600 dark:text-green-400">
+        <CheckCircle2 className="h-3 w-3" />
+        Imported
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[10px] text-red-500"
+      title={result.errorMessage}
+    >
+      <XCircle className="h-3 w-3" />
+      Failed
+    </span>
+  );
+};
+
 export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   candidates,
   tripId,
@@ -89,9 +196,9 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           const data = c.reservation_data;
           if (!data) return false;
           if (data.is_cancellation === true) return false;
-          const score = data._relevance_score as number | undefined;
+          const score = data._relevance_score;
           // Auto-deselect items with low trip relevance (below 0.4)
-          if (score !== undefined && score < 0.4) return false;
+          if (score !== undefined && typeof score === 'number' && score < 0.4) return false;
           return true;
         })
         .map(c => c.id),
@@ -101,6 +208,9 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [failedCandidateIds, setFailedCandidateIds] = useState<Set<string>>(new Set());
+  const [candidateResults, setCandidateResults] = useState<Map<string, CandidateImportResult>>(
+    new Map(),
+  );
 
   const visibleCandidates = useMemo(() => {
     if (activeFilter === 'all') return candidates;
@@ -133,8 +243,8 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   };
 
   const ingestCandidate = async (candidate: SmartImportCandidate): Promise<string> => {
-    const resData = candidate.reservation_data || {};
-    const reservationType = resData.type as string | undefined;
+    const resData: ReservationData = candidate.reservation_data || {};
+    const reservationType = resData.type;
     const artifactTypeOverride = reservationType
       ? RESERVATION_TO_ARTIFACT_TYPE[reservationType]
       : undefined;
@@ -163,6 +273,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
   const handleAccept = async () => {
     setIsSubmitting(true);
     setImportProgress(null);
+    setCandidateResults(new Map());
     try {
       const accepted = candidates.filter(c => selectedIds.has(c.id));
       const rejected = candidates.filter(c => !selectedIds.has(c.id));
@@ -171,9 +282,11 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
       let failedCount = 0;
       const succeededIds: string[] = [];
       const newFailedIds: string[] = [];
+      const results = new Map<string, CandidateImportResult>();
 
       if (tripId && accepted.length > 0) {
         const progress: ImportProgress = {
+          phase: 'validating',
           total: accepted.length,
           completed: 0,
           succeeded: 0,
@@ -182,11 +295,17 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
         };
         setImportProgress({ ...progress });
 
+        // Transition to importing phase
+        progress.phase = 'importing';
+        setImportProgress({ ...progress });
+
         const ingestResults = await Promise.allSettled(
           accepted.map(async candidate => {
             const id = await ingestCandidate(candidate);
             progress.completed++;
             progress.succeeded++;
+            results.set(candidate.id, { candidateId: candidate.id, status: 'succeeded' });
+            setCandidateResults(new Map(results));
             setImportProgress({ ...progress });
             return id;
           }),
@@ -200,12 +319,24 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           } else {
             failedCount++;
             newFailedIds.push(accepted[i].id);
+            const errorMsg =
+              result.reason instanceof Error ? result.reason.message : 'Unknown error';
+            results.set(accepted[i].id, {
+              candidateId: accepted[i].id,
+              status: 'failed',
+              errorMessage: errorMsg,
+            });
             progress.completed++;
             progress.failed++;
             progress.failedCandidateIds.push(accepted[i].id);
+            setCandidateResults(new Map(results));
             setImportProgress({ ...progress });
           }
         }
+
+        // Final phase
+        progress.phase = failedCount > 0 ? 'failed' : 'done';
+        setImportProgress({ ...progress });
 
         if (succeededIds.length > 0) {
           await supabase
@@ -255,13 +386,23 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     const toRetry = candidates.filter(c => failedCandidateIds.has(c.id));
     let retrySucceeded = 0;
     const stillFailed: string[] = [];
+    const results = new Map(candidateResults);
 
     for (const candidate of toRetry) {
       try {
         await ingestCandidate(candidate);
         retrySucceeded++;
-      } catch {
+        results.set(candidate.id, { candidateId: candidate.id, status: 'succeeded' });
+        setCandidateResults(new Map(results));
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
         stillFailed.push(candidate.id);
+        results.set(candidate.id, {
+          candidateId: candidate.id,
+          status: 'failed',
+          errorMessage: errorMsg,
+        });
+        setCandidateResults(new Map(results));
       }
     }
 
@@ -285,11 +426,16 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
     setIsSubmitting(false);
   };
 
+  // Empty state for no importable items
   if (!candidates || candidates.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+      <div
+        className="flex flex-col items-center justify-center p-8 text-center space-y-4"
+        role="status"
+        aria-label="No importable items found"
+      >
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-          <Plane className="h-6 w-6 text-muted-foreground" />
+          <Inbox className="h-6 w-6 text-muted-foreground" />
         </div>
         <div>
           <h3 className="text-lg font-medium">No new reservations found</h3>
@@ -298,7 +444,12 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
             have already been imported.
           </p>
         </div>
-        <Button variant="outline" onClick={onCancel}>
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          className="min-h-[44px]"
+          aria-label="Go back to previous screen"
+        >
           Go Back
         </Button>
       </div>
@@ -317,7 +468,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           </p>
         </div>
         <div className="text-sm font-medium text-right">
-          <span>
+          <span aria-live="polite">
             {selectedIds.size} of {candidates.length} selected
           </span>
         </div>
@@ -325,12 +476,19 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
 
       {/* Type filter tabs */}
       {tabsWithData.length > 2 && (
-        <div className="flex gap-1 flex-wrap">
+        <div
+          className="flex gap-1 flex-wrap"
+          role="tablist"
+          aria-label="Filter by reservation type"
+        >
           {tabsWithData.map(tab => (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeFilter === tab.key}
+              aria-label={`Filter by ${tab.label}`}
               onClick={() => setActiveFilter(tab.key)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 min-h-[44px] rounded-full text-xs font-medium transition-colors ${
                 activeFilter === tab.key
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -351,16 +509,18 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
       <div className="flex items-center gap-2 text-xs">
         <button
           onClick={selectAllVisible}
-          className="text-primary hover:underline"
+          className="text-primary hover:underline min-h-[44px] px-1"
           disabled={visibleSelectedCount === visibleCandidates.length}
+          aria-label={`Select all${activeFilter !== 'all' ? ' visible' : ''} items`}
         >
           Select All{activeFilter !== 'all' ? ' Visible' : ''}
         </button>
         <span className="text-muted-foreground">·</span>
         <button
           onClick={deselectAllVisible}
-          className="text-muted-foreground hover:underline"
+          className="text-muted-foreground hover:underline min-h-[44px] px-1"
           disabled={visibleSelectedCount === 0}
+          aria-label={`Deselect all${activeFilter !== 'all' ? ' visible' : ''} items`}
         >
           Deselect All{activeFilter !== 'all' ? ' Visible' : ''}
         </button>
@@ -371,15 +531,17 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
         )}
       </div>
 
-      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+      <div
+        className="space-y-3 max-h-[60vh] overflow-y-auto pr-2"
+        role="list"
+        aria-label="Import candidates"
+      >
         {visibleCandidates.map(candidate => {
           const type = (candidate.reservation_data?.type as string) || 'unknown';
           const config = typeConfig[type] || { icon: Plane, color: 'text-gray-500', label: 'Item' };
           const Icon = config.icon;
 
-          // intentional: reservation_data is dynamic JSON from Gmail import — shape varies by type
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const data = (candidate.reservation_data || {}) as any;
+          const data: ReservationData = candidate.reservation_data || {};
 
           let title = 'Unknown Reservation';
           let subtitle = '';
@@ -390,7 +552,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
             title = `${operatorName || 'Flight'} ${flightId}`.trim();
             subtitle = `${data.departure_city || data.departure_airport_code || ''} → ${data.arrival_city || data.arrival_airport_code || ''}`;
           } else if (type === 'lodging') {
-            title = data.property_name || 'Stay';
+            title = (data.property_name as string) || 'Stay';
             subtitle = data.city || data.address || '';
           } else if (type === 'ground_transport') {
             title = data.provider_name || 'Ground Transport';
@@ -416,25 +578,28 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
           }
 
           const isSelected = selectedIds.has(candidate.id);
-          const relevanceScore = data?._relevance_score as number | undefined;
-          const relevanceReason = data?._relevance_reason as string | undefined;
-          const isCancellation = data?.is_cancellation === true;
-          const isModification = data?.is_modification === true;
+          const relevanceScore = data._relevance_score;
+          const relevanceReason = data._relevance_reason;
+          const isCancellation = data.is_cancellation === true;
+          const isModification = data.is_modification === true;
+          const candidateResult = candidateResults.get(candidate.id);
 
           return (
             <Card
               key={candidate.id}
+              role="listitem"
               className={`cursor-pointer transition-colors ${
                 isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
               } ${isCancellation ? 'opacity-60' : ''}`}
               onClick={() => toggleSelection(candidate.id)}
             >
               <CardContent className="p-4 flex items-start gap-4">
-                <div className="mt-1">
+                <div className="mt-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => toggleSelection(candidate.id)}
                     className="data-[state=checked]:bg-primary"
+                    aria-label={`Select ${title}`}
                   />
                 </div>
 
@@ -460,6 +625,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                         Updated
                       </span>
                     )}
+                    {candidateResult && <CandidateResultBadge result={candidateResult} />}
                   </div>
                   {subtitle && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
@@ -469,14 +635,20 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                       {data._email_subject}
                     </p>
                   )}
-                  {(data as Record<string, unknown>).confirmation_code && (
+                  {data.confirmation_code && (
                     <p className="text-xs font-mono mt-1 text-muted-foreground/80">
-                      Ref: {String((data as Record<string, unknown>).confirmation_code)}
+                      Ref: {String(data.confirmation_code)}
                     </p>
                   )}
-                  {relevanceScore !== undefined && (
+                  {typeof relevanceScore === 'number' && (
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden max-w-[80px]">
+                      <div
+                        className="flex-1 h-1 bg-muted rounded-full overflow-hidden max-w-[80px]"
+                        role="progressbar"
+                        aria-label="Relevance score"
+                        aria-valuenow={Math.round(relevanceScore * 100)}
+                        aria-valuemax={100}
+                      >
                         <div
                           className={`h-full rounded-full ${
                             relevanceScore >= 0.7
@@ -491,7 +663,7 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
                       <span className="text-[10px] text-muted-foreground">
                         {Math.round(relevanceScore * 100)}% match
                       </span>
-                      {relevanceReason && (
+                      {typeof relevanceReason === 'string' && (
                         <span className="text-[10px] text-muted-foreground/70 truncate max-w-[150px]">
                           {relevanceReason}
                         </span>
@@ -505,34 +677,47 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
         })}
       </div>
 
-      {/* Progress indicator during submission */}
+      {/* Progress indicator during submission — now with phase steps */}
       {isSubmitting && importProgress && importProgress.total > 0 && (
-        <div className="pt-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-            <span>
-              Importing {importProgress.completed}/{importProgress.total}
-            </span>
-            {importProgress.failed > 0 && (
-              <span className="text-red-400">{importProgress.failed} failed</span>
-            )}
-          </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{
-                width: `${Math.round((importProgress.completed / importProgress.total) * 100)}%`,
-              }}
-            />
+        <ImportPhaseBar progress={importProgress} />
+      )}
+
+      {/* Partial failure summary after submission */}
+      {!isSubmitting && failedCandidateIds.size > 0 && (
+        <div
+          className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3"
+          role="alert"
+        >
+          <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              {failedCandidateIds.size} item{failedCandidateIds.size !== 1 ? 's' : ''} failed to
+              import
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              You can retry the failed items or dismiss them.
+            </p>
           </div>
         </div>
       )}
 
       <div className="flex justify-end gap-3 pt-4 border-t mt-6">
-        <Button variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="min-h-[44px]"
+          aria-label="Cancel import"
+        >
           Cancel
         </Button>
         {failedCandidateIds.size > 0 && !isSubmitting && (
-          <Button variant="outline" onClick={handleRetryFailed} className="min-w-[100px]">
+          <Button
+            variant="outline"
+            onClick={handleRetryFailed}
+            className="min-w-[100px] min-h-[44px]"
+            aria-label={`Retry ${failedCandidateIds.size} failed items`}
+          >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
             Retry {failedCandidateIds.size} Failed
           </Button>
@@ -540,7 +725,8 @@ export const SmartImportReview: React.FC<ReviewCandidatesProps> = ({
         <Button
           onClick={handleAccept}
           disabled={selectedIds.size === 0 || isSubmitting}
-          className="min-w-[120px]"
+          className="min-w-[120px] min-h-[44px]"
+          aria-label={`Add ${selectedIds.size} selected items to trip`}
         >
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

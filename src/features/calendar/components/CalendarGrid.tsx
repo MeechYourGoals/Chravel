@@ -119,6 +119,9 @@ export const CalendarGrid = ({
             <button
               key={index}
               onClick={() => handleDayClick(day)}
+              aria-label={`${format(day, 'EEEE, MMMM d, yyyy')}${dayEvents.length > 0 ? `, ${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''}` : ''}`}
+              aria-current={isTodayDate ? 'date' : undefined}
+              aria-selected={isSelected}
               className={cn(
                 'group min-h-[100px] md:min-h-[120px] p-2 border-b border-r border-border text-left transition-colors',
                 'hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50',

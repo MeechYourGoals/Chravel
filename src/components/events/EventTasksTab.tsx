@@ -1,5 +1,15 @@
 import React, { useState, useCallback } from 'react';
-import { ClipboardList, Plus, Trash2, GripVertical, Edit2, Check, X } from 'lucide-react';
+import {
+  ClipboardList,
+  Plus,
+  Trash2,
+  GripVertical,
+  Edit2,
+  Check,
+  X,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../mobile/PullToRefreshIndicator';
 import { Button } from '../ui/button';
@@ -12,6 +22,16 @@ import {
   EVENT_PARITY_HEADER_SPAN_CLASS,
 } from '@/lib/tabParity';
 import { Card, CardContent } from '../ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { useToast } from '../../hooks/use-toast';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useEventTasks } from '../../hooks/useEventTasks';
@@ -88,6 +108,8 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
 
   const [demoTasks, setDemoTasks] = useState<EventTask[]>(DEMO_TASKS);
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const tasks = isDemoMode ? demoTasks : dbTasks;
   const displayTasks = tasks.map(t => ({
@@ -176,8 +198,13 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
       setDemoTasks(prev => prev.filter(t => t.id !== taskId));
       toast({ title: 'Task removed' });
     } else {
-      await deleteTask(taskId);
+      try {
+        await deleteTask(taskId);
+      } catch {
+        toast({ title: 'Failed to remove task', variant: 'destructive' });
+      }
     }
+    setDeleteConfirm(null);
   };
 
   const startEditing = (task: EventTask) => {
@@ -188,8 +215,34 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
 
   if (!isDemoMode && isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 gold-gradient-spinner" />
+      <div
+        className="flex items-center justify-center py-12"
+        role="status"
+        aria-label="Loading tasks"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 gold-gradient-spinner" />
+          <p className="text-sm text-gray-400">Loading tasks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isDemoMode && loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-4">
+        <AlertCircle size={48} className="text-red-400" />
+        <h3 className="text-lg font-medium text-white">Failed to load tasks</h3>
+        <p className="text-gray-400 text-sm">Something went wrong. Please try again.</p>
+        <Button
+          onClick={() => setLoadError(false)}
+          variant="outline"
+          className="flex items-center gap-2"
+          aria-label="Retry loading tasks"
+        >
+          <RefreshCw size={16} />
+          Retry
+        </Button>
       </div>
     );
   }
@@ -325,17 +378,19 @@ export const EventTasksTab = ({ eventId, permissions }: EventTasksTabProps) => {
                             onClick={() => startEditing(task)}
                             variant="ghost"
                             size="sm"
-                            className="text-gray-400 hover:text-white"
+                            className="text-gray-400 hover:text-white min-w-[44px] min-h-[44px]"
+                            aria-label={`Edit task: ${task.title}`}
                           >
                             <Edit2 size={14} />
                           </Button>
                         )}
                         {canDelete && (
                           <Button
-                            onClick={() => handleDeleteTask(task.id)}
+                            onClick={() => setDeleteConfirm({ id: task.id, title: task.title })}
                             variant="ghost"
                             size="sm"
-                            className="text-red-400 hover:text-red-300"
+                            className="text-red-400 hover:text-red-300 min-w-[44px] min-h-[44px]"
+                            aria-label={`Delete task: ${task.title}`}
                           >
                             <Trash2 size={14} />
                           </Button>

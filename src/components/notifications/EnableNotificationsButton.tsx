@@ -30,6 +30,7 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
     permission,
     requiresHomeScreen,
     iosUnsupported,
+    error: pushError,
     subscribe,
   } = useWebPush();
 
@@ -58,13 +59,21 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
     if (success) {
       toast.success('Notifications enabled!');
       onSuccess?.();
+    } else {
+      toast.error('Failed to enable notifications. Please try again.');
     }
   }, [requiresHomeScreen, iosUnsupported, isSupported, subscribe, onSuccess]);
 
   // Already subscribed
   if (isSubscribed && permission === 'granted') {
     return (
-      <Button variant="secondary" disabled className={className} {...props}>
+      <Button
+        variant="secondary"
+        disabled
+        className={`min-h-[44px] ${className ?? ''}`}
+        aria-label="Notifications enabled"
+        {...props}
+      >
         <CheckCircle2 className="w-4 h-4" />
         {!compact && <span className="ml-2">Notifications Enabled</span>}
       </Button>
@@ -74,16 +83,48 @@ export const EnableNotificationsButton: React.FC<EnableNotificationsButtonProps>
   // Permission denied
   if (permission === 'denied') {
     return (
-      <Button variant="secondary" disabled className={className} {...props}>
+      <Button
+        variant="secondary"
+        disabled
+        className={`min-h-[44px] ${className ?? ''}`}
+        aria-label="Notifications blocked by browser"
+      >
         <BellOff className="w-4 h-4" />
         {!compact && <span className="ml-2">Notifications Blocked</span>}
       </Button>
     );
   }
 
+  // Error state
+  if (pushError) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <Button
+          onClick={handleClick}
+          disabled={isLoading}
+          className={`min-h-[44px] ${className ?? ''}`}
+          aria-label="Retry enabling notifications"
+          {...props}
+        >
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+          {!compact && <span className="ml-2">Retry Notifications</span>}
+        </Button>
+        <p className="text-xs text-destructive" role="alert">
+          {pushError}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
-      <Button onClick={handleClick} disabled={isLoading} className={className} {...props}>
+      <Button
+        onClick={handleClick}
+        disabled={isLoading}
+        className={`min-h-[44px] ${className ?? ''}`}
+        aria-label="Enable push notifications"
+        {...props}
+      >
         {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
         {!compact && <span className="ml-2">Enable Notifications</span>}
       </Button>

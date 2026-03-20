@@ -238,7 +238,7 @@ export const useCalendarManagement = (tripId: string) => {
         });
       }
     } catch (error) {
-      console.error('Failed to create event:', error);
+      if (import.meta.env.DEV) console.error('Failed to create event:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Unable to create event',
@@ -294,7 +294,7 @@ export const useCalendarManagement = (tripId: string) => {
         });
       }
     } catch (error) {
-      console.error('Failed to delete event:', error);
+      if (import.meta.env.DEV) console.error('Failed to delete event:', error);
       toast({
         title: 'Unable to delete event',
         description: 'Please try again later.',
@@ -390,7 +390,7 @@ export const useCalendarManagement = (tripId: string) => {
         return false;
       }
     } catch (error) {
-      console.error('Failed to update event:', error);
+      if (import.meta.env.DEV) console.error('Failed to update event:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Unable to update event',

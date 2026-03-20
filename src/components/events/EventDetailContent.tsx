@@ -200,7 +200,11 @@ export const EventDetailContent = ({
 
   return (
     <>
-      <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
+      <div
+        className="flex whitespace-nowrap gap-2 mb-2 justify-start"
+        role="tablist"
+        aria-label="Event tabs"
+      >
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -208,8 +212,11 @@ export const EventDetailContent = ({
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={`${tab.label}${!tab.enabled ? ' (disabled by organizer)' : ''}`}
               onClick={() => handleTabClick(tab)}
-              className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm flex-1 ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded-xl font-medium transition-all duration-200 text-sm flex-1 ${
                 isActive
                   ? 'accent-ring-active text-white shadow-md'
                   : 'accent-ring-idle text-gray-300 hover:text-white'

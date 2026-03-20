@@ -39,7 +39,7 @@ export function useCalendarExport(tripId: string) {
         await openOrDownloadBlob(blob, filename, { mimeType: 'text/calendar' });
         toast.success('Calendar exported');
       } catch (error) {
-        console.error('Export failed:', error);
+        if (import.meta.env.DEV) console.error('Export failed:', error);
         toast.error('Failed to export calendar');
       }
     },

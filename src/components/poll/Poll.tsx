@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Poll as PollType } from './types';
 import { PollOption } from './PollOption';
-import { Clock, Trash2 } from 'lucide-react';
+import { Clock, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -69,6 +69,11 @@ export const Poll = ({
   }, [poll.deadline_at, poll.status]);
 
   const isDeadlinePassed = poll.deadline_at ? new Date(poll.deadline_at) < new Date() : false;
+  const isDeadlineUrgent = useMemo(() => {
+    if (!poll.deadline_at || isDeadlinePassed || poll.status === 'closed') return false;
+    const diff = new Date(poll.deadline_at).getTime() - Date.now();
+    return diff > 0 && diff < 60 * 60 * 1000; // Less than 1 hour
+  }, [poll.deadline_at, isDeadlinePassed, poll.status]);
   const canVote = !disabled && !isVoting && poll.status === 'active' && !isDeadlinePassed;
   const hasVoted = poll.allow_multiple
     ? Array.isArray(poll.userVote) && poll.userVote.length > 0
@@ -142,11 +147,39 @@ export const Poll = ({
         </div>
       </div>
 
-      {/* Deadline */}
-      {poll.deadline_at && poll.status === 'active' && !isDeadlinePassed && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock size={12} />
-          <span>{timeRemaining}</span>
+      {/* Deadline countdown / expiration status */}
+      {poll.deadline_at && (
+        <div
+          className={`flex items-center gap-1.5 text-xs ${
+            poll.status === 'closed'
+              ? 'text-muted-foreground'
+              : isDeadlinePassed
+                ? 'text-red-400'
+                : isDeadlineUrgent
+                  ? 'text-amber-400'
+                  : 'text-muted-foreground'
+          }`}
+          role="timer"
+          aria-label={
+            poll.status === 'closed'
+              ? 'Poll closed'
+              : isDeadlinePassed
+                ? 'Voting has ended'
+                : `Poll deadline: ${timeRemaining}`
+          }
+        >
+          {isDeadlinePassed || poll.status === 'closed' ? (
+            <AlertTriangle size={12} />
+          ) : (
+            <Clock size={12} className={isDeadlineUrgent ? 'animate-pulse' : ''} />
+          )}
+          <span>
+            {poll.status === 'closed'
+              ? `Closed${poll.closed_at ? ` on ${new Date(poll.closed_at).toLocaleDateString()}` : ''}`
+              : isDeadlinePassed
+                ? 'Voting ended'
+                : timeRemaining}
+          </span>
         </div>
       )}
 
@@ -181,7 +214,8 @@ export const Poll = ({
         <Button
           onClick={handleSubmitMultiple}
           disabled={selectedOptions.length === 0 || isVoting}
-          className="w-full h-9 rounded-lg bg-primary hover:bg-primary/90 font-medium text-primary-foreground text-sm"
+          className="w-full h-11 min-h-[44px] rounded-lg bg-primary hover:bg-primary/90 font-medium text-primary-foreground text-sm"
+          aria-label={`Submit ${selectedOptions.length} vote${selectedOptions.length !== 1 ? 's' : ''} for poll: ${poll.question}`}
         >
           {isVoting
             ? 'Submitting...'
@@ -203,7 +237,8 @@ export const Poll = ({
               disabled={isRemovingVote}
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-white"
+              className="h-9 min-h-[44px] px-3 text-xs text-muted-foreground hover:text-white"
+              aria-label={`Remove your vote from poll: ${poll.question}`}
             >
               <Trash2 size={12} className="mr-1" />
               {isRemovingVote ? 'Removing...' : 'Remove Vote'}
@@ -217,7 +252,8 @@ export const Poll = ({
               disabled={isClosing}
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-white"
+              className="h-9 min-h-[44px] px-3 text-xs text-muted-foreground hover:text-white"
+              aria-label={`Close poll: ${poll.question}`}
             >
               {isClosing ? 'Closing...' : 'Close Poll'}
             </Button>
@@ -230,7 +266,8 @@ export const Poll = ({
               disabled={isDeleting}
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-destructive hover:text-destructive/80"
+              className="h-9 min-h-[44px] px-3 text-xs text-destructive hover:text-destructive/80"
+              aria-label={`Delete poll: ${poll.question}`}
             >
               <Trash2 size={12} className="mr-1" />
               {isDeleting ? 'Deleting...' : 'Delete'}

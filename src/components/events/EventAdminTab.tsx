@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useEventAdmin, ChatMode, MediaUploadMode } from '@/hooks/useEventAdmin';
@@ -91,6 +92,7 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
     approveRequest,
     rejectRequest,
   } = useEventAdmin({ eventId });
+  const { toast } = useToast();
 
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
@@ -99,7 +101,11 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[300px]">
+      <div
+        className="flex items-center justify-center min-h-[300px]"
+        role="status"
+        aria-label="Loading admin settings"
+      >
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 gold-gradient-spinner animate-spin" />
           <p className="text-sm text-muted-foreground">Loading admin settings...</p>
@@ -127,13 +133,23 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
 
   const saveChatMode = async () => {
     if (pendingChatMode === 'everyone' && !canUseEveryoneChat) return;
-    await setChatMode(pendingChatMode);
-    setChatModalOpen(false);
+    try {
+      await setChatMode(pendingChatMode);
+      setChatModalOpen(false);
+      toast({ title: 'Chat permissions updated' });
+    } catch {
+      toast({ title: 'Failed to update chat permissions', variant: 'destructive' });
+    }
   };
 
   const saveMediaMode = async () => {
-    await setMediaUploadMode(pendingMediaMode);
-    setMediaModalOpen(false);
+    try {
+      await setMediaUploadMode(pendingMediaMode);
+      setMediaModalOpen(false);
+      toast({ title: 'Media permissions updated' });
+    } catch {
+      toast({ title: 'Failed to update media permissions', variant: 'destructive' });
+    }
   };
 
   return (
@@ -174,7 +190,10 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch min-h-[360px]">
         {/* Tabs card */}
         <div className="rounded-2xl border border-border bg-card p-5 flex flex-col h-full min-h-0">
-          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide flex-shrink-0 mb-3">
+          <h3
+            className="text-sm font-semibold text-foreground uppercase tracking-wide flex-shrink-0 mb-3"
+            id="tabs-section-heading"
+          >
             Tabs
           </h3>
           <div className="space-y-3 flex-1 min-h-0 overflow-y-auto">
@@ -270,8 +289,8 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                             <AlertDialogTrigger asChild>
                               <button
                                 disabled={isProcessing}
-                                className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
-                                aria-label="Approve"
+                                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
+                                aria-label={`Approve ${req.profile?.display_name || 'request'}`}
                                 title="Approve"
                               >
                                 <Check size={14} />
@@ -287,7 +306,21 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => approveRequest(req.id)}>
+                                <AlertDialogAction
+                                  onClick={async () => {
+                                    try {
+                                      await approveRequest(req.id);
+                                      toast({
+                                        title: `${req.profile?.display_name || 'User'} approved`,
+                                      });
+                                    } catch {
+                                      toast({
+                                        title: 'Failed to approve request',
+                                        variant: 'destructive',
+                                      });
+                                    }
+                                  }}
+                                >
                                   Approve
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -297,8 +330,8 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                             <AlertDialogTrigger asChild>
                               <button
                                 disabled={isProcessing}
-                                className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50"
-                                aria-label="Deny"
+                                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                                aria-label={`Deny ${req.profile?.display_name || 'request'}`}
                                 title="Deny"
                               >
                                 <X size={14} />
@@ -315,7 +348,19 @@ export const EventAdminTab: React.FC<EventAdminTabProps> = ({ eventId }) => {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => rejectRequest(req.id)}
+                                  onClick={async () => {
+                                    try {
+                                      await rejectRequest(req.id);
+                                      toast({
+                                        title: `${req.profile?.display_name || 'User'} denied`,
+                                      });
+                                    } catch {
+                                      toast({
+                                        title: 'Failed to deny request',
+                                        variant: 'destructive',
+                                      });
+                                    }
+                                  }}
                                   className="bg-red-600 hover:bg-red-700 text-white"
                                 >
                                   Deny

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useInviteLink } from '../hooks/useInviteLink';
@@ -29,18 +29,59 @@ export const InviteModal = ({
   // All trip types require approval (enforced on backend)
   // Consumer trips: any member can approve. Pro/Event: creator/admins only.
   // The share card / trip preview handles virality; the join boundary handles trust.
-  const [requireApproval, setRequireApproval] = useState(true);
-  const [expireIn7Days, setExpireIn7Days] = useState(false);
+  const [requireApproval, setRequireApproval] = React.useState(true);
+  const [expireIn7Days, setExpireIn7Days] = React.useState(false);
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   const {
     copied,
     inviteLink,
     loading,
     isDemoMode,
+    error,
+    expiresAt,
     regenerateInviteToken,
+    retryGenerate,
     handleCopyLink,
     handleShare,
   } = useInviteLink({ isOpen, tripName, requireApproval, expireIn7Days, tripId, proTripId });
+
+  // Focus management: capture previous focus on open, restore on close
+  useEffect(() => {
+    if (isOpen) {
+      previousActiveElement.current = document.activeElement as HTMLElement | null;
+      // Defer focus to allow the modal to render
+      const timer = setTimeout(() => {
+        modalRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (previousActiveElement.current) {
+      previousActiveElement.current.focus();
+      previousActiveElement.current = null;
+    }
+  }, [isOpen]);
+
+  // Handle Escape key to close modal (desktop portal only)
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
+  // Handle backdrop click
+  const handleBackdropClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+        onClose();
+      }
+    },
+    [onClose],
+  );
 
   if (!isOpen) return null;
 
@@ -53,8 +94,11 @@ export const InviteModal = ({
         loading={loading}
         copied={copied}
         isDemoMode={isDemoMode}
+        error={error}
+        expiresAt={expiresAt}
         onCopyLink={handleCopyLink}
         onRegenerate={regenerateInviteToken}
+        onRetry={retryGenerate}
         onShare={handleShare}
         tripName={tripName}
       />
@@ -85,8 +129,20 @@ export const InviteModal = ({
   }
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-background/95 backdrop-blur-md border border-border rounded-2xl p-4 max-w-md w-full max-h-[85vh] overflow-y-auto animate-scale-in relative">
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+      onClick={handleBackdropClick}
+      role="presentation"
+    >
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Invite to ${tripName}`}
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+        className="bg-background/95 backdrop-blur-md border border-border rounded-2xl p-4 max-w-md w-full max-h-[85vh] overflow-y-auto animate-scale-in relative outline-none"
+      >
         {modalContent}
       </div>
     </div>,

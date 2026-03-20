@@ -18,7 +18,7 @@ export interface MediaViewerItem {
   url: string;
   mimeType: string;
   fileName?: string | null;
-  metadata?: unknown;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface MediaViewerModalProps {
@@ -151,6 +151,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
   return (
     <div
       ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Media viewer: ${currentItem.fileName || 'media'} (${currentIndex + 1} of ${items.length})`}
       className="fixed inset-0 z-50 bg-black flex items-center justify-center"
       onClick={onClose}
       onTouchStart={handleTouchStart}
@@ -193,29 +196,29 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({
         </div>
       )}
 
-      {/* Navigation arrows (visible on larger screens) */}
+      {/* Navigation arrows - min 44px touch target */}
       {canGoPrev && (
         <button
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors hidden sm:flex"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/30 transition-colors sm:left-4"
           onClick={e => {
             e.stopPropagation();
             goToPrev();
           }}
           aria-label="Previous image"
         >
-          <ChevronLeft className="w-8 h-8" />
+          <ChevronLeft className="w-8 h-8" aria-hidden="true" />
         </button>
       )}
       {canGoNext && (
         <button
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors hidden sm:flex"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-white bg-white/20 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/30 transition-colors sm:right-4"
           onClick={e => {
             e.stopPropagation();
             goToNext();
           }}
           aria-label="Next image"
         >
-          <ChevronRight className="w-8 h-8" />
+          <ChevronRight className="w-8 h-8" aria-hidden="true" />
         </button>
       )}
 

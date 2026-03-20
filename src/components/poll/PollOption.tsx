@@ -29,18 +29,23 @@ export const PollOption = ({
     <button
       onClick={() => onVote(option.id)}
       disabled={disabled && !isMultiple}
-      className={`w-full text-left space-y-1.5 p-2.5 rounded-lg transition-colors ${
+      className={`w-full text-left space-y-1.5 p-2.5 min-h-[44px] rounded-lg transition-colors ${
         !disabled || isMultiple ? 'cursor-pointer hover:bg-white/5' : 'cursor-default'
       } ${isSelected ? 'bg-white/5 ring-1 ring-primary/40' : ''} ${isVoted ? 'bg-primary/5' : ''}`}
+      aria-label={`Vote for "${option.text}" — ${option.votes} vote${option.votes !== 1 ? 's' : ''} (${percentage.toFixed(0)}%)${isVoted ? ', you voted for this' : ''}${isLeading ? ', currently leading' : ''}`}
+      aria-pressed={isVoted || isSelected}
+      role="option"
+      aria-selected={isVoted || isSelected}
     >
       {/* Option text and vote count */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {isMultiple && (
             <div
-              className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center ${
+              className={`w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center ${
                 isSelected || isVoted ? 'bg-primary border-primary' : 'border-muted-foreground/50'
               }`}
+              aria-hidden="true"
             >
               {(isSelected || isVoted) && (
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -72,7 +77,13 @@ export const PollOption = ({
       </div>
 
       {/* Progress bar - always visible with blue-to-orange gradient */}
-      <div className="w-full bg-muted/30 rounded-full h-2">
+      <div
+        className="w-full bg-muted/30 rounded-full h-2"
+        role="progressbar"
+        aria-valuenow={percentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
           className={`h-2 rounded-full transition-all duration-500 ${
             isLeading && totalVotes > 0

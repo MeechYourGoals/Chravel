@@ -174,7 +174,7 @@ export const useCalendarEvents = (tripId?: string) => {
     try {
       return await createEventMutation.mutateAsync(eventData);
     } catch (error) {
-      console.error('Error creating event:', error);
+      if (import.meta.env.DEV) console.error('Error creating event:', error);
       throw error;
     }
   };

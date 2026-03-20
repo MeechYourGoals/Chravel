@@ -102,7 +102,7 @@ export function useBilling(): UseBillingReturn {
       const ents = await getEntitlements(user.id);
       setEntitlements(ents);
     } catch (err) {
-      console.error('[useBilling] Failed to load entitlements:', err);
+      if (import.meta.env.DEV) console.error('[useBilling] Failed to load entitlements:', err);
       setError(err instanceof Error ? err.message : 'Failed to load subscription');
     } finally {
       setIsLoading(false);
@@ -165,7 +165,7 @@ export function useBilling(): UseBillingReturn {
         await loadEntitlements();
       }
     } catch (err) {
-      console.error('[useBilling] Failed to restore purchases:', err);
+      if (import.meta.env.DEV) console.error('[useBilling] Failed to restore purchases:', err);
       setError(err instanceof Error ? err.message : 'Failed to restore purchases');
     } finally {
       setIsLoading(false);
@@ -180,7 +180,7 @@ export function useBilling(): UseBillingReturn {
       const provider = getBillingProvider();
       await provider.openManagement();
     } catch (err) {
-      console.error('[useBilling] Failed to open management:', err);
+      if (import.meta.env.DEV) console.error('[useBilling] Failed to open management:', err);
       throw err;
     }
   }, []);
