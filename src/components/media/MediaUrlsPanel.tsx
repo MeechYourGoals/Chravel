@@ -549,7 +549,11 @@ function LinkCard({
         className="absolute top-2 right-2 rounded-full bg-black/70 p-2 text-white hover:bg-red-600 transition-colors"
         aria-label="Delete link"
       >
-        {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+        {isDeleting ? (
+          <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+        ) : (
+          <Trash2 className="w-3 h-3" aria-hidden="true" />
+        )}
       </button>
 
       <div className="flex items-start gap-3 pr-10">
@@ -563,7 +567,7 @@ function LinkCard({
           <h4 className="text-foreground font-medium mb-1">{link.title || link.domain}</h4>
 
           <div className="flex items-center gap-2 mb-2">
-            <Globe className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+            <Globe className="w-3 h-3 text-muted-foreground flex-shrink-0" aria-hidden="true" />
             <p className="text-xs text-muted-foreground truncate" title={link.url}>
               {truncateUrl(link.url, 50)}
             </p>
@@ -584,7 +588,7 @@ function LinkCard({
               onClick={() => window.open(link.url, '_blank')}
               className="text-xs h-8"
             >
-              <ExternalLink className="w-3 h-3 mr-1" />
+              <ExternalLink className="w-3 h-3 mr-1" aria-hidden="true" />
               Open
             </Button>
 
@@ -594,7 +598,7 @@ function LinkCard({
               onClick={() => onCopy(link.url)}
               className="text-xs h-8"
             >
-              <Copy className="w-3 h-3 mr-1" />
+              <Copy className="w-3 h-3 mr-1" aria-hidden="true" />
               Copy URL
             </Button>
 

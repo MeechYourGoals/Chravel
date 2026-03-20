@@ -651,7 +651,7 @@ export const AgendaModal = ({
                           <div className="absolute left-[7px] top-2 bottom-2 w-px bg-white/10" />
 
                           {daySessions.map(session => (
-                            <div key={session.id} className="flex gap-3 relative">
+                            <div key={session.id} className="flex gap-3 relative" role="listitem">
                               {/* Timeline dot */}
                               <div className="flex-shrink-0 w-4 mt-4 flex justify-center z-10">
                                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60 ring-2 ring-black" />
