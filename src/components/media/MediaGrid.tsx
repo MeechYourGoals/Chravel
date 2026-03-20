@@ -106,6 +106,7 @@ export const MediaGrid = ({
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
           role="list"
           aria-label="Upload progress"
+          aria-live="polite"
         >
           {uploadQueue.map(upload => (
             <div
@@ -182,11 +183,11 @@ export const MediaGrid = ({
       {displayItems.length > 0 && (
         <div
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-          role="list"
+          role="grid"
           aria-label="Media items"
         >
           {displayItems.map(item => (
-            <div key={item.id} role="listitem">
+            <div key={item.id} role="gridcell">
               <MediaTile
                 id={item.id}
                 url={item.media_url}
