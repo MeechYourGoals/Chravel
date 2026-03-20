@@ -216,7 +216,7 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
           </video>
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
-              <Play className="w-8 h-8 text-white drop-shadow-lg" fill="white" />
+              <Play className="w-8 h-8 text-white drop-shadow-lg" fill="white" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -286,7 +286,7 @@ export const TripMediaRenderer: React.FC<TripMediaRendererProps> = ({
       rel="noopener noreferrer"
       className={`flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors ${className}`}
     >
-      <Download className="w-4 h-4" />
+      <Download className="w-4 h-4" aria-hidden="true" />
       Download file
     </a>
   );
@@ -336,7 +336,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
 
       {hasError ? (
         <div className="flex flex-col items-center justify-center p-8">
-          <AlertCircle className="w-12 h-12 text-orange-400 mb-4" />
+          <AlertCircle className="w-12 h-12 text-orange-400 mb-4" aria-hidden="true" />
           <p className="text-white text-lg mb-4">Unable to play video</p>
           <a
             href={url}
@@ -345,7 +345,7 @@ export const VideoPlayerModal: React.FC<VideoPlayerModalProps> = ({
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition-colors"
             onClick={e => e.stopPropagation()}
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-5 h-5" aria-hidden="true" />
             Download instead
           </a>
         </div>

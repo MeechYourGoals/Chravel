@@ -375,7 +375,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
   if (error) {
     return (
       <div className="text-center py-12">
-        <Globe className="mx-auto h-12 w-12 text-red-400 mb-4" />
+        <Globe className="mx-auto h-12 w-12 text-red-400 mb-4" aria-hidden="true" />
         <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Chat Links</h3>
         <p className="text-muted-foreground mb-4">{error}</p>
         <Button onClick={fetchLinks} variant="outline">
@@ -399,7 +399,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
           onClick={() => setShowAddForm(!showAddForm)}
           className="text-xs"
         >
-          <Plus className="w-4 h-4 mr-1" />+ Add Link
+          <Plus className="w-4 h-4 mr-1" aria-hidden="true" />+ Add Link
         </Button>
       </div>
 
@@ -424,7 +424,7 @@ export const MediaUrlsPanel = ({ tripId, onPromoteToTripLink }: MediaUrlsPanelPr
               disabled={isAdding || !addUrl.trim()}
               className="text-xs"
             >
-              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : 'Save'}
             </Button>
             <Button
               variant="ghost"
@@ -609,7 +609,7 @@ function LinkCard({
                 disabled={isPromoting}
                 className="text-xs h-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               >
-                <Plus className="w-3 h-3 mr-1" />
+                <Plus className="w-3 h-3 mr-1" aria-hidden="true" />
                 {isPromoting ? 'Adding...' : 'Save to Explore'}
               </Button>
             )}

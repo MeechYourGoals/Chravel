@@ -206,7 +206,7 @@ export const MediaGrid = ({
       {hasMore && <div ref={sentinelRef} className="h-4" aria-hidden />}
       {isLoadingMore && (
         <div className="flex justify-center py-4">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
         </div>
       )}
 
