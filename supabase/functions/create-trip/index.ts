@@ -160,6 +160,10 @@ serve(async req => {
         ai_access_enabled: ai_access_enabled ?? true,
         created_by: user.id,
         enabled_features: enabled_features || defaultFeatures,
+        // Event trips default to restrictive chat/media modes; consumer/pro default to open.
+        // Explicit per-type defaults prevent reliance on table-level DEFAULT which applies globally.
+        chat_mode: effectiveTripType === 'event' ? 'broadcasts' : 'everyone',
+        media_upload_mode: effectiveTripType === 'event' ? 'admin_only' : 'everyone',
         // Persist Pro trip category as JSONB array
         ...(effectiveTripType === 'pro' && category
           ? { categories: [{ type: 'pro_category', value: category }] }
