@@ -827,7 +827,7 @@ export const AgendaModal = ({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-gray-400 hover:text-white"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-white"
                               >
                                 <Download size={14} />
                               </Button>
@@ -837,7 +837,7 @@ export const AgendaModal = ({
                                 onClick={() => handleDeleteAgendaFile(file)}
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-gray-400 hover:text-red-400"
+                                className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-red-400"
                               >
                                 <Trash2 size={14} />
                               </Button>
@@ -862,7 +862,7 @@ export const AgendaModal = ({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-yellow-400"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-yellow-400"
                               title="Preview PDF"
                             >
                               <Eye size={14} />
@@ -877,7 +877,7 @@ export const AgendaModal = ({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-white"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-white"
                               title="Download"
                             >
                               <Download size={14} />
@@ -888,7 +888,7 @@ export const AgendaModal = ({
                               onClick={() => handleDeleteAgendaFile(file)}
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-red-400"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-red-400"
                               title="Delete"
                             >
                               <Trash2 size={14} />
@@ -916,7 +916,7 @@ export const AgendaModal = ({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-white"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-white"
                             >
                               <Download size={14} />
                             </Button>
@@ -926,7 +926,7 @@ export const AgendaModal = ({
                               onClick={() => handleDeleteAgendaFile(file)}
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-gray-400 hover:text-red-400"
+                              className="h-10 w-10 min-h-[44px] min-w-[44px] text-gray-400 hover:text-red-400"
                             >
                               <Trash2 size={14} />
                             </Button>
