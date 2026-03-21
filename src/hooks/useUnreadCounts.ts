@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 /** Minimal message shape for unread counting - compatible with useTripChat and useUnifiedMessages */
@@ -22,8 +22,9 @@ interface UnreadCounts {
 }
 
 /**
- * Hook to track unread message counts with real-time updates
- * Counts total unread messages and unread broadcasts separately
+ * Hook to track unread message counts with real-time updates.
+ * Debounces recalculation to avoid firing multiple times per second when
+ * rapid read receipt events arrive (e.g. user scrolling through many messages).
  */
 export function useUnreadCounts({
   tripId,
@@ -33,6 +34,57 @@ export function useUnreadCounts({
 }: UseUnreadCountsOptions): UnreadCounts {
   const [broadcastCount, setBroadcastCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const calculateUnreadCounts = useCallback(async () => {
+    if (!userId || !tripId || messages.length === 0) {
+      setBroadcastCount(0);
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    try {
+      const messageIds = messages.map(m => m.id);
+
+      const { data: readStatuses, error } = await supabase
+        .from('message_read_receipts')
+        .select('message_id')
+        .eq('user_id', userId)
+        .in('message_id', messageIds);
+
+      if (error) {
+        if (import.meta.env.DEV) console.error('Failed to fetch read statuses:', error);
+        return;
+      }
+
+      const readMessageIds = new Set(
+        (readStatuses ?? []).map((s: { message_id: string }) => s.message_id),
+      );
+
+      const unreadMessages = messages.filter(
+        msg => !readMessageIds.has(msg.id) && msg.user_id !== userId,
+      );
+      const totalUnread = unreadMessages.length;
+      const unreadBroadcasts = unreadMessages.filter(
+        msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
+      ).length;
+
+      setBroadcastCount(unreadBroadcasts);
+      setMessageUnreadCount(totalUnread - unreadBroadcasts);
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error calculating unread counts:', error);
+    }
+  }, [tripId, userId, messages]);
+
+  // Debounced version for realtime events
+  const debouncedCalculate = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      calculateUnreadCounts();
+    }, 500);
+  }, [calculateUnreadCounts]);
 
   useEffect(() => {
     if (!enabled || !userId || !tripId || messages.length === 0) {
@@ -41,46 +93,10 @@ export function useUnreadCounts({
       return;
     }
 
-    const calculateUnreadCounts = async () => {
-      try {
-        // Get all message IDs
-        const messageIds = messages.map(m => m.id);
-
-        // Query read status for current user
-        const { data: readStatuses, error } = await supabase
-          .from('message_read_receipts')
-          .select('message_id')
-          .eq('user_id', userId)
-          .in('message_id', messageIds);
-
-        if (error) {
-          console.error('Failed to fetch read statuses:', error);
-          return;
-        }
-
-        // Create set of read message IDs for fast lookup
-        const readMessageIds = new Set(
-          (readStatuses ?? []).map((s: { message_id: string }) => s.message_id),
-        );
-
-        const unreadMessages = messages.filter(
-          msg => !readMessageIds.has(msg.id) && msg.user_id !== userId,
-        );
-        const totalUnread = unreadMessages.length;
-        const unreadBroadcasts = unreadMessages.filter(
-          msg => msg.privacy_mode === 'broadcast' || msg.message_type === 'broadcast',
-        ).length;
-
-        setBroadcastCount(unreadBroadcasts);
-        setMessageUnreadCount(totalUnread - unreadBroadcasts);
-      } catch (error) {
-        console.error('Error calculating unread counts:', error);
-      }
-    };
-
+    // Calculate immediately on mount / dependency change
     calculateUnreadCounts();
 
-    // Subscribe to read status changes
+    // Subscribe to read status changes — debounced to avoid recalc storm
     const channel = supabase
       .channel(`unread_counts:${tripId}:${userId}`)
       .on(
@@ -92,16 +108,18 @@ export function useUnreadCounts({
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          // Recalculate when read status changes
-          calculateUnreadCounts();
+          debouncedCalculate();
         },
       )
       .subscribe();
 
     return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
       supabase.removeChannel(channel);
     };
-  }, [tripId, userId, messages, enabled]);
+  }, [tripId, userId, messages, enabled, calculateUnreadCounts, debouncedCalculate]);
 
   return { broadcastCount, messageUnreadCount };
 }
