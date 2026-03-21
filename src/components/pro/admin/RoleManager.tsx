@@ -367,7 +367,11 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                             <div className="flex items-center gap-1">
                               <LinkIcon className="w-3 h-3" />
                               <span>
-                                #{(channel as unknown as Record<string, unknown>).channel_name as string}
+                                #
+                                {
+                                  (channel as unknown as Record<string, unknown>)
+                                    .channel_name as string
+                                }
                               </span>
                             </div>
                           </>
