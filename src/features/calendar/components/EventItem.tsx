@@ -70,7 +70,7 @@ export const EventItem = ({
             {hasReminder && (
               <Bell
                 className="h-3.5 w-3.5 text-muted-foreground"
-                title={
+                aria-label={
                   reminderMinutes != null && reminderMinutes >= 60
                     ? `Reminder: ${Math.floor(reminderMinutes / 60)}h before`
                     : `Reminder: ${reminderMinutes}m before`
