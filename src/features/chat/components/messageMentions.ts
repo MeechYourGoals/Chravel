@@ -13,4 +13,4 @@ export const MENTION_REGEX = /((?<!\w)@[\w'-]+(?:\s[A-Z][\w'-]*)?)/g;
 export const getMentionClassName = (_opts: {
   isOwnMessage: boolean;
   isBroadcast?: boolean;
-}): string => 'text-black font-semibold bg-white/90 px-1 rounded inline-block break-words';
+}): string => 'font-semibold text-black';
