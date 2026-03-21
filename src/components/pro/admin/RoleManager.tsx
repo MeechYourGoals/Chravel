@@ -361,7 +361,7 @@ export const RoleManager: React.FC<RoleManagerProps> = ({ tripId, tripCreatorId 
                       </span>
                       {hasChannel &&
                         channel &&
-                        !(channel as Record<string, unknown>).is_archived && (
+                        !(channel as unknown as Record<string, unknown>).is_archived && (
                           <>
                             <span>·</span>
                             <div className="flex items-center gap-1">
