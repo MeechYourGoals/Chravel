@@ -106,6 +106,13 @@
 - **Provenance:** March 2026 chat reliability audit
 - **Confidence:** high
 
+### Realtime broadcast topic privacy must match between DB trigger and client channel config
+- **Tip:** If database-triggered broadcasts are inserted into `realtime.messages` with `private=true`, client subscribers must join the same topic with `supabase.channel(topic, { config: { private: true } })`. A public client channel on a private topic silently drops the fast-lane path and falls back to slower CDC.
+- **Applies when:** Mixing Supabase Broadcast-from-Database triggers with client-side broadcast subscriptions for chat/realtime UX.
+- **Evidence:** Trip chat fast-lane channel (`chat_broadcast:{tripId}`) looked healthy but only CDC delivered reliably until client channel config was switched to private.
+- **Provenance:** March 2026 messaging architecture forensic fix (`chatBroadcastService`).
+- **Confidence:** high
+
 ### Always backfill on realtime channel reconnect — Supabase does not replay missed events
 - **Tip:** Supabase realtime `postgres_changes` does NOT buffer or replay events missed during a websocket disconnection. On reconnect (channel status returns to SUBSCRIBED), you must fetch the gap yourself using the last known server timestamp. Also handle `visibilitychange` for mobile background/foreground transitions.
 - **Applies when:** Any feature using Supabase realtime where data loss during connectivity gaps is unacceptable
