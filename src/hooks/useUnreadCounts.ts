@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 /** Minimal message shape for unread counting - compatible with useTripChat and useUnifiedMessages */
@@ -36,15 +36,20 @@ export function useUnreadCounts({
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Stabilize message IDs to avoid re-render loops from new array references.
+  // Only recalculates when the actual set of message IDs changes.
+  const messageIdList = useMemo(() => messages.map(m => m.id).join(','), [messages]);
+  const stableMessages = useMemo(() => messages, [messageIdList]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const calculateUnreadCounts = useCallback(async () => {
-    if (!userId || !tripId || messages.length === 0) {
+    if (!userId || !tripId || stableMessages.length === 0) {
       setBroadcastCount(0);
       setMessageUnreadCount(0);
       return;
     }
 
     try {
-      const messageIds = messages.map(m => m.id);
+      const messageIds = stableMessages.map(m => m.id);
 
       const { data: readStatuses, error } = await supabase
         .from('message_read_receipts')
@@ -61,7 +66,7 @@ export function useUnreadCounts({
         (readStatuses ?? []).map((s: { message_id: string }) => s.message_id),
       );
 
-      const unreadMessages = messages.filter(
+      const unreadMessages = stableMessages.filter(
         msg => !readMessageIds.has(msg.id) && msg.user_id !== userId,
       );
       const totalUnread = unreadMessages.length;
@@ -74,7 +79,7 @@ export function useUnreadCounts({
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error calculating unread counts:', error);
     }
-  }, [tripId, userId, messages]);
+  }, [tripId, userId, stableMessages]);
 
   // Debounced version for realtime events
   const debouncedCalculate = useCallback(() => {
@@ -87,7 +92,7 @@ export function useUnreadCounts({
   }, [calculateUnreadCounts]);
 
   useEffect(() => {
-    if (!enabled || !userId || !tripId || messages.length === 0) {
+    if (!enabled || !userId || !tripId || stableMessages.length === 0) {
       setBroadcastCount(0);
       setMessageUnreadCount(0);
       return;
@@ -119,7 +124,7 @@ export function useUnreadCounts({
       }
       supabase.removeChannel(channel);
     };
-  }, [tripId, userId, messages, enabled, calculateUnreadCounts, debouncedCalculate]);
+  }, [tripId, userId, stableMessages, enabled, calculateUnreadCounts, debouncedCalculate]);
 
   return { broadcastCount, messageUnreadCount };
 }

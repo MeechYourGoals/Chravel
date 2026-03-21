@@ -5,9 +5,9 @@
 -- to the `chat_broadcast:{trip_id}` channel. This ensures message delivery even
 -- if the sender's client disconnects immediately after INSERT.
 --
--- This is the server-side complement to the client-side broadcastNewMessage()
--- in chatBroadcastService.ts. Both paths converge at the same broadcast channel;
--- the client deduplicates by message id + client_message_id.
+-- The server-side trigger is the sole message publisher. Client-side broadcast
+-- was removed to prevent forged payload injection. Clients subscribe to the
+-- private broadcast channel and deduplicate by message id + client_message_id.
 --
 -- Phase: Messaging Architecture Review — Phase 3a
 

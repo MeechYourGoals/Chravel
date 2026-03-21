@@ -11,7 +11,7 @@ import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { messageEvents } from '@/telemetry/events';
 import { sendChatMessage } from '@/services/chatService';
 import { privacyService } from '@/services/privacyService';
-import { broadcastNewMessage, subscribeToBroadcast } from '@/services/chatBroadcastService';
+import { subscribeToBroadcast } from '@/services/chatBroadcastService';
 
 interface TripChatMessage {
   id: string;
@@ -590,9 +590,8 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       // Online - send immediately
       const data = await sendChatMessage(messageData);
 
-      // ⚡ Broadcast for fast delivery to other clients (~20-50ms vs ~100-300ms CDC)
-      // Best-effort: if broadcast fails, Postgres Changes delivers as fallback
-      broadcastNewMessage(tripId!, data as Record<string, unknown>);
+      // Server-side DB trigger broadcasts the message automatically (Phase 3).
+      // No client-side broadcast needed — prevents forged payload injection.
 
       // Cache the new message
       await saveMessagesToCache(tripId, [data]);

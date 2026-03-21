@@ -1,17 +1,21 @@
 /**
  * Chat Broadcast Service
  *
- * Uses Supabase Realtime Broadcast as a fast lane for new message delivery.
- * Broadcast bypasses the CDC (Change Data Capture) decoder pipeline, delivering
- * messages in ~20-50ms instead of ~100-300ms via Postgres Changes.
+ * Subscribes to Supabase Realtime Broadcast for fast message delivery.
+ * The server-side DB trigger (broadcast_chat_message) writes to
+ * `realtime.messages`, which Supabase delivers via the broadcast channel.
+ * This bypasses the CDC pipeline, delivering in ~20-50ms vs ~100-300ms.
  *
  * Architecture:
- *   - After INSERT into trip_chat_messages, the sender also broadcasts the message
- *   - All clients listen on Broadcast first; Postgres Changes serves as a fallback
+ *   - DB trigger broadcasts on INSERT into trip_chat_messages (server-side)
+ *   - Clients subscribe to the private broadcast channel for fast delivery
+ *   - Postgres Changes subscription serves as a fallback/consistency check
  *   - Deduplication by message id + client_message_id ensures no duplicates
  *
- * This is a client-side broadcast (Phase 2). Phase 3 moves the broadcast trigger
- * server-side via a DB trigger for reliability even if the sender disconnects.
+ * Security:
+ *   - Channels use `private: true` — requires authenticated Supabase session
+ *   - Payloads are validated before being accepted into UI state
+ *   - Only the server-side trigger can publish (no client-side broadcast)
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -22,46 +26,32 @@ export function broadcastChannelName(tripId: string): string {
 }
 
 /**
- * Broadcast a new message to all connected clients for a trip.
- * Called after a successful INSERT into trip_chat_messages.
- * Best-effort: failures are swallowed (Postgres Changes is the fallback).
+ * Validate that a broadcast payload contains the required fields for a chat message.
+ * Rejects payloads that are missing critical fields or have a mismatched trip_id.
  */
-export async function broadcastNewMessage(
-  tripId: string,
-  message: Record<string, unknown>,
-): Promise<void> {
-  try {
-    const channel = supabase.channel(broadcastChannelName(tripId));
-
-    // Subscribe if not already (need to be subscribed to send)
-    await new Promise<void>((resolve, reject) => {
-      channel.subscribe(status => {
-        if (status === 'SUBSCRIBED') resolve();
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          reject(new Error(`Broadcast channel ${status}`));
-        }
-      });
-    });
-
-    await channel.send({
-      type: 'broadcast',
-      event: 'new_message',
-      payload: message,
-    });
-
-    // Unsubscribe sender's ephemeral channel after sending
-    supabase.removeChannel(channel);
-  } catch {
-    // Best-effort: Postgres Changes will deliver the message as fallback
-  }
+function isValidBroadcastPayload(
+  payload: Record<string, unknown>,
+  expectedTripId: string,
+): boolean {
+  // Required fields that every legitimate message must have
+  if (typeof payload.id !== 'string' || !payload.id) return false;
+  if (typeof payload.trip_id !== 'string' || payload.trip_id !== expectedTripId) return false;
+  if (typeof payload.content !== 'string' || payload.content.length === 0) return false;
+  if (typeof payload.user_id !== 'string' || !payload.user_id) return false;
+  if (typeof payload.created_at !== 'string' || !payload.created_at) return false;
+  return true;
 }
 
 /**
  * Subscribe to broadcast messages for a trip.
- * Returns the channel so the caller can manage its lifecycle.
+ * Uses private channels (requires authenticated Supabase session).
+ * Note: Private channels enforce auth (user must be logged in) but do not
+ * verify trip membership. The trip_id match in isValidBroadcastPayload
+ * provides defense-in-depth against cross-trip payload injection.
+ * Validates payloads before passing to the callback.
  *
  * @param tripId - Trip to subscribe to
- * @param onMessage - Called when a broadcast message arrives
+ * @param onMessage - Called when a validated broadcast message arrives
  * @returns RealtimeChannel for cleanup
  */
 export function subscribeToBroadcast(
@@ -69,9 +59,9 @@ export function subscribeToBroadcast(
   onMessage: (message: Record<string, unknown>) => void,
 ): RealtimeChannel {
   const channel = supabase
-    .channel(broadcastChannelName(tripId))
+    .channel(broadcastChannelName(tripId), { config: { private: true } })
     .on('broadcast', { event: 'new_message' }, ({ payload }) => {
-      if (payload) {
+      if (payload && isValidBroadcastPayload(payload as Record<string, unknown>, tripId)) {
         onMessage(payload as Record<string, unknown>);
       }
     })

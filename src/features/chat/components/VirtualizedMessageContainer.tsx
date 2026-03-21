@@ -248,6 +248,8 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
               return (
                 <div
                   key={`date-${row.date.getTime()}`}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -263,6 +265,9 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
             return (
               <div
                 key={row.message.id}
+                ref={virtualizer.measureElement}
+                data-index={virtualRow.index}
+                className="pb-2"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -271,9 +276,7 @@ export const VirtualizedMessageContainer: React.FC<VirtualizedMessageContainerPr
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="space-y-2">
-                  {renderMessage(row.message, row.index, row.showSenderInfo)}
-                </div>
+                {renderMessage(row.message, row.index, row.showSenderInfo)}
               </div>
             );
           })}
