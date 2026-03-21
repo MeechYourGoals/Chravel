@@ -1,0 +1,26 @@
+{
+  "name": "chravel-launch-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts ChravelLaunch out/chravel-launch.mp4",
+    "render:gif": "remotion render src/index.ts ChravelLaunch out/chravel-launch.gif --image-format png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.437",
+    "@remotion/google-fonts": "4.0.437",
+    "@remotion/player": "4.0.437",
+    "@remotion/renderer": "4.0.437",
+    "@remotion/tailwind": "4.0.437",
+    "@remotion/transitions": "4.0.437",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "4.0.437"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
