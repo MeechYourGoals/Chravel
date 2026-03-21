@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { PhoneOff, RotateCcw, Mic, AlertTriangle, Loader2, WifiOff } from 'lucide-react';
+import { RotateCcw, Mic, AlertTriangle, Loader2, WifiOff } from 'lucide-react';
 import type { GeminiLiveState, VoiceDiagnostics } from '@/hooks/useGeminiLive';
 
 interface VoiceLiveInlineProps {
@@ -10,7 +10,6 @@ interface VoiceLiveInlineProps {
   error: string | null;
   circuitBreakerOpen: boolean;
   conversationEmpty: boolean;
-  onEndSession: () => void;
   onRetry: () => void;
   onResetCircuitBreaker: () => void;
 }
@@ -81,7 +80,6 @@ export function VoiceLiveInline({
   error,
   circuitBreakerOpen,
   conversationEmpty,
-  onEndSession,
   onRetry,
   onResetCircuitBreaker,
 }: VoiceLiveInlineProps) {
@@ -281,37 +279,22 @@ export function VoiceLiveInline({
         </p>
       </div>
 
-      {/* Bottom half — user transcript + end button */}
-      <div className="flex-1 min-h-0 flex flex-col w-full">
-        {/* User transcript — below bar, premium gold */}
-        <div
-          className="flex-1 w-full max-w-[90%] sm:max-w-2xl mt-4 min-h-[2.5rem] mx-auto"
-          role="log"
-          aria-label="Your speech"
-          aria-live="polite"
-        >
-          {userTranscript ? (
-            <p className="text-amber-400/90 text-sm leading-relaxed text-center whitespace-pre-wrap">
-              {userTranscript}
-            </p>
-          ) : (
-            barMode === 'listening' && (
-              <p className="text-amber-400/25 text-sm text-center italic">Speak now&hellip;</p>
-            )
-          )}
-        </div>
-
-        {/* End session button — pinned to lower-left, above dictation button */}
-        <div className="flex-shrink-0 pb-1 pl-1">
-          <button
-            type="button"
-            onClick={onEndSession}
-            className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all duration-150 flex items-center justify-center shadow-lg shadow-red-900/40 touch-manipulation"
-            aria-label="End voice session"
-          >
-            <PhoneOff size={18} className="text-white" aria-hidden="true" />
-          </button>
-        </div>
+      {/* User transcript — below bar, premium gold */}
+      <div
+        className="flex-1 w-full max-w-[90%] sm:max-w-2xl mt-4 min-h-0 mx-auto"
+        role="log"
+        aria-label="Your speech"
+        aria-live="polite"
+      >
+        {userTranscript ? (
+          <p className="text-amber-400/90 text-sm leading-relaxed text-center whitespace-pre-wrap">
+            {userTranscript}
+          </p>
+        ) : (
+          barMode === 'listening' && (
+            <p className="text-amber-400/25 text-sm text-center italic">Speak now&hellip;</p>
+          )
+        )}
       </div>
 
       {/* CSS keyframes */}

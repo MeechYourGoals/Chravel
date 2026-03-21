@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search, ImagePlus, Sparkles } from 'lucide-react';
+import { Search, ImagePlus, Sparkles, PhoneOff } from 'lucide-react';
 import { ConciergeSearchModal } from './ai/ConciergeSearchModal';
 import { TripPreferences } from '../types/consumer';
 import { useBasecamp } from '../contexts/BasecampContext';
@@ -1938,8 +1938,8 @@ export const AIConciergeChat = ({
           </div>
         )}
 
-        {/* Empty State - Compact for Mobile */}
-        {messages.length === 0 && !isHistoryLoading && (
+        {/* Empty State - Compact for Mobile (hidden during live voice session) */}
+        {messages.length === 0 && !isHistoryLoading && !isLiveSessionActive && (
           <div className="text-center py-6 px-4 flex-shrink-0">
             <div className="text-sm text-gray-300 space-y-1 max-w-md mx-auto">
               <p className="text-xs sm:text-sm mb-1.5">Try asking:</p>
@@ -1971,7 +1971,6 @@ export const AIConciergeChat = ({
             error={liveError}
             circuitBreakerOpen={liveCircuitBreakerOpen}
             conversationEmpty={liveConversationHistory.length === 0}
-            onEndSession={() => void handleEndLiveSession()}
             onRetry={() => void startLiveSession()}
             onResetCircuitBreaker={liveResetCircuitBreaker}
           />
@@ -2033,6 +2032,19 @@ export const AIConciergeChat = ({
           className="chat-composer sticky bottom-0 z-10 bg-black/30 px-3 pt-2 flex-shrink-0"
           style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}
         >
+          {/* End session button — aligned above dictation button on same vertical axis */}
+          {isLiveSessionActive && (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => void handleEndLiveSession()}
+                className="size-11 min-w-[44px] rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all duration-150 flex items-center justify-center shadow-lg shadow-red-900/40 touch-manipulation"
+                aria-label="End voice session"
+              >
+                <PhoneOff size={18} className="text-white" aria-hidden="true" />
+              </button>
+            </div>
+          )}
           <AiChatInput
             inputMessage={inputMessage}
             onInputChange={setInputMessage}
