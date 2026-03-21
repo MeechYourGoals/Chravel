@@ -46,4 +46,15 @@ describe('Gemini Live protocol safety invariants', () => {
       /setupTimeoutId\s*=\s*setTimeout\(\s*\(\)\s*=>\s*\{\s*\n?\s*if\s*\(\s*ws\.readyState\s*===\s*WebSocket\.OPEN\s*\)/,
     );
   });
+
+  it('starts setup timeout before ws.onopen handler wiring', () => {
+    // Timeout must start while socket is CONNECTING to prevent indefinite
+    // "Opening audio channel…" hangs when onopen never fires.
+    const timeoutStartIndex = liveHook.indexOf('setupTimeoutId = setTimeout(');
+    const onOpenIndex = liveHook.indexOf('ws.onopen = () => {');
+
+    expect(timeoutStartIndex).toBeGreaterThan(-1);
+    expect(onOpenIndex).toBeGreaterThan(-1);
+    expect(timeoutStartIndex).toBeLessThan(onOpenIndex);
+  });
 });

@@ -860,6 +860,59 @@ export function useGeminiLive({
           setupTimeoutId = undefined;
         }
       };
+      const handleSetupTimeout = () => {
+        // Handle timeout regardless of WebSocket state — covers both
+        // "WS opened but setup never completed" AND "WS never opened at all"
+        // (e.g. DNS failure, token rejected, Vertex AI unreachable).
+        const isOpen = ws.readyState === WebSocket.OPEN;
+        const msg = isOpen
+          ? `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`
+          : `Voice connection timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s. Check your connection and try again.`;
+        voiceLog('G2:ws_setup_timeout', {
+          sessionAttemptId,
+          wsMessageCount,
+          wsReadyState: ws.readyState,
+          isOpen,
+          msFromStart: Math.round(performance.now() - t0),
+        });
+        recordVoiceFailure(msg);
+
+        // Auto-reconnect only if we've had a prior successful session
+        if (
+          autoReconnectAllowedRef.current &&
+          autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
+          !isCircuitBreakerOpen()
+        ) {
+          autoReconnectCountRef.current += 1;
+          const attempt = autoReconnectCountRef.current;
+          voiceLog('auto_reconnect:setup_timeout', {
+            attempt,
+            max: MAX_AUTO_RECONNECT_RETRIES,
+          });
+          patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
+          transition('reconnecting', 'auto_reconnect_pending');
+          setError(null);
+          void cleanup().then(() => {
+            autoReconnectTimerRef.current = setTimeout(() => {
+              autoReconnectTimerRef.current = null;
+              void startSessionRef.current();
+            }, AUTO_RECONNECT_DELAY_MS);
+          });
+          return;
+        }
+
+        onErrorRef.current?.(msg);
+        setError(msg);
+        transition('error', 'setup_timeout');
+        void cleanup();
+      };
+      const startSetupTimeout = () => {
+        if (setupTimeoutId !== undefined) return;
+        setupTimeoutId = setTimeout(handleSetupTimeout, WEBSOCKET_SETUP_TIMEOUT_MS);
+      };
+      // Start timeout while socket is CONNECTING so failures where onopen never
+      // fires (network/DNS/token issues) don't leave the UI stuck indefinitely.
+      startSetupTimeout();
 
       ws.onopen = () => {
         patchDiagnostics({ connectionStatus: 'open' });
@@ -877,52 +930,6 @@ export function useGeminiLive({
           voiceLog('G2:sending_setup', { sessionAttemptId });
           ws.send(JSON.stringify(sessionData.setupMessage));
         }
-        setupTimeoutId = setTimeout(() => {
-          // Handle timeout regardless of WebSocket state — covers both
-          // "WS opened but setup never completed" AND "WS never opened at all"
-          // (e.g. DNS failure, token rejected, Vertex AI unreachable).
-          const isOpen = ws.readyState === WebSocket.OPEN;
-          const msg = isOpen
-            ? `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`
-            : `Voice connection timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s. Check your connection and try again.`;
-          voiceLog('G2:ws_setup_timeout', {
-            sessionAttemptId,
-            wsMessageCount,
-            wsReadyState: ws.readyState,
-            isOpen,
-            msFromStart: Math.round(performance.now() - t0),
-          });
-          recordVoiceFailure(msg);
-
-          // Auto-reconnect only if we've had a prior successful session
-          if (
-            autoReconnectAllowedRef.current &&
-            autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
-            !isCircuitBreakerOpen()
-          ) {
-            autoReconnectCountRef.current += 1;
-            const attempt = autoReconnectCountRef.current;
-            voiceLog('auto_reconnect:setup_timeout', {
-              attempt,
-              max: MAX_AUTO_RECONNECT_RETRIES,
-            });
-            patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-            transition('reconnecting', 'auto_reconnect_pending');
-            setError(null);
-            void cleanup().then(() => {
-              autoReconnectTimerRef.current = setTimeout(() => {
-                autoReconnectTimerRef.current = null;
-                void startSessionRef.current();
-              }, AUTO_RECONNECT_DELAY_MS);
-            });
-            return;
-          }
-
-          onErrorRef.current?.(msg);
-          setError(msg);
-          transition('error', 'setup_timeout');
-          void cleanup();
-        }, WEBSOCKET_SETUP_TIMEOUT_MS);
       };
 
       ws.onmessage = event => {
