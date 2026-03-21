@@ -358,16 +358,6 @@ export const MessageBubble = memo(
       threshold: 500,
     });
 
-    const handleHoverStart = useCallback(() => {
-      if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
-      setShowReactions(true);
-    }, []);
-
-    const handleHoverEnd = useCallback(() => {
-      if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
-      hideReactionsTimerRef.current = setTimeout(() => setShowReactions(false), 300);
-    }, []);
-
     // Swipe-to-reply touch handlers (mobile only, swipe right)
     const SWIPE_THRESHOLD = 60;
     const handleTouchStart = useCallback(
@@ -441,8 +431,7 @@ export const MessageBubble = memo(
     );
     const mergedMouseLeave = useCallback(() => {
       longPressHandlers.onMouseLeave();
-      handleHoverEnd();
-    }, [longPressHandlers, handleHoverEnd]);
+    }, [longPressHandlers]);
 
     useEffect(() => {
       return () => {
@@ -452,6 +441,14 @@ export const MessageBubble = memo(
       };
     }, []);
 
+    // Dismiss reaction bar on click outside
+    useEffect(() => {
+      if (!showReactions) return;
+      const handleClickOutside = () => setShowReactions(false);
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }, [showReactions]);
+
     return (
       <>
         <div
@@ -459,7 +456,6 @@ export const MessageBubble = memo(
           onMouseDown={longPressHandlers.onMouseDown}
           onMouseMove={longPressHandlers.onMouseMove}
           onMouseUp={longPressHandlers.onMouseUp}
-          onMouseEnter={handleHoverStart}
           onMouseLeave={mergedMouseLeave}
           onTouchStart={mergedTouchStart}
           onTouchMove={mergedTouchMove}
@@ -670,8 +666,13 @@ export const MessageBubble = memo(
                   'absolute top-0 z-20',
                   isOwnMessage ? 'right-full mr-2' : 'left-full ml-2',
                 )}
-                onMouseEnter={handleHoverStart}
-                onMouseLeave={handleHoverEnd}
+                onMouseEnter={() => {
+                  if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
+                }}
+                onMouseLeave={() => {
+                  if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
+                  hideReactionsTimerRef.current = setTimeout(() => setShowReactions(false), 2000);
+                }}
                 onMouseDown={e => e.stopPropagation()}
                 onTouchStart={e => e.stopPropagation()}
               >
