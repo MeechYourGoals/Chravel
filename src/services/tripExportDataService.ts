@@ -225,7 +225,8 @@ export async function getExportData(
         .from('trip_events')
         .select('title, start_time, end_time, location, description')
         .eq('trip_id', tripId)
-        .order('start_time', { ascending: true });
+        .order('start_time', { ascending: true })
+        .limit(1000);
 
       result.calendar = events || [];
     }
@@ -236,7 +237,8 @@ export async function getExportData(
         .from('trip_payment_messages')
         .select('description, amount, currency, split_count, is_settled, created_at')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (payments && payments.length > 0) {
         const total = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -254,7 +256,8 @@ export async function getExportData(
         .from('trip_polls')
         .select('question, options, total_votes, status')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       result.polls = polls || [];
     }
@@ -265,7 +268,8 @@ export async function getExportData(
         .from('trip_tasks')
         .select('title, description, completed')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       result.tasks =
         tasks?.map(t => ({
@@ -323,7 +327,8 @@ export async function getExportData(
         .from('trip_links')
         .select('title, url, description, category, votes')
         .eq('trip_id', tripId)
-        .order('votes', { ascending: false });
+        .order('votes', { ascending: false })
+        .limit(200);
 
       if (links) {
         placesData.push(
@@ -351,7 +356,8 @@ export async function getExportData(
           user_id
         `,
         )
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .limit(200);
 
       const memberIds = (members || []).map(m => m.user_id);
       let profilesMap = new Map<
@@ -368,7 +374,8 @@ export async function getExportData(
         const { data: profiles } = await supabase
           .from('profiles_public')
           .select('user_id, display_name, resolved_display_name, avatar_url')
-          .in('user_id', memberIds);
+          .in('user_id', memberIds)
+          .limit(200);
 
         profilesMap = new Map((profiles || []).map(p => [p.user_id, p]));
       }
@@ -401,7 +408,8 @@ export async function getExportData(
         )
         .eq('trip_id', tripId)
         .eq('is_sent', true)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(200);
 
       if (broadcasts && broadcasts.length > 0) {
         result.broadcasts = broadcasts.map(b => ({
@@ -434,7 +442,8 @@ export async function getExportData(
           `,
           )
           .eq('trip_id', tripId)
-          .order('created_at', { ascending: false }),
+          .order('created_at', { ascending: false })
+          .limit(500),
         supabase
           .from('trip_artifacts')
           .select('file_name, artifact_type, ai_summary, artifact_type_confidence')
@@ -512,7 +521,8 @@ export async function getExportData(
         .from('event_agenda_items')
         .select('title, session_date, start_time, end_time, location, track, speakers')
         .eq('event_id', tripId)
-        .order('start_time', { ascending: true });
+        .order('start_time', { ascending: true })
+        .limit(500);
 
       result.agenda =
         agendaItems?.map(item => ({
@@ -531,7 +541,8 @@ export async function getExportData(
       const { data: agendaItems } = await supabase
         .from('event_agenda_items')
         .select('speakers, track')
-        .eq('event_id', tripId);
+        .eq('event_id', tripId)
+        .limit(500);
 
       // Deduplicate speakers across all agenda items
       const speakerMap = new Map<string, { name: string; type?: string }>();

@@ -15,7 +15,20 @@ export const getOptimizedImageUrl = (url: string, width: number, quality: number
     }
   }
 
-  // For other images, return as-is (would integrate with image CDN in production)
+  // For Supabase Storage images, use the image transformation API
+  // (requires Image Transformations enabled in Supabase Dashboard)
+  if (url.includes('.supabase.co/storage/')) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set('width', String(width));
+      urlObj.searchParams.set('quality', String(quality));
+      return urlObj.toString();
+    } catch {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}width=${width}&quality=${quality}`;
+    }
+  }
+
   return url;
 };
 

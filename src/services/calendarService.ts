@@ -324,7 +324,8 @@ export const calendarService = {
           .from('trip_events')
           .select('*')
           .eq('trip_id', tripId)
-          .order('start_time', { ascending: true });
+          .order('start_time', { ascending: true })
+          .limit(1000);
 
         if (error) throw error;
         return (data || []) as unknown as TripEvent[];
@@ -337,7 +338,8 @@ export const calendarService = {
         .from('trip_events')
         .select('*')
         .eq('trip_id', tripId)
-        .order('start_time', { ascending: true });
+        .order('start_time', { ascending: true })
+        .limit(1000);
 
       if (fetchError) throw fetchError;
 

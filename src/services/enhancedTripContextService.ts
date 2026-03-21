@@ -277,7 +277,8 @@ export class EnhancedTripContextService {
         `,
         )
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) {
         if (import.meta.env.DEV) console.warn('Failed to fetch trip files:', error);
@@ -340,7 +341,8 @@ export class EnhancedTripContextService {
         `,
         )
         .eq('trip_id', tripId)
-        .order('votes', { ascending: false });
+        .order('votes', { ascending: false })
+        .limit(200);
 
       if (error) {
         if (import.meta.env.DEV) console.warn('Failed to fetch trip links:', error);
@@ -379,7 +381,8 @@ export class EnhancedTripContextService {
         `,
         )
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) {
         if (import.meta.env.DEV) console.warn('Failed to fetch trip polls:', error);
@@ -603,7 +606,8 @@ export class EnhancedTripContextService {
         .from('trip_tasks')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       return data || [];
@@ -631,7 +635,8 @@ export class EnhancedTripContextService {
         .from('trip_events')
         .select('*')
         .eq('trip_id', tripId)
-        .order('start_date', { ascending: true });
+        .order('start_date', { ascending: true })
+        .limit(200);
 
       if (error) throw error;
       return data || [];

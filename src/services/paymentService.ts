@@ -25,11 +25,13 @@ export const paymentService = {
   // User Payment Methods
   async getUserPaymentMethods(userId: string): Promise<PaymentMethod[]> {
     try {
+      // Per-user payment methods (cards, etc.) — no user has 50+ saved methods
       const { data, error } = await supabase
         .from('user_payment_methods')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
 
@@ -265,7 +267,8 @@ export const paymentService = {
         .from('trip_payment_messages')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (error) throw error;
 
@@ -355,7 +358,8 @@ export const paymentService = {
       const { data: allSplits, error: splitsError } = await supabase
         .from('payment_splits')
         .select('is_settled')
-        .eq('payment_message_id', paymentMessageId);
+        .eq('payment_message_id', paymentMessageId)
+        .limit(500);
 
       if (splitsError || !allSplits) return;
 
@@ -454,7 +458,8 @@ export const paymentService = {
           payment_message:trip_payment_messages!inner(trip_id, created_by, amount)
         `,
         )
-        .eq('payment_message.trip_id', tripId);
+        .eq('payment_message.trip_id', tripId)
+        .limit(500);
 
       if (error) throw error;
 

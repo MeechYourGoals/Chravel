@@ -163,7 +163,8 @@ class ChannelService {
         .from('trip_roles')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at');
+        .order('created_at')
+        .limit(100);
       return (data || []).map(d => ({
         id: d.id,
         tripId: d.trip_id,
@@ -245,7 +246,8 @@ class ChannelService {
         .from('user_trip_roles')
         .select('role_id, trip_roles(*)')
         .eq('trip_id', tripId)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .limit(100);
       return (data || [])
         .filter(d => d.trip_roles)
         .map(d => {
@@ -270,7 +272,8 @@ class ChannelService {
       const { data } = await supabase
         .from('user_trip_roles')
         .select('*, trip_roles(role_name)')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .limit(200);
       return (data || []).map(d => ({
         id: d.id,
         tripId: d.trip_id,
@@ -434,7 +437,8 @@ class ChannelService {
           .select('*, trip_roles(role_name)')
           .eq('trip_id', tripId)
           .eq('is_archived', false)
-          .order('created_at');
+          .order('created_at')
+          .limit(500);
 
         const channels = (allChannels || []).map(c =>
           this.mapChannelData(c as unknown as ChannelRowWithRole),
@@ -448,7 +452,8 @@ class ChannelService {
           const { data: memberData } = await supabase
             .from('channel_members')
             .select('channel_id, user_id')
-            .in('channel_id', channelIds);
+            .in('channel_id', channelIds)
+            .limit(500);
 
           // Build a map of channel_id -> Set<user_id> for deduplication
           const channelMemberMap = new Map<string, Set<string>>();
@@ -467,7 +472,8 @@ class ChannelService {
             const { data: roleAccessData } = await supabase
               .from('channel_role_access')
               .select('role_id')
-              .eq('channel_id', channel.id);
+              .eq('channel_id', channel.id)
+              .limit(100);
 
             const roleIds = (roleAccessData || []).map(r => r.role_id);
             // Also include legacy required_role_id
@@ -481,7 +487,8 @@ class ChannelService {
                 .from('user_trip_roles')
                 .select('user_id')
                 .eq('trip_id', tripId)
-                .in('role_id', uniqueRoleIds);
+                .in('role_id', uniqueRoleIds)
+                .limit(500);
 
               (roleMembers || []).forEach(r => memberSet.add(r.user_id));
             }
@@ -512,7 +519,8 @@ class ChannelService {
         )
         .eq('trip_id', tripId)
         .eq('is_archived', false)
-        .in('channel_role_access.role_id', roleIds);
+        .in('channel_role_access.role_id', roleIds)
+        .limit(500);
 
       (junctionChannels || []).forEach(d => {
         if (!uniqueChannels.has(d.id)) {
@@ -531,7 +539,8 @@ class ChannelService {
         )
         .eq('trip_id', tripId)
         .eq('is_archived', false)
-        .in('required_role_id', roleIds);
+        .in('required_role_id', roleIds)
+        .limit(500);
 
       (legacyChannels || []).forEach(d => {
         if (!uniqueChannels.has(d.id)) {
@@ -547,7 +556,8 @@ class ChannelService {
         const { data: junctionRoles } = await supabase
           .from('channel_role_access')
           .select('channel_id, role_id')
-          .in('channel_id', channelIds);
+          .in('channel_id', channelIds)
+          .limit(500);
 
         // Step 2: Build a map of channel_id -> Set of role_ids (including legacy required_role_id)
         const channelRoleMap = new Map<string, Set<string>>();
@@ -583,7 +593,8 @@ class ChannelService {
             .from('user_trip_roles')
             .select('user_id')
             .eq('trip_id', tripId)
-            .in('role_id', roleArray);
+            .in('role_id', roleArray)
+            .limit(500);
 
           // Use a Set to count distinct users (handles multi-role users correctly)
           const distinctUserIds = new Set((userRoleData || []).map(row => row.user_id));
@@ -820,7 +831,8 @@ class ChannelService {
         )
         .eq('trip_id', tripId)
         .eq('is_archived', false)
-        .order('created_at');
+        .order('created_at')
+        .limit(200);
 
       return (data || []).map(d => ({
         id: d.id,
@@ -1008,7 +1020,11 @@ class ChannelService {
     }>
   > {
     try {
-      const { data } = await supabase.from('trip_admins').select('*').eq('trip_id', tripId);
+      const { data } = await supabase
+        .from('trip_admins')
+        .select('*')
+        .eq('trip_id', tripId)
+        .limit(100);
 
       return (data || []).map(d => ({
         userId: d.user_id,
