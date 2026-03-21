@@ -1270,6 +1270,7 @@ export type Database = {
           message_id: string
           message_type: string
           read_at: string
+          trip_id: string | null
           user_id: string
         }
         Insert: {
@@ -1278,6 +1279,7 @@ export type Database = {
           message_id: string
           message_type: string
           read_at?: string
+          trip_id?: string | null
           user_id: string
         }
         Update: {
@@ -1286,6 +1288,7 @@ export type Database = {
           message_id?: string
           message_type?: string
           read_at?: string
+          trip_id?: string | null
           user_id?: string
         }
         Relationships: []
