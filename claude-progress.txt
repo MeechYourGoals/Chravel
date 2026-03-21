@@ -1,3 +1,10 @@
+2026-03-21 — MessageBubble hover reaction regression from cleanup PR
+- Reconstructed bug context from PR #1066 after Slack API access failure in automation runtime.
+- Reproduced desktop chat regression with a new focused test (`MessageBubble.hoverReactions.test.tsx`): hovering a message no longer opened quick reactions.
+- Root cause: cleanup removed `onMouseEnter={handleHoverStart}` and related hover-start callback in `MessageBubble`, leaving only long-press/open paths and effectively disabling desktop hover discovery.
+- Fix: restored explicit hover-start/hover-end behavior in `MessageBubble` while preserving newer side-attached reaction tray and outside-click dismissal behavior.
+- Verification: targeted regression test + `npm run lint` + `npm run typecheck` + `npm run build` all pass.
+
 2026-03-19 — Join approval dashboard hydration + notification deep-link hardening
 - Root-caused recurring "Join Request Approved but trip missing on dashboard" to `tripService.getUserTrips()` using a `trip_members.status` filter without fallback. In schema-drift/legacy environments where `status` is unavailable, the member-trip query fails and member cards disappear even though approval notifications succeed.
 - Added compatibility fallback in `getUserTrips()` to retry `trip_members` membership lookup without `status` filter when the column is unavailable, matching existing fallback strategy already used by other member queries.

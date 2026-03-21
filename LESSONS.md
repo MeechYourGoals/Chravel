@@ -253,6 +253,11 @@
 - **Applies when:** Reaction trays, kebab menus, or inline controls in stacked chat/message timelines.
 - **Evidence:** Trip chat reaction shortcuts rendered below bubbles and repeatedly "fell" to the next message; side-attached absolute pill under the same `MessageBubble` container removed hover handoff.
 - **Provenance:** March 2026 chat reaction hover forensic fix.
+### Cleanup edits that remove event handlers must prove all state-entry paths still exist
+- **Tip:** Before deleting "unused" UI handlers, trace every state transition path (`setState` callers) across desktop and mobile interaction models. If a handler is the only desktop trigger, removing it can silently disable the feature while tests still pass.
+- **Applies when:** Refactors/chore PRs touching hover, focus, keyboard, or pointer handlers in interactive components.
+- **Evidence:** Removing `onMouseEnter={handleHoverStart}` from `MessageBubble` disabled desktop quick-reaction discovery; only long-press paths remained. A focused hover regression test caught the break.
+- **Provenance:** March 2026 PR #1066 forensic review + follow-up fix branch.
 ### App Store launch audits should separate code blockers from operator/App Store metadata blockers
 - **Tip:** During launch-readiness reviews, classify each issue by fix channel (code, config, App Store Connect metadata, legal/policy, ops). This prevents engineering from over-indexing on code-only fixes while submission blockers remain in metadata/compliance queues.
 - **Applies when:** Pre-TestFlight and pre-App Store readiness gates for mobile apps with subscriptions, account deletion, and legal obligations.
