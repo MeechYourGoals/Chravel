@@ -253,6 +253,12 @@
 - **Applies when:** Reaction trays, kebab menus, or inline controls in stacked chat/message timelines.
 - **Evidence:** Trip chat reaction shortcuts rendered below bubbles and repeatedly "fell" to the next message; side-attached absolute pill under the same `MessageBubble` container removed hover handoff.
 - **Provenance:** March 2026 chat reaction hover forensic fix.
+### Keep tab-specific layout branches isolated and regression-tested
+- **Tip:** When adjusting layout for one tab (for example, chat needing viewport-relative height), extract tab-branch class selection into a tiny helper and add a focused test that locks both the changed branch and unchanged branch contracts.
+- **Applies when:** Components use conditional className branches for tab-specific or mode-specific layout sizing.
+- **Avoid when:** Purely cosmetic style changes with no branching or shared container sizing.
+- **Evidence:** Event detail chat layout fix introduced collateral behavior drift by changing the non-chat branch desktop height (`100vh-320px` -> `100vh-240px`). Extracting class selection into `eventDetailLayout.ts` and adding a contract test prevented repeat regressions while preserving the chat fix.
+- **Provenance:** March 2026 PR #1061 follow-up forensic fix.
 ### App Store launch audits should separate code blockers from operator/App Store metadata blockers
 - **Tip:** During launch-readiness reviews, classify each issue by fix channel (code, config, App Store Connect metadata, legal/policy, ops). This prevents engineering from over-indexing on code-only fixes while submission blockers remain in metadata/compliance queues.
 - **Applies when:** Pre-TestFlight and pre-App Store readiness gates for mobile apps with subscriptions, account deletion, and legal obligations.
