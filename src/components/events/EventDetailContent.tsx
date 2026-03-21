@@ -17,6 +17,7 @@ import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { DisabledTabDialog } from './DisabledTabDialog';
+import { cn } from '@/lib/utils';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
@@ -230,9 +231,19 @@ export const EventDetailContent = ({
         })}
       </div>
 
-      <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col relative">
+      <div
+        className={cn(
+          'overflow-y-auto native-scroll min-h-0 flex flex-col relative',
+          activeTab === 'chat'
+            ? 'h-[calc(100dvh-200px)] sm:h-[calc(100dvh-220px)] md:h-[calc(100vh-240px)]'
+            : 'pb-24 sm:pb-4 h-auto max-h-none md:h-[calc(100vh-240px)] md:max-h-[1000px] md:min-h-[500px]',
+        )}
+      >
         <div
-          className={shouldShowDisabledState ? 'opacity-50 pointer-events-none select-none' : ''}
+          className={cn(
+            shouldShowDisabledState ? 'opacity-50 pointer-events-none select-none' : '',
+            activeTab === 'chat' ? 'flex-1 flex flex-col min-h-0' : '',
+          )}
         >
           <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
         </div>
