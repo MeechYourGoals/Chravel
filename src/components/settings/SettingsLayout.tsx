@@ -59,9 +59,14 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           </button>
 
           {showMobileMenu && (
-            <div className="mt-2 bg-white/10 rounded-xl overflow-hidden animate-fade-in">
+            <div
+              className="mt-2 bg-white/10 rounded-xl overflow-hidden animate-fade-in"
+              role="tablist"
+              aria-label="Settings sections"
+            >
               {sections.map(section => {
                 const Icon = section.icon;
+                const isActive = activeSection === section.id;
                 return (
                   <button
                     key={section.id}
@@ -69,8 +74,10 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                       onSectionChange(section.id);
                       setShowMobileMenu(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 text-left transition-colors ${sectionButtonClass(
-                      activeSection === section.id,
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`w-full flex items-center gap-3 px-3 md:px-4 py-2 md:py-3 text-left transition-colors min-h-[44px] ${sectionButtonClass(
+                      isActive,
                     )}`}
                   >
                     <Icon size={20} />
@@ -94,15 +101,18 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
       <aside className="w-64 flex-shrink-0 bg-white/5 backdrop-blur-md border-r border-white/10 p-4 overflow-y-auto">
         <h2 className="text-xl font-bold text-white mb-3">{title}</h2>
         {subtitle && <p className="text-xs text-gray-400 mb-4">{subtitle}</p>}
-        <nav className="space-y-1.5">
+        <nav className="space-y-1.5" role="tablist" aria-label="Settings sections">
           {sections.map(section => {
             const Icon = section.icon;
+            const isActive = activeSection === section.id;
             return (
               <button
                 key={section.id}
                 onClick={() => onSectionChange(section.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors ${sectionButtonClass(
-                  activeSection === section.id,
+                role="tab"
+                aria-selected={isActive}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors min-h-[44px] ${sectionButtonClass(
+                  isActive,
                 )}`}
               >
                 <Icon size={20} />

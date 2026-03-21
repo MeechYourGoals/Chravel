@@ -46,6 +46,7 @@ import {
 import { ThreadView } from './ThreadView';
 import { useTripPrivacyConfig, getEffectivePrivacyMode } from '@/hooks/useTripPrivacyConfig';
 import { useTripChatMode } from '@/hooks/useTripChatMode';
+import { useLinkPreviews } from '../hooks/useLinkPreviews';
 
 interface TripChatProps {
   enableGroupChat?: boolean;
@@ -520,52 +521,61 @@ export const TripChat = React.memo(
       fetchReactions();
     }, [liveMessages.length, user?.id, demoMode.isDemoMode]);
 
-    // Subscribe to realtime reaction changes
+    // Keep a stable ref of loaded message IDs so the reaction subscription
+    // can filter without needing liveMessages in its dependency array.
+    const loadedMessageIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+      loadedMessageIdsRef.current = new Set(liveMessages.map(m => m.id));
+    }, [liveMessages]);
+
+    // Subscribe to realtime reaction changes — stable channel (no liveMessages dep)
     useEffect(() => {
       if (demoMode.isDemoMode || !resolvedTripId || !user?.id) return;
 
-      const messageIdSet = new Set(liveMessages.map(m => m.id));
+      const channel = subscribeToReactions(
+        resolvedTripId,
+        payload => {
+          // Only process reactions for messages we have loaded
+          if (!loadedMessageIdsRef.current.has(payload.messageId)) return;
 
-      const channel = subscribeToReactions(resolvedTripId, payload => {
-        // Only process reactions for messages we have loaded
-        if (!messageIdSet.has(payload.messageId)) return;
+          setReactions(prev => {
+            const updated = { ...prev };
+            if (!updated[payload.messageId]) {
+              updated[payload.messageId] = {};
+            }
 
-        setReactions(prev => {
-          const updated = { ...prev };
-          if (!updated[payload.messageId]) {
-            updated[payload.messageId] = {};
-          }
-
-          const current = updated[payload.messageId][payload.reactionType] || {
-            count: 0,
-            userReacted: false,
-            users: [],
-          };
-
-          if (payload.eventType === 'INSERT') {
-            updated[payload.messageId][payload.reactionType] = {
-              count: current.count + 1,
-              userReacted: payload.userId === user.id ? true : current.userReacted,
-              users: current.users.includes(payload.userId)
-                ? current.users
-                : [...current.users, payload.userId],
+            const current = updated[payload.messageId][payload.reactionType] || {
+              count: 0,
+              userReacted: false,
+              users: [],
             };
-          } else if (payload.eventType === 'DELETE') {
-            updated[payload.messageId][payload.reactionType] = {
-              count: Math.max(0, current.count - 1),
-              userReacted: payload.userId === user.id ? false : current.userReacted,
-              users: current.users.filter(id => id !== payload.userId),
-            };
-          }
 
-          return updated;
-        });
-      });
+            if (payload.eventType === 'INSERT') {
+              updated[payload.messageId][payload.reactionType] = {
+                count: current.count + 1,
+                userReacted: payload.userId === user.id ? true : current.userReacted,
+                users: current.users.includes(payload.userId)
+                  ? current.users
+                  : [...current.users, payload.userId],
+              };
+            } else if (payload.eventType === 'DELETE') {
+              updated[payload.messageId][payload.reactionType] = {
+                count: Math.max(0, current.count - 1),
+                userReacted: payload.userId === user.id ? false : current.userReacted,
+                users: current.users.filter(id => id !== payload.userId),
+              };
+            }
+
+            return updated;
+          });
+        },
+        loadedMessageIdsRef.current,
+      );
 
       return () => {
         supabase.removeChannel(channel);
       };
-    }, [resolvedTripId, user?.id, liveMessages, demoMode.isDemoMode]);
+    }, [resolvedTripId, user?.id, demoMode.isDemoMode]);
 
     const handleSendMessage = async (
       isBroadcast = false,
@@ -739,7 +749,8 @@ export const TripChat = React.memo(
       // Persist to database
       const result = await toggleMessageReaction(messageId, user.id, reactionType as ReactionType);
       if (result.error) {
-        console.error('[TripChat] Failed to toggle reaction:', result.error);
+        if (import.meta.env.DEV)
+          console.error('[TripChat] Failed to toggle reaction:', result.error);
         // Revert on failure - refetch reactions
         const messageIds = liveMessages.map(m => m.id);
         const freshReactions = await getMessagesReactions(messageIds, user.id);
@@ -852,9 +863,27 @@ export const TripChat = React.memo(
         sender: { id: user?.id || 'unknown', name: fm.authorName, avatar: user?.avatar },
         createdAt: new Date().toISOString(),
         status: 'failed' as const,
+        linkPreview: undefined as undefined,
       }));
       return [...filteredMessages, ...failedFormatted];
     }, [filteredMessages, failedMessages, user?.id, user?.avatar]);
+
+    const linkPreviewFallbacks = useLinkPreviews(
+      messagesWithFailed.map(message => ({
+        id: message.id,
+        text: message.text || '',
+        linkPreview: message.linkPreview,
+      })),
+    );
+
+    const messagesWithPreviewFallbacks = useMemo(
+      () =>
+        messagesWithFailed.map(message => ({
+          ...message,
+          linkPreview: message.linkPreview || linkPreviewFallbacks[message.id],
+        })),
+      [messagesWithFailed, linkPreviewFallbacks],
+    );
 
     const isLoading = demoMode.isDemoMode ? false : liveLoading;
 
@@ -962,7 +991,7 @@ export const TripChat = React.memo(
                   </div>
                 ) : (
                   <VirtualizedMessageContainer
-                    messages={messagesWithFailed as any}
+                    messages={messagesWithPreviewFallbacks as any}
                     renderMessage={(message: any, _index: number, showSenderInfo: boolean) => (
                       <div data-message-id={message.id}>
                         <MessageItem

@@ -38,7 +38,8 @@ export const useRevenueCatSubscription = (
       const info = await purchases.getCustomerInfo();
       setCustomerInfo(info);
     } catch (err) {
-      console.error('[useRevenueCatSubscription] Error fetching customer info:', err);
+      if (import.meta.env.DEV)
+        console.error('[useRevenueCatSubscription] Error fetching customer info:', err);
       setError('Failed to check subscription status');
     } finally {
       setLoading(false);

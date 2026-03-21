@@ -85,7 +85,9 @@ export const usePayments = (tripId?: string) => {
         const methods = await paymentService.getUserPaymentMethods(userId);
         setPaymentMethods(methods);
       } catch (error) {
-        console.error('Error loading payment methods:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error loading payment methods:', error);
+        }
       } finally {
         setMethodsLoading(false);
       }

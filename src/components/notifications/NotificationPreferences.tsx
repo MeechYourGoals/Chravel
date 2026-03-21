@@ -81,7 +81,10 @@ export const NotificationPreferences = () => {
     }
   };
 
-  const updatePreference = async (key: keyof NotificationPrefs, value: any) => {
+  const updatePreference = async (
+    key: keyof NotificationPrefs,
+    value: NotificationPrefs[keyof NotificationPrefs],
+  ) => {
     if (!user?.id) {
       toast.error('You must be logged in to update preferences');
       return;
@@ -160,6 +163,7 @@ export const NotificationPreferences = () => {
               id="push"
               checked={prefs.push_enabled}
               onCheckedChange={v => updatePreference('push_enabled', v)}
+              aria-label="Toggle push notifications"
             />
           </div>
 
@@ -172,6 +176,7 @@ export const NotificationPreferences = () => {
               id="email"
               checked={prefs.email_enabled}
               onCheckedChange={v => updatePreference('email_enabled', v)}
+              aria-label="Toggle email notifications"
             />
           </div>
 
@@ -184,6 +189,7 @@ export const NotificationPreferences = () => {
               id="sms"
               checked={prefs.sms_enabled}
               onCheckedChange={v => updatePreference('sms_enabled', v)}
+              aria-label="Toggle SMS notifications"
             />
           </div>
         </div>
@@ -202,6 +208,7 @@ export const NotificationPreferences = () => {
               id="broadcasts"
               checked={prefs.broadcasts}
               onCheckedChange={v => updatePreference('broadcasts', v)}
+              aria-label="Toggle broadcast message notifications"
             />
           </div>
 
@@ -214,6 +221,7 @@ export const NotificationPreferences = () => {
               id="tasks"
               checked={prefs.tasks}
               onCheckedChange={v => updatePreference('tasks', v)}
+              aria-label="Toggle task assignment notifications"
             />
           </div>
 
@@ -226,6 +234,7 @@ export const NotificationPreferences = () => {
               id="payments"
               checked={prefs.payments}
               onCheckedChange={v => updatePreference('payments', v)}
+              aria-label="Toggle payment request notifications"
             />
           </div>
 
@@ -238,6 +247,7 @@ export const NotificationPreferences = () => {
               id="calendar"
               checked={prefs.calendar_reminders}
               onCheckedChange={v => updatePreference('calendar_reminders', v)}
+              aria-label="Toggle calendar event reminder notifications"
             />
           </div>
 
@@ -250,6 +260,7 @@ export const NotificationPreferences = () => {
               id="invites"
               checked={prefs.trip_invites}
               onCheckedChange={v => updatePreference('trip_invites', v)}
+              aria-label="Toggle trip invitation notifications"
             />
           </div>
         </div>
@@ -272,6 +283,7 @@ export const NotificationPreferences = () => {
             id="quiet"
             checked={prefs.quiet_hours_enabled}
             onCheckedChange={v => updatePreference('quiet_hours_enabled', v)}
+            aria-label="Toggle quiet hours"
           />
         </div>
 
@@ -308,10 +320,21 @@ export const NotificationPreferences = () => {
 
       {/* Save Button */}
       <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={loadPreferences} disabled={saving}>
+        <Button
+          variant="outline"
+          onClick={loadPreferences}
+          disabled={saving}
+          className="min-h-[44px]"
+          aria-label="Reset notification preferences"
+        >
           Reset
         </Button>
-        <Button onClick={saveAllPreferences} disabled={saving}>
+        <Button
+          onClick={saveAllPreferences}
+          disabled={saving}
+          className="min-h-[44px]"
+          aria-label="Save notification preferences"
+        >
           {saving ? 'Saving...' : 'Save Preferences'}
         </Button>
       </div>

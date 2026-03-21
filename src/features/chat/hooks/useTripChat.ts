@@ -11,6 +11,7 @@ import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { messageEvents } from '@/telemetry/events';
 import { sendChatMessage } from '@/services/chatService';
 import { privacyService } from '@/services/privacyService';
+import { broadcastNewMessage, subscribeToBroadcast } from '@/services/chatBroadcastService';
 
 interface TripChatMessage {
   id: string;
@@ -65,7 +66,12 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     return `00000000-0000-4000-8000-${random}`;
   };
 
-  // Fetch initial messages (last 10) with offline cache support and decryption
+  // Page size for initial fetch and loadMore
+  const PAGE_SIZE = 30;
+
+  // Fetch initial messages with offline cache support and decryption.
+  // Uses cursor-based pagination (order by created_at desc, limit PAGE_SIZE).
+  // Offline cache provides instant display while server fetch is in-flight.
   const {
     data: messages = [],
     isLoading,
@@ -80,11 +86,13 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       try {
         const { data, error } = await supabase
           .from('trip_chat_messages')
-          .select('*')
+          .select(
+            'id,trip_id,content,author_name,user_id,created_at,updated_at,media_type,media_url,sentiment,link_preview,privacy_mode,privacy_encrypted,message_type,is_edited,edited_at,client_message_id,reply_to_id',
+          )
           .eq('trip_id', tripId)
           .eq('is_deleted', false)
           .order('created_at', { ascending: false })
-          .limit(15);
+          .limit(PAGE_SIZE);
 
         if (error) throw error;
 
@@ -114,7 +122,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         );
 
         const reversed = decryptedData.reverse();
-        setHasMore(data && data.length === 15);
+        setHasMore(data && data.length === PAGE_SIZE);
 
         // Cache messages for offline access (store decrypted versions)
         if (decryptedData && decryptedData.length > 0) {
@@ -126,7 +134,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
         // If online fetch fails, return cached messages
         if (cachedMessages.length > 0) {
           if (import.meta.env.DEV) console.warn('Using cached messages due to fetch error:', err);
-          const messagesWithTimestamp = cachedMessages.slice(-15).map(msg => ({
+          const messagesWithTimestamp = cachedMessages.slice(-PAGE_SIZE).map(msg => ({
             ...msg,
             updated_at: msg.updated_at || msg.created_at,
           })) as TripChatMessage[];
@@ -136,7 +144,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       }
     },
     enabled: !!tripId && isEnabled,
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: 60000, // 60s — realtime subscription keeps data fresh between fetches
   });
 
   // Ref tracking the newest known server timestamp for reconnect backfill.
@@ -280,9 +288,37 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     };
 
     if (import.meta.env.DEV) {
-      console.log('[CHAT REALTIME] Subscribing to channel:', `trip_chat_${tripId}`);
+      console.log(
+        '[CHAT REALTIME] Subscribing to channels:',
+        `trip_chat_${tripId}`,
+        `(+ broadcast)`,
+      );
     }
 
+    // ⚡ FAST LANE: Broadcast subscription delivers messages in ~20-50ms
+    // Postgres Changes (below) serves as fallback at ~100-300ms
+    // Both feed into the same batched insert pipeline with dedup by id + client_message_id
+    const broadcastChannel = subscribeToBroadcast(tripId, payload => {
+      if (import.meta.env.DEV) {
+        console.log('[CHAT BROADCAST] Message received:', {
+          messageId: payload?.id,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const now = Date.now();
+      if (now - windowStart > rateLimitWindow) {
+        messageCount = 0;
+        windowStart = now;
+      }
+      if (messageCount >= maxMessagesPerMinute) return;
+      messageCount++;
+
+      pendingInserts.push(payload);
+      scheduleFlush();
+    });
+
+    // Postgres Changes: CDC-based delivery as fallback (deduped against broadcast)
     const channel = supabase
       .channel(`trip_chat_${tripId}`)
       .on(
@@ -399,9 +435,10 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
 
     return () => {
       if (import.meta.env.DEV) {
-        console.log('[CHAT REALTIME] Unsubscribing from channel:', `trip_chat_${tripId}`);
+        console.log('[CHAT REALTIME] Unsubscribing from channels:', `trip_chat_${tripId}`);
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      supabase.removeChannel(broadcastChannel);
       supabase.removeChannel(channel);
     };
   }, [tripId, queryClient, isEnabled, toast, backfillGap]);
@@ -553,6 +590,10 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       // Online - send immediately
       const data = await sendChatMessage(messageData);
 
+      // ⚡ Broadcast for fast delivery to other clients (~20-50ms vs ~100-300ms CDC)
+      // Best-effort: if broadcast fails, Postgres Changes delivers as fallback
+      broadcastNewMessage(tripId!, data as Record<string, unknown>);
+
       // Cache the new message
       await saveMessagesToCache(tripId, [data]);
 
@@ -658,7 +699,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
     });
   };
 
-  // Load more messages
+  // Load more messages (cursor-based: fetch PAGE_SIZE messages older than the oldest visible)
   const loadMore = async () => {
     if (!hasMore || isLoadingMore || messages.length === 0) return;
 
@@ -667,12 +708,14 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
       const oldestMessage = messages[0];
       const { data, error } = await supabase
         .from('trip_chat_messages')
-        .select('*')
+        .select(
+          'id,trip_id,content,author_name,user_id,created_at,updated_at,media_type,media_url,sentiment,link_preview,privacy_mode,privacy_encrypted,message_type,is_edited,edited_at,client_message_id,reply_to_id',
+        )
         .eq('trip_id', tripId)
         .eq('is_deleted', false)
         .lt('created_at', oldestMessage.created_at)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(PAGE_SIZE);
 
       if (error) throw error;
 
@@ -682,7 +725,7 @@ export const useTripChat = (tripId: string | undefined, options?: { enabled?: bo
           ...olderMessages,
           ...old,
         ]);
-        setHasMore(data.length === 20);
+        setHasMore(data.length === PAGE_SIZE);
       } else {
         setHasMore(false);
       }

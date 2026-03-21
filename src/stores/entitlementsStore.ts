@@ -97,7 +97,8 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
     try {
       // SUPER ADMIN CHECK FIRST - email allowlist is the failsafe
       if (userEmail && isSuperAdminEmail(userEmail)) {
-        console.log('[EntitlementsStore] Super admin detected by email:', userEmail);
+        if (import.meta.env.DEV)
+          console.log('[EntitlementsStore] Super admin detected by email:', userEmail);
         set({
           plan: SUPER_ADMIN_TIER,
           status: 'active',
@@ -125,7 +126,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       const hasAdminRole = roles.includes('enterprise_admin');
 
       if (hasAdminRole) {
-        console.log('[EntitlementsStore] Super admin detected by role');
+        if (import.meta.env.DEV) console.log('[EntitlementsStore] Super admin detected by role');
         set({
           plan: SUPER_ADMIN_TIER,
           status: 'active',
@@ -150,7 +151,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
         .maybeSingle();
 
       if (error) {
-        console.error('[EntitlementsStore] Fetch error:', error);
+        if (import.meta.env.DEV) console.error('[EntitlementsStore] Fetch error:', error);
         set({ isLoading: false, error: error.message });
         return;
       }
@@ -174,7 +175,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
           isLoading: false,
           lastSyncedAt: new Date(),
           error: null,
-          isSubscribed: status === 'active' || status === 'trialing',
+          isSubscribed: isEffectivelyActive(status, periodEnd),
           isPro: plan.startsWith('pro-') || plan === 'frequent-chraveler',
           isSuperAdmin: false,
           purchaseType: pType,
@@ -189,7 +190,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
         });
       }
     } catch (err) {
-      console.error('[EntitlementsStore] Error:', err);
+      if (import.meta.env.DEV) console.error('[EntitlementsStore] Error:', err);
       set({ isLoading: false, error: 'Failed to load entitlements' });
     }
   },
@@ -234,10 +235,10 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
 
   setFromStripe: data => {
     const tierEntitlements = TIER_ENTITLEMENTS[data.tier] || [];
-    const status =
-      data.status === 'active' || data.status === 'trialing'
-        ? (data.status as EntitlementStatus)
-        : 'expired';
+    const validStatuses: EntitlementStatus[] = ['active', 'trialing', 'past_due', 'canceled'];
+    const status: EntitlementStatus = validStatuses.includes(data.status as EntitlementStatus)
+      ? (data.status as EntitlementStatus)
+      : 'expired';
     const pType = data.purchaseType || 'subscription';
     const periodEnd = data.periodEnd || null;
     const daysLeft = periodEnd
@@ -253,7 +254,7 @@ export const useEntitlementsStore = create<EntitlementsState>((set, _get) => ({
       isLoading: false,
       lastSyncedAt: new Date(),
       error: null,
-      isSubscribed: status === 'active' || status === 'trialing',
+      isSubscribed: isEffectivelyActive(status, periodEnd),
       isPro: data.tier.startsWith('pro-') || data.tier === 'frequent-chraveler',
       purchaseType: pType,
       daysRemaining: pType === 'pass' ? daysLeft : null,

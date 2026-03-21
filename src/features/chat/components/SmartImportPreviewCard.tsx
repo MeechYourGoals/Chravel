@@ -167,7 +167,9 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
               type="button"
               onClick={() => !isImporting && toggleEvent(index)}
               disabled={isImporting}
-              className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors ${
+              aria-label={`${isSelected ? 'Deselect' : 'Select'} ${event.title}`}
+              aria-pressed={isSelected}
+              className={`w-full flex items-start gap-3 px-4 py-2.5 min-h-[44px] text-left transition-colors ${
                 isSelected ? 'hover:bg-white/5' : 'opacity-40 hover:opacity-60'
               } disabled:cursor-not-allowed`}
             >
@@ -223,7 +225,8 @@ export const SmartImportPreviewCard: React.FC<SmartImportPreviewCardProps> = ({
             <button
               type="button"
               onClick={onDismiss}
-              className="px-3 py-1.5 text-xs text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+              aria-label="Cancel import"
+              className="px-3 py-1.5 min-h-[44px] text-xs text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
             >
               Cancel
             </button>

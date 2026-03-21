@@ -247,7 +247,7 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
         failed = result.failed;
       }
     } catch (error) {
-      console.error('Bulk import failed:', error);
+      if (import.meta.env.DEV) console.error('Bulk import failed:', error);
       failed = eventsToInsert.length - imported;
     }
 
@@ -276,14 +276,15 @@ export const CalendarImportModal: React.FC<CalendarImportModalProps> = ({
       await queryClient.cancelQueries({ queryKey: tripKeys.calendar(tripId) });
       await queryClient.invalidateQueries({ queryKey: tripKeys.calendar(tripId) });
     } catch (cacheError) {
-      console.warn('Failed to invalidate calendar cache:', cacheError);
+      if (import.meta.env.DEV) console.warn('Failed to invalidate calendar cache:', cacheError);
     }
 
     if (onImportComplete) {
       try {
         await onImportComplete();
       } catch (refreshError) {
-        console.warn('Failed to refresh events after import:', refreshError);
+        if (import.meta.env.DEV)
+          console.warn('Failed to refresh events after import:', refreshError);
       }
     }
   }, [parseResult, duplicateIndices, tripId, onImportComplete, queryClient]);

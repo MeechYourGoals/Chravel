@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { TripEvent } from '@/services/calendarService';
+import type { TripEvent } from '@/types/calendar';
 import { tripKeys } from '@/lib/queryKeys';
 
 const CHANNEL_PREFIX = 'trip_events';

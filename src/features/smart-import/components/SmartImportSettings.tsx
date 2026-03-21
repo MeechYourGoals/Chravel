@@ -125,8 +125,8 @@ export const SmartImportSettings = () => {
             </p>
             <button
               onClick={() => setReconnectBannerDismissed(true)}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label="Dismiss"
+              className="text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Dismiss reconnect banner"
             >
               <X className="h-4 w-4" />
             </button>
@@ -150,7 +150,8 @@ export const SmartImportSettings = () => {
                 onClick={handleConnect}
                 disabled={connecting}
                 variant="outline"
-                className="gap-2"
+                className="gap-2 min-h-[44px]"
+                aria-label="Connect Gmail account"
               >
                 {connecting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -201,9 +202,10 @@ export const SmartImportSettings = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive hover:bg-destructive/10 shrink-0"
+                    className="text-destructive hover:bg-destructive/10 shrink-0 min-h-[44px] min-w-[44px]"
                     onClick={() => handleDisconnect(account.id)}
                     disabled={disconnectingId === account.id}
+                    aria-label={`Disconnect ${account.email}`}
                   >
                     {disconnectingId === account.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -220,8 +222,9 @@ export const SmartImportSettings = () => {
                 onClick={handleConnect}
                 disabled={connecting || atAccountCap}
                 variant="outline"
-                className="w-full gap-2"
+                className="w-full gap-2 min-h-[44px]"
                 title={atAccountCap ? `Maximum ${MAX_ACCOUNTS} Gmail accounts allowed` : undefined}
+                aria-label="Connect another Gmail account"
               >
                 {connecting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -172,6 +172,47 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Fixed in:** March 2026 chat reliability audit
 - **Confidence:** high
 
+## Voice tool call fails silently due to unimplemented declaration
+- **Status:** confirmed (latent)
+- **Subsystem:** AI concierge / voice tools
+- **Bug class:** declaration/implementation mismatch
+- **Symptom:** Voice concierge says it completed an action but nothing happens in the trip. No error shown to user.
+- **User-facing impact:** Lost trust — user thinks AI did something but no data was created/changed
+- **Trigger conditions:** Model selects a tool from `voiceToolDeclarations.ts` that has no matching `case` in `functionExecutor.ts`
+- **Known affected tools:** getWeatherForecast, convertCurrency, browseWebsite, makeReservation, settleExpense, generateTripImage, setTripHeaderImage, getDeepLink, explainPermission, verify_artifact, createBroadcast, createNotification
+- **Likely root cause:** Voice tool declarations were expanded from a roadmap document without corresponding backend implementation
+- **Smallest safe fix:** Remove unimplemented tools from `voiceToolDeclarations.ts`, or implement them in `functionExecutor.ts`
+- **Regression risks:** Removing tools may cause model to verbally refuse requests it previously "handled" (but silently failed)
+- **Related files:** `supabase/functions/_shared/voiceToolDeclarations.ts`, `supabase/functions/_shared/functionExecutor.ts`
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+## Action Plan JSON mandate ignored by model
+- **Status:** confirmed (design issue)
+- **Subsystem:** AI concierge / prompt design
+- **Bug class:** prompt compliance
+- **Symptom:** System prompt mandates a JSON `plan_version: 1.0` block at the start of every response, but model frequently skips it for simple queries
+- **User-facing impact:** Inconsistent response format; wasted tokens when model does comply; no functional benefit since the plan is not machine-parsed
+- **Trigger conditions:** Any simple query where the model decides the JSON plan adds no value
+- **Likely root cause:** Instruction conflicts — "be concise" vs "always output a JSON plan first"
+- **Smallest safe fix:** Remove the Action Plan mandate from the system prompt entirely, or make it conditional for multi-action requests
+- **Related files:** `supabase/functions/_shared/promptBuilder.ts` (lines 29-50)
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
+## Preference injection on irrelevant queries wastes tokens
+- **Status:** confirmed (inefficiency)
+- **Subsystem:** AI concierge / context injection
+- **Bug class:** performance / token bloat
+- **Symptom:** Dietary preferences, vibe preferences, budget preferences injected into every trip-related query, even "what time is our reservation?"
+- **User-facing impact:** Slower time-to-first-token from larger prompt; no quality benefit for non-recommendation queries
+- **Trigger conditions:** Any trip-related query for a paid user with preferences set
+- **Likely root cause:** Preference injection in `promptBuilder.ts` is always-on when `tripContext.userPreferences` exists, with no query-type filter
+- **Smallest safe fix:** Only inject preferences when query matches recommendation/food/activity/venue patterns
+- **Related files:** `supabase/functions/_shared/promptBuilder.ts` (lines 101-117), `supabase/functions/_shared/contextBuilder.ts` (resolveUserPreferences)
+- **Provenance:** March 2026 AI Concierge architecture & prompt audit
+- **Confidence:** high
+
 ## Chat messages lost during websocket reconnect
 - **Status:** fixed
 - **Subsystem:** chat / realtime
@@ -182,4 +223,56 @@ Known security anti-patterns discovered during audits. Reference this before int
 - **Regression risks:** Duplicate messages if dedupe fails; unnecessary fetches if called too frequently
 - **Related files:** `src/features/chat/hooks/useTripChat.ts`
 - **Fixed in:** March 2026 chat reliability audit
+- **Confidence:** high
+
+## Lineup "replace import" can hard-delete data on transient insert failures
+- **Status:** fixed
+- **Subsystem:** events / lineup import
+- **Bug class:** multi-step mutation data loss
+- **Symptom:** Using Smart Import with `replace` mode can wipe existing lineup rows when delete succeeds but insert fails.
+- **User-facing impact:** High — lineup names/bios/avatars can disappear in one action; recovery may require manual reconstruction.
+- **Trigger conditions:** Organizer runs replace import, network/API error occurs between delete and insert (or insert rejects).
+- **Likely root cause:** Client performed destructive two-step mutation (`DELETE all` then `INSERT new`) without transaction safety.
+- **Root cause chain:**
+  - Immediate: Existing rows removed before replacement rows are persisted
+  - Proximate: Insert error after successful delete
+  - Underlying: No insert-first plan or server-side transactional replace
+- **Smallest safe fix:** Compute replace plan from current rows, insert missing names first, then delete stale rows only after successful inserts.
+- **Regression risks:** Replace mode now preserves existing metadata (bio/avatar/title) for unchanged names by design; this is safer than row recreation.
+- **Related files:** `src/hooks/useEventLineup.ts`
+- **Fixed in:** March 2026 forensic correctness audit
+## Dashboard trip cards missing after join approval (status-column drift)
+- **Status:** confirmed
+- **Subsystem:** trip dashboard hydration / membership query
+- **Bug class:** schema compatibility / source-of-truth drift
+- **Symptom:** User receives "Join Request Approved" notification, but approved trip still does not appear on dashboard after refresh/sign-out/sign-in.
+- **User-facing impact:** User appears approved in notifications but cannot access trip from dashboard.
+- **Trigger conditions:** Environment where `trip_members.status` is unavailable (or querying it errors) while dashboard query uses `.or('status.is.null,status.eq.active')` without fallback.
+- **Likely root cause:** `tripService.getUserTrips()` member-trip lookup fails on status-filter query and silently skips all member trips; approval notification path still succeeds.
+- **Root cause chain:**
+  - Immediate cause: dashboard member-trip query returns error/no rows
+  - Proximate cause: `trip_members.status` filter executed with no compatibility retry
+  - Underlying cause: inconsistent schema compatibility handling across trip member query paths
+- **How to reproduce:**
+  1. Mock/operate against schema where `trip_members.status` column is unavailable
+  2. Approve a join request successfully (notification arrives)
+  3. Load dashboard and observe missing member trip card
+- **How to confirm:** Inspect `tripService.getUserTrips()` member query error; if it references missing `status` and no fallback runs, this is the cause.
+- **Smallest safe fix:** Retry member lookup without `status` filter when the status-column query fails, then continue normal trip hydration.
+- **Regression risks:** Potential inclusion of legacy rows in old schemas (acceptable compatibility tradeoff for environments without status semantics).
+- **Related files:** `src/services/tripService.ts`
+- **Fixed in:** March 2026 forensic join-approval dashboard fix
+- **Confidence:** medium-high
+## Media tab photo tiles show "Unable to preview" for chat uploads
+- **Status:** fixed
+- **Subsystem:** media hub / storage URL resolution
+- **Bug class:** URL resolution drift
+- **Symptom:** A photo uploaded from chat appears in Media tab counts but tile fails to load and renders "Unable to preview"
+- **User-facing impact:** Photos look broken in Media while chat message may still render, reducing trust in upload reliability
+- **Trigger conditions:** `trip-media` bucket is private or public URL access is restricted; media tile uses raw `media_url` without signing
+- **Likely root cause:** New `MediaGrid` + `MediaTile` path bypassed `useResolvedTripMediaUrl`, while older paths still resolved signed URLs
+- **Smallest safe fix:** Resolve signed URLs at the canonical tile/viewer boundary (`MediaTile`, `MediaViewerModal`, mobile `MediaGridItem`) before rendering `<img>/<video>`
+- **Regression risks:** Signed URL expiration in long-lived sessions (mitigated by existing resolver cache/refresh logic)
+- **Related files:** `src/components/media/MediaTile.tsx`, `src/components/media/MediaViewerModal.tsx`, `src/components/mobile/MediaGridItem.tsx`, `src/hooks/useResolvedTripMediaUrl.ts`
+- **Fixed in:** March 2026 media forensic fix
 - **Confidence:** high

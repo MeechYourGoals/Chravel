@@ -526,6 +526,134 @@ export class NotificationService {
   }
 
   /**
+   * Send notification for a new trip invitation
+   */
+  async notifyTripInvite(
+    tripId: string,
+    tripName: string,
+    inviterName: string,
+    userIds: string[],
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      userIds,
+      type: 'trip_invite',
+      title: 'Trip Invitation',
+      body: `${inviterName} invited you to join "${tripName}"`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        type: 'trip_invite',
+      },
+      actions: [
+        { action: 'view', title: 'View Trip' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ],
+      requireInteraction: true,
+    });
+  }
+
+  /**
+   * Send notification for a join request
+   */
+  async notifyJoinRequest(
+    tripId: string,
+    tripName: string,
+    requesterName: string,
+    adminUserIds: string[],
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      userIds: adminUserIds,
+      type: 'join_request',
+      title: 'Join Request',
+      body: `${requesterName} requested to join "${tripName}"`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        type: 'join_request',
+      },
+      actions: [
+        { action: 'view', title: 'Review' },
+        { action: 'dismiss', title: 'Later' },
+      ],
+    });
+  }
+
+  /**
+   * Send notification for a task assignment
+   */
+  async notifyTaskAssigned(
+    tripId: string,
+    tripName: string,
+    assignerName: string,
+    taskTitle: string,
+    userIds: string[],
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      userIds,
+      type: 'task_assigned',
+      title: `${tripName} - New Task`,
+      body: `${assignerName} assigned you: "${taskTitle}"`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        type: 'task_assigned',
+      },
+      actions: [{ action: 'view', title: 'View Task' }],
+    });
+  }
+
+  /**
+   * Send notification for a broadcast message
+   */
+  async notifyBroadcast(
+    tripId: string,
+    tripName: string,
+    senderName: string,
+    messagePreview: string,
+    excludeUserId?: string,
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      tripId,
+      excludeUserId,
+      type: 'broadcast',
+      title: `${tripName} - Announcement`,
+      body: `${senderName}: ${messagePreview}`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        type: 'broadcast',
+      },
+      actions: [{ action: 'view', title: 'View' }],
+      requireInteraction: true,
+    });
+  }
+
+  /**
+   * Send notification for a poll requiring a vote
+   */
+  async notifyPollVote(
+    tripId: string,
+    tripName: string,
+    creatorName: string,
+    pollQuestion: string,
+    excludeUserId?: string,
+  ): Promise<boolean> {
+    return this.sendPushNotification({
+      tripId,
+      excludeUserId,
+      type: 'poll_vote',
+      title: `${tripName} - New Poll`,
+      body: `${creatorName} asked: "${pollQuestion}"`,
+      icon: '/chravel-logo.png',
+      data: {
+        tripId,
+        type: 'poll_vote',
+      },
+      actions: [{ action: 'view', title: 'Vote Now' }],
+    });
+  }
+
+  /**
    * Send 24-hour trip reminder
    */
   async notifyTripReminder(

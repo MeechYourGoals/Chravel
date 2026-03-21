@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Plus } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { EmojiMartPicker } from './EmojiMartPicker';
 
 interface Reaction {
   id: string;
@@ -45,10 +46,12 @@ export const REACTION_EMOJI_MAP: Record<string, string> = Object.fromEntries(
   REACTIONS.map(r => [r.id, r.emoji]),
 );
 
-/** First 5 reactions shown by default in the quick tray */
+/** First 5 reactions shown in the compact hover pill */
 const QUICK_REACTIONS = REACTIONS.slice(0, 5);
-/** Remaining 6 reactions shown when "+" is clicked */
-const MORE_REACTIONS = REACTIONS.slice(5);
+
+const EMOJI_TO_REACTION_ID: Record<string, string> = Object.fromEntries(
+  REACTIONS.map(reaction => [reaction.emoji, reaction.id]),
+);
 
 export function getReactionTooltipText(
   users: string[] = [],
@@ -66,14 +69,10 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
   className = '',
   userNamesById = {},
 }) => {
-  const [activeReaction, setActiveReaction] = useState<string | null>(null);
-  const [showMore, setShowMore] = useState(false);
+  const [showFullPicker, setShowFullPicker] = useState(false);
   const isMobile = useIsMobile();
 
   const handleReaction = (reactionId: string) => {
-    setActiveReaction(reactionId);
-    setTimeout(() => setActiveReaction(null), 300);
-
     if (onReaction && messageId) {
       onReaction(messageId, reactionId);
     } else if (onReactMessage) {
@@ -81,71 +80,51 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
     }
   };
 
+  const handleFullPickerSelect = (emoji: { native?: string }) => {
+    if (!emoji.native) return;
+    const mappedReactionId = EMOJI_TO_REACTION_ID[emoji.native] ?? emoji.native;
+    handleReaction(mappedReactionId);
+    setShowFullPicker(false);
+  };
+
   const tooltipsByReaction = useMemo(() => {
     const result: Record<string, string> = {};
-    for (const reaction of REACTIONS) {
+    for (const reaction of QUICK_REACTIONS) {
       result[reaction.id] = getReactionTooltipText(reactions[reaction.id]?.users, userNamesById);
     }
     return result;
   }, [reactions, userNamesById]);
 
-  const renderReactionButton = (reaction: Reaction, count: number, userReacted: boolean) => (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => handleReaction(reaction.id)}
-      className={`h-6 px-1.5 py-0.5 text-xs rounded-full border transition-all duration-200 relative overflow-hidden ${
-        userReacted
-          ? 'bg-primary/20 border-primary/50 text-primary hover:bg-primary/30'
-          : 'bg-background/20 border-border/30 text-muted-foreground hover:bg-background/40 hover:text-foreground'
-      } ${count === 0 && !userReacted ? 'opacity-50 hover:opacity-100' : 'opacity-100'}`}
-      title={reaction.label}
-    >
-      <AnimatePresence>
-        {activeReaction === reaction.id && (
-          <motion.span
-            initial={{ scale: 1, opacity: 0.5 }}
-            animate={{ scale: 2, opacity: 0 }}
-            exit={{ scale: 1, opacity: 0 }}
-            className="absolute inset-0 bg-current rounded-full"
-          />
-        )}
-      </AnimatePresence>
-
-      <motion.span
-        className="text-sm mr-1"
-        animate={activeReaction === reaction.id ? { scale: [1, 1.3, 1] } : {}}
-        transition={{ duration: 0.3 }}
-      >
-        {reaction.emoji}
-      </motion.span>
-
-      {count > 0 && (
-        <span className="text-[10px] font-medium min-w-[6px] text-center">{count}</span>
-      )}
-    </Button>
-  );
-
-  const renderReactionItem = (reaction: Reaction) => {
+  const renderQuickReactionButton = (reaction: Reaction) => {
     const reactionData = reactions[reaction.id];
     const count = reactionData?.count || 0;
     const userReacted = reactionData?.userReacted || false;
     const tooltipText = tooltipsByReaction[reaction.id];
     const hasTooltip = count > 0 && tooltipText;
 
+    const button = (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => handleReaction(reaction.id)}
+        className={`h-7 min-w-7 px-1.5 rounded-full border border-white/15 text-sm transition-colors ${
+          userReacted
+            ? 'bg-primary/20 text-primary hover:bg-primary/30'
+            : 'bg-transparent text-white/85 hover:bg-white/10'
+        }`}
+        title={reaction.label}
+      >
+        <span>{reaction.emoji}</span>
+      </Button>
+    );
+
     if (!hasTooltip || isMobile) {
-      return (
-        <React.Fragment key={reaction.id}>
-          {renderReactionButton(reaction, count, userReacted)}
-        </React.Fragment>
-      );
+      return <React.Fragment key={reaction.id}>{button}</React.Fragment>;
     }
 
     return (
       <Tooltip key={reaction.id}>
-        <TooltipTrigger asChild>
-          {renderReactionButton(reaction, count, userReacted)}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent side="top" className="max-w-[240px] text-xs break-words">
           {tooltipText}
         </TooltipContent>
@@ -155,23 +134,31 @@ export const MessageReactionBar: React.FC<MessageReactionBarProps> = ({
 
   return (
     <TooltipProvider>
-      <div className={`flex flex-wrap items-center gap-1 mt-1 ${className}`}>
-        {QUICK_REACTIONS.map(renderReactionItem)}
+      <div
+        className={`inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/75 px-1.5 py-1 shadow-lg backdrop-blur-sm ${className}`}
+      >
+        {QUICK_REACTIONS.map(renderQuickReactionButton)}
 
-        {/* Expand/collapse toggle for remaining reactions */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowMore(prev => !prev)}
-          className="h-6 w-6 p-0 rounded-full border border-border/30 bg-background/20 text-muted-foreground hover:bg-background/40 hover:text-foreground transition-all duration-200"
-          title={showMore ? 'Show fewer reactions' : 'More reactions'}
-        >
-          <Plus
-            className={`h-3 w-3 transition-transform duration-200 ${showMore ? 'rotate-45' : ''}`}
-          />
-        </Button>
-
-        {showMore && MORE_REACTIONS.map(renderReactionItem)}
+        <Popover open={showFullPicker} onOpenChange={setShowFullPicker}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 rounded-full border border-white/15 bg-transparent text-white/90 hover:bg-white/10"
+              aria-label="Open full emoji picker"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            side="top"
+            align="start"
+            className="p-0 w-auto border-0 bg-transparent shadow-none"
+            onOpenAutoFocus={event => event.preventDefault()}
+          >
+            <EmojiMartPicker onEmojiSelect={handleFullPickerSelect} />
+          </PopoverContent>
+        </Popover>
       </div>
     </TooltipProvider>
   );

@@ -38,18 +38,76 @@ export interface UseGeminiVoiceReturn {
   startVoice: () => Promise<void>;
   stopVoice: () => void;
   toggleVoice: () => void;
+  /** Clear the current error state and return to idle */
+  clearError: () => void;
+}
+
+// ---------- Web Speech API types ----------
+// The Web Speech API is not fully standardized in TypeScript's lib.dom.
+// These interfaces cover the subset we use, avoiding `any` throughout.
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  readonly [index: number]: { readonly transcript: string; readonly confidence: number };
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  readonly [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly results: SpeechRecognitionResultList;
+  readonly resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+  readonly message: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  onaudiostart: (() => void) | null;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onnomatch: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
 }
 
 // ---------- Platform detection ----------
 const isIOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
 
 const isIOSPWA =
-  isIOS && typeof window !== 'undefined' && (window.navigator as any).standalone === true;
+  isIOS &&
+  typeof window !== 'undefined' &&
+  (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+
+const isFirefox = typeof navigator !== 'undefined' && /Firefox\/\d+/.test(navigator.userAgent);
+
+const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
 // ---------- Browser support ----------
-const SpeechRecognitionClass =
+const SpeechRecognitionClass: SpeechRecognitionConstructor | null =
   typeof window !== 'undefined'
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    ? (((window as unknown as Record<string, unknown>).SpeechRecognition as
+        | SpeechRecognitionConstructor
+        | undefined) ??
+      ((window as unknown as Record<string, unknown>).webkitSpeechRecognition as
+        | SpeechRecognitionConstructor
+        | undefined) ??
+      null)
     : null;
 
 // iOS Safari caps continuous recognition at ~60s and fires onend on every pause.
@@ -64,7 +122,7 @@ export function useWebSpeechVoice(
   const [userTranscript, setUserTranscript] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const activeRef = useRef(false);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noAudioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,7 +214,9 @@ export function useWebSpeechVoice(
     // We handle iOS restarts via onend.
     recognition.continuous = !isIOS;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    // Use the browser's language preference; fall back to en-US for safety.
+    // Android Chrome may produce better results with the full locale (e.g. en-GB).
+    recognition.lang = navigator?.language || 'en-US';
     // iOS Safari may support maxAlternatives but we only need the best result
     recognition.maxAlternatives = 1;
 
@@ -173,7 +233,7 @@ export function useWebSpeechVoice(
       setVoiceState('listening');
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       // Any result means audio is working — clear no-audio timer
       if (noAudioTimerRef.current) {
         clearTimeout(noAudioTimerRef.current);
@@ -237,7 +297,7 @@ export function useWebSpeechVoice(
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (!activeRef.current) return;
       const errType = event.error;
 
@@ -270,7 +330,9 @@ export function useWebSpeechVoice(
         return;
       }
 
-      console.error('[useWebSpeechVoice] Recognition error:', errType);
+      if (import.meta.env.DEV) {
+        console.error('[useWebSpeechVoice] Recognition error:', errType);
+      }
       setErrorMessage(`Voice error: ${errType}`);
       setVoiceState('error');
       activeRef.current = false;
@@ -285,8 +347,9 @@ export function useWebSpeechVoice(
         return;
       }
 
-      // iOS auto-restart: recognition ended but user didn't tap stop
-      if (isIOS && activeRef.current && restartCountRef.current < IOS_MAX_RESTARTS) {
+      // iOS and Android auto-restart: recognition ended but user didn't tap stop.
+      // Android Chrome also fires onend after silence periods, similar to iOS.
+      if ((isIOS || isAndroid) && activeRef.current && restartCountRef.current < IOS_MAX_RESTARTS) {
         restartCountRef.current++;
         restartWithoutResultRef.current++;
 
@@ -316,7 +379,9 @@ export function useWebSpeechVoice(
             recognitionRef.current = newRecognition;
             newRecognition.start();
           } catch (err) {
-            console.error('[useWebSpeechVoice] iOS restart failed:', err);
+            if (import.meta.env.DEV) {
+              console.error('[useWebSpeechVoice] iOS restart failed:', err);
+            }
             if (accumulatedTranscriptRef.current.trim()) {
               finalizeTranscript();
             } else {
@@ -350,8 +415,12 @@ export function useWebSpeechVoice(
         setErrorMessage(
           'Voice dictation may not be available in this app mode. Try opening in Safari, or use the keyboard.',
         );
+      } else if (isFirefox) {
+        setErrorMessage(
+          'Voice dictation is not supported in Firefox. Please use Chrome, Edge, or Safari.',
+        );
       } else {
-        setErrorMessage('Voice not supported in this browser. Try Chrome or Safari.');
+        setErrorMessage('Voice not supported in this browser. Try Chrome, Edge, or Safari.');
       }
       setVoiceState('error');
       return;
@@ -405,7 +474,9 @@ export function useWebSpeechVoice(
             attemptStart(true);
           }, 300);
         } else {
-          console.error('[useWebSpeechVoice] Failed to start recognition:', err);
+          if (import.meta.env.DEV) {
+            console.error('[useWebSpeechVoice] Failed to start recognition:', err);
+          }
           setErrorMessage('Failed to start voice recognition. Please try again.');
           setVoiceState('error');
           activeRef.current = false;
@@ -433,6 +504,12 @@ export function useWebSpeechVoice(
     }
   }, [cleanup, finalizeTranscript]);
 
+  // ── Clear error — dismiss error state and return to idle ─────────────────
+  const clearError = useCallback(() => {
+    setErrorMessage(null);
+    setVoiceState('idle');
+  }, []);
+
   // ── Toggle voice ────────────────────────────────────────────────────────
   const toggleVoice = useCallback(() => {
     if (voiceState === 'idle' || voiceState === 'error') {
@@ -451,5 +528,6 @@ export function useWebSpeechVoice(
     startVoice,
     stopVoice,
     toggleVoice,
+    clearError,
   };
 }

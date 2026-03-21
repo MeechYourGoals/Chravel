@@ -75,8 +75,9 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
             {isPendingConfirmation && !youOweThem ? (
               <Button
                 size="sm"
-                className="text-xs px-2 py-1 h-auto flex-shrink-0 bg-orange-600 hover:bg-orange-700"
+                className="text-xs px-3 py-2 min-h-[44px] flex-shrink-0 bg-orange-600 hover:bg-orange-700"
                 onClick={() => setShowConfirmDialog(true)}
+                aria-label={`Confirm payment from ${balance.userName}`}
               >
                 <Clock className="w-3 h-3 mr-1" />
                 Confirm Payment
@@ -86,8 +87,9 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                 {paymentLink && (
                   <Button
                     size="sm"
-                    className="text-xs px-2 py-1 h-auto"
+                    className="text-xs px-3 py-2 min-h-[44px]"
                     onClick={() => window.open(paymentLink, '_blank')}
+                    aria-label={`Pay ${balance.userName} now via payment link`}
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
                     Pay Now
@@ -96,8 +98,9 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
                 <Button
                   size="sm"
                   variant="outline"
-                  className="text-xs px-2 py-1 h-auto"
+                  className="text-xs px-3 py-2 min-h-[44px]"
                   onClick={() => setShowSettleDialog(true)}
+                  aria-label={`Mark payment to ${balance.userName} as paid`}
                 >
                   Mark as Paid
                 </Button>
@@ -106,8 +109,9 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
               <Button
                 size="sm"
                 variant="outline"
-                className="text-xs px-2 py-1 h-auto flex-shrink-0"
+                className="text-xs px-3 py-2 min-h-[44px] flex-shrink-0"
                 onClick={() => setShowSettleDialog(true)}
+                aria-label={`Mark payment from ${balance.userName} as paid`}
               >
                 Mark as Paid
               </Button>
@@ -127,8 +131,14 @@ export const PersonBalanceCard = ({ balance, tripId }: PersonBalanceCardProps) =
             <Button
               size="sm"
               variant="ghost"
-              className="flex-shrink-0 h-auto p-1"
+              className="flex-shrink-0 min-h-[44px] min-w-[44px] p-2"
               onClick={() => setShowDetails(!showDetails)}
+              aria-label={
+                showDetails
+                  ? `Hide payment details for ${balance.userName}`
+                  : `Show payment details for ${balance.userName}`
+              }
+              aria-expanded={showDetails}
             >
               {showDetails ? (
                 <ChevronUp className="w-4 h-4" />

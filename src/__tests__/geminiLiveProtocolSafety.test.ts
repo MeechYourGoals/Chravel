@@ -9,11 +9,17 @@ function readRepoFile(relativePath: string): string {
 }
 
 describe('Gemini Live protocol safety invariants', () => {
+<<<<<<< HEAD
   it('does not send global SILENT scheduling in toolResponse frames', () => {
     const liveHook = readRepoFile('src/hooks/useGeminiLive.ts');
     // It should selectively allow SILENT for specific tools, not globally.
     // The codebase uses selective ternary logic `silentTools.has(r.name) ? { scheduling: 'SILENT' } : {}`
     expect(liveHook).toContain("silentTools.has(r.name) ? { scheduling: 'SILENT' } : {}");
+=======
+  it('does not send SILENT scheduling in toolResponse frames', () => {
+    const liveHook = readRepoFile('src/hooks/useGeminiLive.ts');
+    expect(liveHook).not.toContain("scheduling: 'SILENT'");
+>>>>>>> origin/main
   });
 
   it('includes sessionResumption only when a token exists', () => {

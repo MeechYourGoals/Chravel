@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 import { useTripVariant } from '../../contexts/TripVariantContext';
+import type { ProTripData } from '../../types/pro';
 
 interface ProTripDetailHeaderProps {
-  tripContext: any;
+  tripContext: ProTripData | null;
   showInbox: boolean;
   onToggleInbox: () => void;
   onShowInvite: () => void;
@@ -28,7 +29,8 @@ export const ProTripDetailHeader = ({
     <div className="flex items-center justify-between mb-4">
       <button
         onClick={() => navigate('/')}
-        className="flex items-center gap-3 text-gray-300 hover:text-white transition-colors group"
+        className="flex items-center gap-3 text-gray-300 hover:text-white transition-colors group min-h-[44px]"
+        aria-label="Back to trips dashboard"
       >
         <div className="bg-gray-800 p-2 rounded-lg shadow-lg group-hover:shadow-ring-glow transition-all border border-gray-700 hover:border-gold-primary/50">
           <ArrowLeft size={20} />

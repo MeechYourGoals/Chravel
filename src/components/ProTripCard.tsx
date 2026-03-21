@@ -38,6 +38,8 @@ import { demoModeService } from '../services/demoModeService';
 import { openOrDownloadBlob } from '../utils/download';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import type { ExportSection } from '../types/tripExport';
+import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
+import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +77,8 @@ export const ProTripCard = ({
 
   // Get color for this trip - uses saved color if available, otherwise deterministic fallback
   const tripColor = getProTripColor(trip.id, (trip as any).card_color);
+  const coverPhoto = (trip as { coverPhoto?: string }).coverPhoto;
+  const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(trip.id) : undefined;
 
   // Get added members from the demo store
   const tripIdStr = trip.id.toString();
@@ -292,10 +296,10 @@ export const ProTripCard = ({
       {/* Hero Section - Dark overlay for text readability */}
       <div className="relative h-32 md:h-48 bg-black/40">
         {/* Cover photo overlay if available */}
-        {(trip as any).coverPhoto && (
+        {coverPhoto && (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={{ backgroundImage: `url(${(trip as any).coverPhoto})` }}
+            style={buildCoverBackgroundImage(coverPhoto, demoCoverFallback)}
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

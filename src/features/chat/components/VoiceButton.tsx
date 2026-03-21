@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { AudioLines, Lock, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import type { VoiceState } from '@/hooks/useWebSpeechVoice';
-import { CTA_GRADIENT, CTA_ICON_SIZE, CTA_ICON_SIZE_SM } from '@/lib/ctaButtonStyles';
+import { CTA_GRADIENT, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
 
 interface VoiceButtonProps {
   /** Dictation engine state */
@@ -66,8 +66,13 @@ export const VoiceButton = ({
           <button
             type="button"
             onClick={handleClick}
+<<<<<<< HEAD
             className={`relative ${small ? 'size-9 min-w-[36px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
+=======
+            className={`relative ${small ? 'size-10 min-w-[40px]' : 'size-11'} rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shrink-0 select-none touch-manipulation ${getStyle()}`}
+>>>>>>> origin/main
             aria-label={getTooltip()}
+            aria-pressed={isActive}
           >
             {/* Animated pulse rings when dictating */}
             {isActive && !isConnecting && (
@@ -91,9 +96,9 @@ export const VoiceButton = ({
             )}
             <span className="relative z-10">
               {isConnecting ? (
-                <Loader2 size={small ? CTA_ICON_SIZE_SM : CTA_ICON_SIZE} className="animate-spin" />
+                <Loader2 size={CTA_ICON_SIZE} className="animate-spin" />
               ) : (
-                <AudioLines size={small ? CTA_ICON_SIZE_SM : CTA_ICON_SIZE} />
+                <AudioLines size={CTA_ICON_SIZE} />
               )}
             </span>
             {!isEligible && (

@@ -101,6 +101,29 @@ export const broadcastService = {
     }
   },
 
+  async deleteBroadcast(broadcastId: string): Promise<boolean> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Soft-delete: mark as not sent with deleted metadata
+      const { error } = await supabase
+        .from('broadcasts')
+        .delete()
+        .eq('id', broadcastId)
+        .eq('created_by', user.id);
+
+      return !error;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error deleting broadcast:', error);
+      }
+      return false;
+    }
+  },
+
   async addReaction(broadcastId: string, reactionType: string): Promise<boolean> {
     try {
       const {

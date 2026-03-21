@@ -545,6 +545,7 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
+<<<<<<< HEAD
         // We want the AI to audibly acknowledge most actions as instructed in the system prompt.
         // However, we explicitly silence tools that return PII/large unstructured text
         // (like searchTripArtifacts) to prevent the model from reading sensitive docs aloud.
@@ -556,6 +557,9 @@ export function useGeminiLive({
         }));
 
         ws.send(JSON.stringify({ toolResponse: { functionResponses: scheduledResponses } }));
+=======
+        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
+>>>>>>> origin/main
       }
     },
     [],
@@ -575,7 +579,7 @@ export function useGeminiLive({
     // ── Gate 0: sessionAttemptId for end-to-end correlation ──
     const sessionAttemptId = crypto.randomUUID();
     const t0 = performance.now();
-    console.warn('[VOICE:G0] tap_live', { sessionAttemptId, tripId, voice });
+    voiceLog('G0:tap_live', { sessionAttemptId, tripId, voice });
 
     if (!VOICE_LIVE_ENABLED) {
       setError('Voice is currently disabled.');
@@ -640,12 +644,8 @@ export function useGeminiLive({
         audioCtxRef.current.sampleRate,
         VOICE_DIAGNOSTICS_ENABLED,
       );
-      if (needsResample && VOICE_DIAGNOSTICS_ENABLED) {
-        console.log(
-          '[useGeminiLive] Capture will resample to',
-          AUDIO_CONTRACT.expectedSampleRateHz,
-          'Hz',
-        );
+      if (needsResample && VOICE_DIAGNOSTICS_ENABLED && import.meta.env.DEV) {
+        voiceLog('capture:resample', { targetHz: AUDIO_CONTRACT.expectedSampleRateHz });
       }
 
       // Kick off resume synchronously
@@ -657,7 +657,7 @@ export function useGeminiLive({
       });
 
       // ── Gate 3: Log audio context state ──
-      console.warn('[VOICE:G3] audio_context_state', {
+      voiceLog('G3:audio_context_state', {
         sessionAttemptId,
         state: audioCtxRef.current.state,
         sampleRate: audioCtxRef.current.sampleRate,
@@ -675,7 +675,7 @@ export function useGeminiLive({
       }
 
       // ── Get voice session + mic IN PARALLEL ──
-      console.warn('[VOICE:G0] parallel_start', {
+      voiceLog('G0:parallel_start', {
         sessionAttemptId,
         msFromStart: Math.round(performance.now() - t0),
       });
@@ -758,17 +758,17 @@ export function useGeminiLive({
         // Clean up mic if session failed, or vice versa
         micPromise.then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
         const errMsg = err instanceof Error ? err.message : 'Failed to initialize voice session';
-        console.warn('[VOICE:G0] parallel_failed', { sessionAttemptId, error: errMsg });
+        voiceLog('G0:parallel_failed', { sessionAttemptId, error: errMsg });
         recordVoiceFailure(errMsg);
         throw new Error(errMsg);
       }
 
-      console.warn('[VOICE:G0] parallel_done', { sessionAttemptId });
+      voiceLog('G0:parallel_done', { sessionAttemptId });
       voiceLog('timing:sessionAndMic', { ms: Math.round(performance.now() - sessionStartedAt) });
       mediaStreamRef.current = stream;
 
       const track = stream.getAudioTracks()[0];
-      console.warn('[VOICE:G3] mic_acquired', {
+      voiceLog('G3:mic_acquired', {
         sessionAttemptId,
         deviceLabel: track?.label || 'unknown',
       });
@@ -804,7 +804,7 @@ export function useGeminiLive({
             diagnosticsRef.current.metrics.firstAudioFramePlayedMs === null
           ) {
             patchMetrics({ firstAudioFramePlayedMs: performance.now() - turnStartedAtRef.current });
-            console.warn('[VOICE:G3] first_audio_played', { sessionAttemptId });
+            voiceLog('G3:first_audio_played', { sessionAttemptId });
           }
         },
         () => {
@@ -833,7 +833,7 @@ export function useGeminiLive({
       // ── Gate 2: Open WebSocket directly to Vertex AI ──
       patchDiagnostics({ substep: 'Opening audio channel…' });
       const vertexWsUrl = `${sessionData.websocketUrl}?access_token=${sessionData.accessToken}`;
-      console.warn('[VOICE:G2] ws_connecting', {
+      voiceLog('G2:ws_connecting', {
         sessionAttemptId,
         wsUrl: sessionData.websocketUrl,
         msFromStart: Math.round(performance.now() - t0),
@@ -860,7 +860,7 @@ export function useGeminiLive({
 
       ws.onopen = () => {
         patchDiagnostics({ connectionStatus: 'open' });
-        console.warn('[VOICE:G2] ws_opened', {
+        voiceLog('G2:ws_opened', {
           sessionAttemptId,
           readyState: ws.readyState,
           msFromStart: Math.round(performance.now() - t0),
@@ -871,13 +871,13 @@ export function useGeminiLive({
 
         // Send setup message directly to Vertex AI — session endpoint built it for us
         if (ws.readyState === WebSocket.OPEN) {
-          console.warn('[VOICE:G2] sending_setup', { sessionAttemptId });
+          voiceLog('G2:sending_setup', { sessionAttemptId });
           ws.send(JSON.stringify(sessionData.setupMessage));
         }
         setupTimeoutId = setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`;
-            console.warn('[VOICE:G2] ws_setup_timeout', {
+            voiceLog('G2:ws_setup_timeout', {
               sessionAttemptId,
               wsMessageCount,
               msFromStart: Math.round(performance.now() - t0),
@@ -923,7 +923,7 @@ export function useGeminiLive({
 
           // Gate 2: Log first 5 inbound message types
           if (wsMessageCount <= 5) {
-            console.warn(`[VOICE:G2] ws_message_${wsMessageCount}`, {
+            voiceLog(`G2:ws_message_${wsMessageCount}`, {
               sessionAttemptId,
               keys: Object.keys(data),
               hasSetupComplete:
@@ -959,7 +959,7 @@ export function useGeminiLive({
           if (goAwayData) {
             const timeLeft = goAwayData.timeLeft || goAwayData.time_left;
             voiceLog('server:goAway', { timeLeft });
-            console.warn('[VOICE:G2] go_away_received', {
+            voiceLog('G2:go_away_received', {
               sessionAttemptId,
               timeLeft,
             });
@@ -994,7 +994,7 @@ export function useGeminiLive({
                 Object.prototype.hasOwnProperty.call(sc_content, 'setup_complete')));
 
           if (setupComplete) {
-            console.warn('[VOICE:G2] ws_setup_complete', {
+            voiceLog('G2:ws_setup_complete', {
               sessionAttemptId,
               msFromStart: Math.round(performance.now() - t0),
             });
@@ -1053,7 +1053,7 @@ export function useGeminiLive({
                         patchMetrics({
                           firstAudioChunkSentMs: performance.now() - turnStartedAtRef.current,
                         });
-                        console.warn('[VOICE:G3] first_audio_sent', { sessionAttemptId });
+                        voiceLog('G3:first_audio_sent', { sessionAttemptId });
                       }
                       if (stateRef.current === 'ready' || stateRef.current === 'listening') {
                         transition('sending', 'audio_chunk_sent');
@@ -1153,7 +1153,7 @@ export function useGeminiLive({
                 patchMetrics({
                   firstTokenReceivedMs: performance.now() - turnStartedAtRef.current,
                 });
-                console.warn('[VOICE:G3] first_audio_received', { sessionAttemptId });
+                voiceLog('G3:first_audio_received', { sessionAttemptId });
               }
             }
 
@@ -1270,7 +1270,7 @@ export function useGeminiLive({
       };
 
       ws.onerror = ev => {
-        console.warn('[VOICE:G2] ws_error', {
+        voiceLog('G2:ws_error', {
           sessionAttemptId,
           type: (ev as ErrorEvent).message ?? 'unknown',
         });
@@ -1280,12 +1280,7 @@ export function useGeminiLive({
       };
 
       ws.onclose = event => {
-        console.warn('[VOICE:G2] ws_closed', {
-          sessionAttemptId,
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-        });
+        isStartingRef.current = false;
         voiceLog('ws:closed', { code: event.code, reason: event.reason, wasClean: event.wasClean });
         clearSetupTimeout();
         const msg = mapWsCloseError(event.code, event.reason);
@@ -1335,6 +1330,7 @@ export function useGeminiLive({
         void cleanup();
       };
     } catch (err) {
+      isStartingRef.current = false;
       const errMsg = err instanceof Error ? err.message : 'Failed to start voice session.';
       recordVoiceFailure(errMsg);
 

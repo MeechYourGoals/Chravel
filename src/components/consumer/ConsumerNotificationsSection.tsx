@@ -216,7 +216,7 @@ export const ConsumerNotificationsSection = () => {
           setSmsPhoneNumber(prefs.sms_phone_number);
         }
       } catch (error) {
-        console.error('Error loading notification preferences:', error);
+        if (import.meta.env.DEV) console.error('Error loading notification preferences:', error);
       } finally {
         setIsLoading(false);
       }
@@ -233,7 +233,8 @@ export const ConsumerNotificationsSection = () => {
       try {
         await userPreferencesService.updateNotificationPreferences(user.id, { sms_enabled: false });
       } catch (error) {
-        console.error('Failed to auto-disable SMS for ineligible user:', error);
+        if (import.meta.env.DEV)
+          console.error('Failed to auto-disable SMS for ineligible user:', error);
       }
     };
 
@@ -308,7 +309,7 @@ export const ConsumerNotificationsSection = () => {
         await userPreferencesService.updateNotificationPreferences(user.id, { [dbKey]: newValue });
         return;
       } catch (error) {
-        console.error('Error updating push notifications:', error);
+        if (import.meta.env.DEV) console.error('Error updating push notifications:', error);
         toast({
           title: 'Error',
           description: 'Failed to update push notifications. Please try again.',
@@ -331,7 +332,7 @@ export const ConsumerNotificationsSection = () => {
       try {
         await userPreferencesService.updateNotificationPreferences(user.id, { [dbKey]: newValue });
       } catch (error) {
-        console.error('Error saving notification preference:', error);
+        if (import.meta.env.DEV) console.error('Error saving notification preference:', error);
         // Revert on error
         setNotificationSettings(prev => ({
           ...prev,
@@ -382,7 +383,7 @@ export const ConsumerNotificationsSection = () => {
         });
       }
     } catch (error) {
-      console.error('Test SMS error:', error);
+      if (import.meta.env.DEV) console.error('Test SMS error:', error);
       toast({ title: 'Error', description: 'Could not send test SMS.', variant: 'destructive' });
     } finally {
       setIsSendingTestSms(false);
@@ -436,7 +437,7 @@ export const ConsumerNotificationsSection = () => {
         description: `You'll receive text messages at ${formatPhoneNumber(normalizedPhone)}`,
       });
     } catch (error) {
-      console.error('Error saving SMS phone number:', error);
+      if (import.meta.env.DEV) console.error('Error saving SMS phone number:', error);
       setPhoneError('Failed to save phone number. Please try again.');
     } finally {
       setIsSavingPhone(false);
@@ -458,7 +459,7 @@ export const ConsumerNotificationsSection = () => {
         };
         await userPreferencesService.updateNotificationPreferences(user.id, updates);
       } catch (error) {
-        console.error('Error saving quiet time:', error);
+        if (import.meta.env.DEV) console.error('Error saving quiet time:', error);
       }
     }
   };

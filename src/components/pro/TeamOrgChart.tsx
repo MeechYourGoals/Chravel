@@ -82,7 +82,8 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
                 variant="outline"
                 size="sm"
                 disabled={currentPage === 0}
-                className="border-white/10 h-8 w-8 p-0"
+                className="border-white/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0"
+                aria-label="Previous page"
               >
                 <ChevronLeft size={16} />
               </Button>
@@ -94,7 +95,8 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
                 variant="outline"
                 size="sm"
                 disabled={currentPage >= totalPages - 1}
-                className="border-white/10 h-8 w-8 p-0"
+                className="border-white/10 h-11 w-11 min-h-[44px] min-w-[44px] p-0"
+                aria-label="Next page"
               >
                 <ChevronRight size={16} />
               </Button>
@@ -108,8 +110,17 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
             {paginatedMembers.map(member => (
               <div
                 key={member.id}
-                className="bg-white/5 border border-white/10 rounded-lg p-3 min-w-[200px] max-w-[240px] hover:bg-white/10 transition-colors cursor-pointer"
+                role="button"
+                tabIndex={0}
+                aria-label={`View ${member.name}${member.role ? `, ${member.role}` : ''}`}
+                className="bg-white/5 border border-white/10 rounded-lg p-3 min-w-[200px] max-w-[240px] hover:bg-white/10 transition-colors cursor-pointer min-h-[44px]"
                 onClick={() => onMemberClick?.(member.id)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onMemberClick?.(member.id);
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="w-10 h-10 border-2 border-white/10 flex-shrink-0">
@@ -122,6 +133,8 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
                     <h3 className="font-medium text-white text-sm truncate">{member.name}</h3>
                     {member.role && member.role !== 'Member' && member.role !== 'Participant' && (
                       <span
+                        role="status"
+                        aria-label={`Role: ${member.role}`}
                         className={`${getRoleColorClass(member.role, category)} px-2 py-0.5 rounded text-xs font-medium inline-block mt-1`}
                       >
                         {member.role}
@@ -153,28 +166,42 @@ export const TeamOrgChart = ({ roster, category, onMemberClick }: TeamOrgChartPr
             variant="outline"
             size="sm"
             disabled={zoom <= 50}
-            className="border-white/10"
+            className="border-white/10 min-h-[44px] min-w-[44px]"
+            aria-label="Zoom out"
           >
             <ZoomOut size={16} />
           </Button>
-          <span className="text-sm text-muted-foreground min-w-[60px] text-center">{zoom}%</span>
+          <span
+            className="text-sm text-muted-foreground min-w-[60px] text-center"
+            aria-live="polite"
+          >
+            {zoom}%
+          </span>
           <Button
             onClick={handleZoomIn}
             variant="outline"
             size="sm"
             disabled={zoom >= 150}
-            className="border-white/10"
+            className="border-white/10 min-h-[44px] min-w-[44px]"
+            aria-label="Zoom in"
           >
             <ZoomIn size={16} />
           </Button>
-          <Button onClick={handleResetZoom} variant="outline" size="sm" className="border-white/10">
+          <Button
+            onClick={handleResetZoom}
+            variant="outline"
+            size="sm"
+            className="border-white/10 min-h-[44px] min-w-[44px]"
+            aria-label="Reset zoom"
+          >
             <Maximize2 size={16} />
           </Button>
           <Button
             onClick={handleExportChart}
             variant="outline"
             size="sm"
-            className="border-white/10"
+            className="border-white/10 min-h-[44px]"
+            aria-label="Export org chart as image"
           >
             <Download size={16} className="mr-2" />
             Export

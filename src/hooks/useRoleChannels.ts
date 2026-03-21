@@ -70,6 +70,7 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
   const [activeChannel, setActiveChannel] = useState<TripChannel | null>(null);
   const [messages, setMessages] = useState<RoleChannelMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [demoMessages, setDemoMessages] = useState<Map<string, ChannelMessage[]>>(new Map());
 
   const isDemoTrip = isDemoMode && DEMO_TRIP_IDS.includes(tripId);
@@ -77,6 +78,7 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
   // Load channels for this trip
   const loadChannels = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
 
     // DEMO MODE: Load from mock service
     if (isDemoMode || isDemoTrip) {
@@ -111,8 +113,9 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
 
       // Channels already come in TripChannel format from channelService
       setAvailableChannels(accessibleChannels);
-    } catch (error) {
-      console.error('Error loading channels:', error);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load channels';
+      setError(message);
       setAvailableChannels([]);
     }
 
@@ -193,6 +196,30 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
     return false;
   };
 
+  const archiveChannel = async (channelId: string): Promise<boolean> => {
+    const success = await channelService.archiveChannel(channelId);
+    if (success) {
+      if (activeChannel?.id === channelId) {
+        setActiveChannel(null);
+      }
+      await loadChannels();
+      return true;
+    }
+    return false;
+  };
+
+  const updateChannel = async (
+    channelId: string,
+    updates: { channelName?: string; description?: string; isPrivate?: boolean },
+  ): Promise<boolean> => {
+    const result = await channelService.updateChannel(channelId, updates);
+    if (result) {
+      await loadChannels();
+      return true;
+    }
+    return false;
+  };
+
   const sendMessage = async (content: string): Promise<boolean> => {
     if (!activeChannel) return false;
 
@@ -224,9 +251,12 @@ export const useRoleChannels = (tripId: string, _userRole: string, roles?: strin
     activeChannel,
     messages,
     isLoading,
+    error,
     setActiveChannel,
     createChannel,
     deleteChannel,
+    archiveChannel,
+    updateChannel,
     sendMessage,
     refreshChannels: loadChannels,
   };

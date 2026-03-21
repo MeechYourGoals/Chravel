@@ -36,6 +36,10 @@ import { useConciergeSessionStore, type ConciergeSession } from '@/store/concier
 import { useSaveToTripPlaces } from '@/hooks/useSaveToTripPlaces';
 import { useConciergeReadAloud } from '@/hooks/useConciergeReadAloud';
 import { buildSpeechText } from '@/lib/buildSpeechText';
+import {
+  getConciergeInvalidationQueryKey,
+  isConciergeWriteAction,
+} from '@/lib/conciergeInvalidation';
 import { sanitizeConciergeContent } from '@/lib/sanitizeConciergeContent';
 
 const EMPTY_SESSION: ConciergeSession = {
@@ -187,6 +191,8 @@ interface FallbackTripContext {
 }
 
 const FAST_RESPONSE_TIMEOUT_MS = 60_000;
+const MAX_CHAT_HISTORY_MESSAGES = 10;
+const MAX_SINGLE_MESSAGE_LENGTH = 3000;
 const _MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 under 6 MB server limit
 const _ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
@@ -519,8 +525,9 @@ export const AIConciergeChat = ({
               if (!assistantMsg.conciergeActions) assistantMsg.conciergeActions = [];
               assistantMsg.conciergeActions.push({
                 actionType: (tr.result.actionType as string) || tr.name,
+                success: !!tr.result.success,
                 message: (tr.result.message as string) || '',
-              } as any);
+              });
             }
           }
         }
@@ -551,6 +558,7 @@ export const AIConciergeChat = ({
           const voiceAssistantMsg = newMessages.find(m => m.type === 'assistant');
           const richMeta = extractRichMetadata(voiceAssistantMsg);
 
+          // Type assertion needed: metadata column exists in DB but may not be in generated types
           const { error: persistError } = await supabase.from('ai_queries').insert({
             trip_id: tripId,
             user_id: user.id,
@@ -558,16 +566,20 @@ export const AIConciergeChat = ({
             response_text: assistantText,
             created_at: now,
             ...(richMeta ? { metadata: richMeta } : {}),
-          } as any);
+          } as Record<string, unknown>);
 
           if (persistError) {
-            console.error('[Voice] Failed to persist voice turn:', persistError.message);
+            if (import.meta.env.DEV) {
+              console.error('[Voice] Failed to persist voice turn:', persistError.message);
+            }
             toast.warning('Voice turn not saved', {
               description: 'Your voice conversation could not be saved to history.',
             });
           }
         } catch (err) {
-          console.error('[Voice] Unexpected error persisting voice turn:', err);
+          if (import.meta.env.DEV) {
+            console.error('[Voice] Unexpected error persisting voice turn:', err);
+          }
           toast.warning('Voice turn not saved', {
             description: 'Your voice conversation could not be saved to history.',
           });
@@ -583,11 +595,15 @@ export const AIConciergeChat = ({
 
   const {
     state: liveState,
+    error: liveError,
     userTranscript: liveUserTranscript,
     assistantTranscript: liveAssistantTranscript,
+    conversationHistory: liveConversationHistory,
     diagnostics: liveDiagnostics,
     startSession: startLiveSession,
     endSession: endLiveSession,
+    circuitBreakerOpen: liveCircuitBreakerOpen,
+    resetCircuitBreaker: liveResetCircuitBreaker,
   } = useGeminiLive({
     tripId,
     onToolCall: handleToolCall,
@@ -735,7 +751,9 @@ export const AIConciergeChat = ({
     if (isHistoryLoading || hasHydratedRef.current) return;
 
     if (historyError) {
-      console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
+      if (import.meta.env.DEV) {
+        console.error('[AIConciergeChat] Failed to load persisted history:', historyError);
+      }
       // Fallback: try localStorage cache (covers offline + RPC failure scenarios)
       const userId = user?.id ?? 'anonymous';
       const cached = conciergeCacheService.getCachedMessages(tripId, userId);
@@ -817,7 +835,9 @@ export const AIConciergeChat = ({
 
     const timeout = setTimeout(() => {
       if (isMounted.current && aiStatus === 'checking') {
-        console.warn('[AIConciergeChat] Initialization timeout - showing fallback');
+        if (import.meta.env.DEV) {
+          console.warn('[AIConciergeChat] Initialization timeout - showing fallback');
+        }
         setAiStatus('timeout');
       }
     }, 8000);
@@ -1036,16 +1056,15 @@ export const AIConciergeChat = ({
         attachments = await Promise.all(selectedImages.map(fileToAttachmentPayload));
       }
 
-      const MAX_MESSAGE_LENGTH = 3000;
-      // Slice the last 5 prior messages (not 6). The current user message is
-      // appended separately by the edge function, so 5 prior + 1 current = 6
-      // messages of context. Using -6 here previously caused an off-by-one where
-      // the most recent assistant reply was dropped from the context window.
-      const chatHistory = messages.slice(-5).map(msg => ({
+      // Slice the last N prior messages. The current user message is
+      // appended separately by the edge function, so N prior + 1 current = N+1
+      // messages of context. Cap at MAX_CHAT_HISTORY_MESSAGES to avoid
+      // exceeding Gemini's context window with long conversations.
+      const chatHistory = messages.slice(-MAX_CHAT_HISTORY_MESSAGES).map(msg => ({
         role: msg.type === 'user' ? 'user' : 'assistant',
         content:
-          msg.content.length > MAX_MESSAGE_LENGTH
-            ? msg.content.substring(0, MAX_MESSAGE_LENGTH) + '...[truncated]'
+          msg.content.length > MAX_SINGLE_MESSAGE_LENGTH
+            ? msg.content.substring(0, MAX_SINGLE_MESSAGE_LENGTH) + '...[truncated]'
             : msg.content,
       }));
 
@@ -1289,15 +1308,7 @@ export const AIConciergeChat = ({
               }
 
               // Handle concierge write actions (createPoll, createTask, savePlace, etc.)
-              const writeActions = new Set([
-                'createPoll',
-                'createTask',
-                'addToCalendar',
-                'savePlace',
-                'setBasecamp',
-                'addToAgenda',
-              ]);
-              if (writeActions.has(name) && result.actionType) {
+              if (isConciergeWriteAction(name) && result.actionType) {
                 // Extract entity name from nested result objects
                 const entityName =
                   (result.entityName as string) ||
@@ -1364,15 +1375,7 @@ export const AIConciergeChat = ({
 
                 // Invalidate relevant queries so tab data refreshes after AI write actions
                 if (result.success) {
-                  const invalidationMap: Record<string, string[]> = {
-                    createTask: ['tripTasks', tripId],
-                    createPoll: ['tripPolls', tripId],
-                    addToCalendar: ['calendarEvents', tripId],
-                    savePlace: ['tripPlaces', tripId],
-                    setBasecamp: ['tripBasecamp', tripId],
-                    addToAgenda: ['eventAgenda', tripId],
-                  };
-                  const queryKey = invalidationMap[name];
+                  const queryKey = getConciergeInvalidationQueryKey(name, tripId);
                   if (queryKey) {
                     conciergeQueryClient.invalidateQueries({ queryKey });
                   }
@@ -1650,18 +1653,19 @@ export const AIConciergeChat = ({
                   if (richMeta && user?.id) {
                     supabase
                       .from('ai_queries')
-                      .update({ metadata: richMeta } as any)
+                      .update({ metadata: richMeta } as Record<string, unknown>)
                       .eq('trip_id', tripId)
                       .eq('user_id', user.id)
                       .eq('query_text', currentInput)
                       .order('created_at', { ascending: false })
                       .limit(1)
                       .then(({ error: metaErr }) => {
-                        if (metaErr)
+                        if (metaErr && import.meta.env.DEV) {
                           console.warn(
                             '[Concierge] Failed to persist rich metadata:',
                             metaErr.message,
                           );
+                        }
                       });
                   }
                 }
@@ -1857,22 +1861,26 @@ export const AIConciergeChat = ({
                 <button
                   type="button"
                   onClick={handleLiveToggle}
-                  className={`relative h-7 px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
+                  className={`relative min-h-[44px] min-w-[44px] h-8 px-3 rounded-full flex items-center justify-center gap-1 transition-all duration-200 select-none touch-manipulation cta-gold-ring ${
                     isLiveSessionActive
                       ? 'bg-gradient-to-br from-[#533517] to-[#c49746] text-white shadow-md shadow-[#c49746]/25 border-transparent'
                       : 'bg-gray-800/80 text-white hover:bg-gray-700/80'
                   }`}
-                  aria-label={isLiveSessionActive ? 'Stop live voice' : 'Start live voice'}
+                  aria-label={
+                    isLiveSessionActive ? 'Stop live voice session' : 'Start live voice session'
+                  }
+                  role="switch"
+                  aria-checked={isLiveSessionActive}
                 >
                   {isLiveSessionActive && (
                     <span
-                      aria-hidden
+                      aria-hidden="true"
                       className="pointer-events-none absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#c49746]/30 to-[#feeaa5]/20 blur-sm"
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-1">
-                    <Sparkles size={12} />
-                    <span className="text-[10px] font-medium leading-none">Live</span>
+                    <Sparkles size={14} aria-hidden="true" />
+                    <span className="text-xs font-medium leading-none">Live</span>
                   </span>
                 </button>
               )}
@@ -1960,7 +1968,12 @@ export const AIConciergeChat = ({
             userTranscript={liveUserTranscript}
             assistantTranscript={liveAssistantTranscript}
             diagnostics={liveDiagnostics}
+            error={liveError}
+            circuitBreakerOpen={liveCircuitBreakerOpen}
+            conversationEmpty={liveConversationHistory.length === 0}
             onEndSession={() => void handleEndLiveSession()}
+            onRetry={() => void startLiveSession()}
+            onResetCircuitBreaker={liveResetCircuitBreaker}
           />
         ) : (
           <div

@@ -216,7 +216,25 @@ export const tripService = {
       });
 
       if (error) {
-        console.error('[tripService] Edge function error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[tripService] Edge function error:', error);
+        }
+
+        // SAFETY: This block only handles trip *creation* errors (not trip loading).
+        // No Trip Not Found risk — getTripById is a separate method.
+        // No auth desync — auth flow (lines 124-157) is untouched.
+        // No RLS leak — error messages are either known codes or hardcoded strings.
+
+        const rawErrorMessage =
+          error && typeof error === 'object' && 'message' in error
+            ? String(error.message ?? '')
+            : '';
+        const isFetchFailure = /failed to fetch/i.test(rawErrorMessage);
+        if (isFetchFailure) {
+          throw new Error(
+            'Unable to reach trip creation service. If this happens on a preview domain, add that origin to Edge Function CORS allowlist (ADDITIONAL_ALLOWED_ORIGINS) and redeploy create-trip.',
+          );
+        }
 
         // Extract the actual error message from the edge function response body.
         // supabase.functions.invoke returns { data: null, error: FunctionsHttpError }
@@ -230,11 +248,13 @@ export const tripService = {
           detailedMessage = data.message;
         }
 
-        // If data was null, try parsing the Response from error.context
-        if (!detailedMessage && error.context) {
+        // Only parse Response objects (FunctionsHttpError/FunctionsRelayError).
+        // FunctionsFetchError stores a TypeError in context — not a Response.
+        // Previously used `typeof error.context.json === 'function'` which also
+        // matched TypeError objects, leaking raw "Failed to fetch" to users.
+        if (!detailedMessage && error.context instanceof Response) {
           try {
-            const responseBody =
-              typeof error.context.json === 'function' ? await error.context.json() : error.context;
+            const responseBody = await error.context.json();
             detailedMessage = responseBody?.error || responseBody?.message || '';
           } catch {
             // Response body already consumed or not JSON - ignore
@@ -249,11 +269,20 @@ export const tripService = {
           throw new Error('UPGRADE_REQUIRED_EVENT');
         }
 
+        // Network errors (CORS, offline, etc.) get a specific user-friendly message
+        if (!detailedMessage && error.name === 'FunctionsFetchError') {
+          throw new Error(
+            'Network error creating trip. Please check your connection and try again.',
+          );
+        }
+
         throw new Error(detailedMessage || 'Failed to create trip. Please try again.');
       }
 
       if (!data?.success) {
-        console.error('[tripService] Edge function returned failure:', data);
+        if (import.meta.env.DEV) {
+          console.error('[tripService] Edge function returned failure:', data);
+        }
         throw new Error(data?.error || 'Failed to create trip');
       }
 
@@ -261,6 +290,17 @@ export const tripService = {
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('[tripService] Error creating trip:', error);
+      }
+      // Handle network-level errors (FunctionsFetchError) with a user-friendly message.
+      // When supabase.functions.invoke cannot reach the function, it throws with
+      // message "Failed to fetch" rather than returning { error: FunctionsHttpError }.
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (
+        errMsg === 'Failed to fetch' ||
+        errMsg.toLowerCase().includes('networkerror') ||
+        errMsg.toLowerCase().includes('failed to fetch')
+      ) {
+        throw new Error('Network error creating trip. Please check your connection and try again.');
       }
       // Re-throw to preserve error message for UI
       throw error;
@@ -347,12 +387,26 @@ export const tripService = {
         ...pendingTrips,
       ];
 
-      // Also fetch trips where user is an active member (not creator)
-      const { data: memberTrips, error: memberError } = await supabase
+      // Also fetch trips where user is an active member (not creator).
+      // Compatibility fallback: older environments may not have trip_members.status yet.
+      let memberTripsQueryResult = await supabase
         .from('trip_members')
         .select('trip_id')
         .eq('user_id', activeUserId)
         .or('status.is.null,status.eq.active');
+
+      const memberStatusColumnMissing =
+        memberTripsQueryResult.error?.message?.toLowerCase().includes('status') ||
+        memberTripsQueryResult.error?.message?.toLowerCase().includes('does not exist');
+
+      if (memberStatusColumnMissing) {
+        memberTripsQueryResult = await supabase
+          .from('trip_members')
+          .select('trip_id')
+          .eq('user_id', activeUserId);
+      }
+
+      const { data: memberTrips, error: memberError } = memberTripsQueryResult;
 
       if (!memberError && memberTrips && memberTrips.length > 0) {
         const memberTripIds = memberTrips

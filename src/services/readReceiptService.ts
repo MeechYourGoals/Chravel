@@ -1,6 +1,10 @@
 /**
  * Read Receipts Service
- * Tracks and syncs message read status across users
+ * Tracks and syncs message read status across users.
+ *
+ * Messaging Architecture Review: Now includes trip_id in all upserts and
+ * uses server-side filtering on the realtime subscription to avoid receiving
+ * ALL global read receipt events.
  */
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,6 +24,7 @@ export async function markMessageAsRead(
     {
       message_id: messageId,
       user_id: userId,
+      trip_id: tripId,
       message_type: 'trip',
       read_at: new Date().toISOString(),
     },
@@ -29,7 +34,7 @@ export async function markMessageAsRead(
   );
 
   if (error) {
-    console.error('Failed to mark message as read:', error);
+    if (import.meta.env.DEV) console.error('Failed to mark message as read:', error);
     throw error;
   }
 }
@@ -45,6 +50,7 @@ export async function markMessagesAsRead(
   const readStatuses: ReadStatusInsert[] = messageIds.map(messageId => ({
     message_id: messageId,
     user_id: userId,
+    trip_id: tripId,
     message_type: 'trip',
     read_at: new Date().toISOString(),
   }));
@@ -54,7 +60,7 @@ export async function markMessagesAsRead(
   });
 
   if (error) {
-    console.error('Failed to mark messages as read:', error);
+    if (import.meta.env.DEV) console.error('Failed to mark messages as read:', error);
     throw error;
   }
 }
@@ -70,7 +76,7 @@ export async function getMessageReadStatus(messageId: string): Promise<ReadStatu
     .order('read_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to get read status:', error);
+    if (import.meta.env.DEV) console.error('Failed to get read status:', error);
     return [];
   }
 
@@ -89,7 +95,7 @@ export async function getMessagesReadStatus(
     .in('message_id', messageIds);
 
   if (error) {
-    console.error('Failed to get read statuses:', error);
+    if (import.meta.env.DEV) console.error('Failed to get read statuses:', error);
     return {};
   }
 
@@ -106,7 +112,8 @@ export async function getMessagesReadStatus(
 }
 
 /**
- * Subscribe to read receipt updates for a trip
+ * Subscribe to read receipt updates for a trip.
+ * Now uses server-side trip_id filter to avoid receiving ALL global events.
  */
 export function subscribeToReadReceipts(tripId: string, onRead: (status: ReadStatus) => void) {
   return supabase
@@ -117,6 +124,7 @@ export function subscribeToReadReceipts(tripId: string, onRead: (status: ReadSta
         event: 'INSERT',
         schema: 'public',
         table: 'message_read_receipts',
+        filter: `trip_id=eq.${tripId}`,
       },
       payload => {
         onRead(payload.new as ReadStatus);

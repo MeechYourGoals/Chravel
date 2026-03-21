@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, ArrowUpDown, X, Navigation } from 'lucide-react';
+import { MapPin, ArrowUpDown, X, Navigation, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BasecampLocation } from '@/types/basecamp';
 import { PersonalBasecamp } from '@/services/basecampService';
@@ -17,6 +17,8 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
   const [toText, setToText] = useState('');
   const [directionsUrl, setDirectionsUrl] = useState<string | null>(null);
   const [showDirections, setShowDirections] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(false);
+  const [iframeError, setIframeError] = useState(false);
 
   // Quick-fill handlers
   const fillFromTripBasecamp = (field: 'from' | 'to') => {
@@ -56,6 +58,8 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
 
     setDirectionsUrl(url);
     setShowDirections(true);
+    setIframeLoading(true);
+    setIframeError(false);
   };
 
   // Close directions and return to input form
@@ -65,6 +69,17 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
   };
 
   const canGetDirections = fromText.trim() && toText.trim();
+
+  // Open directions in Google Maps app/website (for mobile)
+  const handleOpenInMaps = () => {
+    if (!fromText.trim() || !toText.trim()) return;
+    const saddr = encodeURIComponent(fromText.trim());
+    const daddr = encodeURIComponent(toText.trim());
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&origin=${saddr}&destination=${daddr}`,
+      '_blank',
+    );
+  };
 
   // Directions view
   if (showDirections && directionsUrl) {
@@ -78,26 +93,64 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
               {fromText} → {toText}
             </span>
           </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-white transition-colors p-1"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleOpenInMaps}
+              className="text-xs text-primary hover:text-primary/80 underline underline-offset-2 transition-colors mr-2 min-h-[44px] px-2 flex items-center"
+              aria-label="Open directions in Google Maps"
+            >
+              Open in Maps
+            </button>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-white transition-colors p-3 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Close directions"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Directions Embed */}
-        <div className="h-[350px]">
-          <iframe
-            src={directionsUrl}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title="Google Maps Directions"
-          />
+        <div className="h-[350px] relative">
+          {iframeLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-10">
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 size={24} className="text-primary animate-spin" />
+                <p className="text-sm text-gray-300">Loading directions...</p>
+              </div>
+            </div>
+          )}
+          {iframeError ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3">
+              <AlertCircle size={32} className="text-red-400" />
+              <p className="text-sm text-gray-400">Could not load directions embed</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenInMaps}
+                className="min-h-[44px]"
+              >
+                Open in Google Maps instead
+              </Button>
+            </div>
+          ) : (
+            <iframe
+              src={directionsUrl}
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Google Maps Directions"
+              onLoad={() => setIframeLoading(false)}
+              onError={() => {
+                setIframeLoading(false);
+                setIframeError(true);
+              }}
+            />
+          )}
         </div>
       </div>
     );
@@ -149,7 +202,8 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
             <button
               type="button"
               onClick={() => setFromText('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Clear from location"
             >
               <X size={16} />
             </button>
@@ -162,8 +216,8 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
         <button
           type="button"
           onClick={handleSwap}
-          className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
-          title="Swap locations"
+          className="text-gray-400 hover:text-white transition-colors p-3 min-w-[44px] min-h-[44px] rounded-lg hover:bg-white/10 flex items-center justify-center"
+          aria-label="Swap from and to locations"
         >
           <ArrowUpDown size={18} />
         </button>
@@ -207,7 +261,8 @@ export const DirectionsEmbed: React.FC<DirectionsEmbedProps> = ({
             <button
               type="button"
               onClick={() => setToText('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Clear destination"
             >
               <X size={16} />
             </button>

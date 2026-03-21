@@ -1257,6 +1257,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      message_reactions: {
+        Row: {
+          created_at: string;
+          id: string;
+          message_id: string;
+          reaction_type: string;
+          trip_id: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          message_id: string;
+          reaction_type: string;
+          trip_id?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          message_id?: string;
+          reaction_type?: string;
+          trip_id?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       message_read_receipts: {
         Row: {
           created_at: string;
@@ -1264,6 +1291,7 @@ export type Database = {
           message_id: string;
           message_type: string;
           read_at: string;
+          trip_id: string | null;
           user_id: string;
         };
         Insert: {
@@ -1272,6 +1300,7 @@ export type Database = {
           message_id: string;
           message_type: string;
           read_at?: string;
+          trip_id?: string | null;
           user_id: string;
         };
         Update: {
@@ -1280,6 +1309,7 @@ export type Database = {
           message_id?: string;
           message_type?: string;
           read_at?: string;
+          trip_id?: string | null;
           user_id?: string;
         };
         Relationships: [];

@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { retryWithBackoff } from '@/utils/retry';
 export interface Message {
   id: string;
@@ -77,77 +76,18 @@ export interface ScheduledMessage {
 }
 
 class UnifiedMessagingService {
-  private channels: Map<string, RealtimeChannel> = new Map();
-  private messageCallbacks: Map<string, Set<(message: Message) => void>> = new Map();
-
   /**
-   * Subscribe to real-time messages for a trip
    * @deprecated Use the realtime subscription in `useTripChat` instead.
-   * This creates a parallel channel (`trip-messages:{tripId}`) that duplicates
-   * the `trip_chat_{tripId}` channel managed by useTripChat.
+   * This used to create a parallel channel (`trip-messages:{tripId}`) that
+   * duplicated the `trip_chat_{tripId}` channel managed by useTripChat,
+   * doubling CDC load for no benefit. Removed in messaging architecture review.
+   * Returns a no-op unsubscribe for backward compatibility.
    */
   async subscribeToTrip(
-    tripId: string,
-    onMessage: (message: Message) => void,
+    _tripId: string,
+    _onMessage: (message: Message) => void,
   ): Promise<() => void> {
-    // Store callback
-    if (!this.messageCallbacks.has(tripId)) {
-      this.messageCallbacks.set(tripId, new Set());
-    }
-    this.messageCallbacks.get(tripId)!.add(onMessage);
-
-    // Create channel if doesn't exist
-    if (!this.channels.has(tripId)) {
-      const channel = supabase
-        .channel(`trip-messages:${tripId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'trip_chat_messages',
-            filter: `trip_id=eq.${tripId}`,
-          },
-          payload => {
-            const message = this.transformMessage(payload.new);
-            this.messageCallbacks.get(tripId)?.forEach(cb => cb(message));
-          },
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'trip_chat_messages',
-            filter: `trip_id=eq.${tripId}`,
-          },
-          payload => {
-            const updated = this.transformMessage(payload.new);
-            this.messageCallbacks.get(tripId)?.forEach(cb => cb(updated));
-          },
-        )
-        .subscribe();
-
-      this.channels.set(tripId, channel);
-    }
-
-    // Return unsubscribe function
-    return () => {
-      const callbacks = this.messageCallbacks.get(tripId);
-      if (callbacks) {
-        callbacks.delete(onMessage);
-
-        // Clean up channel if no more callbacks
-        if (callbacks.size === 0) {
-          const channel = this.channels.get(tripId);
-          if (channel) {
-            supabase.removeChannel(channel);
-            this.channels.delete(tripId);
-          }
-          this.messageCallbacks.delete(tripId);
-        }
-      }
-    };
+    return () => {};
   }
 
   /**
@@ -320,14 +260,11 @@ class UnifiedMessagingService {
   }
 
   /**
-   * Clean up all subscriptions
+   * Clean up all subscriptions.
+   * @deprecated No longer manages realtime channels — subscribeToTrip is a no-op.
    */
   cleanup(): void {
-    this.channels.forEach(channel => {
-      supabase.removeChannel(channel);
-    });
-    this.channels.clear();
-    this.messageCallbacks.clear();
+    // No-op: realtime channels are now managed solely by useTripChat
   }
 
   private transformMessage(data: Record<string, unknown>): Message {

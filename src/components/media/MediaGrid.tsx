@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MediaTile } from './MediaTile';
 import { MediaViewerModal, type MediaViewerItem } from './MediaViewerModal';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Camera, RotateCcw } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 export interface UploadProgress {
   fileId: string;
@@ -28,6 +28,8 @@ interface MediaGridProps {
   maxItems?: number;
   uploadQueue?: UploadProgress[];
   onDeleteItem: (id: string) => void;
+  /** Callback to retry a failed upload */
+  onRetryUpload?: (fileId: string) => void;
   /** Infinite scroll: load more when sentinel is visible */
   onLoadMore?: () => void;
   hasMore?: boolean;
@@ -39,6 +41,7 @@ export const MediaGrid = ({
   maxItems,
   uploadQueue = [],
   onDeleteItem,
+  onRetryUpload,
   onLoadMore,
   hasMore = false,
   isLoadingMore = false,
@@ -96,37 +99,65 @@ export const MediaGrid = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="region" aria-label="Media gallery">
       {/* Upload Progress Items */}
       {uploadQueue.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          role="list"
+          aria-label="Upload progress"
+          aria-live="polite"
+        >
           {uploadQueue.map(upload => (
             <div
               key={upload.fileId}
+              role="listitem"
               className="relative aspect-square rounded-lg bg-background/50 border border-white/10 overflow-hidden"
+              aria-label={`${upload.fileName}: ${upload.status === 'uploading' || upload.status === 'processing' ? `${upload.progress}% uploaded` : upload.status}`}
             >
               <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
                 {upload.status === 'uploading' || upload.status === 'processing' ? (
                   <>
-                    <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
+                    <Loader2
+                      className="w-8 h-8 text-primary animate-spin mb-2"
+                      aria-hidden="true"
+                    />
                     <p className="text-xs text-foreground/80 mb-2 truncate w-full">
                       {upload.fileName}
                     </p>
-                    <Progress value={upload.progress} className="w-full h-2" />
+                    <Progress
+                      value={upload.progress}
+                      className="w-full h-2"
+                      aria-label={`Upload progress: ${upload.progress}%`}
+                    />
                     <p className="text-xs text-foreground/60 mt-1">{upload.progress}%</p>
                   </>
                 ) : upload.status === 'complete' ? (
                   <>
-                    <span className="text-green-500 text-2xl mb-2">✓</span>
+                    <span className="text-green-500 text-2xl mb-2" aria-hidden="true">
+                      &#10003;
+                    </span>
                     <p className="text-xs text-foreground/80 truncate w-full">{upload.fileName}</p>
                   </>
                 ) : upload.status === 'error' ? (
                   <>
-                    <span className="text-red-500 text-2xl mb-2">✗</span>
+                    <span className="text-red-500 text-2xl mb-2" aria-hidden="true">
+                      &#10007;
+                    </span>
                     <p className="text-xs text-foreground/80 truncate w-full">{upload.fileName}</p>
                     <p className="text-xs text-red-500/80 mt-1">
                       {upload.error || 'Upload failed'}
                     </p>
+                    {onRetryUpload && (
+                      <button
+                        onClick={() => onRetryUpload(upload.fileId)}
+                        className="mt-2 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors min-h-[44px] min-w-[44px] justify-center"
+                        aria-label={`Retry upload for ${upload.fileName}`}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                        Retry
+                      </button>
+                    )}
                   </>
                 ) : null}
               </div>
@@ -135,27 +166,47 @@ export const MediaGrid = ({
         </div>
       )}
 
+      {/* Empty state with upload CTA */}
+      {displayItems.length === 0 && uploadQueue.length === 0 && (
+        <div className="text-center py-12" role="status">
+          <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Camera className="h-7 w-7 text-primary" aria-hidden="true" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">No Media Yet</h3>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+            Photos, videos, and files shared in chat or uploaded will appear here.
+          </p>
+        </div>
+      )}
+
       {/* Actual Media Items - Using canonical MediaTile */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {displayItems.map(item => (
-          <MediaTile
-            key={item.id}
-            id={item.id}
-            url={item.media_url}
-            mimeType={getMimeType(item)}
-            fileName={item.filename}
-            metadata={item.metadata}
-            onDelete={onDeleteItem}
-            onView={_media => handleViewMedia(item.id)}
-          />
-        ))}
-      </div>
+      {displayItems.length > 0 && (
+        <div
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          role="grid"
+          aria-label="Media items"
+        >
+          {displayItems.map(item => (
+            <div key={item.id} role="gridcell">
+              <MediaTile
+                id={item.id}
+                url={item.media_url}
+                mimeType={getMimeType(item)}
+                fileName={item.filename}
+                metadata={item.metadata}
+                onDelete={onDeleteItem}
+                onView={_media => handleViewMedia(item.id)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Infinite scroll sentinel */}
       {hasMore && <div ref={sentinelRef} className="h-4" aria-hidden />}
       {isLoadingMore && (
         <div className="flex justify-center py-4">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" />
         </div>
       )}
 

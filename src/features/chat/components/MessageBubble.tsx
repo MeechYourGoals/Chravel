@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, memo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MessageReactionBar, REACTION_EMOJI_MAP } from './MessageReactionBar';
 import { MessageActions } from './MessageActions';
@@ -358,16 +358,6 @@ export const MessageBubble = memo(
       threshold: 500,
     });
 
-    const handleMouseEnter = useCallback(() => {
-      if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
-      setShowReactions(true);
-    }, []);
-
-    const handleMouseLeave = useCallback(() => {
-      if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
-      hideReactionsTimerRef.current = setTimeout(() => setShowReactions(false), 300);
-    }, []);
-
     // Swipe-to-reply touch handlers (mobile only, swipe right)
     const SWIPE_THRESHOLD = 60;
     const handleTouchStart = useCallback(
@@ -441,8 +431,23 @@ export const MessageBubble = memo(
     );
     const mergedMouseLeave = useCallback(() => {
       longPressHandlers.onMouseLeave();
-      handleMouseLeave();
-    }, [longPressHandlers, handleMouseLeave]);
+    }, [longPressHandlers]);
+
+    useEffect(() => {
+      return () => {
+        if (hideReactionsTimerRef.current) {
+          clearTimeout(hideReactionsTimerRef.current);
+        }
+      };
+    }, []);
+
+    // Dismiss reaction bar on click outside
+    useEffect(() => {
+      if (!showReactions) return;
+      const handleClickOutside = () => setShowReactions(false);
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }, [showReactions]);
 
     return (
       <>
@@ -451,7 +456,6 @@ export const MessageBubble = memo(
           onMouseDown={longPressHandlers.onMouseDown}
           onMouseMove={longPressHandlers.onMouseMove}
           onMouseUp={longPressHandlers.onMouseUp}
-          onMouseEnter={handleMouseEnter}
           onMouseLeave={mergedMouseLeave}
           onTouchStart={mergedTouchStart}
           onTouchMove={mergedTouchMove}
@@ -481,7 +485,7 @@ export const MessageBubble = memo(
 
           <div
             className={cn(
-              'flex flex-col max-w-[85%]',
+              'relative flex flex-col max-w-[85%]',
               isOwnMessage ? 'items-end text-right' : 'items-start text-left',
             )}
             style={{
@@ -655,10 +659,20 @@ export const MessageBubble = memo(
               </div>
             )}
 
-            {/* Reaction picker — shown on hover (desktop) or long-press (mobile) */}
+            {/* Reaction picker — side attached to message to avoid hover handoff to adjacent rows */}
             {showReactions && (
               <div
-                className="mt-1"
+                className={cn(
+                  'absolute top-0 z-20',
+                  isOwnMessage ? 'right-full mr-2' : 'left-full ml-2',
+                )}
+                onMouseEnter={() => {
+                  if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
+                }}
+                onMouseLeave={() => {
+                  if (hideReactionsTimerRef.current) clearTimeout(hideReactionsTimerRef.current);
+                  hideReactionsTimerRef.current = setTimeout(() => setShowReactions(false), 2000);
+                }}
                 onMouseDown={e => e.stopPropagation()}
                 onTouchStart={e => e.stopPropagation()}
               >

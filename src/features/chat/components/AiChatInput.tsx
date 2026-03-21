@@ -155,6 +155,13 @@ export const AiChatInput = ({
             placeholder={getPlaceholder()}
             rows={2}
             disabled={disabled}
+            aria-label={
+              isConvoActive
+                ? 'Dictation in progress. Speak to add text.'
+                : isLiveActive
+                  ? 'Live voice conversation active'
+                  : 'Message your AI Concierge'
+            }
             className={`w-full bg-white/5 border rounded-2xl px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 backdrop-blur-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
               isConvoActive
                 ? 'border-primary/30 bg-primary/5'
@@ -163,6 +170,12 @@ export const AiChatInput = ({
                   : 'border-white/10'
             }`}
           />
+          {/* Dictation active indicator for screen readers */}
+          {isConvoActive && (
+            <span className="sr-only" role="status" aria-live="polite">
+              Dictation active. Speak to add text to the message field.
+            </span>
+          )}
         </div>
 
         {/* Send button — persistent gold rim; disabled state via opacity */}

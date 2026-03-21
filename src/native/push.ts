@@ -21,6 +21,7 @@ export interface ChravelPushPayload {
     | 'calendar_event'
     | 'broadcast';
   tripId: string;
+  tripType?: 'consumer' | 'pro' | 'event';
   threadId?: string;
   messageId?: string;
   eventId?: string;
@@ -62,7 +63,9 @@ export async function requestPermissions(): Promise<PermissionResult> {
     const result = await PushNotifications.requestPermissions();
     return normalizePermission(result.receive);
   } catch (error) {
-    console.error('[NativePush] Permission request failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush permission request failed
+    }
     return 'denied';
   }
 }
@@ -79,7 +82,9 @@ export async function checkPermissions(): Promise<PermissionResult> {
     const result = await PushNotifications.checkPermissions();
     return normalizePermission(result.receive);
   } catch (error) {
-    console.error('[NativePush] Check permissions failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush check permissions failed
+    }
     return 'denied';
   }
 }
@@ -119,7 +124,7 @@ export async function register(): Promise<PushNotificationResult> {
       };
 
       const timeoutId = setTimeout(() => {
-        console.warn('[NativePush] Registration timed out after 15s');
+        // NativePush registration timed out after 15s
         safeResolve({ token: null, error: 'Registration timed out' });
       }, REGISTRATION_TIMEOUT_MS);
 
@@ -128,7 +133,7 @@ export async function register(): Promise<PushNotificationResult> {
       });
 
       errorListener = await PushNotifications.addListener('registrationError', error => {
-        console.error('[NativePush] Registration error:', error);
+        // NativePush registration error occurred
         safeResolve({ token: null, error: error.error });
       });
 
@@ -156,7 +161,9 @@ export async function unregister(): Promise<void> {
   try {
     await PushNotifications.removeAllListeners();
   } catch (error) {
-    console.error('[NativePush] Unregister failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush unregister failed
+    }
   }
 }
 
@@ -173,7 +180,7 @@ export function onNotificationReceived(
 
   const listener = PushNotifications.addListener('pushNotificationReceived', callback);
   return () => {
-    listener.then(l => l.remove()).catch(console.error);
+    listener.then(l => l.remove()).catch(() => {});
   };
 }
 
@@ -190,7 +197,7 @@ export function onNotificationActionPerformed(
 
   const listener = PushNotifications.addListener('pushNotificationActionPerformed', callback);
   return () => {
-    listener.then(l => l.remove()).catch(console.error);
+    listener.then(l => l.remove()).catch(() => {});
   };
 }
 
@@ -217,6 +224,14 @@ export function parsePayload(data: Record<string, unknown>): ChravelPushPayload 
   return {
     type: data.type as ChravelPushPayload['type'],
     tripId: data.tripId as string,
+    tripType:
+      data.tripType === 'pro' || data.trip_type === 'pro'
+        ? 'pro'
+        : data.tripType === 'event' || data.trip_type === 'event'
+          ? 'event'
+          : data.tripType === 'consumer' || data.trip_type === 'consumer'
+            ? 'consumer'
+            : undefined,
     threadId: typeof data.threadId === 'string' ? data.threadId : undefined,
     messageId: typeof data.messageId === 'string' ? data.messageId : undefined,
     eventId: typeof data.eventId === 'string' ? data.eventId : undefined,
@@ -237,7 +252,9 @@ export async function getDeliveredNotifications(): Promise<PushNotificationSchem
     const result = await PushNotifications.getDeliveredNotifications();
     return result.notifications;
   } catch (error) {
-    console.error('[NativePush] Get delivered failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush get delivered failed
+    }
     return [];
   }
 }
@@ -251,6 +268,8 @@ export async function removeAllDeliveredNotifications(): Promise<void> {
   try {
     await PushNotifications.removeAllDeliveredNotifications();
   } catch (error) {
-    console.error('[NativePush] Remove delivered failed:', error);
+    if (import.meta.env.DEV) {
+      // NativePush remove delivered failed
+    }
   }
 }

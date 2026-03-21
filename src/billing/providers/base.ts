@@ -77,13 +77,13 @@ export abstract class BaseBillingProvider implements BillingProvider {
    * Log a billing event for debugging
    */
   protected log(message: string, data?: unknown): void {
-    console.log(`[Billing:${this.name}] ${message}`, data ?? '');
+    if (import.meta.env.DEV) console.log(`[Billing:${this.name}] ${message}`, data ?? '');
   }
 
   /**
    * Log an error
    */
   protected logError(message: string, error?: unknown): void {
-    console.error(`[Billing:${this.name}] ${message}`, error ?? '');
+    if (import.meta.env.DEV) console.error(`[Billing:${this.name}] ${message}`, error ?? '');
   }
 }

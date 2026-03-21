@@ -1,13 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { calendarService, TripEvent, CreateEventData } from '@/services/calendarService';
-import { CalendarEvent } from '@/types/calendar';
+import { calendarService } from '@/services/calendarService';
+import type { TripEvent, CreateEventData, CalendarEvent } from '@/types/calendar';
 import { useDemoMode } from '@/hooks/useDemoMode';
 import { useAuth } from '@/hooks/useAuth';
 import { useMutationPermissions } from '@/hooks/useMutationPermissions';
 import { useCalendarRealtime } from './useCalendarRealtime';
+import { createCalendarQueryFn } from './calendarQueryFn';
 import { tripKeys, QUERY_CACHE_CONFIG } from '@/lib/queryKeys';
-import { withTimeout } from '@/utils/timeout';
-import { errorTracking } from '@/utils/errorTracking';
 import { toast } from 'sonner';
 
 /**
@@ -37,64 +36,7 @@ export const useCalendarEvents = (tripId?: string) => {
     refetch,
   } = useQuery({
     queryKey: tripKeys.calendar(tripId || ''),
-    queryFn: async () => {
-      const startTime = performance.now();
-      const startTimestamp = new Date().toISOString();
-      const queryKey = tripKeys.calendar(tripId || '').join('-');
-      errorTracking.addBreadcrumb({
-        category: 'api-call',
-        message: 'calendar fetch start',
-        level: 'info',
-        data: { trip_id: tripId, start_timestamp: startTimestamp, query_key: queryKey },
-      });
-
-      try {
-        const result = await withTimeout(
-          calendarService.getTripEvents(tripId!),
-          15000,
-          'Failed to load calendar events: Timeout',
-        );
-
-        const endTimeMs = performance.now();
-        const durationMs = Math.round(endTimeMs - startTime);
-        errorTracking.addBreadcrumb({
-          category: 'api-call',
-          message: 'calendar fetch finish',
-          level: durationMs > 3000 ? 'warning' : 'info',
-          data: {
-            trip_id: tripId,
-            count: result.length,
-            duration_ms: durationMs,
-            start_timestamp: startTimestamp,
-            end_timestamp: new Date().toISOString(),
-            query_key: queryKey,
-            status: 'success',
-          },
-        });
-
-        return result;
-      } catch (err: unknown) {
-        const endTimeMs = performance.now();
-        const durationMs = Math.round(endTimeMs - startTime);
-        const errObj = err instanceof Error ? err : null;
-        const isTimeout = errObj?.message?.includes('Timeout') || errObj?.name === 'TimeoutError';
-        errorTracking.addBreadcrumb({
-          category: 'api-call',
-          message: isTimeout ? 'calendar fetch timeout' : 'calendar fetch finish',
-          level: 'error',
-          data: {
-            trip_id: tripId,
-            duration_ms: durationMs,
-            start_timestamp: startTimestamp,
-            end_timestamp: new Date().toISOString(),
-            query_key: queryKey,
-            status: isTimeout ? 'timeout' : 'error',
-            error: errObj?.message || String(err),
-          },
-        });
-        throw err;
-      }
-    },
+    queryFn: createCalendarQueryFn(tripId || '', 15_000),
     enabled: !!tripId,
     staleTime: QUERY_CACHE_CONFIG.calendar.staleTime,
     gcTime: QUERY_CACHE_CONFIG.calendar.gcTime,
@@ -232,7 +174,7 @@ export const useCalendarEvents = (tripId?: string) => {
     try {
       return await createEventMutation.mutateAsync(eventData);
     } catch (error) {
-      console.error('Error creating event:', error);
+      if (import.meta.env.DEV) console.error('Error creating event:', error);
       throw error;
     }
   };

@@ -17,6 +17,7 @@ import { EventData } from '../../types/events';
 import { TripContext } from '@/types';
 import { useTripVariant } from '../../contexts/TripVariantContext';
 import { DisabledTabDialog } from './DisabledTabDialog';
+import { cn } from '@/lib/utils';
 import { FeatureErrorBoundary } from '../FeatureErrorBoundary';
 import { EventTabKey, resolveEventTabsForRole } from '@/lib/eventTabs';
 import { useEventTabSettings } from '@/hooks/useEventTabSettings';
@@ -200,7 +201,11 @@ export const EventDetailContent = ({
 
   return (
     <>
-      <div className="flex whitespace-nowrap gap-2 mb-2 justify-start">
+      <div
+        className="flex whitespace-nowrap gap-2 mb-2 justify-start"
+        role="tablist"
+        aria-label="Event tabs"
+      >
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -208,8 +213,11 @@ export const EventDetailContent = ({
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={`${tab.label}${!tab.enabled ? ' (disabled by organizer)' : ''}`}
               onClick={() => handleTabClick(tab)}
-              className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm flex-1 ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded-xl font-medium transition-all duration-200 text-sm flex-1 ${
                 isActive
                   ? 'accent-ring-active text-white shadow-md'
                   : 'accent-ring-idle text-gray-300 hover:text-white'
@@ -223,9 +231,25 @@ export const EventDetailContent = ({
         })}
       </div>
 
+<<<<<<< HEAD
       <div className="overflow-y-auto native-scroll pb-24 sm:pb-4 h-auto min-h-0 max-h-none md:h-[calc(100vh-320px)] md:max-h-[1000px] md:min-h-[500px] flex flex-col relative">
         <div
           className={shouldShowDisabledState ? 'opacity-50 pointer-events-none select-none' : ''}
+=======
+      <div
+        className={cn(
+          'overflow-y-auto native-scroll min-h-0 flex flex-col relative',
+          activeTab === 'chat'
+            ? 'h-[calc(100dvh-200px)] sm:h-[calc(100dvh-220px)] md:h-[calc(100vh-240px)]'
+            : 'pb-24 sm:pb-4 h-auto max-h-none md:h-[calc(100vh-240px)] md:max-h-[1000px] md:min-h-[500px]',
+        )}
+      >
+        <div
+          className={cn(
+            shouldShowDisabledState ? 'opacity-50 pointer-events-none select-none' : '',
+            activeTab === 'chat' ? 'flex-1 flex flex-col min-h-0' : '',
+          )}
+>>>>>>> origin/main
         >
           <Suspense fallback={<TabSkeleton />}>{renderTabContent()}</Suspense>
         </div>

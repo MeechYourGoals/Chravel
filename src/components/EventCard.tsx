@@ -35,6 +35,8 @@ import {
 import { useDemoTripMembersStore } from '../store/demoTripMembersStore';
 import { useDemoMode } from '../hooks/useDemoMode';
 import { getProTripColor } from '../utils/proTripColors';
+import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
+import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
 import { getExportData } from '../services/tripExportDataService';
 import { generateClientPDF } from '../utils/exportPdfClient';
 import { orderExportSections } from '../utils/exportSectionOrder';
@@ -79,6 +81,7 @@ export const EventCard = ({
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
   const eventColor = getProTripColor(event.id, event.card_color);
+  const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(event.id) : undefined;
 
   // Get added members from the demo store - use stable empty array reference with shallow comparison
   const eventIdStr = event.id.toString();
@@ -233,7 +236,7 @@ export const EventCard = ({
         {event.coverPhoto ? (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={{ backgroundImage: `url(${event.coverPhoto})` }}
+            style={buildCoverBackgroundImage(event.coverPhoto, demoCoverFallback)}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

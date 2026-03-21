@@ -79,8 +79,13 @@ serve(async req => {
     logStep('User authenticated', { userId: user.id });
 
     // Parse request
-    const { tier, billing_cycle = 'monthly', purchase_type = 'subscription' } = await req.json();
-    logStep('Request parsed', { tier, billing_cycle, purchase_type });
+    const {
+      tier,
+      billing_cycle = 'monthly',
+      purchase_type = 'subscription',
+      platform = 'web',
+    } = await req.json();
+    logStep('Request parsed', { tier, billing_cycle, purchase_type, platform });
 
     const isPass = purchase_type === 'pass';
 
@@ -95,6 +100,12 @@ serve(async req => {
       logStep('Normalized tier', { original: tier, normalized: normalizedTier });
 
       if (normalizedTier === 'explorer' || normalizedTier === 'frequent-chraveler') {
+        if (platform === 'ios') {
+          return createErrorResponse(
+            'Consumer subscriptions on iOS must be purchased using Apple In-App Purchase.',
+            400,
+          );
+        }
         priceIdKey = `${normalizedTier}-${billing_cycle}`;
       } else if (normalizedTier.startsWith('pro-')) {
         priceIdKey = normalizedTier;

@@ -123,7 +123,8 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                   handleApproveClick(request.id, request.profile?.display_name || 'this user')
                 }
                 disabled={isProcessing}
-                className="rounded-full border-white/20 hover:bg-green-500/10 hover:border-green-500/40 hover:text-green-400 h-8 px-3"
+                className="rounded-full border-white/20 hover:bg-green-500/10 hover:border-green-500/40 hover:text-green-400 h-10 px-3"
+                aria-label={`Approve join request from ${request.profile?.display_name || 'user'}`}
               >
                 <UserCheck className="w-4 h-4 mr-1" />
                 Approve
@@ -135,7 +136,8 @@ export const JoinRequestsPanel: React.FC<JoinRequestsPanelProps> = ({ tripId }) 
                   handleRejectClick(request.id, request.profile?.display_name || 'this user')
                 }
                 disabled={isProcessing}
-                className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400 h-8 px-3"
+                className="rounded-full border-white/20 hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400 h-10 px-3"
+                aria-label={`Reject join request from ${request.profile?.display_name || 'user'}`}
               >
                 <UserX className="w-4 h-4 mr-1" />
                 Reject

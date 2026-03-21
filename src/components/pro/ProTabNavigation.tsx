@@ -50,7 +50,10 @@ export const ProTabNavigation = ({
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex items-center justify-center gap-1.5 ${paddingClass} py-2.5 min-h-[42px] rounded-xl font-medium transition-all duration-200 text-sm ${buttonSizeClass} ${
+            aria-label={`${displayLabel} tab${isReadOnly ? ' (read-only)' : ''}`}
+            aria-selected={activeTab === tab.id}
+            role="tab"
+            className={`flex items-center justify-center gap-1.5 ${paddingClass} py-2.5 min-h-[44px] rounded-xl font-medium transition-all duration-200 text-sm ${buttonSizeClass} ${
               activeTab === tab.id
                 ? 'accent-ring-active text-white shadow-md'
                 : 'accent-ring-idle text-gray-300 hover:text-white'

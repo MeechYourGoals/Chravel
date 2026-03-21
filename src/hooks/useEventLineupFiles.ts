@@ -81,24 +81,31 @@ export function useEventLineupFiles({ eventId, enabled = true }: UseEventLineupF
       return;
     }
 
-    const mapped: AgendaFile[] = data
-      .filter(f => f.name !== '.emptyFolderPlaceholder')
-      .map(f => {
-        const storagePath = `${prefix}/${f.name}`;
-        const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(storagePath);
+    const mapped: AgendaFile[] = await Promise.all(
+      data
+        .filter(f => f.name !== '.emptyFolderPlaceholder')
+        .map(async f => {
+          const storagePath = `${prefix}/${f.name}`;
+          const { data: urlData } = supabase.storage.from('trip-media').getPublicUrl(storagePath);
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('trip-media')
+            .createSignedUrl(storagePath, 60 * 30);
+          const resolvedUrl =
+            !signedError && signedData?.signedUrl ? signedData.signedUrl : urlData.publicUrl;
 
-        return {
-          id: f.id ?? f.name,
-          name: parseOriginalName(f.name),
-          storagePath,
-          publicUrl: urlData.publicUrl,
-          mimeType:
-            ((f.metadata as Record<string, unknown>)?.mimetype as string) ??
-            'application/octet-stream',
-          size: ((f.metadata as Record<string, unknown>)?.size as number) ?? 0,
-          createdAt: f.created_at ?? '',
-        };
-      });
+          return {
+            id: f.id ?? f.name,
+            name: parseOriginalName(f.name),
+            storagePath,
+            publicUrl: resolvedUrl,
+            mimeType:
+              ((f.metadata as Record<string, unknown>)?.mimetype as string) ??
+              'application/octet-stream',
+            size: ((f.metadata as Record<string, unknown>)?.size as number) ?? 0,
+            createdAt: f.created_at ?? '',
+          };
+        }),
+    );
 
     setFiles(mapped);
     setIsLoading(false);

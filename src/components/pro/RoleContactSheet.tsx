@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Users, MessageCircle, Phone, Mail, Send, AlertTriangle, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { ProParticipant } from '../../types/pro';
 import { ProTripCategory } from '../../types/proCategories';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -45,7 +46,8 @@ export const RoleContactSheet = ({
       setIsUrgent(false);
       onClose();
     } catch (error) {
-      console.error('Failed to send group message:', error);
+      if (import.meta.env.DEV) console.error('Failed to send group message:', error);
+      toast.error('Failed to send group message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -180,16 +182,18 @@ export const RoleContactSheet = ({
                   {member.phone && (
                     <a
                       href={`tel:${member.phone}`}
-                      className="p-2 hover:bg-white/10 rounded transition-colors"
+                      className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/10 rounded transition-colors"
                       title="Call"
+                      aria-label={`Call ${member.name}`}
                     >
                       <Phone size={16} className="text-green-400" />
                     </a>
                   )}
                   <a
                     href={`mailto:${member.email}`}
-                    className="p-2 hover:bg-white/10 rounded transition-colors"
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-white/10 rounded transition-colors"
                     title="Email"
+                    aria-label={`Email ${member.name}`}
                   >
                     <Mail size={16} className="text-purple-400" />
                   </a>

@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Copy, Check, MapPin, Calendar, Users, Share2 } from 'lucide-react';
+import { X, Copy, Check, MapPin, Calendar, Users, Share2, Image, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { buildTripPreviewLink } from '@/lib/unfurlConfig';
+
 interface Participant {
-  id: number | string; // Support both numeric IDs (demo) and UUID strings (Supabase)
+  id: number | string;
   name: string;
   avatar: string;
 }
@@ -29,6 +30,8 @@ interface ShareTripModalProps {
 export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) => {
   const [copied, setCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [coverImageLoaded, setCoverImageLoaded] = useState(false);
+  const [coverImageError, setCoverImageError] = useState(false);
 
   // Check if native share is available (iOS, Android, some desktop browsers)
   const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
@@ -43,6 +46,12 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
   const shareText = useMemo(() => {
     return `Check out ${trip.title} - a trip to ${trip.location}! ${chravelerCount} Chravelers are going.`;
   }, [trip.title, trip.location, chravelerCount]);
+
+  // Reset cover image state when trip changes
+  useEffect(() => {
+    setCoverImageLoaded(false);
+    setCoverImageError(false);
+  }, [trip.coverPhoto]);
 
   // Handle ESC key
   useEffect(() => {
@@ -80,8 +89,8 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
       setCopied(true);
       toast.success('Link copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
+    } catch (_clipboardError) {
+      // Clipboard copy failed -- user notified via toast
       toast.error('Failed to copy link');
     }
   };
@@ -97,7 +106,7 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
     } catch (error) {
       // User cancelled or error - silently ignore AbortError
       if ((error as Error).name !== 'AbortError') {
-        console.error('Share failed:', error);
+        toast.error('Share failed. Please try copying the link instead.');
       }
     } finally {
       setIsSharing(false);
@@ -106,10 +115,19 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
   if (!isOpen) return null;
 
+  // Determine if trip data is complete enough for a rich preview
+  const hasTitle = Boolean(trip.title);
+  const hasLocation = Boolean(trip.location);
+  const hasDateRange = Boolean(trip.dateRange);
+  const hasCoverPhoto = Boolean(trip.coverPhoto) && !coverImageError;
+
   const modalContent = (
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 animate-fade-in"
       onClick={e => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Share trip: ${trip.title}`}
     >
       <div className="bg-background/95 backdrop-blur-md border border-border rounded-2xl max-w-md w-full animate-scale-in">
         {/* Compact Header with X */}
@@ -122,8 +140,8 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             onClick={onClose}
             variant="ghost"
             size="icon"
-            title="Close"
-            className="hover:bg-destructive/20 hover:text-destructive text-muted-foreground w-7 h-7 rounded-full"
+            aria-label="Close share dialog"
+            className="hover:bg-destructive/20 hover:text-destructive text-muted-foreground w-7 h-7 rounded-full min-w-[44px] min-h-[44px]"
           >
             <X size={16} />
           </Button>
@@ -131,35 +149,67 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
 
         {/* Content - Compact */}
         <div className="p-3">
-          {/* Trip Preview Card */}
+          {/* Share Card Preview */}
           <div className="relative rounded-xl overflow-hidden mb-3 border border-border">
-            {/* Cover Image - Reduced height */}
-            <div
-              className="h-24 bg-cover bg-center"
-              style={{
-                backgroundImage: `url('${trip.coverPhoto || '/chravelapp-og-20251219.png'}')`,
-              }}
-            />
-            <div className="absolute inset-0 h-24 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            {/* Cover Image with loading/fallback */}
+            <div className="relative h-24">
+              {hasCoverPhoto && !coverImageLoaded && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                  <Loader2 size={20} className="text-gray-400 animate-spin" />
+                </div>
+              )}
+              {hasCoverPhoto ? (
+                <>
+                  <img
+                    src={trip.coverPhoto}
+                    alt={`Cover photo for ${trip.title}`}
+                    className={`w-full h-24 object-cover transition-opacity duration-300 ${coverImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={() => setCoverImageLoaded(true)}
+                    onError={() => setCoverImageError(true)}
+                  />
+                </>
+              ) : (
+                <div className="h-24 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                  <Image size={24} className="text-gray-500" />
+                </div>
+              )}
+              <div className="absolute inset-0 h-24 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            </div>
 
             {/* Chravel Badge */}
             <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
               <span className="text-white text-[10px] font-semibold">ChravelApp</span>
             </div>
 
-            {/* Trip Details - Compact */}
+            {/* Trip Details with fallback display */}
             <div className="p-3 bg-gradient-to-br from-gray-900/95 to-gray-800/95">
-              <h3 className="text-base font-bold text-white mb-2">{trip.title}</h3>
+              <h3 className="text-base font-bold text-white mb-2">
+                {hasTitle ? trip.title : 'Untitled Trip'}
+              </h3>
 
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-white/80 text-xs">
-                <div className="flex items-center gap-1">
-                  <MapPin size={12} className="text-gold-primary" />
-                  <span>{trip.location}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar size={12} className="text-gold-primary" />
-                  <span>{trip.dateRange}</span>
-                </div>
+                {hasLocation ? (
+                  <div className="flex items-center gap-1">
+                    <MapPin size={12} className="text-gold-primary" />
+                    <span>{trip.location}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <MapPin size={12} className="text-gray-500" />
+                    <span className="text-white/40 italic">No destination set</span>
+                  </div>
+                )}
+                {hasDateRange ? (
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} className="text-gold-primary" />
+                    <span>{trip.dateRange}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} className="text-gray-500" />
+                    <span className="text-white/40 italic">Dates TBD</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1">
                   <Users size={12} className="text-gold-primary" />
                   <span>{chravelerCount} Chravelers</span>
@@ -168,19 +218,63 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
             </div>
           </div>
 
+          {/* Social Share Buttons */}
+          <div className="flex gap-2 mb-3">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + previewLink)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share trip via WhatsApp"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
+            >
+              WhatsApp
+            </a>
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(previewLink)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Share trip on Twitter"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 text-[#1DA1F2] border border-[#1DA1F2]/30 rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
+            >
+              Twitter
+            </a>
+            <a
+              href={`mailto:?subject=${encodeURIComponent(trip.title)}&body=${encodeURIComponent(shareText + '\n\n' + previewLink)}`}
+              aria-label="Share trip via Email"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-foreground border border-border rounded-lg py-2 text-xs font-medium transition-colors min-h-[44px]"
+            >
+              Email
+            </a>
+          </div>
+
           {/* Preview Link */}
           <div>
-            <label className="block text-foreground text-xs font-medium mb-1">Preview Link</label>
+            <label
+              className="block text-foreground text-xs font-medium mb-1"
+              id="preview-link-label"
+            >
+              Preview Link
+            </label>
             <div className="flex gap-2">
               <Button
                 onClick={handleCopyLink}
                 size="sm"
-                className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8"
+                aria-label={copied ? 'Link copied to clipboard' : 'Copy share link to clipboard'}
+                className={`${
+                  copied
+                    ? 'bg-green-700 hover:bg-green-600 border-green-500/40'
+                    : 'bg-[#2a2a2a] hover:bg-[#3a3a3a] border-gold-primary/40'
+                } text-white border shadow-none px-3 h-8 min-w-[44px] min-h-[44px] transition-colors`}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 <span className="ml-1.5">{copied ? 'Copied!' : 'Copy'}</span>
               </Button>
-              <div className="flex-1 bg-muted border border-border rounded-lg px-2 py-1.5 text-foreground text-xs font-mono truncate">
+              <div
+                className="flex-1 bg-muted border border-border rounded-lg px-2 py-1.5 text-foreground text-xs font-mono truncate"
+                aria-labelledby="preview-link-label"
+                role="textbox"
+                aria-readonly="true"
+              >
                 {previewLink}
               </div>
               {canNativeShare && (
@@ -188,11 +282,15 @@ export const ShareTripModal = ({ isOpen, onClose, trip }: ShareTripModalProps) =
                   onClick={handleNativeShare}
                   disabled={isSharing}
                   size="sm"
-                  className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8"
-                  title="Share via Messages, Email, and more"
+                  aria-label="Share via device share sheet"
+                  className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-gold-primary/40 shadow-none px-3 h-8 min-w-[44px] min-h-[44px]"
                 >
-                  <Share2 size={14} />
-                  <span className="ml-1.5">Share</span>
+                  {isSharing ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Share2 size={14} />
+                  )}
+                  <span className="ml-1.5">{isSharing ? 'Sharing...' : 'Share'}</span>
                 </Button>
               )}
             </div>

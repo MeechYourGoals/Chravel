@@ -238,7 +238,9 @@ export const RolesView = ({
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                aria-label="Grid view"
+                aria-pressed={viewMode === 'grid'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-md text-xs font-medium transition-colors ${
                   viewMode === 'grid' ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -248,7 +250,9 @@ export const RolesView = ({
               <button
                 type="button"
                 onClick={() => setViewMode('orgchart')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                aria-label="Org chart view"
+                aria-pressed={viewMode === 'orgchart'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-md text-xs font-medium transition-colors ${
                   viewMode === 'orgchart'
                     ? 'bg-gray-600 text-white'
                     : 'text-gray-400 hover:text-white'
@@ -260,51 +264,63 @@ export const RolesView = ({
             </div>
           </div>
 
-          {(availableRoles.length > 0 || existingRoles.length > 0) && (
-            <div
-              className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide' : 'flex-wrap justify-end'} gap-2 items-center`}
-            >
-              {roles.map(role => {
-                // Count members assigned to this role from actual role assignments (memberRolesMap)
-                const assignmentCount = Array.from(memberRolesMap.values()).filter(roleNames =>
-                  roleNames.includes(role),
-                ).length;
-
-                // Check if this is a role from availableRoles (modern system) or legacy
-                const roleFromAvailable = availableRoles.find(r => r.roleName === role);
-
-                // Fallback: count members with legacy role field for backwards compatibility
-                const legacyRoleMembers = roster.filter(m => m.role === role);
-
-                // Use assignment count if role exists in availableRoles, otherwise use legacy count
-                const memberCount = roleFromAvailable ? assignmentCount : legacyRoleMembers.length;
-
-                // Always show 'all', and for other roles show if they exist in availableRoles or have legacy members
-                const shouldShow =
-                  role === 'all' ||
-                  availableRoles.some(r => r.roleName === role) ||
-                  legacyRoleMembers.length > 0;
-
-                if (!shouldShow) return null;
-
-                return (
-                  <button
-                    key={role}
-                    onClick={() => setSelectedRole(role)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                      selectedRole === role
-                        ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30 scale-105'
-                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-[1.02] border border-gray-600'
-                    }`}
-                  >
-                    {role === 'all' ? 'All' : role}
-                    {role !== 'all' && (
-                      <span className="ml-1 text-xs opacity-75">{memberCount}</span>
-                    )}
-                  </button>
-                );
-              })}
+          {isLoadingRoles ? (
+            <div className="flex gap-2 items-center">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-8 w-20 rounded-full bg-gray-700/50 animate-pulse" />
+              ))}
             </div>
+          ) : (
+            (availableRoles.length > 0 || existingRoles.length > 0) && (
+              <div
+                className={`flex ${isMobile ? 'overflow-x-auto scrollbar-hide' : 'flex-wrap justify-end'} gap-2 items-center`}
+              >
+                {roles.map(role => {
+                  // Count members assigned to this role from actual role assignments (memberRolesMap)
+                  const assignmentCount = Array.from(memberRolesMap.values()).filter(roleNames =>
+                    roleNames.includes(role),
+                  ).length;
+
+                  // Check if this is a role from availableRoles (modern system) or legacy
+                  const roleFromAvailable = availableRoles.find(r => r.roleName === role);
+
+                  // Fallback: count members with legacy role field for backwards compatibility
+                  const legacyRoleMembers = roster.filter(m => m.role === role);
+
+                  // Use assignment count if role exists in availableRoles, otherwise use legacy count
+                  const memberCount = roleFromAvailable
+                    ? assignmentCount
+                    : legacyRoleMembers.length;
+
+                  // Always show 'all', and for other roles show if they exist in availableRoles or have legacy members
+                  const shouldShow =
+                    role === 'all' ||
+                    availableRoles.some(r => r.roleName === role) ||
+                    legacyRoleMembers.length > 0;
+
+                  if (!shouldShow) return null;
+
+                  return (
+                    <button
+                      key={role}
+                      onClick={() => setSelectedRole(role)}
+                      aria-label={`Filter by ${role === 'all' ? 'all roles' : `role ${role}`}${role !== 'all' ? `, ${memberCount} members` : ''}`}
+                      aria-pressed={selectedRole === role}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-xs font-medium transition-all duration-200 ${
+                        selectedRole === role
+                          ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30 scale-105'
+                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50 hover:scale-[1.02] border border-gray-600'
+                      }`}
+                    >
+                      {role === 'all' ? 'All' : role}
+                      {role !== 'all' && (
+                        <span className="ml-1 text-xs opacity-75">{memberCount}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )
           )}
         </div>
 
@@ -415,6 +431,8 @@ export const RolesView = ({
                         {allRolePills.map((pill, index) => (
                           <span
                             key={`${pill.name}-${index}`}
+                            role="status"
+                            aria-label={`Role: ${pill.name}${pill.isAdmin ? ' (admin)' : ''}`}
                             className={`${
                               pill.isAdmin
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
@@ -426,6 +444,8 @@ export const RolesView = ({
                         ))}
                         {showFallbackRole && (
                           <span
+                            role="status"
+                            aria-label={`Role: ${member.role}`}
                             className={`${getRoleColorClass(member.role, category)} px-1.5 py-0.5 rounded text-xs font-medium`}
                           >
                             {member.role}
@@ -459,7 +479,17 @@ export const RolesView = ({
           {filteredRoster.length === 0 && (
             <div className="text-center py-12">
               <Users size={48} className="text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">No team members found for the selected role.</p>
+              <p className="text-gray-400 mb-3">No team members found for the selected role.</p>
+              {selectedRole !== 'all' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedRole('all')}
+                  className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                >
+                  Show all members
+                </Button>
+              )}
             </div>
           )}
         </>

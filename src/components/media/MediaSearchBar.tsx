@@ -68,7 +68,7 @@ export const MediaSearchBar = ({
 
         onSearchResults(results);
       } catch (error) {
-        console.error('[MediaSearchBar] Search error:', error);
+        if (import.meta.env.DEV) console.error('[MediaSearchBar] Search error:', error);
         onSearchResults([]);
       } finally {
         setIsSearching(false);
@@ -100,7 +100,10 @@ export const MediaSearchBar = ({
   return (
     <div className="relative w-full">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
+          aria-hidden="true"
+        />
         <Input
           type="text"
           value={query}
@@ -118,8 +121,9 @@ export const MediaSearchBar = ({
             size="sm"
             onClick={handleClear}
             className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+            aria-label="Clear search"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         )}
       </div>

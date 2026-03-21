@@ -70,7 +70,7 @@ export const ProTripDetailContent = ({
   const handleUpdateMemberRole = useCallback(
     async (memberId: string, roleId: string, roleName: string) => {
       if (!tripId) {
-        console.error('Cannot assign role: tripId is missing');
+        if (import.meta.env.DEV) console.error('Cannot assign role: tripId is missing');
         throw new Error('Trip ID is required');
       }
 
@@ -79,7 +79,7 @@ export const ProTripDetailContent = ({
         // The memberId might be the roster participant ID or user_id
         const member = tripData.roster?.find(m => m.id === memberId);
         if (!member) {
-          console.error('Member not found in roster:', memberId);
+          if (import.meta.env.DEV) console.error('Member not found in roster:', memberId);
           throw new Error('Member not found');
         }
 
@@ -100,7 +100,7 @@ export const ProTripDetailContent = ({
           onUpdateTripData({ roster: updatedRoster });
         }
       } catch (error) {
-        console.error('Failed to update member role:', error);
+        if (import.meta.env.DEV) console.error('Failed to update member role:', error);
         throw error;
       }
     },

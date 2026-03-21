@@ -21,10 +21,12 @@ export const InviteSettingsSection = ({
   const effectiveRequireApproval = true;
 
   return (
-    <div className="mb-3 space-y-2">
-      <div className="flex items-center justify-between">
+    <div className="mb-3 space-y-2" role="group" aria-label="Invite link settings">
+      <div className="flex items-center justify-between min-h-[44px]">
         <div className="flex items-center gap-2">
-          <label className="text-gray-300 text-sm">Require approval to join</label>
+          <label htmlFor="require-approval-toggle" className="text-gray-300 text-sm">
+            Require approval to join
+          </label>
           <span
             className="inline-flex items-center gap-1 text-xs text-amber-400"
             title="All trips require approval for security"
@@ -34,23 +36,29 @@ export const InviteSettingsSection = ({
           </span>
         </div>
         <input
+          id="require-approval-toggle"
           type="checkbox"
           checked={effectiveRequireApproval}
           onChange={e => onRequireApprovalChange(e.target.checked)}
           disabled
-          className="rounded opacity-60 cursor-not-allowed"
+          aria-label="Require approval to join (always enabled)"
+          className="rounded opacity-60 cursor-not-allowed min-w-[44px] min-h-[44px] w-5 h-5"
         />
       </div>
       <p className="text-xs text-gray-500 pl-0">
         Someone in the trip must approve new members before they can join
       </p>
-      <div className="flex items-center justify-between">
-        <label className="text-gray-300 text-sm">Link expires in 7 days</label>
+      <div className="flex items-center justify-between min-h-[44px]">
+        <label htmlFor="expire-toggle" className="text-gray-300 text-sm">
+          Link expires in 7 days
+        </label>
         <input
+          id="expire-toggle"
           type="checkbox"
           checked={expireIn7Days}
           onChange={e => onExpireIn7DaysChange(e.target.checked)}
-          className="rounded"
+          aria-label="Set invite link to expire in 7 days"
+          className="rounded min-w-[20px] min-h-[20px] w-5 h-5"
         />
       </div>
     </div>

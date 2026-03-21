@@ -5,6 +5,7 @@ import { CONSUMER_PRICING } from '../../types/consumer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Capacitor } from '@capacitor/core';
 
 export const ConsumerBillingSection = () => {
   const { subscription, tier, isSubscribed, upgradeToTier, isLoading, isSuperAdmin, proTier } =
@@ -12,8 +13,15 @@ export const ConsumerBillingSection = () => {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(tier);
   const [expandedProPlan, setExpandedProPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+  const isConsumerTier = tier === 'free' || tier === 'explorer' || tier === 'frequent-chraveler';
+  const blockConsumerCheckoutOnIOS = isNativeIOS && isConsumerTier && !isSuperAdmin;
 
   const handleManageSubscription = async () => {
+    if (blockConsumerCheckoutOnIOS) {
+      toast.info('Consumer subscription management on iOS will be available with Apple IAP.');
+      return;
+    }
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
@@ -41,6 +49,11 @@ export const ConsumerBillingSection = () => {
   };
 
   const handleCancelSubscription = async () => {
+    if (blockConsumerCheckoutOnIOS) {
+      toast.info('Cancellation on iOS will be available with Apple IAP subscription management.');
+      return;
+    }
+
     const confirmed = window.confirm(
       'Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.',
     );
@@ -149,11 +162,21 @@ export const ConsumerBillingSection = () => {
     <div className="space-y-3">
       <h3 className="text-2xl font-bold text-white">Subscriptions</h3>
 
+      {blockConsumerCheckoutOnIOS && (
+        <div className="rounded-xl p-4 bg-blue-500/10 border border-blue-500/30">
+          <h4 className="text-white font-semibold mb-1">iOS Billing Update</h4>
+          <p className="text-sm text-blue-200">
+            Consumer subscriptions are temporarily unavailable in this iOS build while Apple In-App
+            Purchase is finalized.
+          </p>
+        </div>
+      )}
+
       {/* Current Plan */}
       <div
         className={`rounded-xl p-4 ${
           isSubscribed
-            ? 'bg-gradient-to-r from-glass-orange/10 to-glass-yellow/10 border border-glass-orange/20'
+            ? 'bg-gradient-to-r from-gold-primary/10 to-gold-primary/5 border border-gold-primary/20'
             : 'bg-gradient-to-r from-primary/10 to-primary/15 border border-primary/20'
         }`}
       >
@@ -162,9 +185,9 @@ export const ConsumerBillingSection = () => {
             <div>
               <h4 className="text-xl font-bold text-white flex items-center gap-2 capitalize">
                 {tier}
-                {isSubscribed && <Crown size={20} className="text-glass-orange" />}
+                {isSubscribed && <Crown size={20} className="text-gold-primary" />}
               </h4>
-              <p className={isSubscribed ? 'text-glass-orange' : 'text-primary'}>
+              <p className={isSubscribed ? 'text-gold-primary' : 'text-primary'}>
                 {isSubscribed ? 'Premium Features Active' : 'Free Forever'}
               </p>
             </div>
@@ -174,7 +197,7 @@ export const ConsumerBillingSection = () => {
               ${plans[tier as keyof typeof plans].price}/month
             </div>
             {isSubscribed && subscription?.status === 'trial' && (
-              <div className="text-sm text-glass-yellow">Trial Active</div>
+              <div className="text-sm text-gold-primary">Trial Active</div>
             )}
           </div>
         </div>
@@ -186,7 +209,7 @@ export const ConsumerBillingSection = () => {
               <li key={index} className="flex items-start gap-2">
                 <div
                   className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${
-                    isSubscribed ? 'bg-glass-orange' : 'bg-primary'
+                    isSubscribed ? 'bg-gold-primary' : 'bg-primary'
                   }`}
                 ></div>
                 {feature}
@@ -198,18 +221,22 @@ export const ConsumerBillingSection = () => {
         {!isSubscribed && (
           <button
             onClick={() => upgradeToTier('explorer', billingCycle)}
-            disabled={isLoading}
-            className="bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+            disabled={isLoading || blockConsumerCheckoutOnIOS}
+            className="bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'Processing...' : 'View Upgrade Options'}
+            {blockConsumerCheckoutOnIOS
+              ? 'Unavailable on iOS'
+              : isLoading
+                ? 'Processing...'
+                : 'View Upgrade Options'}
           </button>
         )}
 
         {isSubscribed && (
           <div className="flex gap-3">
             {isSuperAdmin ? (
-              <div className="text-sm text-amber-400 bg-amber-400/10 px-4 py-2 rounded-lg border border-amber-400/20">
-                ✨ Founder Access — All features unlocked
+              <div className="text-sm text-gold-primary bg-gold-primary/10 px-4 py-2 rounded-lg border border-gold-primary/20">
+                ✦ Founder Access — All features unlocked
               </div>
             ) : (
               <>
@@ -239,7 +266,7 @@ export const ConsumerBillingSection = () => {
             onClick={() => setBillingCycle('monthly')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               billingCycle === 'monthly'
-                ? 'bg-glass-orange text-white'
+                ? 'bg-gold-primary text-black'
                 : 'bg-white/10 text-gray-300 hover:bg-white/20'
             }`}
           >
@@ -249,7 +276,7 @@ export const ConsumerBillingSection = () => {
             onClick={() => setBillingCycle('annual')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               billingCycle === 'annual'
-                ? 'bg-glass-orange text-white'
+                ? 'bg-gold-primary text-black'
                 : 'bg-white/10 text-gray-300 hover:bg-white/20'
             }`}
           >
@@ -281,7 +308,7 @@ export const ConsumerBillingSection = () => {
                   <div
                     className={`border rounded-lg p-3 transition-colors hover:bg-white/5 ${
                       key === tier
-                        ? 'border-glass-orange/50 bg-glass-orange/10'
+                        ? 'border-gold-primary/50 bg-gold-primary/10'
                         : 'border-white/10 bg-white/5'
                     }`}
                   >
@@ -289,7 +316,7 @@ export const ConsumerBillingSection = () => {
                       <div className="text-left flex items-center gap-3">
                         <PlanIcon
                           size={20}
-                          className={key === tier ? 'text-glass-orange' : 'text-gray-400'}
+                          className={key === tier ? 'text-gold-primary' : 'text-gray-400'}
                         />
                         <div>
                           <h5 className="font-semibold text-white flex items-center gap-2 capitalize">
@@ -300,7 +327,7 @@ export const ConsumerBillingSection = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         {key === tier && (
-                          <div className="text-sm text-glass-orange font-medium">Current Plan</div>
+                          <div className="text-sm text-gold-primary font-medium">Current Plan</div>
                         )}
                         <div className="text-gray-400">{expandedPlan === key ? '−' : '+'}</div>
                       </div>
@@ -313,7 +340,7 @@ export const ConsumerBillingSection = () => {
                     <ul className="space-y-1.5 text-sm text-gray-300">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-glass-orange rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="w-1.5 h-1.5 bg-gold-primary rounded-full mt-2 flex-shrink-0"></div>
                           {feature}
                         </li>
                       ))}
@@ -323,10 +350,17 @@ export const ConsumerBillingSection = () => {
                         onClick={() =>
                           upgradeToTier(key as 'explorer' | 'frequent-chraveler', billingCycle)
                         }
-                        disabled={isLoading}
-                        className="mt-4 bg-gradient-to-r from-glass-orange to-glass-yellow hover:from-glass-orange/80 hover:to-glass-yellow/80 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                        disabled={
+                          isLoading ||
+                          (isNativeIOS && (key === 'explorer' || key === 'frequent-chraveler'))
+                        }
+                        className="mt-4 bg-gradient-to-r from-gold-primary to-gold-mid hover:from-gold-mid hover:to-gold-primary text-black px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                       >
-                        {isLoading ? 'Processing...' : `Upgrade to ${plan.name}`}
+                        {isNativeIOS && (key === 'explorer' || key === 'frequent-chraveler')
+                          ? 'Unavailable on iOS'
+                          : isLoading
+                            ? 'Processing...'
+                            : `Upgrade to ${plan.name}`}
                       </button>
                     )}
                   </div>
@@ -361,7 +395,7 @@ export const ConsumerBillingSection = () => {
                   <div
                     className={`border rounded-lg p-3 transition-colors hover:bg-white/10 ${
                       isCurrentProPlan
-                        ? 'border-amber-500/50 bg-amber-500/10'
+                        ? 'border-gold-primary/50 bg-gold-primary/10'
                         : 'border-white/10 bg-white/5'
                     }`}
                   >
@@ -369,7 +403,7 @@ export const ConsumerBillingSection = () => {
                       <div className="text-left flex items-center gap-3">
                         <PlanIcon
                           size={20}
-                          className={isCurrentProPlan ? 'text-amber-400' : 'text-primary'}
+                          className={isCurrentProPlan ? 'text-gold-primary' : 'text-primary'}
                         />
                         <div>
                           <h5 className="font-semibold text-foreground flex items-center gap-2">
@@ -382,7 +416,7 @@ export const ConsumerBillingSection = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         {isCurrentProPlan && (
-                          <div className="text-sm text-amber-400 font-medium">Current Plan</div>
+                          <div className="text-sm text-gold-primary font-medium">Current Plan</div>
                         )}
                         <div className="text-muted-foreground">
                           {expandedProPlan === key ? '−' : '+'}
@@ -433,9 +467,9 @@ const proPlans = {
       'Team management dashboard',
       'Basic integrations',
       'Email support',
-      '🎉 Unlimited Events for your team',
-      '🎁 Your first Pro Trip + Event included free',
-      '✅ Includes all Frequent Chraveler benefits',
+      '✦ Unlimited Events for your team',
+      '✦ Your first Pro Trip + Event included free',
+      '✦ Includes all Frequent Chraveler benefits',
     ],
   },
   'pro-growth': {
@@ -448,9 +482,9 @@ const proPlans = {
       'Priority support',
       'Advanced integrations',
       'Custom workflows',
-      '🎉 Unlimited Events for your team',
-      '🎁 Your first Pro Trip + Event included free',
-      '✅ Includes all Frequent Chraveler benefits',
+      '✦ Unlimited Events for your team',
+      '✦ Your first Pro Trip + Event included free',
+      '✦ Includes all Frequent Chraveler benefits',
     ],
   },
   'pro-enterprise': {
@@ -462,9 +496,9 @@ const proPlans = {
       'Custom integrations',
       'Dedicated success manager',
       '24/7 premium support',
-      '🎉 Unlimited Events for your team',
-      '🎁 Your first Pro Trip + Event included free',
-      '✅ Includes all Frequent Chraveler benefits',
+      '✦ Unlimited Events for your team',
+      '✦ Your first Pro Trip + Event included free',
+      '✦ Includes all Frequent Chraveler benefits',
     ],
   },
 } as const;

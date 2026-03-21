@@ -23,7 +23,10 @@ export const NotificationsSection = () => {
         <h4 className="text-base font-semibold text-white mb-3">App Notifications</h4>
         <div className="space-y-3">
           {Object.entries(user.notificationSettings).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+            <div
+              key={key}
+              className="flex items-center justify-between p-3 bg-white/5 rounded-xl min-h-[44px]"
+            >
               <div className="flex items-center gap-3">
                 <Bell size={16} className="text-gray-400" />
                 <span className="text-white capitalize">

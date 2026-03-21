@@ -12,10 +12,15 @@ type NavigateFn = (path: string) => void;
  * Routes to the appropriate trip tab/view based on notification type
  */
 export function buildRouteFromPayload(payload: ChravelPushPayload): string {
-  const { type, tripId, threadId, messageId, eventId, pollId, taskId } = payload;
+  const { type, tripId, tripType, threadId, messageId, eventId, pollId, taskId } = payload;
 
-  // Base trip route
-  const route = `/trip/${tripId}`;
+  // Base route: respect trip variant to avoid misrouting push opens.
+  const route =
+    tripType === 'pro'
+      ? `/tour/pro/${tripId}`
+      : tripType === 'event'
+        ? `/event/${tripId}`
+        : `/trip/${tripId}`;
 
   // Build query params based on notification type
   const params = new URLSearchParams();
@@ -75,7 +80,7 @@ export function handleNotificationNavigation(
   navigate: NavigateFn,
 ): void {
   const route = buildRouteFromPayload(payload);
-  console.log('[PushRouting] Navigating to:', route);
+  // Navigate to route from push notification tap
   navigate(route);
 }
 

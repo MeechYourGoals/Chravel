@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, MapPin, Users, Eye, CheckCircle2 } from 'lucide-react';
+import { Clock, MapPin, Users, Eye, CheckCircle2, Trash2, Pencil, Link } from 'lucide-react';
 import { broadcastService } from '@/services/broadcastService';
+import { toast } from 'sonner';
+
+interface LinkPreview {
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  domain?: string;
+}
 
 interface BroadcastItemProps {
   id: string;
@@ -17,8 +26,12 @@ interface BroadcastItemProps {
   };
   userResponse?: 'coming' | 'wait' | 'cant';
   attachmentUrls?: string[];
+  linkPreview?: LinkPreview;
   readCount?: number;
+  isOwner?: boolean;
   onRespond: (broadcastId: string, response: 'coming' | 'wait' | 'cant') => void;
+  onDelete?: (broadcastId: string) => void;
+  onEdit?: (broadcastId: string, newMessage: string) => void;
 }
 
 export const BroadcastItem = ({
@@ -32,11 +45,18 @@ export const BroadcastItem = ({
   responses,
   userResponse,
   attachmentUrls = [],
+  linkPreview,
   readCount: initialReadCount,
+  isOwner = false,
   onRespond,
+  onDelete,
+  onEdit,
 }: BroadcastItemProps) => {
   const [readCount, setReadCount] = useState(initialReadCount || 0);
   const [hasViewed, setHasViewed] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editMessage, setEditMessage] = useState(message);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Mark as viewed when component mounts (read receipt)
   useEffect(() => {
@@ -62,7 +82,32 @@ export const BroadcastItem = ({
     }
   }, [id, initialReadCount]);
   const getCategoryColors = () => {
-    return 'bg-orange-500 border-orange-600/30';
+    switch (category) {
+      case 'urgent':
+      case 'emergency':
+        return 'bg-red-600/20 border-red-500/40';
+      case 'logistics':
+        return 'bg-yellow-600/20 border-yellow-500/40';
+      case 'chill':
+      default:
+        return 'bg-blue-600/20 border-blue-500/40';
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    try {
+      onDelete(id);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEditSave = () => {
+    if (!editMessage.trim() || !onEdit) return;
+    onEdit(id, editMessage.trim());
+    setIsEditing(false);
   };
 
   const formatTime = (date: Date) => {
@@ -92,17 +137,38 @@ export const BroadcastItem = ({
   return (
     <div className={`border rounded-lg p-4 ${getCategoryColors()}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-medium text-white">{sender.charAt(0).toUpperCase()}</span>
           </div>
-          <span className="font-medium text-white">{sender}</span>
+          <span className="font-medium text-white truncate">{sender}</span>
           <span className="text-xs text-white/60 capitalize">{category}</span>
         </div>
-        <div className="flex items-center gap-1 text-white/60 text-xs">
-          <Clock size={12} />
-          {formatTime(timestamp)}
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="p-1 text-white/40 hover:text-white transition-colors rounded"
+                aria-label="Edit broadcast"
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="p-1 text-white/40 hover:text-red-400 transition-colors rounded disabled:opacity-50"
+                aria-label="Delete broadcast"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-1 text-white/60 text-xs">
+            <Clock size={12} />
+            {formatTime(timestamp)}
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-1 text-white/60 text-xs mb-3 mt-1">
@@ -111,7 +177,73 @@ export const BroadcastItem = ({
       </div>
 
       {/* Message */}
-      <p className="text-white mb-3 leading-relaxed font-bold">{message}</p>
+      {isEditing ? (
+        <div className="mb-3 space-y-2">
+          <textarea
+            value={editMessage}
+            onChange={e => setEditMessage(e.target.value)}
+            maxLength={500}
+            rows={2}
+            className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-primary resize-none text-sm"
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setEditMessage(message);
+              }}
+              className="px-3 py-1 text-xs text-slate-400 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEditSave}
+              disabled={!editMessage.trim()}
+              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-white mb-3 leading-relaxed font-bold break-words">{message}</p>
+      )}
+
+      {/* Link preview */}
+      {linkPreview && (
+        <a
+          href={linkPreview.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-3 block bg-slate-900/70 border border-slate-600/60 hover:bg-slate-800/80 rounded-lg overflow-hidden transition-colors"
+        >
+          {linkPreview.image && (
+            <img
+              src={linkPreview.image}
+              alt={linkPreview.title || 'Link preview'}
+              className="w-full h-40 object-cover"
+            />
+          )}
+          <div className="p-3">
+            <div className="flex items-start gap-2">
+              <Link size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-white truncate">
+                  {linkPreview.title || linkPreview.domain || 'Link'}
+                </h4>
+                {linkPreview.description && (
+                  <p className="text-xs text-slate-300 mt-1 line-clamp-2">
+                    {linkPreview.description}
+                  </p>
+                )}
+                {linkPreview.domain && (
+                  <p className="text-xs text-slate-400 mt-1 truncate">{linkPreview.domain}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </a>
+      )}
 
       {/* Attachments */}
       {attachmentUrls && attachmentUrls.length > 0 && (
@@ -169,36 +301,36 @@ export const BroadcastItem = ({
 
       {/* Response Options */}
       <div className="flex items-center gap-3">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => handleResponse('coming')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
               userResponse === 'coming'
                 ? 'bg-green-600 text-white'
                 : 'bg-white/20 text-white hover:bg-green-600/50'
             }`}
           >
-            ✅ Coming ({responses.coming})
+            Coming ({responses.coming})
           </button>
           <button
             onClick={() => handleResponse('wait')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
               userResponse === 'wait'
                 ? 'bg-yellow-600 text-white'
                 : 'bg-white/20 text-white hover:bg-yellow-600/50'
             }`}
           >
-            ✋ Wait ({responses.wait})
+            Wait ({responses.wait})
           </button>
           <button
             onClick={() => handleResponse('cant')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
               userResponse === 'cant'
                 ? 'bg-red-600 text-white'
                 : 'bg-white/20 text-white hover:bg-red-600/50'
             }`}
           >
-            ❌ Can't ({responses.cant})
+            Can't ({responses.cant})
           </button>
         </div>
       </div>

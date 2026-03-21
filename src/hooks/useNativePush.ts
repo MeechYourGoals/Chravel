@@ -75,8 +75,8 @@ export function useNativePush() {
       // Save token to Supabase
       const saved = await saveDeviceToken(user.id, result.token);
 
-      if (!saved) {
-        console.warn('[useNativePush] Failed to save token to database');
+      if (!saved && import.meta.env.DEV) {
+        // Token save failed — not critical, will retry on next app launch
       }
 
       tokenRef.current = result.token;
@@ -115,7 +115,9 @@ export function useNativePush() {
         isRegistered: false,
       }));
     } catch (err) {
-      console.error('[useNativePush] Failed to unregister:', err);
+      if (import.meta.env.DEV) {
+        // Unregister failed — non-critical, token will expire naturally
+      }
     }
   }, [user]);
 
@@ -145,7 +147,7 @@ export function useNativePush() {
 
     // Handle foreground notifications - show toast
     const unsubReceived = NativePush.onNotificationReceived(notification => {
-      console.log('[useNativePush] Foreground notification:', notification);
+      // Foreground notification received — show toast to user
 
       const payload = NativePush.parsePayload(notification.data || {});
 

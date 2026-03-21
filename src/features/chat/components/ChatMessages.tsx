@@ -27,6 +27,7 @@ import type {
   SmartImportStatus,
 } from '@/services/conciergeGateway';
 import type { TTSPlaybackState } from '@/hooks/useConciergeReadAloud';
+import { useLinkPreviews } from '../hooks/useLinkPreviews';
 
 /** Extended message shape that may carry rich function-call data from the concierge. */
 interface RichChatMessage extends ChatMessage {
@@ -113,6 +114,17 @@ export const ChatMessages = ({
     setPendingDeleteId(null);
   }, []);
 
+  const linkPreviewFallbacks = useLinkPreviews(
+    messages.map(message => {
+      const candidate = message as { id: string; content?: string; link_preview?: unknown };
+      return {
+        id: candidate.id,
+        text: candidate.content || '',
+        linkPreview: candidate.link_preview,
+      };
+    }),
+  );
+
   if (messages.length === 0) {
     return (
       <div className="text-center py-8">
@@ -126,12 +138,18 @@ export const ChatMessages = ({
   return (
     <>
       {messages.map(message => {
+        const renderedMessage = {
+          ...message,
+          link_preview:
+            (message as { link_preview?: unknown }).link_preview ||
+            linkPreviewFallbacks[message.id],
+        };
         const messageWithGrounding = message as ChatMessageWithGrounding;
         const rich = message as RichChatMessage;
         return (
           <div key={message.id} id={`msg-${message.id}`} className="space-y-2 group/msg relative">
             <MessageRenderer
-              message={message}
+              message={renderedMessage}
               showMapWidgets={showMapWidgets}
               ttsPlaybackState={ttsPlaybackState}
               ttsPlayingMessageId={ttsPlayingMessageId}

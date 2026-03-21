@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDemoMode } from '@/hooks/useDemoMode';
@@ -19,7 +19,10 @@ interface InviteLinkResult {
   inviteLink: string;
   loading: boolean;
   isDemoMode: boolean;
+  error: string | null;
+  expiresAt: string | null;
   regenerateInviteToken: () => Promise<void>;
+  retryGenerate: () => Promise<void>;
   resendInvite: (recipientEmail?: string, recipientPhone?: string) => Promise<boolean>;
   handleCopyLink: () => Promise<void>;
   handleShare: () => Promise<void>;
@@ -102,6 +105,8 @@ export const useInviteLink = ({
   const [copied, setCopied] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const { isDemoMode } = useDemoMode();
 
   // Generate invite link when modal opens
@@ -171,7 +176,7 @@ export const useInviteLink = ({
 
           if (!admin) {
             if (import.meta.env.DEV)
-              console.error('[InviteLink] User not authorized (pro/event trip)');
+              console.error('[InviteLink] User not authorized for pro/event trip');
             toast.error('Only trip admins can create invite links for this trip');
             return false;
           }
@@ -216,12 +221,15 @@ export const useInviteLink = ({
 
   const generateTripLink = async () => {
     setLoading(true);
+    setError(null);
     // Always use branded chravel.app URL for invite links
     const _baseUrl = 'https://chravel.app';
     const actualTripId = proTripId || tripId;
 
     if (!actualTripId) {
-      toast.error('No trip ID provided');
+      const msg = 'No trip ID provided';
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
       return;
     }
@@ -231,6 +239,7 @@ export const useInviteLink = ({
     if (isDemoMode) {
       const demoInviteCode = `demo-${actualTripId}-${Date.now().toString(36)}`;
       setInviteLink(buildInviteLink(demoInviteCode));
+      setExpiresAt(null);
       setLoading(false);
       toast.success('Demo invite link created!');
       return;
@@ -242,9 +251,10 @@ export const useInviteLink = ({
     if (!UUID_REGEX.test(actualTripId)) {
       if (import.meta.env.DEV)
         console.error('[InviteLink] Invalid trip ID format (not UUID):', actualTripId);
-      toast.error(
-        'This appears to be a demo trip. Create a real trip to generate shareable invite links.',
-      );
+      const msg =
+        'This appears to be a demo trip. Create a real trip to generate shareable invite links.';
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
       return;
     }
@@ -254,7 +264,9 @@ export const useInviteLink = ({
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      toast.error('Please log in to create invite links');
+      const msg = 'Please log in to create invite links';
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
       return;
     }
@@ -264,9 +276,16 @@ export const useInviteLink = ({
     const created = await createInviteInDatabase(actualTripId, inviteCode);
 
     if (!created) {
+      setError('Failed to create invite link. Please try again.');
       setLoading(false);
       return;
     }
+
+    // Track expiry date for display
+    const computedExpiresAt = expireIn7Days
+      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    setExpiresAt(computedExpiresAt);
 
     // Use branded unfurl domain for rich OG previews
     setInviteLink(buildInviteLink(inviteCode));
@@ -394,12 +413,21 @@ export const useInviteLink = ({
     window.open(`sms:?body=${message}`);
   };
 
+  const retryGenerate = useCallback(async () => {
+    setError(null);
+    await generateTripLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- generateTripLink uses stable state setters
+  }, [isOpen, requireApproval, expireIn7Days, tripId, proTripId, isDemoMode]);
+
   return {
     copied,
     inviteLink,
     loading,
     isDemoMode,
+    error,
+    expiresAt,
     regenerateInviteToken,
+    retryGenerate,
     resendInvite,
     handleCopyLink,
     handleShare,

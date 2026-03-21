@@ -74,6 +74,11 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
       storageKey: 'chravel-auth-session',
       detectSessionInUrl: true,
     },
+    realtime: {
+      params: {
+        eventsPerSecond: 40,
+      },
+    },
   },
 );
 

@@ -55,7 +55,11 @@ export const IOSPushInstructions: React.FC<IOSPushInstructionsProps> = ({ open, 
       </div>
 
       <DialogFooter>
-        <Button onClick={onClose} className="w-full">
+        <Button
+          onClick={onClose}
+          className="w-full min-h-[44px]"
+          aria-label="Dismiss iOS push notification instructions"
+        >
           Got It
         </Button>
       </DialogFooter>

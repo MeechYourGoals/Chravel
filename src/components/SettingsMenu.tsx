@@ -137,9 +137,11 @@ export const SettingsMenu = ({
               <div className="flex items-center justify-center gap-1 md:gap-2 min-w-max">
                 <button
                   onClick={() => setSettingsType('consumer')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  aria-label="My Trips settings"
+                  aria-pressed={settingsType === 'consumer'}
+                  className={`py-2 px-4 min-h-[44px] rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'consumer'
-                      ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                      ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -147,9 +149,11 @@ export const SettingsMenu = ({
                 </button>
                 <button
                   onClick={() => setSettingsType('enterprise')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  aria-label="Pro settings"
+                  aria-pressed={settingsType === 'enterprise'}
+                  className={`py-2 px-4 min-h-[44px] rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'enterprise'
-                      ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                      ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -157,9 +161,11 @@ export const SettingsMenu = ({
                 </button>
                 <button
                   onClick={() => setSettingsType('events')}
-                  className={`py-2 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  aria-label="Events settings"
+                  aria-pressed={settingsType === 'events'}
+                  className={`py-2 px-4 min-h-[44px] rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                     settingsType === 'events'
-                      ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                      ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -168,9 +174,11 @@ export const SettingsMenu = ({
                 {canAccessAdvertiser && (
                   <button
                     onClick={() => setSettingsType('advertiser')}
-                    className={`py-2 px-4 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                    aria-label="Advertiser settings"
+                    aria-pressed={settingsType === 'advertiser'}
+                    className={`py-2 px-4 min-h-[44px] rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                       settingsType === 'advertiser'
-                        ? 'bg-black/60 border border-gold-primary/60 text-gold-light shadow-ring-glow'
+                        ? 'bg-black/60 border border-gold-primary/60 text-white shadow-ring-glow'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
@@ -183,7 +191,8 @@ export const SettingsMenu = ({
 
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+              aria-label="Close settings"
+              className="text-gray-400 hover:text-white p-2 min-h-[44px] min-w-[44px] rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
             >
               <X size={20} />
             </button>
@@ -202,8 +211,8 @@ export const SettingsMenu = ({
             {user ? (
               // Logged In: Show user info only (Sign Out is in Profile > Account section)
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary" />
+                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gold-primary/20 flex items-center justify-center">
+                  <User className="h-5 w-5 text-gold-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-gray-400">Signed in as</p>

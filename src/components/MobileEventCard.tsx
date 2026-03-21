@@ -33,11 +33,14 @@ import { useToast } from '../hooks/use-toast';
 import { useDeleteTrip } from '../hooks/useDeleteTrip';
 import { archiveService } from '../services/archiveService';
 import { useAuth } from '../hooks/useAuth';
+import { useDemoMode } from '../hooks/useDemoMode';
 import { getProTripColor } from '../utils/proTripColors';
 import { getExportData } from '../services/tripExportDataService';
 import { generateClientPDF } from '../utils/exportPdfClient';
 import { orderExportSections } from '../utils/exportSectionOrder';
 import { ExportSection } from '../types/tripExport';
+import { getDemoTripCoverFallback } from '@/data/demoTripCoverFallbacks';
+import { buildCoverBackgroundImage } from '@/utils/coverImageStyle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,10 +73,12 @@ export const MobileEventCard = ({
 
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const { deleteTrip, isDeleting } = useDeleteTrip();
 
   // Get color for this event - uses saved color if available, otherwise deterministic fallback
   const eventColor = getProTripColor(event.id, event.card_color);
+  const demoCoverFallback = isDemoMode ? getDemoTripCoverFallback(event.id) : undefined;
 
   const handleViewEvent = () => {
     navigate(`/event/${event.id}`);
@@ -211,7 +216,7 @@ export const MobileEventCard = ({
         {event.coverPhoto ? (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-15"
-            style={{ backgroundImage: `url(${event.coverPhoto})` }}
+            style={buildCoverBackgroundImage(event.coverPhoto, demoCoverFallback)}
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />

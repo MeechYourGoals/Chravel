@@ -1,4 +1,4 @@
-import { TripEvent, CreateEventData } from './calendarService';
+import type { TripEvent, CreateEventData } from '@/types/calendar';
 import {
   getStorageItem,
   setStorageItem,

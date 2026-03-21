@@ -1,6 +1,7 @@
 import React from 'react';
 import { BroadcastItem } from './BroadcastItem';
 import { Radio } from 'lucide-react';
+import { useLinkPreviews } from '@/features/chat/hooks/useLinkPreviews';
 
 interface BroadcastData {
   id: string;
@@ -22,9 +23,24 @@ interface BroadcastListProps {
   broadcasts: BroadcastData[];
   userResponses: Record<string, 'coming' | 'wait' | 'cant'>;
   onRespond: (broadcastId: string, response: 'coming' | 'wait' | 'cant') => void;
+  onDelete?: (broadcastId: string) => void;
+  onEdit?: (broadcastId: string, newMessage: string) => void;
 }
 
-export const BroadcastList = ({ broadcasts, userResponses, onRespond }: BroadcastListProps) => {
+export const BroadcastList = ({
+  broadcasts,
+  userResponses,
+  onRespond,
+  onDelete,
+  onEdit,
+}: BroadcastListProps) => {
+  const linkPreviews = useLinkPreviews(
+    broadcasts.map(broadcast => ({
+      id: broadcast.id,
+      text: broadcast.message,
+      linkPreview: undefined,
+    })),
+  );
   if (broadcasts.length === 0) {
     return (
       <div className="text-center py-12">
@@ -41,8 +57,12 @@ export const BroadcastList = ({ broadcasts, userResponses, onRespond }: Broadcas
         <BroadcastItem
           key={broadcast.id}
           {...broadcast}
+          linkPreview={linkPreviews[broadcast.id]}
           userResponse={userResponses[broadcast.id]}
           onRespond={onRespond}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          isOwner={true}
         />
       ))}
     </div>

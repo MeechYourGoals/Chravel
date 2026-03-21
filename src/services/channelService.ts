@@ -625,6 +625,71 @@ class ChannelService {
     };
   }
 
+  /** Update a channel's metadata. RLS on trip_channels enforces authorization. */
+  async updateChannel(
+    channelId: string,
+    updates: { channelName?: string; description?: string; isPrivate?: boolean },
+  ): Promise<TripChannel | null> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.channelName !== undefined) {
+        updateData.channel_name = updates.channelName;
+        updateData.channel_slug = updates.channelName.toLowerCase().replace(/s+/g, '-');
+      }
+      if (updates.description !== undefined) {
+        updateData.description = updates.description;
+      }
+      if (updates.isPrivate !== undefined) {
+        updateData.is_private = updates.isPrivate;
+      }
+
+      const { data, error } = await supabase
+        .from('trip_channels')
+        .update(updateData)
+        .eq('id', channelId)
+        .select('*, trip_roles(role_name)')
+        .single();
+
+      if (error || !data) return null;
+      return this.mapChannelData(data as unknown as ChannelRowWithRole);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Archive a channel (soft-delete). RLS enforces authorization. */
+  async archiveChannel(channelId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('trip_channels')
+        .update({ is_archived: true, updated_at: new Date().toISOString() })
+        .eq('id', channelId);
+      return !error;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Unarchive a channel. RLS enforces authorization. */
+  async unarchiveChannel(channelId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('trip_channels')
+        .update({ is_archived: false, updated_at: new Date().toISOString() })
+        .eq('id', channelId);
+      return !error;
+    } catch {
+      return false;
+    }
+  }
+
   async sendMessage(
     request: SendMessageRequest & {
       messageType?: 'regular' | 'broadcast';

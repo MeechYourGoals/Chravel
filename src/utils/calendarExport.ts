@@ -7,6 +7,8 @@ export interface ICSEvent {
   location?: string;
   description?: string;
   uid: string;
+  isAllDay?: boolean;
+  recurrenceRule?: string;
 }
 
 /**
@@ -17,6 +19,9 @@ export interface ICSExportEvent {
   id: string;
   title: string;
   date: Date;
+  endDate?: Date;
+  isAllDay?: boolean;
+  recurrenceRule?: string;
   location?: string;
   description?: string;
 }
@@ -38,17 +43,25 @@ export class CalendarExporter {
   }
 
   exportToICS(events: ICSExportEvent[], tripName: string): string {
-    const icsEvents = events.map(event => ({
-      title: brandEventTitleForIcs(event.title), // Apply ChravelApp branding
-      start: event.date instanceof Date ? event.date : new Date(event.date),
-      end: new Date(
-        (event.date instanceof Date ? event.date : new Date(event.date)).getTime() +
-          2 * 60 * 60 * 1000,
-      ), // 2 hours default
-      location: event.location,
-      description: event.description,
-      uid: event.id,
-    }));
+    const icsEvents = events.map(event => {
+      const start = event.date instanceof Date ? event.date : new Date(event.date);
+      let end: Date;
+      if (event.endDate) {
+        end = event.endDate instanceof Date ? event.endDate : new Date(event.endDate);
+      } else {
+        end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+      }
+      return {
+        title: brandEventTitleForIcs(event.title),
+        start,
+        end,
+        location: event.location,
+        description: event.description,
+        uid: event.id,
+        isAllDay: event.isAllDay,
+        recurrenceRule: event.recurrenceRule,
+      };
+    });
 
     return this.generateICS(icsEvents, tripName);
   }
@@ -67,9 +80,21 @@ export class CalendarExporter {
     events.forEach(event => {
       lines.push('BEGIN:VEVENT');
       lines.push(`UID:${event.uid}@chravel.app`);
-      lines.push(`DTSTART:${this.formatDate(event.start)}`);
-      lines.push(`DTEND:${this.formatDate(event.end)}`);
+
+      if (event.isAllDay) {
+        const dateOnly = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
+        lines.push(`DTSTART;VALUE=DATE:${dateOnly(event.start)}`);
+        lines.push(`DTEND;VALUE=DATE:${dateOnly(event.end)}`);
+      } else {
+        lines.push(`DTSTART:${this.formatDate(event.start)}`);
+        lines.push(`DTEND:${this.formatDate(event.end)}`);
+      }
+
       lines.push(`SUMMARY:${this.escapeText(event.title)}`);
+
+      if (event.recurrenceRule) {
+        lines.push(`RRULE:${event.recurrenceRule}`);
+      }
 
       if (event.location) {
         lines.push(`LOCATION:${this.escapeText(event.location)}`);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
@@ -11,6 +11,7 @@ import {
   Settings,
   Upload,
   Globe,
+  Loader2,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -59,8 +60,9 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
     endDate?: string;
     location?: string;
   }>({});
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const { createTrip, trips } = useTrips();
+  const { createTrip, updateTrip, trips } = useTrips();
 
   // ✅ FIXED: Always call useOrganization hook (Rules of Hooks requirement)
   // The hook handles demo mode internally, returning empty arrays when in demo mode
@@ -219,13 +221,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               data: { publicUrl },
             } = supabase.storage.from('trip-covers').getPublicUrl(filePath);
 
-            // Update trip with cover image URL
-            await supabase
-              .from('trips')
-              .update({ cover_image_url: publicUrl })
-              .eq('id', newTrip.id);
+            // Route through useTrips update path so homepage caches invalidate immediately.
+            const coverUpdated = await updateTrip(newTrip.id, { cover_image_url: publicUrl });
+            if (!coverUpdated) {
+              throw new Error('Failed to update trip cover image');
+            }
           } catch (uploadError) {
-            console.error('Error uploading cover image:', uploadError);
+            if (import.meta.env.DEV) console.error('Error uploading cover image:', uploadError);
             toast.error('Trip created, but failed to upload cover image');
           }
         }
@@ -244,11 +246,12 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
             );
 
             if (linkError) {
-              console.error('Error linking trip to organization:', linkError);
+              if (import.meta.env.DEV)
+                console.error('Error linking trip to organization:', linkError);
               toast.error('Trip created but failed to link to organization');
             }
           } catch (linkErr) {
-            console.error('Error linking trip:', linkErr);
+            if (import.meta.env.DEV) console.error('Error linking trip:', linkErr);
           }
         }
       }
@@ -278,7 +281,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
       setPrivacyMode(getDefaultPrivacyMode('consumer'));
       setSelectedOrganization('');
     } catch (error) {
-      console.error('Error creating trip:', error);
+      if (import.meta.env.DEV) console.error('Error creating trip:', error);
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to create trip. Please try again.';
       tripEvents.createFailed(errorMessage);
@@ -362,14 +365,25 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain">
-      <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1.5rem)] sm:max-h-[90vh] overflow-y-auto pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+1rem))]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-trip-modal-title"
+        className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-1.5rem)] sm:max-h-[90vh] overflow-y-auto pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+1rem))]"
+      >
         {/* Header */}
         <div
           className="flex items-center justify-between mb-6"
           style={{ paddingTop: 'max(0px, calc(env(safe-area-inset-top, 0px) + 4px))' }}
         >
-          <h2 className="text-2xl font-bold text-white">Create New Trip</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+          <h2 id="create-trip-modal-title" className="text-2xl font-bold text-white">
+            {tripType === 'event' ? 'Create New Event' : 'Create New Trip'}
+          </h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-gray-500 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
             <X size={24} />
           </button>
         </div>
@@ -437,9 +451,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           onSubmit={handleSubmit}
           className="space-y-4 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
         >
-          {/* Trip Title */}
+          {/* Trip Title / Event Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Trip Title</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              {tripType === 'event' ? 'Event Title' : 'Trip Title'}
+            </label>
             <input
               type="text"
               name="title"
@@ -452,10 +468,23 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               }`}
               placeholder="e.g., Summer in Paris"
               required
+              aria-required="true"
+              maxLength={80}
             />
-            {validationErrors.title && (
-              <p className="text-red-400 text-xs mt-1">{validationErrors.title}</p>
-            )}
+            <div className="flex items-center justify-between mt-1">
+              {validationErrors.title ? (
+                <p className="text-red-400 text-xs">{validationErrors.title}</p>
+              ) : !formData.title.trim() ? (
+                <p className="text-gray-500 text-xs">Required</p>
+              ) : (
+                <span />
+              )}
+              <p
+                className={`text-xs ${formData.title.length > 70 ? 'text-amber-400' : 'text-gray-500'}`}
+              >
+                {formData.title.length}/80
+              </p>
+            </div>
           </div>
 
           {/* Organizer - Only for Event trips */}
@@ -517,6 +546,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
+                aria-required="true"
               />
               {validationErrors.startDate && (
                 <p className="text-red-400 text-xs mt-1">{validationErrors.startDate}</p>
@@ -536,6 +566,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                     : 'border-[#444] focus:border-[#c49746]'
                 }`}
                 required
+                aria-required="true"
               />
               {validationErrors.endDate && (
                 <p className="text-red-400 text-xs mt-1">{validationErrors.endDate}</p>
@@ -609,9 +640,17 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
+              maxLength={500}
               className="w-full bg-[#222]/60 border border-[#444] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#c49746] focus:outline-none transition-colors resize-none"
               placeholder="Tell us about your trip..."
             />
+            {formData.description.length > 0 && (
+              <p
+                className={`text-xs mt-1 text-right ${formData.description.length > 450 ? 'text-amber-400' : 'text-gray-500'}`}
+              >
+                {formData.description.length}/500
+              </p>
+            )}
           </div>
 
           {/* Cover Photo */}
@@ -706,7 +745,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                         key={color.accent}
                         type="button"
                         onClick={() => setSelectedCardColor(color.accent)}
-                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
+                        className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-gradient-to-br ${color.cardGradient} transition-all duration-200 hover:scale-110 ${
                           selectedCardColor === color.accent
                             ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110'
                             : 'opacity-70 hover:opacity-100'
@@ -738,7 +777,14 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
               disabled={isLoading}
               className="flex-1 bg-gradient-to-r from-[#533517] to-[#c49746] hover:from-[#6a441e] hover:to-[#d4a74f] disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-xl font-medium transition-colors"
             >
-              {isLoading ? 'Creating...' : 'Create'}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 size={16} className="animate-spin" />
+                  Creating...
+                </span>
+              ) : (
+                'Create'
+              )}
             </button>
           </div>
         </form>

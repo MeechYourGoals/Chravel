@@ -347,7 +347,7 @@ export const mediaService = {
       .eq('trip_id', tripId);
 
     if (error) {
-      console.error('[mediaService] Error fetching media stats:', error);
+      if (import.meta.env.DEV) console.error('[mediaService] Error fetching media stats:', error);
       return { total_items: 0, total_size: 0, by_type: {} };
     }
 
@@ -375,7 +375,7 @@ export const mediaService = {
         const mediaItem = await this.uploadMedia(request);
         results.push(mediaItem);
       } catch (error) {
-        console.error('[mediaService] Error in batch upload:', error);
+        if (import.meta.env.DEV) console.error('[mediaService] Error in batch upload:', error);
         // Continue with other uploads even if one fails
       }
     }

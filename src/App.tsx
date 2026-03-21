@@ -313,7 +313,6 @@ const App = () => {
       const isChunkError =
         error.includes('Loading chunk') ||
         error.includes('Failed to fetch dynamically imported') ||
-        error.includes('Failed to fetch') ||
         error.includes('Failed to load module script') ||
         errorString.includes('Failed to fetch dynamically imported') ||
         errorString.includes('Loading chunk');

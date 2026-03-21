@@ -145,8 +145,11 @@ export const PollComponent = ({
     }
     try {
       await votePollAsync({ pollId, optionIds });
-    } catch (error) {
-      console.error('Failed to vote on poll:', error);
+    } catch (error: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to vote on poll:', error);
+      }
+      toast.error('Failed to vote', { description: 'Please try again.' });
     }
   };
 
@@ -158,8 +161,10 @@ export const PollComponent = ({
     try {
       await createPollAsync({ question, options, settings });
       setShowCreatePoll(false);
-    } catch (error) {
-      console.error('Failed to create poll:', error);
+    } catch (error: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to create poll:', error);
+      }
     }
   };
 
@@ -170,8 +175,10 @@ export const PollComponent = ({
     }
     try {
       await closePollAsync({ pollId });
-    } catch (error) {
-      console.error('Failed to close poll:', error);
+    } catch (error: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to close poll:', error);
+      }
     }
   };
 
@@ -186,8 +193,10 @@ export const PollComponent = ({
     }
     try {
       await deletePollAsync(pollId);
-    } catch (error) {
-      console.error('Failed to delete poll:', error);
+    } catch (error: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to delete poll:', error);
+      }
     }
   };
 
@@ -242,7 +251,8 @@ export const PollComponent = ({
       {!hideCreateButton && effectivePermissions.canCreate && !showCreatePoll && (
         <Button
           onClick={() => setShowCreatePoll(true)}
-          className="w-full h-10 rounded-xl font-semibold text-sm"
+          className="w-full h-11 min-h-[44px] rounded-xl font-semibold text-sm"
+          aria-label="Create a new poll"
         >
           <BarChart3 size={18} className="mr-2" />
           Create Poll
@@ -259,9 +269,21 @@ export const PollComponent = ({
       )}
 
       {isLoading ? (
-        <div className="space-y-2">
-          <div className="h-20 rounded-xl bg-white/5 animate-pulse" />
-          <div className="h-20 rounded-xl bg-white/5 animate-pulse" />
+        <div className="space-y-3" role="status" aria-label="Loading polls">
+          {[0, 1].map(i => (
+            <div
+              key={i}
+              className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 animate-pulse"
+            >
+              <div className="h-5 bg-white/10 rounded w-3/4" />
+              <div className="space-y-2">
+                <div className="h-10 bg-white/5 rounded-lg" />
+                <div className="h-10 bg-white/5 rounded-lg" />
+                <div className="h-10 bg-white/5 rounded-lg w-5/6" />
+              </div>
+              <div className="h-3 bg-white/5 rounded w-1/4" />
+            </div>
+          ))}
         </div>
       ) : formattedPolls.length === 0 && !showCreatePoll ? (
         <PollsEmptyState />
