@@ -158,6 +158,7 @@ export const ProTripDetailDesktop = () => {
     const links = tripData.links || [];
 
     return {
+      ...tripData,
       ...trip,
       basecamp,
       broadcasts,
@@ -174,7 +175,7 @@ export const ProTripDetailDesktop = () => {
       compliance: tripData.compliance,
       media: tripData.media,
       sponsors: tripData.sponsors,
-    };
+    } as ProTripData;
   }, [tripData, userTrips, isDemoMode, user?.id]);
 
   // Auto-scroll to chat on page load (chat-first viewport)

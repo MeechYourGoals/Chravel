@@ -28,7 +28,10 @@ import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { CTA_BUTTON, CTA_BUTTON_SM, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
+import { CTA_GRADIENT, CTA_INTERACTIVE, CTA_DISABLED, CTA_ICON_SIZE } from '@/lib/ctaButtonStyles';
+
+/** 40px chat-specific button — compromise between touch target (44px) and text input room (36px) */
+const CTA_BUTTON_CHAT = `size-10 min-w-[40px] rounded-full flex items-center justify-center shrink-0 select-none touch-manipulation ${CTA_GRADIENT} ${CTA_INTERACTIVE} ${CTA_DISABLED}`;
 import * as haptics from '@/native/haptics';
 import { MentionPicker, TripMember } from './MentionPicker';
 import { VoiceButton } from './VoiceButton';
@@ -446,7 +449,7 @@ export const ChatInput = ({
           {/* Emoji Picker Button — desktop-first, lazy-loaded */}
           <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
             <PopoverTrigger asChild>
-              <button className={cn('hidden sm:flex', CTA_BUTTON_SM)} aria-label="Insert emoji">
+              <button className={cn('hidden sm:flex', CTA_BUTTON_CHAT)} aria-label="Insert emoji">
                 <Smile size={18} className="text-white" />
               </button>
             </PopoverTrigger>
@@ -498,7 +501,7 @@ export const ChatInput = ({
           {/* + Button with Dropdown Menu — right side */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={CTA_BUTTON} aria-label="Message options">
+              <button className={CTA_BUTTON_CHAT} aria-label="Message options">
                 <Plus size={CTA_ICON_SIZE} className="text-white" />
               </button>
             </DropdownMenuTrigger>
@@ -568,9 +571,9 @@ export const ChatInput = ({
             className={
               isBroadcastMode
                 ? cn(
-                    'size-11 min-w-[44px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
+                    'size-10 min-w-[40px] rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#B91C1C] to-[#991B1B] hover:opacity-90 shrink-0 select-none touch-manipulation',
                   )
-                : CTA_BUTTON
+                : CTA_BUTTON_CHAT
             }
           >
             {isSendingMessage ? (
