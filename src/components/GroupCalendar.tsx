@@ -20,7 +20,6 @@ import { useConsumerSubscription } from '@/hooks/useConsumerSubscription';
 import { hasPaidAccess } from '@/utils/paidAccess';
 import type { CalendarEvent } from '@/types/calendar';
 import { CalendarErrorState } from '@/features/calendar/components/CalendarErrorState';
-import { GoogleCalendarSync } from '@/features/calendar/components/GoogleCalendarSync';
 
 interface GroupCalendarProps {
   tripId: string;
@@ -331,11 +330,6 @@ export const GroupCalendar = React.memo(({ tripId }: GroupCalendarProps) => {
         onExport={handleExport}
         onImport={handleImport}
       />
-
-      {/* Google Calendar Sync Status */}
-      <div className="mb-4 px-1">
-        <GoogleCalendarSync tripId={tripId} />
-      </div>
 
       {isError ? (
         <CalendarErrorState
