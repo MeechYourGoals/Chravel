@@ -225,7 +225,7 @@ export const MobileUnifiedMediaHub = ({ tripId }: MobileUnifiedMediaHubProps) =>
       url: item.url,
       mimeType: item.mimeType || (item.type === 'video' ? 'video/mp4' : 'image/jpeg'),
       fileName: item.filename,
-      metadata: item.metadata,
+      metadata: (item.metadata ?? {}) as Record<string, unknown>,
     }));
   }, [swipeableMedia]);
 

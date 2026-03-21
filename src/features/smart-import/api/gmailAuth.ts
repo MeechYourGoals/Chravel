@@ -42,7 +42,7 @@ export const fetchGmailAccounts = async (): Promise<GmailAccount[]> => {
       throw new Error(error.message);
     }
 
-    return (data || []) as GmailAccount[];
+    return (data || []) as unknown as GmailAccount[];
   } catch (err) {
     if (
       err instanceof Error &&

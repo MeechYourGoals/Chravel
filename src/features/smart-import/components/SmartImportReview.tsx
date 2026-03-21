@@ -10,7 +10,7 @@ import {
   Utensils,
   Train,
   CalendarCheck,
-  Map,
+  Map as MapIcon,
   Loader2,
   AlertTriangle,
   RefreshCw,
@@ -61,7 +61,7 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string; label
   restaurant_reservation: { icon: Utensils, color: 'text-emerald-500', label: 'Restaurant' },
   rail_bus_ferry: { icon: Train, color: 'text-cyan-500', label: 'Rail/Bus/Ferry' },
   conference_registration: { icon: CalendarCheck, color: 'text-violet-500', label: 'Conference' },
-  generic_itinerary_item: { icon: Map, color: 'text-slate-500', label: 'Itinerary' },
+  generic_itinerary_item: { icon: MapIcon, color: 'text-slate-500', label: 'Itinerary' },
 };
 
 type FilterTab =
