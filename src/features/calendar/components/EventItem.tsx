@@ -65,7 +65,7 @@ export const EventItem = ({
             <span className="text-lg">{categoryEmojis[event.event_category] || '📌'}</span>
             <h4 className="font-medium text-foreground">{event.title}</h4>
             {event.recurrence_rule && (
-              <Repeat className="h-3.5 w-3.5 text-muted-foreground" title="Recurring event" />
+              <Repeat className="h-3.5 w-3.5 text-muted-foreground" aria-label="Recurring event" />
             )}
             {hasReminder && (
               <Bell
