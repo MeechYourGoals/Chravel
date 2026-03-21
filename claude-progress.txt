@@ -1,3 +1,9 @@
+2026-03-21 — Gemini Live websocket setup hang hardening
+- Reproduced latent setup-timeout gap with a focused regression test: timeout was initialized inside `ws.onopen`, so if the socket never opened the UI could remain indefinitely on "Opening audio channel…".
+- Implemented minimal hook fix in `useGeminiLive`: extracted shared `handleSetupTimeout`, started timeout immediately after `new WebSocket(...)` while CONNECTING, and retained `clearSetupTimeout()` on setup-complete/error/close.
+- Extended protocol safety test `src/__tests__/geminiLiveProtocolSafety.test.ts` with ordering assertion (`setupTimeout` starts before `ws.onopen`) to guard against future regressions.
+- Verification: `npm test -- --run src/__tests__/geminiLiveProtocolSafety.test.ts`, `npm run lint`, `npm run typecheck`, `npm run build` all pass.
+
 2026-03-19 — Join approval dashboard hydration + notification deep-link hardening
 - Root-caused recurring "Join Request Approved but trip missing on dashboard" to `tripService.getUserTrips()` using a `trip_members.status` filter without fallback. In schema-drift/legacy environments where `status` is unavailable, the member-trip query fails and member cards disappear even though approval notifications succeed.
 - Added compatibility fallback in `getUserTrips()` to retry `trip_members` membership lookup without `status` filter when the column is unavailable, matching existing fallback strategy already used by other member queries.
