@@ -148,3 +148,10 @@
 - Added visible abuse-reporting entry points in Support and Consumer General Settings (`safety@chravelapp.com`) to improve launch trust/compliance readiness.
 - Tightened chunk error recovery heuristic in `App.tsx` by removing generic `Failed to fetch` from chunk detection.
 - Verification: `npm test -- --run src/native/__tests__/pushRouting.test.ts`, `npm run typecheck`, `npm run lint` completed successfully (lint has existing repo-wide warnings only).
+
+2026-03-21 — Event detail non-chat height regression rollback (PR #1061 follow-up)
+- Investigated PR #1061 layout changes and found a behavioral regression: non-chat event tabs were unintentionally changed from desktop `md:h-[calc(100vh-320px)]` to `md:h-[calc(100vh-240px)]`, despite "chat-only" intent.
+- Root cause: chat-layout refactor coupled shared container class changes for both chat and non-chat paths in `EventDetailContent`.
+- Fix: extracted tab-specific class selection into `src/components/events/eventDetailLayout.ts`, preserved chat dvh sizing, and restored legacy non-chat desktop height baseline.
+- Added regression test `src/components/events/__tests__/eventDetailLayout.test.ts` to lock `chat` dvh classes and `non-chat` desktop `100vh-320px` class contract.
+- Verification: `npm test -- --run src/components/events/__tests__/eventDetailLayout.test.ts src/features/chat/components/__tests__/ChatInput.test.tsx`, `npm run typecheck`, `npm run lint`, `npm run build` all pass (lint warnings are existing repo-wide warnings).
