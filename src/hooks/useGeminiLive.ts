@@ -137,6 +137,14 @@ const SILENT_KEEPALIVE_FRAME = (() => {
   return btoa(binary);
 })();
 
+/**
+ * Tools whose responses should be sent with `scheduling: 'SILENT'` to prevent
+ * the model from audibly reading back sensitive content (PDFs, receipts, etc.).
+ * Write/action tools (addToCalendar, createTask, etc.) are NOT silenced so the
+ * model confirms actions conversationally.
+ */
+const SILENT_TOOLS = new Set(['searchTripArtifacts']);
+
 let idCounter = 0;
 function uniqueId(prefix: string): string {
   idCounter += 1;
@@ -545,7 +553,16 @@ export function useGeminiLive({
       );
 
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
+        // Apply SILENT scheduling only for privacy-sensitive read-only tools
+        // so the model doesn't audibly narrate document contents aloud.
+        const hasSilentTool = responses.some(r => SILENT_TOOLS.has(r.name));
+        const toolResponsePayload: Record<string, unknown> = {
+          functionResponses: responses,
+        };
+        if (hasSilentTool) {
+          toolResponsePayload.scheduling = 'SILENT';
+        }
+        ws.send(JSON.stringify({ toolResponse: toolResponsePayload }));
       }
     },
     [],
@@ -861,44 +878,50 @@ export function useGeminiLive({
           ws.send(JSON.stringify(sessionData.setupMessage));
         }
         setupTimeoutId = setTimeout(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            const msg = `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`;
-            voiceLog('G2:ws_setup_timeout', {
-              sessionAttemptId,
-              wsMessageCount,
-              msFromStart: Math.round(performance.now() - t0),
+          // Handle timeout regardless of WebSocket state — covers both
+          // "WS opened but setup never completed" AND "WS never opened at all"
+          // (e.g. DNS failure, token rejected, Vertex AI unreachable).
+          const isOpen = ws.readyState === WebSocket.OPEN;
+          const msg = isOpen
+            ? `Voice setup timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s (received ${wsMessageCount} messages). Please try again.`
+            : `Voice connection timed out after ${WEBSOCKET_SETUP_TIMEOUT_MS / 1000}s. Check your connection and try again.`;
+          voiceLog('G2:ws_setup_timeout', {
+            sessionAttemptId,
+            wsMessageCount,
+            wsReadyState: ws.readyState,
+            isOpen,
+            msFromStart: Math.round(performance.now() - t0),
+          });
+          recordVoiceFailure(msg);
+
+          // Auto-reconnect only if we've had a prior successful session
+          if (
+            autoReconnectAllowedRef.current &&
+            autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
+            !isCircuitBreakerOpen()
+          ) {
+            autoReconnectCountRef.current += 1;
+            const attempt = autoReconnectCountRef.current;
+            voiceLog('auto_reconnect:setup_timeout', {
+              attempt,
+              max: MAX_AUTO_RECONNECT_RETRIES,
             });
-            recordVoiceFailure(msg);
-
-            // Auto-reconnect only if we've had a prior successful session
-            if (
-              autoReconnectAllowedRef.current &&
-              autoReconnectCountRef.current < MAX_AUTO_RECONNECT_RETRIES &&
-              !isCircuitBreakerOpen()
-            ) {
-              autoReconnectCountRef.current += 1;
-              const attempt = autoReconnectCountRef.current;
-              voiceLog('auto_reconnect:setup_timeout', {
-                attempt,
-                max: MAX_AUTO_RECONNECT_RETRIES,
-              });
-              patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
-              transition('reconnecting', 'auto_reconnect_pending');
-              setError(null);
-              void cleanup().then(() => {
-                autoReconnectTimerRef.current = setTimeout(() => {
-                  autoReconnectTimerRef.current = null;
-                  void startSessionRef.current();
-                }, AUTO_RECONNECT_DELAY_MS);
-              });
-              return;
-            }
-
-            onErrorRef.current?.(msg);
-            setError(msg);
-            transition('error', 'setup_timeout');
-            void cleanup();
+            patchDiagnostics({ substep: `Retrying… (${attempt}/${MAX_AUTO_RECONNECT_RETRIES})` });
+            transition('reconnecting', 'auto_reconnect_pending');
+            setError(null);
+            void cleanup().then(() => {
+              autoReconnectTimerRef.current = setTimeout(() => {
+                autoReconnectTimerRef.current = null;
+                void startSessionRef.current();
+              }, AUTO_RECONNECT_DELAY_MS);
+            });
+            return;
           }
+
+          onErrorRef.current?.(msg);
+          setError(msg);
+          transition('error', 'setup_timeout');
+          void cleanup();
         }, WEBSOCKET_SETUP_TIMEOUT_MS);
       };
 

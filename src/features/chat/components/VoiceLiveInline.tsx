@@ -281,11 +281,11 @@ export function VoiceLiveInline({
         </p>
       </div>
 
-      {/* Bottom half — mirrors top flex-1 for true vertical centering */}
-      <div className="flex-1 min-h-0 flex flex-col items-center w-full">
+      {/* Bottom half — user transcript + end button */}
+      <div className="flex-1 min-h-0 flex flex-col w-full">
         {/* User transcript — below bar, premium gold */}
         <div
-          className="flex-shrink-0 w-full max-w-[90%] sm:max-w-2xl mt-4 min-h-[2.5rem]"
+          className="flex-1 w-full max-w-[90%] sm:max-w-2xl mt-4 min-h-[2.5rem] mx-auto"
           role="log"
           aria-label="Your speech"
           aria-live="polite"
@@ -301,8 +301,8 @@ export function VoiceLiveInline({
           )}
         </div>
 
-        {/* End session button — 48px touch target */}
-        <div className="flex-shrink-0 mt-4">
+        {/* End session button — pinned to lower-left, above dictation button */}
+        <div className="flex-shrink-0 pb-1 pl-1">
           <button
             type="button"
             onClick={onEndSession}
