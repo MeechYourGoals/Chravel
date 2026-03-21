@@ -36,7 +36,7 @@ function isValidBroadcastPayload(
   // Required fields that every legitimate message must have
   if (typeof payload.id !== 'string' || !payload.id) return false;
   if (typeof payload.trip_id !== 'string' || payload.trip_id !== expectedTripId) return false;
-  if (typeof payload.content !== 'string') return false;
+  if (typeof payload.content !== 'string' || payload.content.length === 0) return false;
   if (typeof payload.user_id !== 'string' || !payload.user_id) return false;
   if (typeof payload.created_at !== 'string' || !payload.created_at) return false;
   return true;
@@ -45,6 +45,9 @@ function isValidBroadcastPayload(
 /**
  * Subscribe to broadcast messages for a trip.
  * Uses private channels (requires authenticated Supabase session).
+ * Note: Private channels enforce auth (user must be logged in) but do not
+ * verify trip membership. The trip_id match in isValidBroadcastPayload
+ * provides defense-in-depth against cross-trip payload injection.
  * Validates payloads before passing to the callback.
  *
  * @param tripId - Trip to subscribe to
