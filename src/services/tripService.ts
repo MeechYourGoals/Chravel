@@ -444,14 +444,14 @@ export const tripService = {
       const tripIds = allTrips.map(t => t.id);
 
       const [membersResult, eventsResult] = await Promise.all([
-        supabase.from('trip_members').select('trip_id, user_id').in('trip_id', tripIds).limit(2000),
+        supabase.from('trip_members').select('trip_id, user_id').in('trip_id', tripIds).limit(5000),
         supabase
           .from('trip_events')
           .select('trip_id, location')
           .in('trip_id', tripIds)
           .not('location', 'is', null)
           .neq('location', '')
-          .limit(2000),
+          .limit(5000),
       ]);
 
       // Count members per trip and track user_ids for creator check
@@ -588,7 +588,7 @@ export const tripService = {
         .select('id, user_id, role, created_at')
         .eq('trip_id', tripId)
         .or('status.is.null,status.eq.active')
-        .limit(200);
+        .limit(500);
 
       let data = initialData;
       if (error) {
@@ -599,7 +599,8 @@ export const tripService = {
           const fallback = await supabase
             .from('trip_members')
             .select('id, user_id, role, created_at')
-            .eq('trip_id', tripId);
+            .eq('trip_id', tripId)
+            .limit(500);
           if (fallback.error) throw fallback.error;
           data = fallback.data ?? [];
         } else {
@@ -615,7 +616,7 @@ export const tripService = {
         .from('profiles_public')
         .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
         .in('user_id', userIds)
-        .limit(200);
+        .limit(500);
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);

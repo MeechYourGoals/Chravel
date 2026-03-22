@@ -453,7 +453,7 @@ class ChannelService {
             .from('channel_members')
             .select('channel_id, user_id')
             .in('channel_id', channelIds)
-            .limit(500);
+            .limit(2000);
 
           // Build a map of channel_id -> Set<user_id> for deduplication
           const channelMemberMap = new Map<string, Set<string>>();
