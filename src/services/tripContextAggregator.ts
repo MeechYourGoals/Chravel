@@ -306,7 +306,8 @@ export class TripContextAggregator {
           role
         `,
         )
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .limit(200);
 
       if (error) throw error;
 
@@ -316,7 +317,8 @@ export class TripContextAggregator {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles_public')
         .select('user_id, display_name, resolved_display_name, first_name, last_name')
-        .in('user_id', memberIds);
+        .in('user_id', memberIds)
+        .limit(200);
 
       if (profilesError) throw profilesError;
 
@@ -383,7 +385,8 @@ export class TripContextAggregator {
         .from('trip_events')
         .select('id, title, start_time, end_time, location, description')
         .eq('trip_id', tripId)
-        .order('start_time', { ascending: true });
+        .order('start_time', { ascending: true })
+        .limit(200);
 
       if (error) throw error;
 
@@ -410,7 +413,8 @@ export class TripContextAggregator {
       const { data, error } = (await supabase
         .from('trip_tasks')
         .select('id, content, assignee_id, due_date, is_complete, profiles:assignee_id(full_name)')
-        .eq('trip_id', tripId)) as {
+        .eq('trip_id', tripId)
+        .limit(200)) as {
         data: Array<{
           id: string;
           content: string;
@@ -443,12 +447,14 @@ export class TripContextAggregator {
 
   private static async fetchPayments(tripId: string) {
     try {
+      // AI context only — safe to limit; does not affect user-facing payment UI
       const { data, error } = (await supabase
         .from('trip_payment_messages')
         .select(
           'id, description, amount, created_by, split_participants, is_settled, profiles:created_by(full_name)',
         )
-        .eq('trip_id', tripId)) as {
+        .eq('trip_id', tripId)
+        .limit(200)) as {
         data: Array<{
           id: string;
           description: string;
@@ -486,7 +492,8 @@ export class TripContextAggregator {
       const { data, error } = await supabase
         .from('trip_polls')
         .select('id, question, options, status')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .limit(200);
 
       if (error) throw error;
 
@@ -519,7 +526,8 @@ export class TripContextAggregator {
       const placesResult = (await (supabase as any)
         .from('trip_places')
         .select('name, address, category, lat, lng')
-        .eq('trip_id', tripId)) as {
+        .eq('trip_id', tripId)
+        .limit(200)) as {
         data: Array<{
           name: string;
           address: string;
@@ -588,7 +596,8 @@ export class TripContextAggregator {
         .select(
           'id, file_name, file_type, file_url, uploaded_by, created_at, profiles:uploaded_by(full_name)',
         )
-        .eq('trip_id', tripId)) as {
+        .eq('trip_id', tripId)
+        .limit(200)) as {
         data: Array<{
           id: string;
           file_name: string;
@@ -626,7 +635,8 @@ export class TripContextAggregator {
       const { data, error } = (await supabase
         .from('trip_links')
         .select('id, url, title, category, added_by, profiles:added_by(full_name)')
-        .eq('trip_id', tripId)) as {
+        .eq('trip_id', tripId)
+        .limit(200)) as {
         data: Array<{
           id: string;
           url: string;

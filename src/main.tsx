@@ -11,6 +11,17 @@ import { isLovablePreview } from './utils/env';
 import App from './App.tsx';
 import './index.css';
 
+// ── Startup env validation ──────────────────────────────────────────────────
+// Warn early if required env vars are missing (Supabase client has hardcoded
+// fallbacks so the app still boots, but this surfaces misconfig in dev/staging).
+const REQUIRED_ENV_VARS = ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'] as const;
+const missingEnvVars = REQUIRED_ENV_VARS.filter(k => !import.meta.env[k]);
+if (missingEnvVars.length > 0) {
+  console.warn(
+    `[Chravel] Missing env vars: ${missingEnvVars.join(', ')}. Using hardcoded fallbacks.`,
+  );
+}
+
 // ── Imperative init (runs after all imports are resolved) ──────────────────
 
 const safeLocalStorageGet = (key: string): string | null => {

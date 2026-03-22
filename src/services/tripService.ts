@@ -336,7 +336,8 @@ export const tripService = {
         .eq('created_by', activeUserId)
         .eq('is_archived', false)
         .eq('is_hidden', false)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (tripType) {
         query = query.eq('trip_type', tripType);
@@ -351,7 +352,8 @@ export const tripService = {
         .from('trip_join_requests')
         .select('trip_id, status')
         .eq('user_id', activeUserId)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .limit(100);
 
       if (pendingError) {
         console.error('Error fetching pending requests:', pendingError);
@@ -368,7 +370,8 @@ export const tripService = {
           .select(TRIP_LIST_COLUMNS)
           .in('id', pendingTripIds)
           .eq('is_archived', false)
-          .eq('is_hidden', false);
+          .eq('is_hidden', false)
+          .limit(500); // Scoped by user's pending join request IDs — safe upper bound
 
         if (!pendingTripsError && pendingTripsData) {
           pendingTrips = pendingTripsData.map(trip => ({
@@ -389,11 +392,13 @@ export const tripService = {
 
       // Also fetch trips where user is an active member (not creator).
       // Compatibility fallback: older environments may not have trip_members.status yet.
+      // Generous limit — scoped by single user_id, won't realistically exceed 1000
       let memberTripsQueryResult = await supabase
         .from('trip_members')
         .select('trip_id')
         .eq('user_id', activeUserId)
-        .or('status.is.null,status.eq.active');
+        .or('status.is.null,status.eq.active')
+        .limit(1000);
 
       const memberStatusColumnMissing =
         memberTripsQueryResult.error?.message?.toLowerCase().includes('status') ||
@@ -403,7 +408,8 @@ export const tripService = {
         memberTripsQueryResult = await supabase
           .from('trip_members')
           .select('trip_id')
-          .eq('user_id', activeUserId);
+          .eq('user_id', activeUserId)
+          .limit(1000);
       }
 
       const { data: memberTrips, error: memberError } = memberTripsQueryResult;
@@ -438,13 +444,14 @@ export const tripService = {
       const tripIds = allTrips.map(t => t.id);
 
       const [membersResult, eventsResult] = await Promise.all([
-        supabase.from('trip_members').select('trip_id, user_id').in('trip_id', tripIds),
+        supabase.from('trip_members').select('trip_id, user_id').in('trip_id', tripIds).limit(5000),
         supabase
           .from('trip_events')
           .select('trip_id, location')
           .in('trip_id', tripIds)
           .not('location', 'is', null)
-          .neq('location', ''),
+          .neq('location', '')
+          .limit(5000),
       ]);
 
       // Count members per trip and track user_ids for creator check
@@ -580,7 +587,8 @@ export const tripService = {
         .from('trip_members')
         .select('id, user_id, role, created_at')
         .eq('trip_id', tripId)
-        .or('status.is.null,status.eq.active');
+        .or('status.is.null,status.eq.active')
+        .limit(500);
 
       let data = initialData;
       if (error) {
@@ -591,7 +599,8 @@ export const tripService = {
           const fallback = await supabase
             .from('trip_members')
             .select('id, user_id, role, created_at')
-            .eq('trip_id', tripId);
+            .eq('trip_id', tripId)
+            .limit(500);
           if (fallback.error) throw fallback.error;
           data = fallback.data ?? [];
         } else {
@@ -606,7 +615,8 @@ export const tripService = {
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles_public')
         .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
-        .in('user_id', userIds);
+        .in('user_id', userIds)
+        .limit(500);
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -649,12 +659,15 @@ export const tripService = {
       .eq('id', tripId)
       .maybeSingle();
 
-    // Fetch members: try with status filter first (if column exists), fallback without
+    // Fetch members: try with status filter first (if column exists), fallback without.
+    // Safety limit(500): scoped by single trip_id — no trip will have 500+ members.
+    // RLS enforces access server-side before the limit is applied.
     let membersResult = await supabase
       .from('trip_members')
       .select('id, user_id, role, created_at')
       .eq('trip_id', tripId)
-      .or('status.is.null,status.eq.active');
+      .or('status.is.null,status.eq.active')
+      .limit(500);
 
     const statusColumnError =
       membersResult.error?.message?.toLowerCase().includes('status') ||
@@ -664,7 +677,8 @@ export const tripService = {
       membersResult = await supabase
         .from('trip_members')
         .select('id, user_id, role, created_at')
-        .eq('trip_id', tripId);
+        .eq('trip_id', tripId)
+        .limit(500);
     }
 
     // CRITICAL: Check for auth/RLS/network errors and THROW (don't silently return empty)
@@ -734,7 +748,8 @@ export const tripService = {
     const { data: profilesData } = await supabase
       .from('profiles_public')
       .select('user_id, display_name, first_name, last_name, resolved_display_name, avatar_url')
-      .in('user_id', userIds);
+      .in('user_id', userIds)
+      .limit(500);
 
     const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
 

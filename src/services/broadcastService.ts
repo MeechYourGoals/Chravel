@@ -76,7 +76,8 @@ export const broadcastService = {
         .from('broadcasts')
         .select('*')
         .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       return (data || []) as Broadcast[];
@@ -178,7 +179,8 @@ export const broadcastService = {
       const { data, error } = await supabase
         .from('broadcast_reactions')
         .select('*')
-        .eq('broadcast_id', broadcastId);
+        .eq('broadcast_id', broadcastId)
+        .limit(500);
 
       if (error) throw error;
       return data || [];
